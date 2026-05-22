@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Notifications;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+
+class DeliverableUpdated extends Notification
+{
+    public $deliverable;
+    public $message;
+    public $type;
+    public $actor;
+
+    /**
+     * Create a new notification instance.
+     */
+    public function __construct($deliverable, $message, $type, $actor)
+    {
+        $this->deliverable = $deliverable;
+        $this->message = $message;
+        $this->type = $type;
+        $this->actor = $actor;
+    }
+
+    /**
+     * Get the notification's delivery channels.
+     *
+     * @return array<int, string>
+     */
+    public function via(object $notifiable): array
+    {
+        return ['database', 'mail'];
+    }
+
+    /**
+     * Get the mail representation of the notification.
+     */
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('Deliverable Update: ' . $this->deliverable->title)
+            ->greeting('Hello ' . $notifiable->name . ',')
+            ->line($this->actor->name . ' ' . $this->message)
+            ->action('View Deliverable', $this->toArray($notifiable)['url'])
+            ->line('Thank you for using Loops!');
+    }
+
+    /**
+     * Get the array representation of the notification.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'deliverable_id' => $this->deliverable->id,
+            'deliverable_title' => $this->deliverable->title,
+            'message' => $this->message,
+            'type' => $this->type,
+            'actor_name' => $this->actor->name,
+            'actor_avatar' => $this->actor->avatar_url,
+            'url' => route('projects.show', $this->deliverable->project_id) . '?deliverable_id=' . $this->deliverable->id,
+        ];
+    }
+}

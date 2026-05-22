@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(grep -A 10 \"projects\")",
+      "Bash(php artisan *)",
+      "Bash(Remove-Item -Recurse -Force scratch)",
+      "Bash(Test-Path \"c:\\\\Users\\\\Shimal-LoopsIT\\\\Desktop\\\\Ongoing\\\\loops-work\\\\resources\\\\views\\\\brands\\\\retainer_board.blade.php\")"
+    ]
+  }
+}
