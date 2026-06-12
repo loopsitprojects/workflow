@@ -1,301 +1,144 @@
-<x-layout title="Initialize Brand">
-    <style>
-        .premium-form-container {
-            max-width: 800px;
-            margin: 20px auto;
-            background: var(--color-bg-primary);
-            border-radius: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-            border: 1px solid var(--color-border-primary);
-            overflow: hidden;
-            font-family: 'Inter', -apple-system, sans-serif;
-            transition: background 0.3s, border-color 0.3s;
-        }
-        .form-section {
-            padding: 30px 40px;
-            border-bottom: 1px solid var(--color-border-primary);
-        }
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-        }
-        .grid-cell {
-            padding: 50px 60px;
-            border-bottom: 1px solid var(--color-border-primary);
-        }
-        .grid-cell.border-r {
-            border-right: 1px solid var(--color-border-primary);
-        }
-        .field-label {
-            display: block;
-            font-size: 9px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.25em;
-            color: #94a3b8;
-            margin-bottom: 12px;
-        }
-        .field-label.primary {
-            color: #2563eb;
-        }
-        .massive-input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            outline: none;
-            font-size: 32px;
-            font-weight: 900;
-            color: var(--color-text-primary);
-            letter-spacing: -0.05em;
-            padding: 0;
-            margin-top: 5px;
-        }
-        .massive-input::placeholder {
-            color: var(--color-border-primary);
-        }
-        .styled-input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-        .input-prefix {
-            position: absolute;
-            left: 20px;
-            font-size: 10px;
-            font-weight: 900;
-            text-transform: uppercase;
-            color: #3b82f6;
-            pointer-events: none;
-            z-index: 10;
-        }
-        .styled-input {
-            width: 100%;
-            background: var(--color-bg-secondary);
-            border: 2px solid transparent;
-            border-radius: 20px;
-            padding: 20px 24px;
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--color-text-primary);
-            transition: all 0.2s;
-            outline: none;
-        }
-        .styled-input:focus {
-            background: var(--color-bg-primary);
-            border-color: #3b82f620;
-            box-shadow: 0 0 0 4px #3b82f605;
-        }
-        .styled-input.with-prefix {
-            padding-left: 95px;
-        }
-        .styled-input.with-icon {
-            padding-left: 55px;
-        }
-        .input-icon {
-            position: absolute;
-            left: 22px;
-            color: #cbd5e1;
-            pointer-events: none;
-        }
-        .status-pill {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: var(--color-bg-secondary);
-            border-radius: 20px;
-            padding: 20px 24px;
-            font-size: 14px;
-            font-weight: 900;
-            color: var(--color-text-secondary);
-        }
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #10b981;
-            box-shadow: 0 0 12px rgba(16,185,129,0.4);
-        }
-        .description-textarea {
-            width: 100%;
-            background: transparent;
-            border: none;
-            outline: none;
-            font-size: 18px;
-            line-height: 1.6;
-            color: var(--color-text-primary);
-            font-weight: 500;
-            resize: none;
-            padding: 40px;
-        }
-        .description-box {
-            background: var(--color-bg-secondary);
-            border-radius: 30px;
-            overflow: hidden;
-            margin-top: 20px;
-        }
-        .toolbar {
-            padding: 20px 30px;
-            border-bottom: 1px solid var(--color-border-primary);
-            display: flex;
-            gap: 30px;
-            color: #cbd5e1;
-        }
-        .footer-actions {
-            background: var(--color-bg-secondary);
-            padding: 25px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .btn {
-            padding: 18px 45px;
-            border-radius: 16px;
-            font-size: 11px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.2em;
-            transition: all 0.2s;
-            cursor: pointer;
-            border: none;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn-primary {
-            background: #0055D4;
-            color: #ffffff;
-            box-shadow: 0 15px 35px rgba(0,85,212,0.25);
-        }
-        .btn-primary:hover {
-            background: #0044aa;
-            transform: translateY(-2px);
-        }
-        .btn-outline {
-            background: var(--color-bg-primary);
-            color: var(--color-text-secondary);
-            border: 1px solid var(--color-border-primary);
-        }
-        .btn-outline:hover {
-            color: var(--color-text-primary);
-            background: var(--color-bg-secondary);
-        }
-        .help-link {
-            font-size: 10px;
-            font-weight: 900;
-            color: #3b82f6;
-            text-transform: uppercase;
-            letter-spacing: 0.2em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-        }
-    </style>
+<x-layout title="New Brand">
+<style>
+.f-wrap{max-width:640px;margin:24px auto;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:14px;overflow:hidden;font-family:'Inter',sans-serif;}
+.f-section{padding:20px 24px;border-bottom:1px solid var(--color-border-primary);}
+.f-label{display:block;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:7px;}
+.f-label.blue{color:#3b82f6;}
+.f-input{width:100%;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:500;color:var(--color-text-primary);outline:none;transition:border-color 0.15s;-webkit-appearance:none;appearance:none;}
+.f-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.1);}
+.f-title{width:100%;background:transparent;border:none;outline:none;font-size:20px;font-weight:800;color:var(--color-text-primary);letter-spacing:-0.02em;}
+.f-title::placeholder{opacity:0.25;color:var(--color-text-primary);}
+.f-footer{background:var(--color-bg-secondary);padding:14px 24px;display:flex;justify-content:flex-end;gap:8px;align-items:center;border-top:1px solid var(--color-border-primary);}
+.btn-c{padding:8px 18px;border-radius:8px;font-size:12px;font-weight:600;color:var(--color-text-secondary);background:transparent;border:1.5px solid var(--color-border-primary);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;transition:all 0.12s;}
+.btn-c:hover{background:var(--color-bg-secondary);color:var(--color-text-primary);}
+.btn-s{padding:8px 22px;border-radius:8px;font-size:12px;font-weight:700;color:#fff;background:#0055D4;border:none;cursor:pointer;box-shadow:0 3px 10px rgba(0,85,212,0.25);transition:all 0.12s;}
+.btn-s:hover{background:#0044aa;}
+.mp-wrap{border:1.5px solid var(--color-border-primary);border-radius:8px;overflow:hidden;}
+.mp-search{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--color-border-primary);background:var(--color-bg-secondary);}
+.mp-search input{flex:1;background:transparent;border:none;outline:none;font-size:12px;color:var(--color-text-primary);}
+.mp-search input::placeholder{color:var(--color-text-secondary);opacity:0.5;}
+.mp-list{max-height:220px;overflow-y:auto;}
+.mp-row{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--color-border-primary);transition:background 0.1s;}
+.mp-row:last-child{border-bottom:none;}
+.mp-row:hover{background:var(--color-bg-secondary);}
+.mp-row.selected{background:rgba(59,130,246,0.06);}
+.mp-init{width:28px;height:28px;border-radius:6px;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;flex-shrink:0;transition:all 0.12s;}
+.mp-row.selected .mp-init{background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3b82f6;}
+.mp-check{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--color-border-primary);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-left:auto;transition:all 0.12s;}
+.mp-row.selected .mp-check{background:#3b82f6;border-color:#3b82f6;}
+.mp-footer{border-top:1px solid var(--color-border-primary);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;background:var(--color-bg-secondary);}
+</style>
 
-    <div class="premium-form-container">
-        <form action="{{ route('brands.store') }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            
-            <!-- Header Section (Name) -->
-            <div class="form-section">
-                <label class="field-label primary">Brand Identity</label>
-                <input type="text" name="name" id="name" required placeholder="e.g., Acme Global" class="massive-input">
-                @error('name') <p style="color: #ef4444; font-size: 11px; font-weight: 700; margin-top: 20px;">{{ $message }}</p> @enderror
-            </div>
+<nav style="max-width:640px;margin:0 auto 12px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--color-text-secondary);">
+    <a href="{{ route('brands.index') }}" style="text-decoration:none;color:inherit;">Brands</a>
+    <span style="opacity:0.35;">/</span>
+    <span style="color:var(--color-text-primary);">New Brand</span>
+</nav>
 
-            <!-- Upload Section -->
-            <div class="form-section">
-                <label class="field-label">Brand Asset (Logo Upload)</label>
-                <div class="styled-input-wrapper" style="max-width: 50%;">
-                     <span class="input-icon" style="top: 50%; transform: translateY(-50%);">
-                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                    </span>
-                    <input type="file" name="logo" id="logo" accept="image/*" class="styled-input with-icon" style="padding-top: 15px; padding-bottom: 15px; cursor: pointer;">
+<div class="f-wrap">
+    <form action="{{ route('brands.store') }}" method="POST" enctype="multipart/form-data">
+        @csrf
+
+        {{-- Brand Name --}}
+        <div class="f-section">
+            <label class="f-label blue">Brand Name</label>
+            <input type="text" name="name" id="name" required placeholder="e.g., Acme Global" class="f-title">
+            @error('name') <p style="color:#ef4444;font-size:11px;margin-top:6px;">{{ $message }}</p> @enderror
+        </div>
+
+        {{-- Logo Upload --}}
+        <div class="f-section"
+             x-data="{
+                previewUrl: '',
+                handleFile(event) {
+                    const file = event.target.files[0];
+                    if (file) { const reader = new FileReader(); reader.onload = (e) => { this.previewUrl = e.target.result; }; reader.readAsDataURL(file); }
+                },
+                clearLogo() { this.previewUrl = ''; document.getElementById('logo').value = ''; }
+             }">
+            <label class="f-label">Brand Logo <span style="opacity:0.5;font-weight:400;">(PNG, JPG, SVG · max 2MB)</span></label>
+            <label for="logo"
+                   style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1.5px dashed var(--color-border-primary);border-radius:8px;background:var(--color-bg-secondary);cursor:pointer;transition:border-color 0.15s;"
+                   @dragover.prevent
+                   @drop.prevent="handleFile({ target: { files: $event.dataTransfer.files } })">
+                <div style="width:40px;height:40px;border-radius:6px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);">
+                    <template x-if="previewUrl">
+                        <img :src="previewUrl" style="width:100%;height:100%;object-fit:contain;">
+                    </template>
+                    <template x-if="!previewUrl">
+                        <svg style="width:18px;height:18px;color:#94a3b8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </template>
                 </div>
-                @error('logo') <p style="color: #ef4444; font-size: 11px; font-weight: 700; margin-top: 10px;">{{ $message }}</p> @enderror
-            </div>
-
-            <!-- Team Members Section -->
-            <div class="form-section" style="border-bottom: none;"
-                 x-data="{
-                    users: {{ \Illuminate\Support\Js::from($users->sortBy('role')->values()->map(fn($u) => ['id'=>$u->id,'name'=>$u->name,'email'=>$u->email,'role'=>$u->role])) }},
-                    selected: {{ \Illuminate\Support\Js::from(old('members', [])) }},
-                    search: '',
-                    get filtered() {
-                        const s = this.search.toLowerCase();
-                        return s ? this.users.filter(u => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s) || (u.role||'').toLowerCase().includes(s)) : this.users;
-                    },
-                    toggle(id) { const i=this.selected.indexOf(id.toString()); i>-1?this.selected.splice(i,1):this.selected.push(id.toString()); },
-                    isSelected(id) { return this.selected.includes(id.toString()); }
-                 }">
-                <label class="field-label">Team Members</label>
-
-                {{-- Search bar --}}
-                <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] mb-4">
-                    <svg class="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <input type="text" x-model="search" placeholder="Search by name, email or role…"
-                           class="flex-1 bg-transparent border-none outline-none text-sm text-gray-700 dark:text-slate-300 placeholder-gray-400 dark:placeholder-slate-500">
-                    <span x-show="search" @click="search=''" class="text-[10px] font-bold text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300 uppercase tracking-wide">Clear</span>
+                <div style="flex:1;">
+                    <p style="font-size:13px;font-weight:600;color:var(--color-text-primary);" x-text="previewUrl ? 'Change Logo' : 'Upload Brand Logo'"></p>
+                    <p style="font-size:11px;color:var(--color-text-secondary);margin-top:1px;">Click to browse or drag &amp; drop</p>
                 </div>
-
-                {{-- Card grid --}}
-                <div class="bg-gray-50/50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-white/[0.06] overflow-hidden">
-                    <div class="max-h-80 overflow-y-auto p-3 custom-scrollbar">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <template x-for="user in filtered" :key="user.id">
-                                <button type="button" @click="toggle(user.id)"
-                                        class="flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left"
-                                        :class="isSelected(user.id)
-                                            ? 'border-blue-500 bg-blue-500/5 dark:bg-blue-500/10'
-                                            : 'border-transparent bg-white dark:bg-[#111827] hover:border-blue-500/20 card-shadow'">
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        {{-- Initial circle --}}
-                                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold uppercase flex-shrink-0 transition-all"
-                                             :class="isSelected(user.id)
-                                                ? 'bg-blue-500 text-white'
-                                                : 'bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-slate-400'"
-                                             x-text="user.name.charAt(0)"></div>
-                                        <div class="min-w-0">
-                                            <p class="text-[13px] font-semibold truncate transition-colors"
-                                               :class="isSelected(user.id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'"
-                                               x-text="user.name"></p>
-                                            <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500"
-                                               x-text="user.role || 'Team'"></p>
-                                        </div>
-                                    </div>
-                                    {{-- Checkbox --}}
-                                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-2 transition-all"
-                                         :class="isSelected(user.id) ? 'bg-blue-500 border-blue-500' : 'border-gray-200 dark:border-slate-700'">
-                                        <svg x-show="isSelected(user.id)" class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                    </div>
-                                </button>
-                            </template>
-                            <template x-if="filtered.length === 0">
-                                <div class="col-span-2 py-8 text-center text-sm text-gray-400 dark:text-slate-500">No members match your search.</div>
-                            </template>
-                        </div>
-                    </div>
-
-                    {{-- Footer count --}}
-                    <div class="border-t border-gray-100 dark:border-white/[0.06] px-4 py-2.5 flex justify-between items-center bg-white dark:bg-[#111827]">
-                        <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Team Members</span>
-                        <span class="px-2.5 py-1 bg-blue-500 text-white text-[10px] font-bold rounded-full"
-                              x-text="selected.length + ' selected'"></span>
-                    </div>
-                </div>
-
-                <template x-for="userId in selected" :key="'hidden-'+userId">
-                    <input type="hidden" name="members[]" :value="userId">
+                <template x-if="previewUrl">
+                    <span style="padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(16,185,129,0.1);color:#10b981;">&#10003; Set</span>
                 </template>
-                @error('members')<p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:8px;">{{ $message }}</p>@enderror
+                <input type="file" name="logo" id="logo" accept="image/*" class="hidden" @change="handleFile($event)">
+            </label>
+            <div x-show="previewUrl" style="display:none;margin-top:6px;">
+                <button type="button" @click="clearLogo()" style="font-size:11px;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                    <svg style="width:10px;height:10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Remove logo
+                </button>
             </div>
+            @error('logo') <p style="color:#ef4444;font-size:11px;margin-top:8px;">{{ $message }}</p> @enderror
+        </div>
 
-            <!-- Footer -->
-            <div class="footer-actions">
-                <div style="display: flex; gap: 20px;">
-                    <a href="{{ route('brands.index') }}" class="btn btn-outline">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Create Brand</button>
+        {{-- Team Members --}}
+        <div class="f-section" style="border-bottom:none;"
+             x-data="{
+                users: {{ \Illuminate\Support\Js::from($users->sortBy('role')->values()->map(fn($u) => ['id'=>$u->id,'name'=>$u->name,'email'=>$u->email,'role'=>$u->role])) }},
+                selected: {{ \Illuminate\Support\Js::from(old('members', [])) }},
+                search: '',
+                get filtered() {
+                    const s = this.search.toLowerCase();
+                    return s ? this.users.filter(u => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s) || (u.role||'').toLowerCase().includes(s)) : this.users;
+                },
+                toggle(id) { const i=this.selected.indexOf(id.toString()); i>-1?this.selected.splice(i,1):this.selected.push(id.toString()); },
+                isSelected(id) { return this.selected.includes(id.toString()); }
+             }">
+            <label class="f-label">Team Members</label>
+            <div class="mp-wrap">
+                <div class="mp-search">
+                    <svg style="width:12px;height:12px;flex-shrink:0;color:var(--color-text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" x-model="search" placeholder="Search by name, email or role…">
+                    <span x-show="search" @click="search=''" style="font-size:10px;font-weight:600;color:var(--color-text-secondary);cursor:pointer;">Clear</span>
+                </div>
+                <div class="mp-list">
+                    <template x-for="user in filtered" :key="user.id">
+                        <div class="mp-row" :class="{ selected: isSelected(user.id) }" @click="toggle(user.id)">
+                            <div class="mp-init" x-text="user.name.charAt(0)"></div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:13px;font-weight:600;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" x-text="user.name"></div>
+                                <div style="font-size:10px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.04em;" x-text="user.role || 'Team'"></div>
+                            </div>
+                            <div class="mp-check">
+                                <svg x-show="isSelected(user.id)" style="width:8px;height:8px;" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="filtered.length === 0">
+                        <div style="padding:20px;text-align:center;font-size:12px;color:var(--color-text-secondary);">No members match your search.</div>
+                    </template>
+                </div>
+                <div class="mp-footer">
+                    <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.06em;">Members</span>
+                    <span style="padding:2px 8px;background:#3b82f6;color:#fff;font-size:10px;font-weight:700;border-radius:20px;" x-text="selected.length + ' selected'"></span>
                 </div>
             </div>
-        </form>
-    </div>
+            <template x-for="userId in selected" :key="'hidden-'+userId">
+                <input type="hidden" name="members[]" :value="userId">
+            </template>
+            @error('members')<p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:8px;">{{ $message }}</p>@enderror
+        </div>
+
+        <div class="f-footer">
+            <a href="{{ route('brands.index') }}" class="btn-c">Cancel</a>
+            <button type="submit" class="btn-s">Create Brand</button>
+        </div>
+    </form>
+</div>
 </x-layout>

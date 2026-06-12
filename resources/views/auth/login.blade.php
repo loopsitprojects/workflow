@@ -59,13 +59,13 @@
     </div>
 </div>
 
-        <div class="glass-card rounded-[32px] p-10 shadow-2xl shadow-gray-200/50 dark:shadow-none">
+        <div class="glass-card rounded-2xl p-8 shadow-2xl shadow-gray-200/50 dark:shadow-none">
             <form action="{{ route('login') }}" method="POST" class="space-y-6">
                 @csrf
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Email or Username</label>
+                    <label class="block text-[11px] font-semibold text-gray-400 dark:text-slate-500 mb-2 ml-1">Email or Username</label>
                     <input type="text" name="login" value="{{ old('login') }}" required autofocus autocomplete="username"
-                        class="w-full px-5 py-4 bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-sm font-medium dark:text-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none placeholder:text-gray-300 dark:placeholder:text-slate-600"
+                        class="w-full px-4 py-2.5 bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl text-[13px] font-medium dark:text-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none placeholder:text-gray-300 dark:placeholder:text-slate-600"
                         placeholder="admin@loops.com or admin">
                     @error('login')
                         <p class="mt-2 text-xs font-bold text-red-500 ml-1">{{ $message }}</p>
@@ -74,11 +74,11 @@
 
                 <div x-data="{ show: false }">
                     <div class="flex justify-between items-center mb-2 ml-1">
-                        <label class="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Password</label>
+                        <label class="text-[11px] font-semibold text-gray-400 dark:text-slate-500">Password</label>
                     </div>
                     <div class="relative">
                         <input :type="show ? 'text' : 'password'" name="password" required
-                            class="w-full px-5 py-4 pr-14 bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-sm font-medium dark:text-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none placeholder:text-gray-300 dark:placeholder:text-slate-600"
+                            class="w-full px-4 py-2.5 pr-12 bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl text-[13px] font-medium dark:text-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none placeholder:text-gray-300 dark:placeholder:text-slate-600"
                             placeholder="••••••••">
                         <button type="button" @click="show = !show"
                                 class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors"
@@ -98,8 +98,8 @@
                     <label for="remember" class="ml-3 text-sm font-medium text-gray-500 dark:text-slate-400">Stay signed in</label>
                 </div>
 
-                <button type="submit" 
-                    class="w-full py-5 bg-[#007AFF] text-white rounded-2xl text-[13px] font-extrabold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-blue-500/25 active:scale-[0.98]">
+                <button type="submit"
+                    class="w-full py-2.5 bg-[#0055D4] text-white rounded-xl text-[13px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98]">
                     Sign In
                 </button>
             </form>

@@ -15,12 +15,14 @@ class BrandController extends Controller
 
     public function create()
     {
+        if (!auth()->user()->isAdmin()) abort(403);
         $users = \App\Models\User::all();
         return view('brands.create', compact('users'));
     }
 
     public function store(Request $request)
     {
+        if (!auth()->user()->isAdmin()) abort(403);
         // Auto-generate slug from name if not provided
         if (!$request->filled('slug')) {
             $request->merge(['slug' => \Illuminate\Support\Str::slug($request->name)]);
@@ -116,6 +118,11 @@ class BrandController extends Controller
         if ($request->has('members')) {
             $brand->members()->sync($request->members);
             $brand->update(['total_members' => count($request->members)]);
+            
+            // Sync all projects under the brand
+            foreach ($brand->projects as $project) {
+                $project->members()->sync($request->members);
+            }
         }
 
         return redirect()->route('brands.index')->with('success', 'Brand updated successfully.');

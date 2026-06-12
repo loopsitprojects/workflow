@@ -57,6 +57,7 @@
                 </div>
             @endforeach
 
+            @if(auth()->user()->isAdmin())
             <!-- Create New Brand Placeholder -->
             <a href="{{ route('brands.create') }}" class="border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center text-center group cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all min-h-[300px]">
                 <div class="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-100 dark:group-hover:bg-blue-900 transition-colors">
@@ -67,10 +68,12 @@
                 <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Create New Brand</h3>
                 <p class="text-sm text-gray-500 dark:text-slate-400 max-w-[200px] leading-relaxed">Launch a new dedicated workspace for your team or client.</p>
             </a>
+            @endif
         </div>
 
         <!-- ========== EDIT MODAL ========== -->
 
+        @if(auth()->user()->isAdmin())
         <!-- Backdrop -->
         <div x-show="editOpen"
              x-transition:enter="transition ease-out duration-200"
@@ -89,7 +92,7 @@
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 scale-95"
              x-transition:enter-end="opacity-100 scale-100"
-             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave="transition ease-in duration-75"
              x-transition:leave-start="opacity-100 scale-100"
              x-transition:leave-end="opacity-0 scale-95"
              class="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -253,6 +256,7 @@
 
             </div>
         </div>
+        @endif
 
     </div>
 </x-layout>

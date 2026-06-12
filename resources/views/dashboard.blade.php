@@ -74,19 +74,15 @@
                     <a href="{{ route('projects.show', $task->project_id) }}"
                        class="flex items-center justify-between bg-white dark:bg-[#111827] rounded-xl px-5 py-4 border border-gray-100 dark:border-white/[0.05] card-shadow hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-md transition-all mb-2 group">
                         <div class="flex items-center gap-4 min-w-0">
-                            {{-- Stage dot --}}
+                            {{-- Priority dot --}}
                             @php
-                                $stageColors = [
-                                    'Writer'         => 'bg-sky-400',
-                                    'Assignee'       => 'bg-sky-400',
-                                    'Approver'       => 'bg-amber-400',
-                                    'Brand Manager'  => 'bg-blue-500',
-                                    'AM/BD'          => 'bg-blue-500',
-                                    'Coordinator'    => 'bg-indigo-400',
-                                    'Designer'       => 'bg-pink-400',
-                                    'Final Approval' => 'bg-emerald-400',
+                                $priorityColors = [
+                                    'High Priority' => 'bg-red-400',
+                                    'Medium'        => 'bg-amber-400',
+                                    'Standard'      => 'bg-gray-300 dark:bg-slate-600',
+                                    'Low'           => 'bg-gray-300 dark:bg-slate-600',
                                 ];
-                                $dot = $stageColors[$task->approval_stage] ?? 'bg-gray-300';
+                                $dot = $priorityColors[$task->priority] ?? 'bg-gray-300 dark:bg-slate-600';
                             @endphp
                             <div class="w-2 h-2 rounded-full flex-shrink-0 {{ $dot }}"></div>
                             <div class="min-w-0">

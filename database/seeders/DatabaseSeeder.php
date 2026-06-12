@@ -15,33 +15,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Default Admin
+        // Only seed admin1
         User::updateOrCreate(
-            ['email' => 'admin@loops.com'],
+            ['email' => 'admin1@loops.com'],
             [
-                'name' => 'Alex Sterling',
-                'username' => 'admin',
+                'name' => 'admin1',
+                'username' => 'admin1',
                 'password' => \Illuminate\Support\Facades\Hash::make('password'),
                 'role' => 'Admin',
             ]
         );
 
-        $roles = ['Admin', 'Writer', 'Approver', 'Brand Manager', 'Designer', 'Coordinator', 'Traffic Coordinator'];
-
-        foreach ($roles as $role) {
-            for ($i = 1; $i <= 2; $i++) {
-                $roleSlug = strtolower(str_replace(' ', '', $role));
-
-                User::updateOrCreate(
-                    ['email' => "{$roleSlug}{$i}@loops.com"],
-                    [
-                        'name' => "{$role} User {$i}",
-                        'username' => "{$roleSlug}{$i}",
-                        'password' => \Illuminate\Support\Facades\Hash::make('password'),
-                        'role' => $role,
-                    ]
-                );
-            }
-        }
+        $this->call(SubtaskTypeSeeder::class);
     }
 }

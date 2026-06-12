@@ -89,6 +89,7 @@ class DeliverableController extends Controller
 
         // Standard logic for 0 or 2+ subtasks, or adding to existing parent
         $parentData = \Illuminate\Support\Arr::except($validated, ['subtasks']);
+        $parentData['priority'] = $parentData['priority'] ?? 'Medium';
         
         if ($parentId) {
             $parentTask = Deliverable::findOrFail($parentId);
@@ -132,7 +133,7 @@ class DeliverableController extends Controller
                     'reference' => $sub['reference'] ?? null,
                     'reference_file' => $refFile,
                     'deadline' => $sub['deadline'] ?? $parentTask->deadline,
-                    'priority' => $sub['priority'] ?? $parentTask->priority,
+                    'priority' => $sub['priority'] ?? ($parentTask->priority ?? 'Medium'),
                     'approval_stage' => ($parentTask->project && in_array($parentTask->project->workflow_type, ['campaign', 'pitch'])) ? Deliverable::CAMPAIGN_STAGES[0] : Deliverable::STAGES[0],
                     'writer_id' => $writerId,
                     'assignee_name' => $writerName,
@@ -151,17 +152,18 @@ class DeliverableController extends Controller
     public function edit(Deliverable $deliverable)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
         $projects = Project::all();
         $users = \App\Models\User::where('role', 'Writer')->get();
+        $approvers = \App\Models\User::whereIn('role', ['Approver', 'Admin'])->get();
         $subtaskTypes = \App\Models\SubtaskType::all();
-        return view('deliverables.edit', compact('deliverable', 'projects', 'users', 'subtaskTypes'));
+        return view('deliverables.edit', compact('deliverable', 'projects', 'users', 'approvers', 'subtaskTypes'));
     }
 
     public function update(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
         if ($request->has('toggle_status')) {
             // Manual toggle disabled as per new workflow-locked requirement
             return response()->json(['success' => false, 'message' => 'Manual completion disabled. Use the workflow stages instead.']);
@@ -185,11 +187,23 @@ class DeliverableController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
             'approver_id' => 'nullable|exists:users,id',
+            'writer_id' => 'nullable|exists:users,id',
             'approval_stage' => 'nullable|string',
             'final_designs' => 'nullable|string',
             'revisions' => 'nullable|integer',
             'is_ready' => 'nullable|boolean',
         ]);
+
+        if ($request->has('writer_id')) {
+            $writerId = $request->input('writer_id');
+            $validated['writer_id'] = $writerId;
+            if ($writerId) {
+                $u = \App\Models\User::find($writerId);
+                $validated['assignee_name'] = $u ? $u->name : 'Unassigned';
+            } else {
+                $validated['assignee_name'] = 'Unassigned';
+            }
+        }
 
         if ($request->hasFile('reference_file')) {
             $path = $request->file('reference_file')->store('references', 'public');
@@ -215,6 +229,48 @@ class DeliverableController extends Controller
      */
     public function submitStage(Request $request, Deliverable $deliverable)
     {
+        if ($request->has('delete_final_designs')) {
+            $user = auth()->user();
+            $userRole = strtolower(str_replace(' ', '', $user->role));
+            $isAssignedDesigner = $user->id == $deliverable->designer_id;
+            $designerEditPermission = $isAssignedDesigner || ($userRole === 'designer' && !$deliverable->designer_id);
+            
+            if (!$user->isAdmin() && !($designerEditPermission && $deliverable->approval_stage === 'Designer')) {
+                abort(403, 'Unauthorized action.');
+            }
+            
+            if ($deliverable->final_designs) {
+                $relativePath = str_replace(asset('storage') . '/', '', $deliverable->final_designs);
+                if (\Illuminate\Support\Facades\Storage::disk('public')->exists($relativePath)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($relativePath);
+                }
+                $deliverable->final_designs = null;
+                $deliverable->save();
+            }
+            
+            return $request->wantsJson()
+                ? response()->json(['success' => true, 'message' => 'Artwork file removed.'])
+                : redirect()->back()->with('success', 'Artwork file removed successfully.');
+        }
+
+        if ($request->has('delete_final_designs_link')) {
+            $user = auth()->user();
+            $userRole = strtolower(str_replace(' ', '', $user->role));
+            $isAssignedDesigner = $user->id == $deliverable->designer_id;
+            $designerEditPermission = $isAssignedDesigner || ($userRole === 'designer' && !$deliverable->designer_id);
+            
+            if (!$user->isAdmin() && !($designerEditPermission && $deliverable->approval_stage === 'Designer')) {
+                abort(403, 'Unauthorized action.');
+            }
+            
+            $deliverable->final_designs_link = null;
+            $deliverable->save();
+            
+            return $request->wantsJson()
+                ? response()->json(['success' => true, 'message' => 'Artwork link removed.'])
+                : redirect()->back()->with('success', 'Artwork link removed successfully.');
+        }
+
         if ($request->input('action') === 'save_only') {
             if ($request->has('concept')) $deliverable->concept = $request->concept;
             if ($request->has('notes')) $deliverable->notes = $request->notes;
@@ -222,6 +278,7 @@ class DeliverableController extends Controller
             if ($request->has('post_copy')) $deliverable->post_copy = $request->post_copy;
             if ($request->has('reference')) $deliverable->reference = $request->reference;
             if ($request->has('final_designs_link')) $deliverable->final_designs_link = $request->final_designs_link;
+            if ($request->has('work_hours')) $deliverable->work_hours = $request->work_hours ?: null;
             
             if ($request->hasFile('reference_file')) {
                 $path = $request->file('reference_file')->store('references', 'public');
@@ -229,7 +286,7 @@ class DeliverableController extends Controller
             }
 
             if ($request->hasFile('final_designs_file')) {
-                $path = $request->file('final_designs_file')->store('deliveries', 'public');
+                $path = $request->file('final_designs_file')->store('artwork', 'public');
                 $deliverable->final_designs = asset('storage/' . $path);
             }
             
@@ -240,12 +297,40 @@ class DeliverableController extends Controller
                 : redirect()->back()->with('success', 'Deliverable content saved successfully.');
         }
 
-        $result = $this->internallyAdvanceStage($deliverable, $request->all());
+        $result = $this->internallyAdvanceStage($deliverable, array_merge($request->all(), $request->allFiles()));
 
         if (!$result['success']) {
             return $request->wantsJson() 
                 ? response()->json(['success' => false, 'message' => $result['message']], $result['code'] ?? 422)
                 : redirect()->back()->with('error', $result['message']);
+        }
+
+        // If this is a subtask, automatically sync parent stage if all subtasks have advanced
+        if ($deliverable->parent_deliverable_id) {
+            $parent = $deliverable->parent;
+            if ($parent) {
+                $siblingSubtasks = $parent->subtasks()->get();
+                $stages = $deliverable->getStages();
+                $minStageIdx = null;
+
+                foreach ($siblingSubtasks as $sub) {
+                    $idx = array_search($sub->approval_stage, $stages);
+                    if ($idx === false) continue;
+                    if ($minStageIdx === null || $idx < $minStageIdx) {
+                        $minStageIdx = $idx;
+                    }
+                }
+
+                if ($minStageIdx !== null) {
+                    $parentIdx = array_search($parent->approval_stage, $stages);
+                    if ($parentIdx !== false && $minStageIdx > $parentIdx) {
+                        $parent->approval_stage = $stages[$minStageIdx];
+                        $parent->progress_percent = $parent->getStageProgress();
+                        $parent->status = ($parent->approval_stage === 'Closed') ? 'Done' : 'To Do';
+                        $parent->save();
+                    }
+                }
+            }
         }
 
         return $request->wantsJson() 
@@ -263,6 +348,22 @@ class DeliverableController extends Controller
         // Ensure we have current subtasks
         $deliverable->load('subtasks');
         $subtasks = $deliverable->subtasks;
+
+        // Enforce: if one of the subtasks has been individually submitted (its stage is ahead of the parent's stage), block batch submit!
+        $parentStage = $deliverable->approval_stage;
+        $stages = $deliverable->getStages();
+        $currIdx = array_search($parentStage, $stages);
+
+        foreach ($subtasks as $subtask) {
+            $subIdx = array_search($subtask->approval_stage, $stages);
+            if ($subIdx !== false && $currIdx !== false && $subIdx > $currIdx) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This batch cannot be submitted because one or more subtasks have already been submitted individually.'
+                ], 422);
+            }
+        }
+
         $allTasks = collect([$deliverable])->concat($subtasks->all());
         
         $nextStage = $deliverable->getNextStage();
@@ -281,7 +382,14 @@ class DeliverableController extends Controller
         try {
             \DB::beginTransaction();
 
+            $parentStage = $deliverable->approval_stage;
+
             foreach ($allTasks as $task) {
+                // Skip tasks that are not at the same stage as the parent (they have either moved ahead or are behind)
+                if ($task->id !== $deliverable->id && $task->approval_stage !== $parentStage) {
+                    continue;
+                }
+
                 // Ensure task belongs to the same project context if needed
                 $taskSpecificData = $batchData[$task->id] ?? [];
                 $mergedData = array_merge($request->all(), $taskSpecificData);
@@ -290,6 +398,34 @@ class DeliverableController extends Controller
                 if (!$result['success']) {
                     \DB::rollBack();
                     return response()->json(['success' => false, 'message' => "Task #{$task->id} failed: " . $result['message']], 422);
+                }
+            }
+
+            // Sync parent stage if a subtask was individually submitted
+            if ($deliverable->parent_deliverable_id) {
+                $parent = $deliverable->fresh()->parent;
+                if ($parent) {
+                    $siblingSubtasks = $parent->subtasks()->get();
+                    $stageList = $deliverable->getStages();
+                    $minStageIdx = null;
+
+                    foreach ($siblingSubtasks as $sub) {
+                        $idx = array_search($sub->approval_stage, $stageList);
+                        if ($idx === false) continue;
+                        if ($minStageIdx === null || $idx < $minStageIdx) {
+                            $minStageIdx = $idx;
+                        }
+                    }
+
+                    if ($minStageIdx !== null) {
+                        $parentIdx = array_search($parent->approval_stage, $stageList);
+                        if ($parentIdx !== false && $minStageIdx > $parentIdx) {
+                            $parent->approval_stage = $stageList[$minStageIdx];
+                            $parent->progress_percent = $parent->getStageProgress();
+                            $parent->status = ($parent->approval_stage === 'Closed') ? 'Done' : 'To Do';
+                            $parent->save();
+                        }
+                    }
                 }
             }
 
@@ -332,9 +468,20 @@ class DeliverableController extends Controller
             }
         }
 
-        if ($dryRun) return ['success' => true];
-
         $oldStage = $deliverable->approval_stage ?? $stages[0];
+
+        if ($oldStage === 'Designer') {
+            $user = auth()->user();
+            if ($user && $user->role === 'Designer' && $deliverable->designer_id != $user->id) {
+                return [
+                    'success' => false,
+                    'message' => 'Only the assigned designer can send this deliverable.',
+                    'code' => 403
+                ];
+            }
+        }
+
+        if ($dryRun) return ['success' => true];
 
         // Content updates
         if (isset($data['concept'])) $deliverable->concept = $data['concept'];
@@ -357,7 +504,7 @@ class DeliverableController extends Controller
             
             // Handle file upload if present in the data array
             if (isset($data['final_designs_file']) && $data['final_designs_file'] instanceof \Illuminate\Http\UploadedFile) {
-                $path = $data['final_designs_file']->store('deliveries', 'public');
+                $path = $data['final_designs_file']->store('artwork', 'public');
                 $deliverable->final_designs = asset('storage/' . $path);
             }
         }
@@ -380,7 +527,11 @@ class DeliverableController extends Controller
         $deliverable->save();
 
         // History
-        $deliverable->approvalsHistory()->create(['user_id' => auth()->id(), 'stage' => $oldStage]);
+        $deliverable->approvalsHistory()->create([
+            'user_id' => auth()->id(),
+            'stage'   => $oldStage,
+            'notes'   => $data['submit_notes'] ?? null,
+        ]);
         $deliverable->revisionsHistory()->whereNull('fixed_by_user_id')->latest()->first()?->update(['fixed_by_user_id' => auth()->id(), 'fixed_at' => now()]);
 
         // Notify
@@ -405,8 +556,8 @@ class DeliverableController extends Controller
             $oldStage = $deliverable->approval_stage;
             \Illuminate\Support\Facades\Log::info("Deliverable {$deliverable->id} requesting revision from stage: '{$oldStage}'");
             
-            // If we are in Final Approval, we send it back specifically to the Designer (if exists) or Assignee
-            if ($oldStage === 'Final Approval') {
+            // Final Approval, Writer Review, and Approver Review all send back to Designer
+            if (in_array($oldStage, ['Final Approval', 'Writer Review', 'Approver Review'])) {
                 if (in_array('Designer', $stages)) {
                     $deliverable->approval_stage = 'Designer';
                 } else {
@@ -465,7 +616,7 @@ class DeliverableController extends Controller
                 $oldStage = $task->approval_stage;
 
                 // Revert logic similar to single requestRevisions
-                if ($oldStage === 'Final Approval') {
+                if (in_array($oldStage, ['Final Approval', 'Writer Review', 'Approver Review'])) {
                     $task->approval_stage = in_array('Designer', $stages) ? 'Designer' : $firstStage;
                 } else {
                     $task->approval_stage = $firstStage;
@@ -509,9 +660,335 @@ class DeliverableController extends Controller
      */
     public function destroy(Deliverable $deliverable)
     {
-        if (!auth()->user()->isAdmin()) abort(403);
+        $user = auth()->user();
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') {
+            abort(403);
+        }
         $deliverable->delete();
         return redirect()->back()->with('success', 'Deliverable deleted successfully.');
+    }
+
+    /**
+     * Export Deliverable to PDF
+     */
+    public function exportPdf(Deliverable $deliverable)
+    {
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('deliverables.pdf', compact('deliverable'));
+        return $pdf->download(str_replace(' ', '_', $deliverable->title) . '.pdf');
+    }
+
+    /**
+     * Export Deliverable to DOCX
+     */
+    public function exportDocx(Deliverable $deliverable)
+    {
+        $phpWord = new \PhpOffice\PhpWord\PhpWord();
+        $section = $phpWord->addSection();
+
+        $section->addText($deliverable->subtask_type ?? 'Standard', ['bold' => true, 'color' => '475569', 'size' => 10]);
+        $section->addText($deliverable->title, ['name' => 'Helvetica', 'size' => 16, 'bold' => true, 'color' => '0055D4']);
+        $section->addText('Stage: ' . $deliverable->approval_stage, ['bold' => true, 'color' => '4338ca', 'size' => 10]);
+        $section->addTextBreak(1);
+
+        if ($deliverable->revision_instructions) {
+            $section->addText('REVISION REQUESTED', ['bold' => true, 'color' => 'ef4444']);
+            $section->addText($deliverable->revision_instructions, ['color' => 'ef4444']);
+            $section->addTextBreak(1);
+        }
+
+        if ($deliverable->notes) {
+            $section->addText('MANAGER NOTES', ['bold' => true]);
+            $section->addText($deliverable->notes);
+            $section->addTextBreak(1);
+        }
+
+        if ($deliverable->concept) {
+            $section->addText('CONCEPT', ['bold' => true]);
+            $section->addText($deliverable->concept);
+            $section->addTextBreak(1);
+        }
+
+        if ($deliverable->caption) {
+            $section->addText('CAPTION', ['bold' => true]);
+            $section->addText($deliverable->caption);
+            $section->addTextBreak(1);
+        }
+
+        if ($deliverable->post_copy) {
+            $section->addText('POST COPY', ['bold' => true]);
+            $section->addText($deliverable->post_copy);
+            $section->addTextBreak(1);
+        }
+
+        $section->addText('REFERENCE', ['bold' => true]);
+        if ($deliverable->reference) {
+            $section->addLink($deliverable->reference, $deliverable->reference);
+        } elseif ($deliverable->reference_file) {
+            $section->addLink($deliverable->reference_file, 'Attached File');
+        } else {
+            $section->addText('None', ['color' => '94a3b8']);
+        }
+        $section->addTextBreak(1);
+
+        $section->addText('ARTWORK', ['bold' => true]);
+        if ($deliverable->final_designs) {
+            $section->addLink($deliverable->final_designs, 'Attached Artwork');
+        } elseif ($deliverable->final_designs_link) {
+            $section->addLink($deliverable->final_designs_link, $deliverable->final_designs_link);
+        } else {
+            $section->addText('Pending', ['color' => '94a3b8']);
+        }
+        $section->addTextBreak(1);
+
+        $section->addText('TEAM', ['bold' => true]);
+        $team = [
+            'Writer' => $deliverable->writer->name ?? 'Unassigned',
+            'Designer' => $deliverable->designer->name ?? 'Unassigned',
+            'Approver' => $deliverable->approver->name ?? 'Unassigned',
+            'Brand Manager' => $deliverable->brandManager->name ?? 'Unassigned',
+        ];
+        foreach ($team as $role => $name) {
+            $section->addText($role . ': ' . $name);
+        }
+
+        $fileName = str_replace(' ', '_', $deliverable->title) . '.docx';
+        $tempFile = tempnam(sys_get_temp_dir(), 'docx');
+        $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
+        $objWriter->save($tempFile);
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Export Deliverable to PPTX
+     */
+    public function exportPpt(Deliverable $deliverable)
+    {
+        $prs = new \PhpOffice\PhpPresentation\PhpPresentation();
+        $this->buildPptSlide($prs->getActiveSlide(), $deliverable);
+
+        $fileName = str_replace(' ', '_', $deliverable->title) . '.pptx';
+        $tmpFile  = tempnam(sys_get_temp_dir(), 'pptx');
+        \PhpOffice\PhpPresentation\IOFactory::createWriter($prs, 'PowerPoint2007')->save($tmpFile);
+
+        return response()->download($tmpFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Batch Export Deliverables to PDF
+     */
+    public function exportBatchPdf(Deliverable $deliverable)
+    {
+        $deliverables = $deliverable->subtasks->isNotEmpty() ? $deliverable->subtasks : collect([$deliverable]);
+        $parent = $deliverable;
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('deliverables.batch_pdf', compact('deliverables', 'parent'));
+        $fileName = str_replace(' ', '_', $deliverable->title) . '_batch.pdf';
+        
+        return $pdf->download($fileName);
+    }
+
+    /**
+     * Batch Export Deliverables to PPTX
+     */
+    public function exportBatchPpt(Deliverable $deliverable)
+    {
+        $deliverables = $deliverable->subtasks->isNotEmpty()
+            ? $deliverable->subtasks
+            : collect([$deliverable]);
+
+        $prs = new \PhpOffice\PhpPresentation\PhpPresentation();
+        $prs->removeSlideByIndex(0);
+
+        foreach ($deliverables as $task) {
+            $this->buildPptSlide($prs->createSlide(), $task);
+        }
+
+        $fileName = str_replace(' ', '_', $deliverable->title) . '_batch.pptx';
+        $tmpFile  = tempnam(sys_get_temp_dir(), 'pptx');
+        \PhpOffice\PhpPresentation\IOFactory::createWriter($prs, 'PowerPoint2007')->save($tmpFile);
+
+        return response()->download($tmpFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Resolve a stored image URL to an absolute local filesystem path.
+     * Images are stored as asset('storage/...') URLs; this extracts the
+     * relative part after /storage/ and maps it to storage/app/public/.
+     */
+    private function pptLocalImagePath(?string $url): ?string
+    {
+        if (!$url) return null;
+        if (!preg_match('/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i', $url)) return null;
+
+        if (preg_match('#/storage/(.+?)(\?.*)?$#i', $url, $m)) {
+            $abs = storage_path('app/public/' . $m[1]);
+            if (file_exists($abs)) return $abs;
+        }
+        // Fallback: already an absolute filesystem path
+        if (file_exists($url)) return $url;
+        return null;
+    }
+
+    /**
+     * Build a single professional deliverable slide.
+     * Layout: blue header bar → left text column + right image column.
+     */
+    private function buildPptSlide(\PhpOffice\PhpPresentation\Slide $slide, $task): void
+    {
+        $color = fn(string $hex) => new \PhpOffice\PhpPresentation\Style\Color($hex);
+        $Fill  = \PhpOffice\PhpPresentation\Style\Fill::class;
+        $Border = \PhpOffice\PhpPresentation\Style\Border::class;
+
+        $refPath   = $this->pptLocalImagePath($task->reference_file);
+        $artPath   = $this->pptLocalImagePath($task->final_designs);
+        $hasImages = $refPath || $artPath;
+
+        // Slide canvas (px, 96dpi, default 4:3 = 960×720)
+        $SW = 960; $SH = 720;
+        $headerH = 72; $footerH = 18;
+        $contentY = $headerH + 6;
+        $contentH = $SH - $headerH - $footerH - 8;
+
+        // Column widths
+        $textX = 22;
+        $textW = $hasImages ? 488 : ($SW - 44);
+        $imgX  = 532;
+        $imgW  = $SW - $imgX - 18;
+
+        // ── Blue header background ──────────────────────────────
+        $hdrBg = $slide->createRichTextShape()
+            ->setHeight($headerH)->setWidth($SW)->setOffsetX(0)->setOffsetY(0);
+        $hdrBg->getFill()->setFillType($Fill::FILL_SOLID)
+              ->setStartColor($color('FF0055D4'));
+        $hdrBg->getBorder()->setLineStyle($Border::LINE_NONE);
+
+        // ── Header text ─────────────────────────────────────────
+        $hdr = $slide->createRichTextShape()
+            ->setHeight($headerH - 4)->setWidth($SW - 40)->setOffsetX(20)->setOffsetY(4);
+        $hdr->getBorder()->setLineStyle($Border::LINE_NONE);
+
+        $run = $hdr->createTextRun('[' . ($task->subtask_type ?? 'Standard') . ']  ');
+        $run->getFont()->setSize(8)->setColor($color('FFBFDBFE'));
+
+        $hdr->createBreak();
+        $run = $hdr->createTextRun($task->title);
+        $run->getFont()->setBold(true)->setSize(17)->setColor($color('FFFFFFFF'));
+
+        $hdr->createBreak();
+        $run = $hdr->createTextRun('● ' . ($task->approval_stage ?? ''));
+        $run->getFont()->setSize(8)->setColor($color('FF93C5FD'));
+
+        // ── Column divider ───────────────────────────────────────
+        if ($hasImages) {
+            $div = $slide->createRichTextShape()
+                ->setHeight($contentH)->setWidth(1)->setOffsetX($imgX - 10)->setOffsetY($contentY);
+            $div->getFill()->setFillType($Fill::FILL_SOLID)
+                ->setStartColor($color('FFE2E8F0'));
+            $div->getBorder()->setLineStyle($Border::LINE_NONE);
+        }
+
+        // ── Text sections (left column) ─────────────────────────
+        $offsetY = $contentY;
+        $maxBottom = $SH - $footerH - 6;
+
+        $addSection = function(string $label, ?string $content) use (
+            $slide, $textX, $textW, &$offsetY, $maxBottom, $color, $Fill, $Border
+        ) {
+            if (!$content || trim($content) === '') return;
+            if ($offsetY >= $maxBottom) return;
+
+            $isRevision = $label === 'REVISION REQUESTED';
+
+            // Section label
+            $lbl = $slide->createRichTextShape()
+                ->setHeight(14)->setWidth($textW)->setOffsetX($textX)->setOffsetY($offsetY);
+            $lbl->getBorder()->setLineStyle($Border::LINE_NONE);
+            $lr = $lbl->createTextRun($label);
+            $lr->getFont()->setBold(true)->setSize(7)
+               ->setColor($color($isRevision ? 'FFEF4444' : 'FF94A3B8'));
+            $offsetY += 14;
+
+            // Content block
+            $excerpt  = mb_strlen($content) > 350 ? mb_substr($content, 0, 347) . '…' : $content;
+            $lines    = max(1, (int) ceil(mb_strlen($excerpt) / 65));
+            $blockH   = min((int)($lines * 13) + 10, 110);
+            $blockH   = min($blockH, $maxBottom - $offsetY);
+            if ($blockH < 12) return;
+
+            $blk = $slide->createRichTextShape()
+                ->setHeight($blockH)->setWidth($textW)->setOffsetX($textX)->setOffsetY($offsetY);
+            $blk->getFill()->setFillType($Fill::FILL_NONE);
+            $blk->getBorder()->setLineStyle($Border::LINE_NONE);
+
+            $run = $blk->createTextRun($excerpt);
+            $run->getFont()->setSize(9)->setColor($color($isRevision ? 'FF991B1B' : 'FF334155'));
+            $blk->getActiveParagraph()->getAlignment()->setMarginLeft(6)->setMarginTop(4);
+
+            $offsetY += $blockH + 8;
+        };
+
+        if ($task->revision_instructions) {
+            $addSection('REVISION REQUESTED', $task->revision_instructions);
+        }
+        $addSection('CONCEPT', $task->concept);
+        $addSection('CAPTION', $task->caption);
+        $addSection('COPY',    $task->post_copy ?: ($task->subtask_copy ?? null));
+        $addSection('NOTES',   $task->notes);
+
+        // ── Images (right column) ────────────────────────────────
+        if ($hasImages) {
+            $imgPairs  = array_filter([['REFERENCE', $refPath], ['ARTWORK', $artPath]],
+                                      fn($p) => (bool) $p[1]);
+            $totalImgs = count($imgPairs);
+            $imgY      = $contentY;
+            $slotH     = (int) ($contentH / $totalImgs);
+
+            foreach ($imgPairs as [$label, $path]) {
+                // Label
+                $lbl = $slide->createRichTextShape()
+                    ->setHeight(14)->setWidth($imgW)->setOffsetX($imgX)->setOffsetY($imgY);
+                $lbl->getBorder()->setLineStyle($Border::LINE_NONE);
+                $lr = $lbl->createTextRun($label);
+                $lr->getFont()->setBold(true)->setSize(7)->setColor($color('FF94A3B8'));
+                $imgY += 16;
+
+                // Scale image to fit slot while preserving aspect ratio
+                $maxH = $slotH - 22;
+                $maxW = $imgW;
+                [$origW, $origH] = @getimagesize($path) ?: [1, 1];
+                if ($origW > 0 && $origH > 0) {
+                    $ratio   = $origW / $origH;
+                    $fitH    = min($maxH, (int)($maxW / $ratio));
+                    $fitW    = min($maxW, (int)($fitH * $ratio));
+                } else {
+                    $fitW = $maxW;
+                    $fitH = $maxH;
+                }
+
+                $drawing = new \PhpOffice\PhpPresentation\Shape\Drawing\File();
+                $drawing->setName($label)->setPath($path)
+                        ->setWidth($fitW)->setHeight($fitH)
+                        ->setOffsetX($imgX)->setOffsetY($imgY);
+                $slide->addShape($drawing);
+
+                $imgY += $slotH;
+            }
+        }
+
+        // ── Footer bar ───────────────────────────────────────────
+        $ftrBg = $slide->createRichTextShape()
+            ->setHeight($footerH)->setWidth($SW)->setOffsetX(0)->setOffsetY($SH - $footerH);
+        $ftrBg->getFill()->setFillType($Fill::FILL_SOLID)->setStartColor($color('FFF8FAFC'));
+        $ftrBg->getBorder()->setLineStyle($Border::LINE_NONE);
+
+        $brand   = $task->project->brand->name ?? '';
+        $project = $task->project->name ?? '';
+        $ftr = $slide->createRichTextShape()
+            ->setHeight($footerH)->setWidth($SW - 40)->setOffsetX(20)->setOffsetY($SH - $footerH);
+        $ftr->getBorder()->setLineStyle($Border::LINE_NONE);
+        $fr = $ftr->createTextRun(implode('  ·  ', array_filter(['Loops Work', $brand, $project])));
+        $fr->getFont()->setSize(7)->setColor($color('FF94A3B8'));
     }
 }
 

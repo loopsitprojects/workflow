@@ -1,324 +1,175 @@
 <x-layout title="Edit {{ $brand->name }}">
-    <style>
-        .premium-form-container {
-            max-width: 800px;
-            margin: 40px auto;
-            background: var(--color-bg-primary);
-            border-radius: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-            border: 1px solid var(--color-border-primary);
-            overflow: hidden;
-            font-family: 'Inter', -apple-system, sans-serif;
-            transition: background 0.3s, border-color 0.3s;
-        }
-        .form-section {
-            padding: 40px;
-            border-bottom: 1px solid var(--color-border-primary);
-        }
-        .field-label {
-            display: block;
-            font-size: 9px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.25em;
-            color: #94a3b8;
-            margin-bottom: 12px;
-        }
-        .field-label.primary {
-            color: #2563eb;
-        }
-        .massive-input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            outline: none;
-            font-size: 32px;
-            font-weight: 900;
-            color: var(--color-text-primary);
-            letter-spacing: -0.05em;
-            padding: 0;
-            margin-top: 5px;
-        }
-        .massive-input::placeholder {
-            color: var(--color-border-primary);
-        }
-        .styled-input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-        .styled-input {
-            width: 100%;
-            background: var(--color-bg-secondary);
-            border: 2px solid transparent;
-            border-radius: 20px;
-            padding: 20px 24px;
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--color-text-primary);
-            transition: all 0.2s;
-            outline: none;
-        }
-        .styled-input:focus {
-            background: var(--color-bg-primary);
-            border-color: #3b82f620;
-            box-shadow: 0 0 0 4px #3b82f605;
-        }
-        .styled-input.with-icon {
-            padding-left: 55px;
-        }
-        .input-icon {
-            position: absolute;
-            left: 22px;
-            color: #cbd5e1;
-            pointer-events: none;
-        }
-        .footer-actions {
-            background: var(--color-bg-secondary);
-            padding: 25px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .btn {
-            padding: 18px 45px;
-            border-radius: 16px;
-            font-size: 11px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.2em;
-            transition: all 0.2s;
-            cursor: pointer;
-            border: none;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn-primary {
-            background: #0055D4;
-            color: #ffffff;
-            box-shadow: 0 15px 35px rgba(0,85,212,0.25);
-        }
-        .btn-primary:hover {
-            background: #0044aa;
-            transform: translateY(-2px);
-        }
-        .btn-outline {
-            background: var(--color-bg-primary);
-            color: var(--color-text-secondary);
-            border: 1px solid var(--color-border-primary);
-        }
-        .btn-outline:hover {
-            color: var(--color-text-primary);
-            background: var(--color-bg-secondary);
-        }
-        .btn-danger {
-            background: transparent;
-            color: #f87171;
-            font-size: 10px;
-        }
-        .btn-danger:hover {
-            color: #ef4444;
-        }
-    </style>
+<style>
+.f-wrap{max-width:640px;margin:24px auto;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:14px;overflow:hidden;font-family:'Inter',sans-serif;}
+.f-section{padding:20px 24px;border-bottom:1px solid var(--color-border-primary);}
+.f-label{display:block;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:7px;}
+.f-label.blue{color:#3b82f6;}
+.f-input{width:100%;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:500;color:var(--color-text-primary);outline:none;transition:border-color 0.15s;-webkit-appearance:none;appearance:none;}
+.f-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.1);}
+.f-title{width:100%;background:transparent;border:none;outline:none;font-size:20px;font-weight:800;color:var(--color-text-primary);letter-spacing:-0.02em;}
+.f-title::placeholder{opacity:0.25;color:var(--color-text-primary);}
+.f-footer{background:var(--color-bg-secondary);padding:14px 24px;display:flex;justify-content:space-between;gap:8px;align-items:center;border-top:1px solid var(--color-border-primary);}
+.btn-c{padding:8px 18px;border-radius:8px;font-size:12px;font-weight:600;color:var(--color-text-secondary);background:transparent;border:1.5px solid var(--color-border-primary);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;transition:all 0.12s;}
+.btn-c:hover{background:var(--color-bg-secondary);color:var(--color-text-primary);}
+.btn-s{padding:8px 22px;border-radius:8px;font-size:12px;font-weight:700;color:#fff;background:#0055D4;border:none;cursor:pointer;box-shadow:0 3px 10px rgba(0,85,212,0.25);transition:all 0.12s;}
+.btn-s:hover{background:#0044aa;}
+.btn-d{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;color:#ef4444;background:transparent;border:1.5px solid rgba(239,68,68,0.2);cursor:pointer;transition:all 0.12s;}
+.btn-d:hover{background:rgba(239,68,68,0.05);}
+.mp-wrap{border:1.5px solid var(--color-border-primary);border-radius:8px;overflow:hidden;}
+.mp-search{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--color-border-primary);background:var(--color-bg-secondary);}
+.mp-search input{flex:1;background:transparent;border:none;outline:none;font-size:12px;color:var(--color-text-primary);}
+.mp-search input::placeholder{color:var(--color-text-secondary);opacity:0.5;}
+.mp-list{max-height:220px;overflow-y:auto;}
+.mp-row{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--color-border-primary);transition:background 0.1s;}
+.mp-row:last-child{border-bottom:none;}
+.mp-row:hover{background:var(--color-bg-secondary);}
+.mp-row.selected{background:rgba(59,130,246,0.06);}
+.mp-init{width:28px;height:28px;border-radius:6px;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;flex-shrink:0;transition:all 0.12s;}
+.mp-row.selected .mp-init{background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#3b82f6;}
+.mp-check{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--color-border-primary);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-left:auto;transition:all 0.12s;}
+.mp-row.selected .mp-check{background:#3b82f6;border-color:#3b82f6;}
+.mp-footer{border-top:1px solid var(--color-border-primary);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;background:var(--color-bg-secondary);}
+</style>
 
-    <!-- Breadcrumbs -->
-    <div class="flex items-center gap-2 mb-6" style="font-size:11px; font-weight:700; color:var(--color-text-secondary);">
-        <a href="{{ route('brands.index') }}" class="flex items-center gap-1.5 hover:text-blue-500 transition-colors">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-            </svg>
-            Brand Directory
-        </a>
-        <svg class="w-3 h-3" style="color:var(--color-border-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        <span style="color:var(--color-text-primary);">{{ $brand->name }}</span>
-        <svg class="w-3 h-3" style="color:var(--color-border-primary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        <span style="color:#0055D4;">Edit</span>
+<nav style="max-width:640px;margin:0 auto 12px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--color-text-secondary);">
+    <a href="{{ route('brands.index') }}" style="text-decoration:none;color:inherit;">Brands</a>
+    <span style="opacity:0.35;">/</span>
+    <a href="{{ route('brands.show', $brand->slug) }}" style="text-decoration:none;color:inherit;">{{ $brand->name }}</a>
+    <span style="opacity:0.35;">/</span>
+    <span style="color:var(--color-text-primary);">Edit</span>
+</nav>
+
+<div class="f-wrap" x-data="{ showDeleteModal: false }">
+    {{-- Delete Confirmation Modal --}}
+    <div x-show="showDeleteModal" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+        <div class="bg-white dark:bg-[#111827] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-2xl p-6 w-full max-w-sm">
+            <div class="w-11 h-11 bg-red-50 dark:bg-red-500/10 rounded-xl flex items-center justify-center mb-4">
+                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </div>
+            <h3 class="text-[15px] font-bold text-gray-900 dark:text-white mb-1">Delete Brand</h3>
+            <p class="text-[13px] text-gray-500 dark:text-slate-400 mb-5">Are you sure you want to permanently delete <strong class="text-gray-800 dark:text-white">{{ $brand->name }}</strong>? All associated projects will be removed. This cannot be undone.</p>
+            <div class="flex gap-2 justify-end">
+                <button @click="showDeleteModal = false" class="px-4 py-2 rounded-lg text-[12px] font-semibold text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.10] transition-colors">Cancel</button>
+                <button @click="document.getElementById('delete-form').submit()" class="px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">Delete</button>
+            </div>
+        </div>
     </div>
 
-    <div class="premium-form-container">
-        <form action="{{ route('brands.update', $brand) }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            @method('PUT')
-            
-            <!-- Brand Name Section -->
-            <div class="form-section">
-                <label class="field-label primary">Brand Identity</label>
-                <input type="text" name="name" id="name" value="{{ old('name', $brand->name) }}" required placeholder="Brand Name" class="massive-input">
-                <input type="hidden" name="slug" value="{{ $brand->slug }}">
-                @error('name') <p style="color: #ef4444; font-size: 11px; font-weight: 700; margin-top: 20px;">{{ $message }}</p> @enderror
-            </div>
+    <form action="{{ route('brands.update', $brand) }}" method="POST" enctype="multipart/form-data">
+        @csrf
+        @method('PUT')
 
-            <!-- Logo Upload Section -->
-            <div class="form-section">
-                <label class="field-label">Brand Asset (Logo Upload)</label>
+        {{-- Brand Name --}}
+        <div class="f-section">
+            <label class="f-label blue">Brand Name</label>
+            <input type="text" name="name" id="name" value="{{ old('name', $brand->name) }}" required placeholder="Brand Name" class="f-title">
+            <input type="hidden" name="slug" value="{{ $brand->slug }}">
+            @error('name') <p style="color:#ef4444;font-size:11px;margin-top:6px;">{{ $message }}</p> @enderror
+        </div>
 
-                <div x-data="{
-                    previewUrl: '{{ addslashes($brand->logo_url ?? '') }}',
-                    handleFile(event) {
-                        const file = event.target.files[0];
-                        if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (e) => { this.previewUrl = e.target.result; };
-                            reader.readAsDataURL(file);
-                        }
-                    },
-                    clearLogo() {
-                        this.previewUrl = '';
-                        document.getElementById('logo').value = '';
-                    }
-                }">
-                    <!-- Upload area -->
-                    <label for="logo"
-                           class="flex items-center gap-5 p-5 rounded-2xl cursor-pointer transition-all"
-                           style="border: 2px dashed var(--color-border-primary); background: var(--color-bg-secondary);"
-                           @dragover.prevent
-                           @drop.prevent="handleFile({ target: { files: $event.dataTransfer.files } })">
-
-                        <!-- Preview / Placeholder -->
-                        <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center"
-                             style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary);">
-                            <template x-if="previewUrl">
-                                <img :src="previewUrl" class="w-full h-full object-contain">
-                            </template>
-                            <template x-if="!previewUrl">
-                                <svg class="w-8 h-8" style="color: #94a3b8;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
-                            </template>
-                        </div>
-
-                        <!-- Text info -->
-                        <div class="flex-1">
-                            <p class="text-sm font-bold" style="color: var(--color-text-primary);">
-                                <span x-text="previewUrl ? 'Change Logo' : 'Upload Brand Logo'"></span>
-                            </p>
-                            <p class="text-[11px] mt-1" style="color: var(--color-text-secondary);">
-                                Click to browse or drag &amp; drop &middot; PNG, JPG, SVG (max 2MB)
-                            </p>
-                            <input type="file" name="logo" id="logo" accept="image/*" class="hidden" @change="handleFile($event)">
-                        </div>
-
-                        <!-- Status badge -->
-                        <div>
-                            <template x-if="previewUrl">
-                                <span class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider" style="background: rgba(16,185,129,0.1); color: #10b981;">
-                                    &#10003; Logo Set
-                                </span>
-                            </template>
-                            <template x-if="!previewUrl">
-                                <span class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider" style="background: rgba(148,163,184,0.1); color: #94a3b8;">
-                                    No Logo
-                                </span>
-                            </template>
-                        </div>
-                    </label>
-
-                    <!-- Clear button -->
-                    <div x-show="previewUrl" style="display:none;">
-                        <button type="button" @click="clearLogo()" class="mt-3 text-[11px] font-bold flex items-center gap-1 transition-colors" style="color: #f87171;">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                            Remove logo
-                        </button>
-                    </div>
+        {{-- Logo Upload --}}
+        <div class="f-section"
+             x-data="{
+                previewUrl: '{{ addslashes($brand->logo_url ?? '') }}',
+                handleFile(event) {
+                    const file = event.target.files[0];
+                    if (file) { const reader = new FileReader(); reader.onload = (e) => { this.previewUrl = e.target.result; }; reader.readAsDataURL(file); }
+                },
+                clearLogo() { this.previewUrl = ''; document.getElementById('logo').value = ''; }
+             }">
+            <label class="f-label">Brand Logo <span style="opacity:0.5;font-weight:400;">(PNG, JPG, SVG · max 2MB)</span></label>
+            <label for="logo"
+                   style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1.5px dashed var(--color-border-primary);border-radius:8px;background:var(--color-bg-secondary);cursor:pointer;transition:border-color 0.15s;"
+                   @dragover.prevent
+                   @drop.prevent="handleFile({ target: { files: $event.dataTransfer.files } })">
+                <div style="width:40px;height:40px;border-radius:6px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);">
+                    <template x-if="previewUrl">
+                        <img :src="previewUrl" style="width:100%;height:100%;object-fit:contain;">
+                    </template>
+                    <template x-if="!previewUrl">
+                        <svg style="width:18px;height:18px;color:#94a3b8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </template>
                 </div>
-
-                @error('logo') <p style="color: #ef4444; font-size: 11px; font-weight: 700; margin-top: 10px;">{{ $message }}</p> @enderror
-            </div>
-
-            <!-- Team Members Section -->
-            <div class="form-section" style="border-bottom: none;"
-                 x-data="{
-                    users: {{ \Illuminate\Support\Js::from($users->sortBy('role')->values()->map(fn($u) => ['id'=>$u->id,'name'=>$u->name,'email'=>$u->email,'role'=>$u->role])) }},
-                    selected: {{ \Illuminate\Support\Js::from(old('members', $brand->members->pluck('id')->map(fn($id) => (string)$id)->toArray())) }},
-                    search: '',
-                    get filtered() {
-                        const s = this.search.toLowerCase();
-                        return s ? this.users.filter(u => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s) || (u.role||'').toLowerCase().includes(s)) : this.users;
-                    },
-                    toggle(id) { const i=this.selected.indexOf(id.toString()); i>-1?this.selected.splice(i,1):this.selected.push(id.toString()); },
-                    isSelected(id) { return this.selected.includes(id.toString()); }
-                 }">
-                <label class="field-label">Team Members</label>
-
-                {{-- Search bar --}}
-                <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] mb-4">
-                    <svg class="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <input type="text" x-model="search" placeholder="Search by name, email or role…"
-                           class="flex-1 bg-transparent border-none outline-none text-sm text-gray-700 dark:text-slate-300 placeholder-gray-400 dark:placeholder-slate-500">
-                    <span x-show="search" @click="search=''" class="text-[10px] font-bold text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:text-slate-300 uppercase tracking-wide">Clear</span>
+                <div style="flex:1;">
+                    <p style="font-size:13px;font-weight:600;color:var(--color-text-primary);" x-text="previewUrl ? 'Change Logo' : 'Upload Brand Logo'"></p>
+                    <p style="font-size:11px;color:var(--color-text-secondary);margin-top:1px;">Click to browse or drag &amp; drop</p>
                 </div>
-
-                {{-- Card grid --}}
-                <div class="bg-gray-50/50 dark:bg-white/[0.02] rounded-2xl border border-gray-100 dark:border-white/[0.06] overflow-hidden">
-                    <div class="max-h-80 overflow-y-auto p-3 custom-scrollbar">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <template x-for="user in filtered" :key="user.id">
-                                <button type="button" @click="toggle(user.id)"
-                                        class="flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left"
-                                        :class="isSelected(user.id)
-                                            ? 'border-blue-500 bg-blue-500/5 dark:bg-blue-500/10'
-                                            : 'border-transparent bg-white dark:bg-[#111827] hover:border-blue-500/20 card-shadow'">
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold uppercase flex-shrink-0 transition-all"
-                                             :class="isSelected(user.id)
-                                                ? 'bg-blue-500 text-white'
-                                                : 'bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-slate-400'"
-                                             x-text="user.name.charAt(0)"></div>
-                                        <div class="min-w-0">
-                                            <p class="text-[13px] font-semibold truncate transition-colors"
-                                               :class="isSelected(user.id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'"
-                                               x-text="user.name"></p>
-                                            <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500"
-                                               x-text="user.role || 'Team'"></p>
-                                        </div>
-                                    </div>
-                                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-2 transition-all"
-                                         :class="isSelected(user.id) ? 'bg-blue-500 border-blue-500' : 'border-gray-200 dark:border-slate-700'">
-                                        <svg x-show="isSelected(user.id)" class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                    </div>
-                                </button>
-                            </template>
-                            <template x-if="filtered.length === 0">
-                                <div class="col-span-2 py-8 text-center text-sm text-gray-400 dark:text-slate-500">No members match your search.</div>
-                            </template>
-                        </div>
-                    </div>
-
-                    <div class="border-t border-gray-100 dark:border-white/[0.06] px-4 py-2.5 flex justify-between items-center bg-white dark:bg-[#111827]">
-                        <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Team Members</span>
-                        <span class="px-2.5 py-1 bg-blue-500 text-white text-[10px] font-bold rounded-full"
-                              x-text="selected.length + ' selected'"></span>
-                    </div>
-                </div>
-
-                <template x-for="userId in selected" :key="'hidden-'+userId">
-                    <input type="hidden" name="members[]" :value="userId">
+                <template x-if="previewUrl">
+                    <span style="padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(16,185,129,0.1);color:#10b981;">&#10003; Set</span>
                 </template>
-                @error('members')<p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:8px;">{{ $message }}</p>@enderror
+                <input type="file" name="logo" id="logo" accept="image/*" class="hidden" @change="handleFile($event)">
+            </label>
+            <div x-show="previewUrl" style="display:none;margin-top:6px;">
+                <button type="button" @click="clearLogo()" style="font-size:11px;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                    <svg style="width:10px;height:10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Remove logo
+                </button>
             </div>
+            @error('logo') <p style="color:#ef4444;font-size:11px;margin-top:8px;">{{ $message }}</p> @enderror
+        </div>
 
-            <!-- Footer Actions -->
-            <div class="footer-actions">
-                <button type="button" onclick="confirmDelete()" class="btn btn-danger">Delete Brand</button>
-                <div style="display: flex; gap: 20px;">
-                    <a href="{{ route('brands.index') }}" class="btn btn-outline">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+        {{-- Team Members --}}
+        <div class="f-section" style="border-bottom:none;"
+             x-data="{
+                users: {{ \Illuminate\Support\Js::from($users->sortBy('role')->values()->map(fn($u) => ['id'=>$u->id,'name'=>$u->name,'email'=>$u->email,'role'=>$u->role])) }},
+                selected: {{ \Illuminate\Support\Js::from(old('members', $brand->members->pluck('id')->map(fn($id) => (string)$id)->toArray())) }},
+                search: '',
+                get filtered() {
+                    const s = this.search.toLowerCase();
+                    return s ? this.users.filter(u => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s) || (u.role||'').toLowerCase().includes(s)) : this.users;
+                },
+                toggle(id) { const i=this.selected.indexOf(id.toString()); i>-1?this.selected.splice(i,1):this.selected.push(id.toString()); },
+                isSelected(id) { return this.selected.includes(id.toString()); }
+             }">
+            <label class="f-label">Team Members</label>
+            <div class="mp-wrap">
+                <div class="mp-search">
+                    <svg style="width:12px;height:12px;flex-shrink:0;color:var(--color-text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" x-model="search" placeholder="Search by name, email or role…">
+                    <span x-show="search" @click="search=''" style="font-size:10px;font-weight:600;color:var(--color-text-secondary);cursor:pointer;">Clear</span>
+                </div>
+                <div class="mp-list">
+                    <template x-for="user in filtered" :key="user.id">
+                        <div class="mp-row" :class="{ selected: isSelected(user.id) }" @click="toggle(user.id)">
+                            <div class="mp-init" x-text="user.name.charAt(0)"></div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:13px;font-weight:600;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" x-text="user.name"></div>
+                                <div style="font-size:10px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.04em;" x-text="user.role || 'Team'"></div>
+                            </div>
+                            <div class="mp-check">
+                                <svg x-show="isSelected(user.id)" style="width:8px;height:8px;" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="filtered.length === 0">
+                        <div style="padding:20px;text-align:center;font-size:12px;color:var(--color-text-secondary);">No members match your search.</div>
+                    </template>
+                </div>
+                <div class="mp-footer">
+                    <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.06em;">Members</span>
+                    <span style="padding:2px 8px;background:#3b82f6;color:#fff;font-size:10px;font-weight:700;border-radius:20px;" x-text="selected.length + ' selected'"></span>
                 </div>
             </div>
-        </form>
+            <template x-for="userId in selected" :key="'hidden-'+userId">
+                <input type="hidden" name="members[]" :value="userId">
+            </template>
+            @error('members')<p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:8px;">{{ $message }}</p>@enderror
+        </div>
 
-        <!-- Hidden Delete Form -->
-        <form id="delete-form" action="{{ route('brands.destroy', $brand) }}" method="POST" style="display: none;">
-            @csrf
-            @method('DELETE')
-        </form>
-    </div>
+        <div class="f-footer">
+            <button type="button" @click="showDeleteModal = true" class="btn-d">Delete Brand</button>
+            <div style="display:flex;gap:8px;">
+                <a href="{{ route('brands.index') }}" class="btn-c">Cancel</a>
+                <button type="submit" class="btn-s">Save Changes</button>
+            </div>
+        </div>
+    </form>
 
-    <script>
-        function confirmDelete() {
-            if (confirm('CRITICAL ACTION: Are you sure you want to PERMANENTLY dissolve this brand workspace and all associated projects? This action cannot be undone.')) {
-                document.getElementById('delete-form').submit();
-            }
-        }
-    </script>
+    <form id="delete-form" action="{{ route('brands.destroy', $brand) }}" method="POST" style="display:none;">
+        @csrf
+        @method('DELETE')
+    </form>
+</div>
 </x-layout>

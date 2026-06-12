@@ -43,7 +43,7 @@
         </div>
 
         <!-- Add New Type -->
-        <div class="bg-white dark:bg-[#0F172A] border border-gray-100 dark:border-slate-800 rounded-[28px] p-8 mb-12 card-shadow relative overflow-hidden">
+        <div class="bg-white dark:bg-[#0F172A] border border-gray-100 dark:border-slate-800 rounded-xl p-6 mb-8 card-shadow relative overflow-hidden">
             <!-- Decorative gradient orb -->
             <div class="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-blue-500/10 blur-3xl pointer-events-none"></div>
             
@@ -60,21 +60,21 @@
             <form action="{{ route('subtask-types.store') }}" method="POST" class="flex flex-wrap items-end gap-5 relative z-10">
                 @csrf
                 <div class="flex-1 min-w-[240px]">
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Type Name</label>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-2 ml-1">Type Name</label>
                     <div class="relative group">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                             <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         </div>
-                        <input type="text" name="name" placeholder="e.g. TikTok Reel, Newspaper Ad..." required class="w-full bg-white dark:bg-[#1E293B]/50 border-2 border-gray-100 dark:border-slate-800 rounded-[14px] pl-11 pr-5 py-3.5 text-sm font-bold text-gray-900 dark:text-white placeholder-slate-400 outline-none focus:bg-white dark:focus:bg-[#1E293B] focus:border-blue-500 dark:focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm">
+                        <input type="text" name="name" placeholder="e.g. TikTok Reel, Newspaper Ad..." required class="w-full bg-white dark:bg-[#1E293B]/50 border border-gray-100 dark:border-slate-800 rounded-lg pl-10 pr-4 py-2 text-[13px] font-medium text-gray-900 dark:text-white placeholder-slate-400 outline-none focus:bg-white dark:focus:bg-[#1E293B] focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all">
                     </div>
                 </div>
                 <div class="w-[240px]">
-                    <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Workflow Category</label>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-2 ml-1">Workflow Category</label>
                     <div class="relative group">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                             <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
                         </div>
-                        <select name="workflow_type" required class="w-full bg-white dark:bg-[#1E293B]/50 border-2 border-gray-100 dark:border-slate-800 rounded-[14px] pl-11 pr-10 py-3.5 text-sm font-bold text-gray-900 dark:text-white outline-none focus:bg-white dark:focus:bg-[#1E293B] focus:border-blue-500 dark:focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm appearance-none cursor-pointer">
+                        <select name="workflow_type" required class="w-full bg-white dark:bg-[#1E293B]/50 border border-gray-100 dark:border-slate-800 rounded-lg pl-10 pr-9 py-2 text-[13px] font-medium text-gray-900 dark:text-white outline-none focus:bg-white dark:focus:bg-[#1E293B] focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer">
                             <option value="retainer">Retainer Workflow</option>
                             <option value="campaign">Campaign / Pitch</option>
                         </select>
@@ -84,7 +84,7 @@
                     </div>
                 </div>
                 <div class="flex items-end">
-                    <button type="submit" class="bg-[#0055D4] hover:bg-blue-600 text-white px-8 py-3.5 rounded-[14px] text-[11px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-500/25 active:scale-[0.98] h-[52px] flex items-center justify-center gap-2">
+                    <button type="submit" class="bg-[#0055D4] hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-[12px] font-bold transition-all shadow-md shadow-blue-500/20 active:scale-[0.98] flex items-center justify-center gap-2">
                         Add Type
                     </button>
                 </div>

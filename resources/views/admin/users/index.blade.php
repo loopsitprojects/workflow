@@ -1,6 +1,6 @@
 <x-layout title="User Management">
     @php
-        $roleOrder = ['Admin', 'Brand Manager', 'Approver', 'Traffic Coordinator', 'Coordinator', 'Designer', 'Writer'];
+        $roleOrder = ['Admin', 'Brand Manager', 'Approver', 'Coordinator', 'Designer', 'Writer'];
         $groupedUsers = $users->sortBy(function($user) use ($roleOrder) {
             $pos = array_search($user->role, $roleOrder);
             return $pos === false ? 999 : $pos;
@@ -11,7 +11,6 @@
             'Brand Manager' => ['bg' => 'bg-blue-900', 'text' => 'text-blue-50', 'accent' => 'border-blue-500', 'dot' => 'bg-blue-500'],
             'Approver' => ['bg' => 'bg-amber-600', 'text' => 'text-amber-50', 'accent' => 'border-amber-400', 'dot' => 'bg-amber-400'],
             'Coordinator' => ['bg' => 'bg-indigo-600', 'text' => 'text-indigo-50', 'accent' => 'border-indigo-400', 'dot' => 'bg-indigo-400'],
-            'Traffic Coordinator' => ['bg' => 'bg-indigo-600', 'text' => 'text-indigo-50', 'accent' => 'border-indigo-400', 'dot' => 'bg-indigo-400'],
             'Designer' => ['bg' => 'bg-pink-600', 'text' => 'text-pink-50', 'accent' => 'border-pink-400', 'dot' => 'bg-pink-400'],
             'Writer' => ['bg' => 'bg-sky-500', 'text' => 'text-sky-50', 'accent' => 'border-sky-300', 'dot' => 'bg-sky-400'],
         ];
@@ -67,7 +66,7 @@
             <div class="flex items-center gap-3">
                 <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] shadow-sm w-56">
                     <svg class="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <input type="text" x-model="search" placeholder="Search by name or role…"
+                    <input type="text" x-model="search" placeholder="Search by username or role…"
                            class="flex-1 bg-transparent border-none outline-none text-sm text-gray-700 dark:text-slate-300 placeholder-gray-400 dark:placeholder-slate-500">
                     <span x-show="search" @click="search=''" class="text-[10px] font-bold text-gray-400 cursor-pointer hover:text-gray-600 uppercase tracking-wide">Clear</span>
                 </div>

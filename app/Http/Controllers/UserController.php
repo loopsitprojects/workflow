@@ -32,15 +32,14 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
             'username' => 'required|string|max:30|alpha_dash|unique:users',
             'email'    => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role'     => ['required', Rule::in(['Admin', 'Writer', 'Approver', 'Brand Manager', 'Designer', 'Coordinator', 'Traffic Coordinator'])],
+            'role'     => ['required', Rule::in(['Admin', 'Writer', 'Approver', 'Brand Manager', 'Designer', 'Coordinator'])],
         ]);
 
         User::create([
-            'name'     => $validated['name'],
+            'name'     => strtolower($validated['username']),
             'username' => strtolower($validated['username']),
             'email'    => strtolower($validated['email']),
             'password' => Hash::make($validated['password']),
@@ -64,14 +63,13 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
             'username' => ['required', 'string', 'max:30', 'alpha_dash', Rule::unique('users')->ignore($user->id)],
             'email'    => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:8|confirmed',
-            'role'     => ['required', Rule::in(['Admin', 'Writer', 'Approver', 'Brand Manager', 'Designer', 'Coordinator', 'Traffic Coordinator'])],
+            'role'     => ['required', Rule::in(['Admin', 'Writer', 'Approver', 'Brand Manager', 'Designer', 'Coordinator'])],
         ]);
 
-        $user->name     = $validated['name'];
+        $user->name     = strtolower($validated['username']);
         $user->username = strtolower($validated['username']);
         $user->email    = strtolower($validated['email']);
         $user->role     = $validated['role'];

@@ -73,7 +73,6 @@ Roles are stored in `users.role` (string column). No separate permissions table.
 | Brand Manager | Brand Manager / AM/BD stage | Yes (Gate: `create-deliverable`) |
 | Approver | Approver stage | No |
 | Coordinator | Coordinator stage | No |
-| Traffic Coordinator | Coordinator stage | No |
 | Writer | Writer / Assignee stage | No |
 | Designer | Designer stage | No |
 
@@ -198,7 +197,7 @@ POST /notifications/archive-all
 | Brand logos | `storage/brand_logos` |
 | Project briefs | `storage/briefs` |
 | Reference files | `storage/references` |
-| Final designs | `storage/deliveries` |
+| Final designs | `storage/artwork` |
 
 Uses Laravel's `public` disk. Run `php artisan storage:link` if uploads aren't serving.
 

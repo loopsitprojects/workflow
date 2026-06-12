@@ -16,6 +16,9 @@ class ProjectController extends Controller
 
     public function create()
     {
+        $user = auth()->user();
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver'])) abort(403);
+
         $brandId = request('brand_id');
         $brands = \App\Models\Brand::all();
         
@@ -38,6 +41,9 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {
+        $user = auth()->user();
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver'])) abort(403);
+
         $validated = $request->validate([
             'brand_id' => 'required|exists:brands,id',
             'job_number' => 'nullable|string|max:255',
@@ -57,8 +63,6 @@ class ProjectController extends Controller
             'sub_type' => 'nullable|string',
             'lead_id' => 'nullable|exists:users,id',
             'brief_file' => 'nullable|file|mimes:pdf,doc,docx,txt,jpg,png|max:10240',
-            'members' => 'nullable|array',
-            'members.*' => 'exists:users,id',
         ]);
 
         if ($request->hasFile('brief_file')) {
@@ -68,8 +72,10 @@ class ProjectController extends Controller
 
         $project = Project::create($validated);
 
-        if ($request->has('members')) {
-            $project->members()->sync($request->members);
+        // Automatically sync brand members to the project
+        $brand = Brand::with('members')->find($validated['brand_id']);
+        if ($brand) {
+            $project->members()->sync($brand->members->pluck('id'));
         }
 
         return redirect()->route('projects.show', $project)->with('success', 'Project created successfully.');
@@ -96,10 +102,10 @@ class ProjectController extends Controller
             'deliverables.subtasks.coordinator',
             'deliverables.subtasks.designer',
         ]);
-        $brandManagers = \App\Models\User::whereIn('role', ['Brand Manager', 'Admin', 'Approver'])->get();
+        $brandManagers = \App\Models\User::whereIn('role', ['Brand Manager', 'Admin'])->get();
         $designers = \App\Models\User::whereIn('role', ['Designer', 'Admin'])->get();
         $approvers = \App\Models\User::whereIn('role', ['Approver', 'Admin'])->get();
-        $coordinators = \App\Models\User::whereIn('role', ['Coordinator', 'Traffic Coordinator', 'Admin'])->get();
+        $coordinators = \App\Models\User::whereIn('role', ['Coordinator', 'Admin'])->get();
         
         $stages = $project->workflow_type === 'retainer' ? \App\Models\Deliverable::STAGES : \App\Models\Deliverable::CAMPAIGN_STAGES;
         
@@ -109,7 +115,7 @@ class ProjectController extends Controller
     public function edit(Project $project)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver'])) abort(403);
         $brands = \App\Models\Brand::all();
         $brand = $project->brand()->with('members')->first();
         $users = $brand ? $brand->members : collect();
@@ -127,7 +133,7 @@ class ProjectController extends Controller
     public function update(Request $request, Project $project)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver'])) abort(403);
         $validated = $request->validate([
             'brand_id' => 'required|exists:brands,id',
             'job_number' => 'nullable|string|max:255',
@@ -147,8 +153,6 @@ class ProjectController extends Controller
             'sub_type' => 'nullable|string',
             'lead_id' => 'nullable|exists:users,id',
             'brief_file' => 'nullable|file|mimes:pdf,doc,docx,txt,jpg,png|max:10240',
-            'members' => 'nullable|array',
-            'members.*' => 'exists:users,id',
         ]);
 
         if ($request->hasFile('brief_file')) {
@@ -158,8 +162,10 @@ class ProjectController extends Controller
 
         $project->update($validated);
 
-        if ($request->has('members')) {
-            $project->members()->sync($request->members);
+        // Automatically sync brand members to the project
+        $brand = Brand::with('members')->find($validated['brand_id']);
+        if ($brand) {
+            $project->members()->sync($brand->members->pluck('id'));
         }
 
         return redirect()->route('projects.show', $project)->with('success', 'Project updated successfully.');
@@ -170,6 +176,19 @@ class ProjectController extends Controller
         if (!auth()->user()->isAdmin()) abort(403);
         $project->delete();
         return redirect()->route('brands.show', $project->brand->slug)->with('success', 'Project deleted successfully.');
+    }
+
+    /**
+     * Return the latest updated_at timestamp across the project and all its deliverables.
+     * Used by the client-side polling mechanism to detect when another user has made changes.
+     */
+    public function lastUpdated(Project $project)
+    {
+        $latestDeliverable = $project->deliverables()->max('updated_at');
+        $timestamps = array_filter([$project->updated_at?->toIso8601String(), $latestDeliverable]);
+        $latest = !empty($timestamps) ? max($timestamps) : $project->updated_at?->toIso8601String();
+
+        return response()->json(['last_updated' => $latest]);
     }
 }
 

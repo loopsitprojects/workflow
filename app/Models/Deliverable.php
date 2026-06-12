@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Deliverable extends Model
 {
+    protected $attributes = [
+        'priority' => 'Medium',
+        'status' => 'To Do',
+    ];
+
     protected $fillable = [
         'project_id',
         'parent_deliverable_id',
@@ -40,6 +45,7 @@ class Deliverable extends Model
         'revision_instructions',
         'reference_file',
         'notes',
+        'work_hours',
     ];
 
     const STAGES = [
@@ -48,6 +54,8 @@ class Deliverable extends Model
         'Brand Manager',
         'Coordinator',
         'Designer',
+        'Writer Review',
+        'Approver Review',
         'Final Approval',
         'Closed'
     ];
@@ -79,7 +87,7 @@ class Deliverable extends Model
             return $milestones[$index] ?? 0;
         }
         
-        $milestones = [0, 20, 40, 60, 80, 90, 100];
+        $milestones = [0, 10, 25, 40, 55, 68, 80, 92, 100];
         return $milestones[$index] ?? 0;
     }
 
@@ -215,10 +223,10 @@ class Deliverable extends Model
     public function getRequiredFieldForStage($stage)
     {
         return match ($stage) {
-            'Writer', 'Assignee' => 'writer_id',
-            'Approver'           => 'approver_id',
+            'Writer', 'Assignee', 'Writer Review' => 'writer_id',
+            'Approver', 'Approver Review'          => 'approver_id',
             'Brand Manager', 'AM/BD', 'Final Approval' => 'brand_manager_id',
-            'Coordinator', 'Traffic Coordinator' => 'coordinator_id',
+            'Coordinator'        => 'coordinator_id',
             'Designer'           => 'designer_id',
             default              => null,
         };
@@ -230,13 +238,13 @@ class Deliverable extends Model
     public function getNotifyTarget($stage)
     {
         $target = match ($stage) {
-            'Approver'       => $this->approver ?? $this->project?->approver,
+            'Approver', 'Approver Review' => $this->approver ?? $this->project?->approver,
             'Brand Manager'  => $this->brandManager ?? $this->project?->brandManager,
-            'Coordinator', 'Traffic Coordinator' => $this->coordinator ?? $this->project?->coordinator,
+            'Coordinator'    => $this->coordinator ?? $this->project?->coordinator,
             'Designer'       => $this->designer ?? $this->project?->designer,
             'Final Approval' => $this->brandManager ?? $this->project?->brandManager,
             'AM/BD'          => $this->brandManager ?? $this->project?->brandManager,
-            'Assignee'       => $this->writer ?? $this->project?->writer,
+            'Assignee', 'Writer Review' => $this->writer ?? $this->project?->writer,
             'Closed'         => $this->writer ?? $this->project?->writer,
             default          => null,
         };

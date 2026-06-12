@@ -8,12 +8,14 @@ return new class extends Migration
 {
     private function foreignKeyExists(string $table, string $key): bool
     {
-        $result = \Illuminate\Support\Facades\DB::select(
-            "SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
-             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? AND CONSTRAINT_TYPE = 'FOREIGN KEY'",
-            [$table, $key]
-        );
-        return !empty($result);
+        $col = str_replace([$table . '_', '_foreign'], '', $key);
+        $foreignKeys = \Illuminate\Support\Facades\Schema::getForeignKeys($table);
+        foreach ($foreignKeys as $fk) {
+            if ($fk['name'] === $key || (isset($fk['columns']) && in_array($col, $fk['columns']))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function up(): void
@@ -31,8 +33,14 @@ return new class extends Migration
 
         // Fix deliverable_revisions: fixed_by_user_id had no onDelete — set to null when user deleted
         Schema::table('deliverable_revisions', function (Blueprint $table) {
-            if ($this->foreignKeyExists('deliverable_revisions', 'deliverable_revisions_fixed_by_user_id_foreign')) {
+            if (Schema::getConnection()->getDriverName() === 'sqlite') {
                 $table->dropForeign(['fixed_by_user_id']);
+            } else {
+                if ($this->foreignKeyExists('deliverable_revisions', 'task_revisions_fixed_by_user_id_foreign')) {
+                    $table->dropForeign('task_revisions_fixed_by_user_id_foreign');
+                } elseif ($this->foreignKeyExists('deliverable_revisions', 'deliverable_revisions_fixed_by_user_id_foreign')) {
+                    $table->dropForeign('deliverable_revisions_fixed_by_user_id_foreign');
+                }
             }
             $table->foreign('fixed_by_user_id')->references('id')->on('users')->nullOnDelete();
         });

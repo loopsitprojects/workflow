@@ -1,30 +1,30 @@
 <x-layout title="Edit: {{ $deliverable->title }}">
 <style>
-.f-wrap{max-width:700px;margin:24px auto;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:16px;overflow:hidden;font-family:'Inter',sans-serif;}
-.f-section{padding:24px 28px;border-bottom:1px solid var(--color-border-primary);position:relative;}
-.f-label{display:block;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:8px;}
+.f-wrap{max-width:640px;margin:24px auto;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:14px;overflow:hidden;font-family:'Inter',sans-serif;}
+.f-section{padding:20px 24px;border-bottom:1px solid var(--color-border-primary);position:relative;}
+.f-label{display:block;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:7px;}
 .f-label.blue{color:#3b82f6;}
-.f-input{width:100%;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:10px;padding:10px 14px;font-size:14px;font-weight:500;color:var(--color-text-primary);outline:none;transition:all 0.15s;-webkit-appearance:none;appearance:none;}
-.f-input:focus{border-color:#3b82f6;background:var(--color-bg-primary);box-shadow:0 0 0 3px rgba(59,130,246,0.1);}
-.f-input::placeholder{color:var(--color-text-secondary);opacity:0.5;}
-.f-title{width:100%;background:transparent;border:none;outline:none;font-size:22px;font-weight:800;color:var(--color-text-primary);letter-spacing:-0.02em;}
-.f-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.f-footer{background:var(--color-bg-secondary);padding:16px 28px;display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:1px solid var(--color-border-primary);}
-.btn-cancel{padding:9px 20px;border-radius:9px;font-size:12px;font-weight:600;color:var(--color-text-secondary);background:transparent;border:1.5px solid var(--color-border-primary);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;transition:all 0.15s;}
-.btn-cancel:hover{background:var(--color-bg-secondary);}
-.btn-submit{padding:9px 24px;border-radius:9px;font-size:12px;font-weight:700;color:#fff;background:#0055D4;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(0,85,212,0.25);transition:all 0.15s;}
+.f-input{width:100%;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:500;color:var(--color-text-primary);outline:none;transition:border-color 0.15s;-webkit-appearance:none;appearance:none;}
+.f-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.1);}
+.f-input::placeholder{color:var(--color-text-secondary);opacity:0.45;}
+.f-title{width:100%;background:transparent;border:none;outline:none;font-size:20px;font-weight:800;color:var(--color-text-primary);letter-spacing:-0.02em;}
+.f-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.f-footer{background:var(--color-bg-secondary);padding:16px 24px;display:flex;justify-content:space-between;gap:8px;align-items:center;border-top:1px solid var(--color-border-primary);}
+.btn-cancel{padding:8px 18px;border-radius:8px;font-size:12px;font-weight:600;color:var(--color-text-secondary);background:transparent;border:1.5px solid var(--color-border-primary);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;transition:all 0.12s;}
+.btn-cancel:hover{background:var(--color-bg-secondary);color:var(--color-text-primary);}
+.btn-submit{padding:8px 22px;border-radius:8px;font-size:12px;font-weight:700;color:#fff;background:#0055D4;border:none;cursor:pointer;box-shadow:0 3px 10px rgba(0,85,212,0.25);transition:all 0.12s;}
 .btn-submit:hover{background:#0044aa;}
-.btn-danger{padding:9px 20px;border-radius:9px;font-size:12px;font-weight:600;color:#ef4444;background:transparent;border:1.5px solid rgba(239,68,68,0.25);cursor:pointer;transition:all 0.15s;}
-.btn-danger:hover{background:rgba(239,68,68,0.06);}
+.btn-danger{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;color:#ef4444;background:transparent;border:1.5px solid rgba(239,68,68,0.2);cursor:pointer;transition:all 0.12s;}
+.btn-danger:hover{background:rgba(239,68,68,0.05);}
 .f-close{position:absolute;top:16px;right:20px;width:30px;height:30px;border-radius:8px;background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);display:flex;align-items:center;justify-content:center;color:var(--color-text-secondary);text-decoration:none;transition:all 0.15s;}
 .f-close:hover{color:var(--color-text-primary);background:var(--color-border-primary);}
 .ref-toggle{display:flex;background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);border-radius:8px;padding:3px;width:fit-content;margin-bottom:10px;}
 .ref-btn{border:none;background:transparent;padding:5px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-text-secondary);border-radius:6px;cursor:pointer;transition:all 0.15s;}
 .ref-btn.active{background:var(--color-bg-primary);color:#0055D4;box-shadow:0 2px 6px rgba(0,0,0,0.06);}
-textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;padding:12px 14px;}
+textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
 </style>
 
-<nav style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin:0 auto 12px;max-width:700px;">
+<nav style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin:0 auto 12px;max-width:640px;">
     <a href="{{ route('projects.show', $deliverable->project_id) }}" style="text-decoration:none;color:inherit;">{{ $deliverable->project->name ?? 'Project' }}</a>
     <span style="opacity:0.4;">/</span>
     <span style="color:var(--color-text-primary);">Edit Deliverable</span>
@@ -125,28 +125,39 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;padding:12px 14
             </div>
         </div>
 
-        {{-- Approver + Final Design + Revisions --}}
+        {{-- Approver + Writer + Revisions --}}
         <div class="f-section">
             <div class="f-grid">
+                <div>
+                    <label class="f-label">Writer / Assignee</label>
+                    <select name="writer_id" class="f-input">
+                        <option value="">— Unassigned —</option>
+                        @foreach($users as $user)
+                            <option value="{{ $user->id }}" {{ old('writer_id', $deliverable->writer_id) == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div>
                     <label class="f-label">Approver</label>
                     <select name="approver_id" class="f-input">
                         <option value="">— No approver —</option>
-                        @foreach($users as $user)
-                            <option value="{{ $user->id }}" {{ old('approver_id', $deliverable->approver_id) == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                        @foreach($approvers as $approver)
+                            <option value="{{ $approver->id }}" {{ old('approver_id', $deliverable->approver_id) == $approver->id ? 'selected' : '' }}>{{ $approver->name }}</option>
                         @endforeach
                     </select>
                 </div>
+            </div>
+            <div class="f-grid" style="margin-top:16px;">
                 <div>
                     <label class="f-label">Revision Count</label>
                     <input type="number" name="revisions" min="0" class="f-input"
                            value="{{ old('revisions', $deliverable->revisions) }}">
                 </div>
-            </div>
-            <div style="margin-top:16px;">
-                <label class="f-label">Final Design Link</label>
-                <input type="url" name="final_designs" placeholder="https://…" class="f-input"
-                       value="{{ old('final_designs', $deliverable->final_designs) }}">
+                <div>
+                    <label class="f-label">Final Design Link</label>
+                    <input type="url" name="final_designs" placeholder="https://…" class="f-input"
+                           value="{{ old('final_designs', $deliverable->final_designs) }}">
+                </div>
             </div>
         </div>
 

@@ -101,54 +101,6 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
             <input type="hidden" name="workflow_type" id="workflow_type" value="retainer">
         </div>
 
-        {{-- Team --}}
-        <div class="f-section"
-             x-data="{
-                members: {{ Js::from($users->sortBy('role')->values()) }},
-                selectedIds: [],
-                search: '',
-                get filtered() {
-                    const s = this.search.toLowerCase();
-                    return s ? this.members.filter(m => m.name.toLowerCase().includes(s) || (m.role||'').toLowerCase().includes(s)) : this.members;
-                },
-                toggle(id) { this.selectedIds.includes(id) ? this.selectedIds = this.selectedIds.filter(i=>i!==id) : this.selectedIds.push(id); },
-                roleOf(m) { return m.role || 'Team'; }
-             }">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <label class="f-label" style="margin:0;">Team Members</label>
-                <span x-show="selectedIds.length" x-text="selectedIds.length + ' selected'"
-                      style="font-size:11px;font-weight:700;color:#3b82f6;"></span>
-            </div>
-            <div class="mp-wrap">
-                <div class="mp-search">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color:var(--color-text-secondary);flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <input type="text" x-model="search" placeholder="Search by name or role…">
-                </div>
-                <div class="mp-list">
-                    <template x-for="member in filtered" :key="member.id">
-                        <div @click="toggle(member.id)"
-                             class="mp-row"
-                             :class="selectedIds.includes(member.id) ? 'selected' : ''">
-                            <div class="mp-init" x-text="member.name.charAt(0)"></div>
-                            <div style="flex:1;min-width:0;">
-                                <div x-text="member.name" style="font-size:13px;font-weight:600;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-                                <div x-text="member.role || 'Team'" style="font-size:10px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;"></div>
-                            </div>
-                            <div class="mp-check">
-                                <svg x-show="selectedIds.includes(member.id)" width="8" height="8" fill="none" stroke="white" stroke-width="3.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-                            </div>
-                        </div>
-                    </template>
-                    <template x-if="filtered.length === 0">
-                        <div style="padding:24px;text-align:center;font-size:12px;color:var(--color-text-secondary);">No members found.</div>
-                    </template>
-                </div>
-            </div>
-            <template x-for="id in selectedIds" :key="'inp-'+id">
-                <input type="hidden" name="members[]" :value="id">
-            </template>
-        </div>
-
         {{-- Brief --}}
         <div class="f-section">
             <label class="f-label">Project Brief</label>
