@@ -475,16 +475,32 @@ class DeliverableController extends Controller
 
         $oldStage = $deliverable->approval_stage ?? $stages[0];
 
-        if ($oldStage === 'Designer') {
-            $user = auth()->user();
-            if ($user && $user->role === 'Designer' && $deliverable->designer_id != $user->id) {
+        // Enforce: only the assigned person for the current stage (or admin) may submit
+        $user = auth()->user();
+        if ($user && !$user->isAdmin()) {
+            $stageFieldMap = [
+                'Writer'        => 'writer_id',
+                'Assignee'      => 'writer_id',
+                'Approver'      => 'approver_id',
+                'Brand Manager' => 'brand_manager_id',
+                'AM/BD'         => 'brand_manager_id',
+                'Final Approval' => 'brand_manager_id',
+                'Coordinator'   => 'coordinator_id',
+                'Designer'      => 'designer_id',
+            ];
+            $field     = $stageFieldMap[$oldStage] ?? null;
+            $assignedId = $field ? $deliverable->{$field} : null;
+            if ($assignedId && $user->id != $assignedId) {
+                $stageLabel = $oldStage === 'AM/BD' ? 'AM/BD' : strtolower($oldStage);
                 return [
                     'success' => false,
-                    'message' => 'Only the assigned designer can send this deliverable.',
-                    'code' => 403
+                    'message' => "Only the assigned {$stageLabel} can submit this deliverable.",
+                    'code'    => 403,
                 ];
             }
+        }
 
+        if ($oldStage === 'Designer') {
             $hasUpload = isset($data['final_designs_file']) && $data['final_designs_file'] instanceof \Illuminate\Http\UploadedFile;
             $hasDesigns = $deliverable->final_designs
                 || $deliverable->final_designs_link
