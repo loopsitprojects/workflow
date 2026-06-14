@@ -2473,6 +2473,7 @@
                     const MAX_SIZE = 2 * 1024 * 1024; // 2MB default PHP limit
 
                     document.querySelectorAll(`[form="${submitForm.id}"]`).forEach(el => {
+                        if (el.type === 'submit' || el.type === 'button' || el.tagName === 'BUTTON') return;
                         if (el.name && !formData.has(el.name)) {
                             if (el.type === 'file') {
                                 if (el.files.length > 0) {
