@@ -79,8 +79,7 @@ class DeliverableController extends Controller
             }
 
             if ($request->hasFile("subtasks.0.reference_file")) {
-                $path = $request->file("subtasks.0.reference_file")->store('references', 'public');
-                $taskData['reference_file'] = asset('storage/' . $path);
+                $taskData['reference_file'] = $this->moveUploadedFile($request->file("subtasks.0.reference_file"), 'references');
             }
 
             $singleTask = Deliverable::create($taskData);
@@ -114,8 +113,7 @@ class DeliverableController extends Controller
 
                 $refFile = null;
                 if ($request->hasFile("subtasks.{$index}.reference_file")) {
-                    $path = $request->file("subtasks.{$index}.reference_file")->store('references', 'public');
-                    $refFile = asset('storage/' . $path);
+                    $refFile = $this->moveUploadedFile($request->file("subtasks.{$index}.reference_file"), 'references');
                 }
 
                 Deliverable::create([
@@ -205,9 +203,10 @@ class DeliverableController extends Controller
             }
         }
 
-        if ($request->hasFile('reference_file')) {
-            $path = $request->file('reference_file')->store('references', 'public');
-            $validated['reference_file'] = asset('storage/' . $path);
+        if ($request->boolean('delete_reference_file')) {
+            $validated['reference_file'] = null;
+        } elseif ($request->hasFile('reference_file')) {
+            $validated['reference_file'] = $this->moveUploadedFile($request->file('reference_file'), 'references');
         }
 
         $oldStage = $deliverable->approval_stage;
@@ -240,9 +239,10 @@ class DeliverableController extends Controller
             }
             
             if ($deliverable->final_designs) {
-                $relativePath = str_replace(asset('storage') . '/', '', $deliverable->final_designs);
-                if (\Illuminate\Support\Facades\Storage::disk('public')->exists($relativePath)) {
-                    \Illuminate\Support\Facades\Storage::disk('public')->delete($relativePath);
+                $path = $deliverable->final_designs;
+                if (str_starts_with($path, '/artwork/')) {
+                    $fullPath = public_path(ltrim($path, '/'));
+                    if (file_exists($fullPath)) @unlink($fullPath);
                 }
                 $deliverable->final_designs = null;
                 $deliverable->save();
@@ -281,13 +281,11 @@ class DeliverableController extends Controller
             if ($request->has('work_hours')) $deliverable->work_hours = $request->work_hours ?: null;
             
             if ($request->hasFile('reference_file')) {
-                $path = $request->file('reference_file')->store('references', 'public');
-                $deliverable->reference_file = asset('storage/' . $path);
+                $deliverable->reference_file = $this->moveUploadedFile($request->file('reference_file'), 'references');
             }
 
             if ($request->hasFile('final_designs_file')) {
-                $path = $request->file('final_designs_file')->store('artwork', 'public');
-                $deliverable->final_designs = asset('storage/' . $path);
+                $deliverable->final_designs = $this->moveUploadedFile($request->file('final_designs_file'), 'artwork');
             }
             
             $deliverable->save();
@@ -439,6 +437,13 @@ class DeliverableController extends Controller
         }
     }
 
+    private function moveUploadedFile($file, string $folder): string
+    {
+        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $file->move(public_path($folder), $filename);
+        return '/' . $folder . '/' . $filename;
+    }
+
     /**
      * Centralized logic for advancing a deliverable stage.
      */
@@ -548,8 +553,7 @@ class DeliverableController extends Controller
             
             // Handle file upload if present in the data array
             if (isset($data['final_designs_file']) && $data['final_designs_file'] instanceof \Illuminate\Http\UploadedFile) {
-                $path = $data['final_designs_file']->store('artwork', 'public');
-                $deliverable->final_designs = asset('storage/' . $path);
+                $deliverable->final_designs = $this->moveUploadedFile($data['final_designs_file'], 'artwork');
             }
         }
 

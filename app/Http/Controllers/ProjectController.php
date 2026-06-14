@@ -67,8 +67,10 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('brief_file')) {
-            $path = $request->file('brief_file')->store('briefs', 'public');
-            $validated['brief_file_path'] = $path;
+            $file = $request->file('brief_file');
+            $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('briefs'), $filename);
+            $validated['brief_file_path'] = '/briefs/' . $filename;
         }
 
         $project = Project::create($validated);
@@ -180,8 +182,10 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('brief_file')) {
-            $path = $request->file('brief_file')->store('briefs', 'public');
-            $validated['brief_file_path'] = $path;
+            $file = $request->file('brief_file');
+            $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('briefs'), $filename);
+            $validated['brief_file_path'] = '/briefs/' . $filename;
         }
 
         $project->update($validated);

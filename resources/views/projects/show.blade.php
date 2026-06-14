@@ -382,7 +382,7 @@
                         <div style="font-size:13px; color:var(--color-text-primary); line-height:1.6; font-weight:500;">{!! nl2br(e($project->description)) !!}</div>
                     @endif
                     @if($project->brief_file_path)
-                        <a href="{{ asset('storage/' . $project->brief_file_path) }}" target="_blank"
+                        <a href="{{ $project->brief_file_path }}" target="_blank"
                            style="display:inline-flex; align-items:center; gap:6px; margin-top:{{ $project->description ? '10px' : '0' }}; font-size:11px; font-weight:700; color:#3b82f6; text-decoration:none; padding:6px 12px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.2); border-radius:7px;">
                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                             View Brief Document

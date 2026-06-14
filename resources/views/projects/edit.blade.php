@@ -139,7 +139,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
                 @if($project->brief_file_path)
                     <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(59,130,246,0.04);border:1px solid rgba(59,130,246,0.15);border-radius:7px;margin-bottom:8px;">
                         <svg width="12" height="12" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        <a href="{{ asset('storage/' . $project->brief_file_path) }}" target="_blank" style="font-size:12px;font-weight:600;color:#3b82f6;text-decoration:none;flex:1;">{{ basename($project->brief_file_path) }}</a>
+                        <a href="{{ $project->brief_file_path }}" target="_blank" style="font-size:12px;font-weight:600;color:#3b82f6;text-decoration:none;flex:1;">{{ basename($project->brief_file_path) }}</a>
                         <span style="font-size:10px;color:var(--color-text-secondary);">Current</span>
                     </div>
                 @endif
