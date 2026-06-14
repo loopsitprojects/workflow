@@ -243,22 +243,24 @@
         function batchPdfImgSrc($url) {
             if (!$url) return null;
             if (!preg_match('/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i', $url)) return null;
-
-            if (preg_match('#/storage/(.+)$#i', $url, $m)) {
-                $abs = storage_path('app/public/' . $m[1]);
-                if (file_exists($abs)) {
-                    $ext  = strtolower(pathinfo($abs, PATHINFO_EXTENSION));
-                    $mime = ['jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png',
-                             'gif'=>'image/gif','webp'=>'image/webp'][$ext] ?? 'image/jpeg';
-                    return 'data:'.$mime.';base64,'.base64_encode(file_get_contents($abs));
-                }
-            }
-            if (file_exists($url)) {
-                $ext  = strtolower(pathinfo($url, PATHINFO_EXTENSION));
+            $toDataUri = function($abs) {
+                $ext  = strtolower(pathinfo($abs, PATHINFO_EXTENSION));
                 $mime = ['jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png',
                          'gif'=>'image/gif','webp'=>'image/webp'][$ext] ?? 'image/jpeg';
-                return 'data:'.$mime.';base64,'.base64_encode(file_get_contents($url));
+                return 'data:'.$mime.';base64,'.base64_encode(file_get_contents($abs));
+            };
+            // New storage: /references/..., /artwork/..., /brand_logos/..., /briefs/...
+            if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
+                $abs = public_path(ltrim($url, '/'));
+                if (file_exists($abs)) return $toDataUri($abs);
             }
+            // Legacy storage: /storage/...
+            if (preg_match('#/storage/(.+)$#i', $url, $m)) {
+                $abs = storage_path('app/public/' . $m[1]);
+                if (file_exists($abs)) return $toDataUri($abs);
+            }
+            // Absolute filesystem path fallback
+            if (file_exists($url)) return $toDataUri($url);
             return null;
         }
     }

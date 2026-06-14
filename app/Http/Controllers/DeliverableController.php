@@ -887,11 +887,17 @@ class DeliverableController extends Controller
         if (!$url) return null;
         if (!preg_match('/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i', $url)) return null;
 
+        // New storage: /references/..., /artwork/..., /brand_logos/..., /briefs/...
+        if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
+            $abs = public_path(ltrim($url, '/'));
+            if (file_exists($abs)) return $abs;
+        }
+        // Legacy storage: /storage/...
         if (preg_match('#/storage/(.+?)(\?.*)?$#i', $url, $m)) {
             $abs = storage_path('app/public/' . $m[1]);
             if (file_exists($abs)) return $abs;
         }
-        // Fallback: already an absolute filesystem path
+        // Absolute filesystem path fallback
         if (file_exists($url)) return $url;
         return null;
     }
