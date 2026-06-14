@@ -23,17 +23,24 @@ class BriefUploaded extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $url = route('projects.show', $this->project);
+        $brand = $this->project->brand;
+
         $subject = $this->isUpdate
             ? '[Loops Work] Brief uploaded: ' . $this->project->name
-            : '[Loops Work] New project assigned: ' . $this->project->name;
+            : '[Loops Work] New project: ' . $this->project->name;
         $line = $this->isUpdate
-            ? $this->actor->name . ' uploaded a brief for project **' . $this->project->name . '**.'
-            : $this->actor->name . ' created and assigned you to project **' . $this->project->name . '**.';
+            ? $this->actor->name . ' uploaded a brief for **' . $this->project->name . '**.'
+            : $this->actor->name . ' created a new project and added you to the team.';
 
         return (new MailMessage)
             ->subject($subject)
             ->greeting('Hi ' . $notifiable->name . ',')
             ->line($line)
+            ->panel(
+                ($brand ? "Brand: {$brand->name}\n" : '') .
+                "Project: {$this->project->name}" .
+                ($this->isUpdate ? "\nA brief has been uploaded — review it before starting work." : '')
+            )
             ->action('View Project', $url)
             ->salutation('— Loops Work');
     }

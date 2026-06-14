@@ -44,11 +44,18 @@ class DeliverableUpdated extends Notification
             str_replace(['**', '**'], '', $this->message)
         );
 
+        $project = $this->deliverable->project;
+        $brand = $project?->brand;
+
         return (new MailMessage)
             ->subject('[Loops Work] ' . $this->deliverable->title)
             ->greeting('Hi ' . $notifiable->name . ',')
             ->line($this->actor->name . ' ' . $plainMessage . '.')
-            ->line('**Deliverable:** ' . $this->deliverable->title)
+            ->panel(
+                ($brand ? "Brand: {$brand->name}\n" : '') .
+                ($project ? "Project: {$project->name}\n" : '') .
+                "Deliverable: {$this->deliverable->title}"
+            )
             ->action('View Deliverable', $url)
             ->salutation('— Loops Work');
     }
