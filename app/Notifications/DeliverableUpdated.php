@@ -47,15 +47,20 @@ class DeliverableUpdated extends Notification
         $project = $this->deliverable->project;
         $brand = $project?->brand;
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('[Loops Work] ' . $this->deliverable->title)
             ->greeting('Hi ' . $notifiable->name . ',')
-            ->line($this->actor->name . ' ' . $plainMessage . '.')
-            ->panel(
-                ($brand ? "Brand: {$brand->name}\n" : '') .
-                ($project ? "Project: {$project->name}\n" : '') .
-                "Deliverable: {$this->deliverable->title}"
-            )
+            ->line($this->actor->name . ' ' . $plainMessage . '.');
+
+        if ($brand) {
+            $mail->line('**Brand:** ' . $brand->name);
+        }
+        if ($project) {
+            $mail->line('**Project:** ' . $project->name);
+        }
+
+        return $mail
+            ->line('**Deliverable:** ' . $this->deliverable->title)
             ->action('View Deliverable', $url)
             ->salutation('— Loops Work');
     }

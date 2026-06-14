@@ -32,15 +32,22 @@ class BriefUploaded extends Notification
             ? $this->actor->name . ' uploaded a brief for **' . $this->project->name . '**.'
             : $this->actor->name . ' created a new project and added you to the team.';
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject($subject)
             ->greeting('Hi ' . $notifiable->name . ',')
-            ->line($line)
-            ->panel(
-                ($brand ? "Brand: {$brand->name}\n" : '') .
-                "Project: {$this->project->name}" .
-                ($this->isUpdate ? "\nA brief has been uploaded — review it before starting work." : '')
-            )
+            ->line($line);
+
+        if ($brand) {
+            $mail->line('**Brand:** ' . $brand->name);
+        }
+
+        $mail->line('**Project:** ' . $this->project->name);
+
+        if ($this->isUpdate) {
+            $mail->line('A brief has been uploaded — review it before starting work.');
+        }
+
+        return $mail
             ->action('View Project', $url)
             ->salutation('— Loops Work');
     }
