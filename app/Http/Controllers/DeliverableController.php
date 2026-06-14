@@ -479,14 +479,16 @@ class DeliverableController extends Controller
         $user = auth()->user();
         if ($user && !$user->isAdmin()) {
             $stageFieldMap = [
-                'Writer'        => 'writer_id',
-                'Assignee'      => 'writer_id',
-                'Approver'      => 'approver_id',
-                'Brand Manager' => 'brand_manager_id',
-                'AM/BD'         => 'brand_manager_id',
-                'Final Approval' => 'brand_manager_id',
-                'Coordinator'   => 'coordinator_id',
-                'Designer'      => 'designer_id',
+                'Writer'          => 'writer_id',
+                'Assignee'        => 'writer_id',
+                'Writer Review'   => 'writer_id',
+                'Approver'        => 'approver_id',
+                'Approver Review' => 'approver_id',
+                'Brand Manager'   => 'brand_manager_id',
+                'AM/BD'           => 'brand_manager_id',
+                'Final Approval'  => 'brand_manager_id',
+                'Coordinator'     => 'coordinator_id',
+                'Designer'        => 'designer_id',
             ];
             $field     = $stageFieldMap[$oldStage] ?? null;
             $assignedId = $field ? $deliverable->{$field} : null;
