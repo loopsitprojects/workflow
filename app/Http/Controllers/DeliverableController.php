@@ -617,17 +617,18 @@ class DeliverableController extends Controller
         if ($deliverable->approval_stage !== $firstStage) {
             $validated = $request->validate([
                 'revision_instructions' => 'required|string|max:1000',
+                'revision_target'       => 'nullable|in:writer,designer',
             ]);
 
             $oldStage = $deliverable->approval_stage;
             \Illuminate\Support\Facades\Log::info("Deliverable {$deliverable->id} requesting revision from stage: '{$oldStage}'");
-            
-            // Final Approval, Writer Review, and Approver Review all send back to Designer
+
             if (in_array($oldStage, ['Final Approval', 'Writer Review', 'Approver Review'])) {
-                if (in_array('Designer', $stages)) {
-                    $deliverable->approval_stage = 'Designer';
-                } else {
+                $target = $validated['revision_target'] ?? 'designer';
+                if ($target === 'writer' || !in_array('Designer', $stages)) {
                     $deliverable->approval_stage = $firstStage;
+                } else {
+                    $deliverable->approval_stage = 'Designer';
                 }
             } else {
                 $deliverable->approval_stage = $firstStage;
@@ -670,8 +671,10 @@ class DeliverableController extends Controller
     {
         $validated = $request->validate([
             'revision_instructions' => 'required|string|max:2000',
+            'revision_target'       => 'nullable|in:writer,designer',
         ]);
 
+        $revisionTarget = $validated['revision_target'] ?? 'designer';
         $allTasks = collect([$deliverable])->merge($deliverable->subtasks);
 
         \Illuminate\Support\Facades\DB::beginTransaction();
@@ -681,9 +684,12 @@ class DeliverableController extends Controller
                 $firstStage = $stages[0];
                 $oldStage = $task->approval_stage;
 
-                // Revert logic similar to single requestRevisions
                 if (in_array($oldStage, ['Final Approval', 'Writer Review', 'Approver Review'])) {
-                    $task->approval_stage = in_array('Designer', $stages) ? 'Designer' : $firstStage;
+                    if ($revisionTarget === 'writer' || !in_array('Designer', $stages)) {
+                        $task->approval_stage = $firstStage;
+                    } else {
+                        $task->approval_stage = 'Designer';
+                    }
                 } else {
                     $task->approval_stage = $firstStage;
                 }

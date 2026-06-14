@@ -467,7 +467,8 @@
                                                 );
 
                                                 $canReviseBatch = $isAdmin || (
-                                                    ($stage === 'Approver' && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
+                                                    (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                     (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                 );
                                                 
@@ -720,7 +721,8 @@
                                                         ($subStage === 'Designer' && $userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId))
                                                     );
                                                     $canReviseSub = $isAdmin || (
-                                                        ($subStage === 'Approver' && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        (($subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
+                                                        (($subStage === 'Approver' || $subStage === 'Approver Review') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
                                                         (in_array($subStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId))
                                                     );
 
@@ -916,7 +918,8 @@
                                                         ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                                     );
                                                     $canReviseIndividual = $isAdmin || (
-                                                        ($stage === 'Approver' && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
+                                                        (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                         (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                     );
 
@@ -1038,7 +1041,8 @@
                                                 );
 
                                                 $canReviseBatch = $isAdmin || (
-                                                    ($stage === 'Approver' && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
+                                                    (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                     (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                 );
                                                 
@@ -1272,7 +1276,8 @@
                                                         ($subStage === 'Designer' && $userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId))
                                                     );
                                                     $canReviseSub = $isAdmin || (
-                                                        ($subStage === 'Approver' && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        (($subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
+                                                        (($subStage === 'Approver' || $subStage === 'Approver Review') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
                                                         (in_array($subStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId))
                                                     );
 
@@ -1472,7 +1477,8 @@
                                                         ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                                     );
                                                     $canReviseIndividual = $isAdmin || (
-                                                        ($stage === 'Approver' && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
+                                                        (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                         (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                     );
 
@@ -1760,11 +1766,26 @@
                         </div>
                         <div>
                             <h3 style="font-size:16px; font-weight:900; color:#ef4444; margin:0;">Request Revisions</h3>
-                            <p style="font-size:12px; color:#ef4444; font-weight:600; margin:0; opacity:0.8;">The task will be sent back to the Writer</p>
+                            <p id="modalRevisionTargetNote" style="font-size:12px; color:#ef4444; font-weight:600; margin:0; opacity:0.8;">The task will be sent back to the Writer</p>
                         </div>
                     </div>
                     <form id="revisionsForm" method="POST">
                         @csrf
+                        <input type="hidden" name="revision_target" id="modalRevisionTarget" value="writer">
+                        <!-- Post-designer revision target toggle (shown only for Writer Review / Approver Review / Final Approval) -->
+                        <div id="modalRevisionTargetGroup" style="display:none; margin-bottom:16px; padding:12px 14px; border-radius:10px; border:1.5px solid rgba(239,68,68,0.15); background:rgba(239,68,68,0.04);">
+                            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;display:block;margin-bottom:8px;">Send back to</span>
+                            <div style="display:flex;gap:16px;">
+                                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-primary);">
+                                    <input type="radio" name="modal_revision_target_radio" value="designer" id="modalReviseTargetDesigner" checked style="accent-color:#ef4444;" onchange="document.getElementById('modalRevisionTarget').value=this.value; document.getElementById('modalRevisionTargetNote').textContent='The task will be sent back to the Designer.'">
+                                    Designer
+                                </label>
+                                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-primary);">
+                                    <input type="radio" name="modal_revision_target_radio" value="writer" id="modalReviseTargetWriter" style="accent-color:#ef4444;" onchange="document.getElementById('modalRevisionTarget').value=this.value; document.getElementById('modalRevisionTargetNote').textContent='The task will be sent back to the Writer.'">
+                                    Writer
+                                </label>
+                            </div>
+                        </div>
                         <textarea name="revision_instructions" required placeholder="Describe specifically what needs to be fixed..." style="width:100%; height:160px; padding:16px; border-radius:16px; border:1.5px solid rgba(239, 68, 68, 0.2); font-size:14px; resize:none; font-family:inherit; margin-bottom:20px; display:block; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); transition:all 0.2s;"></textarea>
                         <div style="display:flex; justify-content:flex-end; gap:12px;">
                             <button type="button" class="cd-btn cd-btn-outline" onclick="toggleRevisionInput(false)" style="padding:12px 24px;">Cancel</button>
@@ -2265,6 +2286,23 @@
                     showRevisionBtn.style.display = 'block';
                 }
 
+                // Show/reset revision target toggle for post-designer stages
+                const postDesignerStages = ['Writer Review', 'Approver Review', 'Final Approval'];
+                const modalRevisionTargetGroup = document.getElementById('modalRevisionTargetGroup');
+                const modalRevisionTarget = document.getElementById('modalRevisionTarget');
+                if (modalRevisionTargetGroup) {
+                    if (postDesignerStages.includes(stage)) {
+                        modalRevisionTargetGroup.style.display = 'block';
+                        document.getElementById('modalReviseTargetDesigner').checked = true;
+                        modalRevisionTarget.value = 'designer';
+                        document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the Designer.';
+                    } else {
+                        modalRevisionTargetGroup.style.display = 'none';
+                        modalRevisionTarget.value = 'writer';
+                        document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the Writer.';
+                    }
+                }
+
                 const isAuthorizedToDelete = isAdmin || userRole === 'brandmanager' || userRole === 'writer';
                 const modalDeleteBtn = document.getElementById('modalDeleteBtn');
                 if (modalDeleteBtn) {
@@ -2569,10 +2607,24 @@
                 </div>
                 <!-- Revision Group -->
                 <div id="batchRevisionGroup" style="display: none;">
+                    <!-- Send-back target toggle — only shown for post-designer review stages -->
+                    <div id="batchRevisionTargetGroup" style="display:none; margin-bottom:14px; padding:12px 14px; border-radius:10px; border:1.5px solid rgba(239,68,68,0.15); background:rgba(239,68,68,0.04);">
+                        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;display:block;margin-bottom:8px;">Send back to</span>
+                        <div style="display:flex;gap:16px;">
+                            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--color-text-primary);">
+                                <input type="radio" name="revision_target_radio" value="designer" id="reviseTargetDesigner" checked style="accent-color:#ef4444;">
+                                Designer
+                            </label>
+                            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--color-text-primary);">
+                                <input type="radio" name="revision_target_radio" value="writer" id="reviseTargetWriter" style="accent-color:#ef4444;">
+                                Writer
+                            </label>
+                        </div>
+                    </div>
                     <label class="detail-label" style="color:#ef4444;">Revision Instructions</label>
                     <textarea id="batchRevisionInstructions" placeholder="Describe what needs to be fixed in this entire batch..." style="width:100%; height:120px; padding:12px; border-radius:12px; border:1.5px solid rgba(239, 68, 68, 0.2); font-size:13px; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); resize:none;"></textarea>
-                    <p style="font-size: 10px; color: #ef4444; font-weight: 700; margin-top: 8px;">
-                        The entire batch will be sent back to the Writer.
+                    <p id="batchRevisionNote" style="font-size: 10px; color: #ef4444; font-weight: 700; margin-top: 8px;">
+                        The task will be sent back to the Writer.
                     </p>
                 </div>
                 <!-- Submit Notes Group (shown when submitting to Approver) -->
@@ -2653,9 +2705,29 @@
                 confirmBtn.textContent = 'Request Revisions';
                 confirmBtn.style.background = '#ef4444';
 
-                // Update specific instruction text
                 document.querySelector('#batchRevisionGroup textarea').placeholder = isIndividual ? "Describe what needs to be fixed..." : "Describe what needs to be fixed in this entire batch...";
-                document.querySelector('#batchRevisionGroup p').textContent = isIndividual ? "The task will be sent back to the Writer." : "The entire batch will be sent back to the Writer.";
+
+                // Show "send back to" toggle for post-designer review stages
+                const postDesignerStages = ['Writer Review', 'Approver Review', 'Final Approval'];
+                const revisionTargetGroup = document.getElementById('batchRevisionTargetGroup');
+                const revisionNote = document.getElementById('batchRevisionNote');
+                if (postDesignerStages.includes(nextStage)) {
+                    revisionTargetGroup.style.display = 'block';
+                    document.getElementById('reviseTargetDesigner').checked = true;
+                    revisionNote.textContent = isIndividual ? "The task will be sent back to the Designer." : "The batch will be sent back to the Designer.";
+                } else {
+                    revisionTargetGroup.style.display = 'none';
+                    revisionNote.textContent = isIndividual ? "The task will be sent back to the Writer." : "The entire batch will be sent back to the Writer.";
+                }
+
+                // Update note when radio changes
+                document.querySelectorAll('input[name="revision_target_radio"]').forEach(radio => {
+                    radio.onchange = () => {
+                        const target = document.querySelector('input[name="revision_target_radio"]:checked').value;
+                        const dest = target === 'designer' ? 'Designer' : 'Writer';
+                        revisionNote.textContent = isIndividual ? `The task will be sent back to the ${dest}.` : `The batch will be sent back to the ${dest}.`;
+                    };
+                });
             } else {
                 title.textContent = `${itemType} Submission`;
                 subtitle.textContent = isIndividual ? `Submitting this task to the ${nextStage} stage.` : `Preparing to submit ${count} tasks to ${nextStage} stage.`;
@@ -2825,7 +2897,13 @@
             btn.innerHTML = '<svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Sending...';
             btn.disabled = true;
 
+            const revisionTargetRadio = document.querySelector('input[name="revision_target_radio"]:checked');
+            const revisionTarget = revisionTargetRadio ? revisionTargetRadio.value : null;
+
             try {
+                const postBody = { revision_instructions: instructions };
+                if (revisionTarget) postBody.revision_target = revisionTarget;
+
                 const response = await fetch(`/deliverables/${currentBatchTask}/batch-revisions`, {
                     method: 'POST',
                     headers: {
@@ -2833,7 +2911,7 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ revision_instructions: instructions })
+                    body: JSON.stringify(postBody)
                 });
 
                 const contentType = response.headers.get("content-type");
