@@ -44,8 +44,10 @@ class BrandController extends Controller
         ];
 
         if ($request->hasFile('logo')) {
-            $path = $request->file('logo')->store('brand_logos', 'public');
-            $brandData['logo_url'] = '/storage/' . $path;
+            $file = $request->file('logo');
+            $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('brand_logos'), $filename);
+            $brandData['logo_url'] = '/brand_logos/' . $filename;
         }
 
         $brand = Brand::create($brandData);
@@ -113,8 +115,10 @@ class BrandController extends Controller
         $brandData = \Illuminate\Support\Arr::except($validated, ['members', 'logo']);
 
         if ($request->hasFile('logo')) {
-            $path = $request->file('logo')->store('brand_logos', 'public');
-            $brandData['logo_url'] = '/storage/' . $path;
+            $file = $request->file('logo');
+            $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('brand_logos'), $filename);
+            $brandData['logo_url'] = '/brand_logos/' . $filename;
         }
 
         $brand->update($brandData);
