@@ -57,7 +57,7 @@
                 </div>
             @endforeach
 
-            @if(auth()->user()->isAdmin())
+            @if(auth()->user()->isAdmin() || auth()->user()->role === 'Brand Manager')
             <!-- Create New Brand Placeholder -->
             <a href="{{ route('brands.create') }}" class="border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center text-center group cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all min-h-[300px]">
                 <div class="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-100 dark:group-hover:bg-blue-900 transition-colors">

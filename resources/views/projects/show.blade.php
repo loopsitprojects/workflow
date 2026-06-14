@@ -455,7 +455,7 @@
                                         <td colspan="7" style="padding-right:15px;">
                                             @php
                                                 $userRole = strtolower(str_replace(' ', '', auth()->user()->role));
-                                                $isAdmin = $userRole === 'admin' || $userRole === 'owner';
+                                                $isAdmin = $userRole === 'admin';
                                                 $stage = $task->approval_stage;
                                                 
                                                 $canApproveBatch = $isAdmin || (
@@ -776,7 +776,7 @@
                                                 </button>
 
 
-                                                @if($isAdmin || $userRole === 'brandmanager')
+                                                @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
                                                 <form action="{{ route('deliverables.destroy', $subtask) }}" method="POST" onsubmit="return confirm('Delete Deliverable?')" style="display:contents;" onclick="event.stopPropagation()">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="quick-action-btn btn-delete-quick">
@@ -976,7 +976,7 @@
                                                 </button>
 
 
-                                                @if($isAdmin || $userRole === 'brandmanager')
+                                                @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
                                                 <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirm('Delete Deliverable?')" style="display:contents;" onclick="event.stopPropagation()">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="quick-action-btn btn-delete-quick">
@@ -1045,7 +1045,7 @@
                                         <td style="text-align:right; padding-right:15px;">
                                             @php
                                                 $userRole = strtolower(str_replace(' ', '', auth()->user()->role));
-                                                $isAdmin = $userRole === 'admin' || $userRole === 'owner';
+                                                $isAdmin = $userRole === 'admin';
                                                 $stage = $task->approval_stage;
                                                 
                                                 $isReviewStage = in_array($stage, ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Coordinator', 'Designer']);
@@ -1347,7 +1347,7 @@
                                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                                     View
                                                 </button>
-                                                @if($isAdmin || $userRole === 'brandmanager')
+                                                @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
                                                 <form action="{{ route('deliverables.destroy', $subtask) }}" method="POST" onsubmit="return confirm('CRITICAL ACTION: Are you sure you want to permanently delete this subtask?')" style="display:contents;" onclick="event.stopPropagation()">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="quick-action-btn btn-delete-quick">
@@ -1558,7 +1558,7 @@
                                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                                                     Sub
                                                 </a>
-                                                @if($isAdmin || $userRole === 'brandmanager')
+                                                @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
                                                 <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirm('Delete Deliverable?')" style="display:contents;" onclick="event.stopPropagation()">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="quick-action-btn btn-delete-quick">
@@ -1949,7 +1949,7 @@
 
                 const rawRole = AUTH_USER_ROLE;
                 const userRole = rawRole.toLowerCase().replace(/\s+/g, '');
-                const isAdmin = userRole === 'admin' || userRole === 'owner';
+                const isAdmin = userRole === 'admin';
                 const stage = task.approval_stage;
                 const isAssignedWriter = AUTH_USER_ID == task.writer_id;
                 const isAssignedDesigner = AUTH_USER_ID == task.designer_id;
@@ -2231,7 +2231,7 @@
                     (stage === 'Brand Manager' && userRole === 'brandmanager') ||
                     (stage === 'Coordinator' && userRole === 'coordinator') ||
                     (stage === 'Designer' && hasDesignerRole && (!task.designer_id || task.designer_id == AUTH_USER_ID)) ||
-                    (stage === 'Final Approval' && (userRole === 'brandmanager' || userRole === 'admin' || userRole === 'owner')) ||
+                    (stage === 'Final Approval' && (userRole === 'brandmanager' || userRole === 'admin')) ||
                     (stage === 'AM/BD' && userRole === 'brandmanager') ||
                     (stage === 'Assignee' && (userRole === 'writer' || userRole === 'assignee'));
 
@@ -2239,7 +2239,7 @@
                     submitBtnForm.style.display = 'flex';
                     const nextBtn = document.getElementById('submitStageBtn');
                     const isLastStage = WORKFLOW_STAGES.indexOf(stage) >= WORKFLOW_STAGES.length - 2;
-                    
+
                     if (stage === 'Designer') nextBtn.textContent = 'Request for Approval';
                     else nextBtn.textContent = isLastStage ? 'Approve & Close' : 'Submit to Next';
 
@@ -2302,7 +2302,7 @@
                     showRevisionBtn.style.display = 'block';
                 }
 
-                const isAuthorizedToDelete = isAdmin || userRole === 'brandmanager';
+                const isAuthorizedToDelete = isAdmin || userRole === 'brandmanager' || userRole === 'writer';
                 const modalDeleteBtn = document.getElementById('modalDeleteBtn');
                 if (modalDeleteBtn) {
                     modalDeleteBtn.style.display = isAuthorizedToDelete ? 'block' : 'none';
@@ -2616,6 +2616,21 @@
                     <label class="detail-label" style="color: #3b82f6;">What did you change? <span style="font-size:10px; font-weight:500; color:var(--color-text-secondary);">(optional)</span></label>
                     <textarea id="batchSubmitNotes" placeholder="Briefly describe the changes you made in this revision..." style="width:100%; height:90px; padding:12px; border-radius:12px; border:1.5px solid rgba(59, 130, 246, 0.2); font-size:13px; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); resize:none; transition: border-color 0.15s;" onfocus="this.style.borderColor='rgba(59,130,246,0.5)'" onblur="this.style.borderColor='rgba(59,130,246,0.2)'"></textarea>
                 </div>
+                <!-- Further Approver (optional, shown at Approver → Brand Manager) -->
+                <div id="batchFurtherApproverGroup" style="display:none; margin-bottom:20px; padding:16px; border-radius:12px; border:1.5px solid rgba(124,58,237,0.15); background:rgba(124,58,237,0.04);">
+                    <label class="detail-label" style="color:#7c3aed; margin-bottom:6px;">
+                        Further Approver
+                        <span style="font-size:10px; font-weight:500; color:var(--color-text-secondary);">(optional — adds another approval step before Brand Manager)</span>
+                    </label>
+                    <div style="position:relative;">
+                        <select id="batchFurtherApproverSelect" class="batch-select" style="border-color:rgba(124,58,237,0.2);">
+                            <option value="">— Skip, go directly to Brand Manager —</option>
+                        </select>
+                        <div style="position:absolute; right:16px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--color-text-secondary);">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                    </div>
+                </div>
                 <div id="batchGenericConfirm" style="font-size:13px; font-weight:600; color:var(--color-text-secondary); line-height:1.6;">
                     Are you sure you want to advance this entire batch?
                 </div>
@@ -2673,7 +2688,7 @@
                 submitNotesGroup.style.display = 'none';
                 confirmBtn.textContent = 'Request Revisions';
                 confirmBtn.style.background = '#ef4444';
-                
+
                 // Update specific instruction text
                 document.querySelector('#batchRevisionGroup textarea').placeholder = isIndividual ? "Describe what needs to be fixed..." : "Describe what needs to be fixed in this entire batch...";
                 document.querySelector('#batchRevisionGroup p').textContent = isIndividual ? "The task will be sent back to the Writer." : "The entire batch will be sent back to the Writer.";
@@ -2705,6 +2720,39 @@
             }
 
             stickyHint.style.display = 'none';
+
+            // Show optional "Further Approver" field at Approver and Brand Manager stages
+            const furtherApproverGroup = document.getElementById('batchFurtherApproverGroup');
+            const furtherApproverSelect = document.getElementById('batchFurtherApproverSelect');
+            const furtherApproverLabel = furtherApproverGroup ? furtherApproverGroup.querySelector('label') : null;
+            if (furtherApproverGroup) {
+                const isApproverStage = (type === 'submit' && nextStage === 'Brand Manager');
+                const isBrandManagerStage = (type === 'submit' && nextStage === 'Coordinator');
+                const showFurther = isApproverStage || isBrandManagerStage;
+                furtherApproverGroup.style.display = showFurther ? 'block' : 'none';
+                if (showFurther) {
+                    let users, skipLabel, roleName;
+                    if (isApproverStage) {
+                        users = JSON.parse(document.getElementById('approvers-data').textContent);
+                        skipLabel = '— Skip, go directly to Brand Manager —';
+                        roleName = 'Further Approver';
+                    } else {
+                        users = JSON.parse(document.getElementById('managers-data').textContent);
+                        skipLabel = '— Skip, go directly to Coordinator —';
+                        roleName = 'Further Brand Manager';
+                    }
+                    if (furtherApproverLabel) {
+                        furtherApproverLabel.childNodes[0].textContent = roleName + ' ';
+                    }
+                    furtherApproverSelect.innerHTML = `<option value="">${skipLabel}</option>`;
+                    users.forEach(u => {
+                        const opt = document.createElement('option');
+                        opt.value = u.id;
+                        opt.textContent = u.name;
+                        furtherApproverSelect.appendChild(opt);
+                    });
+                }
+            }
 
             // Role assignment logic
             let roleToFill = null;
@@ -2883,11 +2931,16 @@
                 batchData[id][key] = field.value;
             });
 
-            const payload = { 
-                batch_data: batchData 
+            const payload = {
+                batch_data: batchData
             };
             if (roleField && assigneeId && assigneeId !== 'individual') {
                 payload[roleField] = assigneeId;
+            }
+            // Include further approver if selected
+            const furtherApproverSelect = document.getElementById('batchFurtherApproverSelect');
+            if (furtherApproverSelect && furtherApproverSelect.closest('#batchFurtherApproverGroup')?.style.display !== 'none' && furtherApproverSelect.value) {
+                payload.further_approver_id = furtherApproverSelect.value;
             }
 
             // Include writer's change notes if the textarea is visible

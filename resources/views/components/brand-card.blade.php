@@ -31,7 +31,7 @@
             </a>
 
             {{-- 3-dot menu --}}
-            @if(auth()->user()->isAdmin())
+            @if(auth()->user()->isAdmin() || auth()->user()->role === 'Brand Manager')
             <div class="relative flex-shrink-0" x-data="{ open: false }" @click.away="open = false">
                 <button @click="open = !open" class="text-gray-300 dark:text-slate-600 hover:text-gray-500 dark:hover:text-slate-400 focus:outline-none p-1 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

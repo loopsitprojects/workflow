@@ -15,14 +15,16 @@ class BrandController extends Controller
 
     public function create()
     {
-        if (!auth()->user()->isAdmin()) abort(403);
+        $user = auth()->user();
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
         $users = \App\Models\User::all();
         return view('brands.create', compact('users'));
     }
 
     public function store(Request $request)
     {
-        if (!auth()->user()->isAdmin()) abort(403);
+        $user = auth()->user();
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
         // Auto-generate slug from name if not provided
         if (!$request->filled('slug')) {
             $request->merge(['slug' => \Illuminate\Support\Str::slug($request->name)]);
@@ -82,7 +84,8 @@ class BrandController extends Controller
 
     public function edit(Brand $brand)
     {
-        if (!auth()->user()->isAdmin()) abort(403);
+        $user = auth()->user();
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
         $users = \App\Models\User::all();
         $brand->load('members');
         return view('brands.edit', compact('brand', 'users'));
@@ -90,7 +93,8 @@ class BrandController extends Controller
 
     public function update(Request $request, Brand $brand)
     {
-        if (!auth()->user()->isAdmin()) abort(403);
+        $user = auth()->user();
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
         // Auto-generate slug from name if not provided or empty
         if (!$request->filled('slug')) {
             $request->merge(['slug' => \Illuminate\Support\Str::slug($request->name)]);

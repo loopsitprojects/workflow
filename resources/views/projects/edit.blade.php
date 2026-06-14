@@ -53,7 +53,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
 </nav>
 
 <div class="f-wrap" x-data="{ showDeleteModal: false }">
-    @if(auth()->user()->isAdmin())
+    @if(auth()->user()->isAdmin() || auth()->user()->role === 'Brand Manager')
     {{-- Delete Confirmation Modal --}}
     <div x-show="showDeleteModal" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -148,7 +148,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
         </div>
 
         <div class="f-footer">
-            @if(auth()->user()->isAdmin())
+            @if(auth()->user()->isAdmin() || auth()->user()->role === 'Brand Manager')
             <button type="button" @click="showDeleteModal = true" class="btn-d">Delete Project</button>
             @endif
             <div style="display:flex;gap:8px;">
@@ -158,7 +158,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
         </div>
     </form>
 
-    @if(auth()->user()->isAdmin())
+    @if(auth()->user()->isAdmin() || auth()->user()->role === 'Brand Manager')
     <form id="delete-form" action="{{ route('projects.destroy', $project) }}" method="POST" style="display:none;">
         @csrf @method('DELETE')
     </form>

@@ -35,17 +35,22 @@ class DeliverableUpdated extends Notification
         return ['database', 'mail'];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
     public function toMail(object $notifiable): MailMessage
     {
+        $url = route('projects.show', $this->deliverable->project_id)
+            . '?deliverable_id=' . $this->deliverable->id;
+
+        $plainMessage = strip_tags(
+            str_replace(['**', '**'], '', $this->message)
+        );
+
         return (new MailMessage)
-            ->subject('Deliverable Update: ' . $this->deliverable->title)
-            ->greeting('Hello ' . $notifiable->name . ',')
-            ->line($this->actor->name . ' ' . $this->message)
-            ->action('View Deliverable', $this->toArray($notifiable)['url'])
-            ->line('Thank you for using Loops!');
+            ->subject('[Loops Work] ' . $this->deliverable->title)
+            ->greeting('Hi ' . $notifiable->name . ',')
+            ->line($this->actor->name . ' ' . $plainMessage . '.')
+            ->line('**Deliverable:** ' . $this->deliverable->title)
+            ->action('View Deliverable', $url)
+            ->salutation('— Loops Work');
     }
 
     /**

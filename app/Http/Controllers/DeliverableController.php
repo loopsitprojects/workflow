@@ -446,7 +446,7 @@ class DeliverableController extends Controller
     {
         $stages = $deliverable->getStages();
         $nextStage = $deliverable->getNextStage();
-        
+
         if (!$nextStage) {
             return ['success' => false, 'message' => 'Deliverable is already at the final stage.', 'code' => 400];
         }
@@ -479,9 +479,53 @@ class DeliverableController extends Controller
                     'code' => 403
                 ];
             }
+
+            $hasUpload = isset($data['final_designs_file']) && $data['final_designs_file'] instanceof \Illuminate\Http\UploadedFile;
+            $hasDesigns = $deliverable->final_designs
+                || $deliverable->final_designs_link
+                || ($data['final_designs'] ?? null)
+                || ($data['final_designs_link'] ?? null)
+                || $hasUpload;
+
+            if (!$hasDesigns) {
+                return [
+                    'success' => false,
+                    'message' => 'Please upload the final artwork or provide an artwork link before submitting.',
+                    'code' => 422
+                ];
+            }
         }
 
         if ($dryRun) return ['success' => true];
+
+        // "Further Approval": re-assign to another reviewer and stay at the same stage
+        if (in_array($oldStage, ['Approver', 'Brand Manager']) && !empty($data['further_approver_id'])) {
+            $furtherApproverId = (int) $data['further_approver_id'];
+            if ($oldStage === 'Approver') {
+                $deliverable->approver_id = $furtherApproverId;
+            } else {
+                $deliverable->brand_manager_id = $furtherApproverId;
+            }
+            $deliverable->save();
+
+            $deliverable->approvalsHistory()->create([
+                'user_id' => auth()->id(),
+                'stage'   => $oldStage,
+                'notes'   => ($data['submit_notes'] ?? null),
+            ]);
+
+            $furtherApprover = \App\Models\User::find($furtherApproverId);
+            if ($furtherApprover) {
+                $furtherApprover->notify(new DeliverableUpdated(
+                    $deliverable,
+                    'sent **' . $deliverable->title . '** for your approval',
+                    'stage_update',
+                    auth()->user()
+                ));
+            }
+
+            return ['success' => true, 'message' => 'Deliverable sent to ' . ($furtherApprover->name ?? 'further approver') . ' for additional approval.'];
+        }
 
         // Content updates
         if (isset($data['concept'])) $deliverable->concept = $data['concept'];
@@ -661,7 +705,7 @@ class DeliverableController extends Controller
     public function destroy(Deliverable $deliverable)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') {
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') {
             abort(403);
         }
         $deliverable->delete();

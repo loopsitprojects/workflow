@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Brand;
+use App\Notifications\BriefUploaded;
 use Illuminate\Http\Request;
 
 class ProjectController extends Controller
@@ -78,6 +79,20 @@ class ProjectController extends Controller
             $project->members()->sync($brand->members->pluck('id'));
         }
 
+        // Notify all writers in the brand
+        $actor = auth()->user();
+        $notifiedIds = [];
+        if ($brand) {
+            foreach ($brand->members->where('role', 'Writer') as $writer) {
+                $writer->notify(new BriefUploaded($project, $actor));
+                $notifiedIds[] = $writer->id;
+            }
+        }
+        // Also notify the specifically assigned writer if not already a brand member
+        if ($project->writer_id && !in_array($project->writer_id, $notifiedIds)) {
+            $project->writer->notify(new BriefUploaded($project, $actor));
+        }
+
         return redirect()->route('projects.show', $project)->with('success', 'Project created successfully.');
     }
 
@@ -102,10 +117,19 @@ class ProjectController extends Controller
             'deliverables.subtasks.coordinator',
             'deliverables.subtasks.designer',
         ]);
-        $brandManagers = \App\Models\User::whereIn('role', ['Brand Manager', 'Admin'])->get();
-        $designers = \App\Models\User::whereIn('role', ['Designer', 'Admin'])->get();
-        $approvers = \App\Models\User::whereIn('role', ['Approver', 'Admin'])->get();
-        $coordinators = \App\Models\User::whereIn('role', ['Coordinator', 'Admin'])->get();
+        $brandId = $project->brand_id;
+        $brandManagers = \App\Models\User::where('role', 'Brand Manager')
+            ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
+            ->get();
+        $designers = \App\Models\User::where('role', 'Designer')
+            ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
+            ->get();
+        $approvers = \App\Models\User::where('role', 'Approver')
+            ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
+            ->get();
+        $coordinators = \App\Models\User::where('role', 'Coordinator')
+            ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
+            ->get();
         
         $stages = $project->workflow_type === 'retainer' ? \App\Models\Deliverable::STAGES : \App\Models\Deliverable::CAMPAIGN_STAGES;
         
@@ -168,12 +192,27 @@ class ProjectController extends Controller
             $project->members()->sync($brand->members->pluck('id'));
         }
 
+        if (isset($validated['brief_file_path'])) {
+            $actor = auth()->user();
+            $notifiedIds = [];
+            if ($brand) {
+                foreach ($brand->members->where('role', 'Writer') as $writer) {
+                    $writer->notify(new BriefUploaded($project, $actor, true));
+                    $notifiedIds[] = $writer->id;
+                }
+            }
+            if ($project->writer_id && !in_array($project->writer_id, $notifiedIds)) {
+                $project->writer->notify(new BriefUploaded($project, $actor, true));
+            }
+        }
+
         return redirect()->route('projects.show', $project)->with('success', 'Project updated successfully.');
     }
 
     public function destroy(Project $project)
     {
-        if (!auth()->user()->isAdmin()) abort(403);
+        $user = auth()->user();
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
         $project->delete();
         return redirect()->route('brands.show', $project->brand->slug)->with('success', 'Project deleted successfully.');
     }

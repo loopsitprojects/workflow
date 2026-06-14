@@ -1,12 +1,9 @@
 <div x-data="{
     open: false,
     filter: 'all',
-    notifications: @js(auth()->user() ? (auth()->user()->isAdmin()
-        ? \Illuminate\Notifications\DatabaseNotification::with('notifiable')->latest()->take(30)->get()
-        : auth()->user()->unreadNotifications()->latest()->take(30)->get()
-    )->map(fn($n) => [
+    notifications: @js(auth()->user() ? auth()->user()->notifications()->latest()->take(30)->get()->map(fn($n) => [
         'id'           => $n->id,
-        'title'        => $n->data['task_title'] ?? 'Deliverable Update',
+        'title'        => $n->data['deliverable_title'] ?? 'Deliverable Update',
         'message'      => $n->data['message'] ?? '',
         'type'         => $n->data['type'] ?? 'info',
         'actor_name'   => $n->data['actor_name'] ?? 'System',
@@ -14,8 +11,6 @@
         'url'          => $n->data['url'] ?? '#',
         'read'         => !is_null($n->read_at),
         'date'         => $n->created_at->diffForHumans(),
-        'target_name'  => $n->notifiable->name ?? '',
-        'is_global'    => auth()->user()->isAdmin() && $n->notifiable_id !== auth()->id(),
     ]) : []),
     init() {
         this.$nextTick(() => this.$dispatch('update-unread-count', this.unreadCount()));
@@ -158,7 +153,8 @@ style="display:none;">
                                     'bg-blue-500':   notif.type === 'stage_update',
                                     'bg-red-500':    notif.type === 'revision_request',
                                     'bg-violet-500': notif.type === 'mention',
-                                    'bg-gray-400':   !['stage_update','revision_request','mention'].includes(notif.type)
+                                    'bg-green-500':  notif.type === 'brief_uploaded',
+                                    'bg-gray-400':   !['stage_update','revision_request','mention','brief_uploaded'].includes(notif.type)
                                  }"
                                  class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-[#111827] flex items-center justify-center">
                                 <template x-if="notif.type === 'stage_update'">
@@ -166,6 +162,9 @@ style="display:none;">
                                 </template>
                                 <template x-if="notif.type === 'revision_request'">
                                     <svg class="w-1.5 h-1.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                </template>
+                                <template x-if="notif.type === 'brief_uploaded'">
+                                    <svg class="w-1.5 h-1.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 </template>
                             </div>
                         </div>
@@ -181,14 +180,6 @@ style="display:none;">
                             <p class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5 truncate" x-text="notif.title"></p>
                             <div class="flex items-center gap-2 mt-1.5">
                                 <span class="text-[10px] text-gray-400 dark:text-slate-500" x-text="notif.date"></span>
-                                <template x-if="notif.is_global && notif.target_name">
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold
-                                                 bg-gray-100 dark:bg-white/[0.05]
-                                                 text-gray-400 dark:text-slate-500
-                                                 uppercase tracking-wide">
-                                        → <span x-text="notif.target_name"></span>
-                                    </span>
-                                </template>
                             </div>
                         </div>
 
