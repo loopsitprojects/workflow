@@ -138,7 +138,8 @@ class BrandController extends Controller
 
     public function destroy(Brand $brand)
     {
-        if (!auth()->user()->isAdmin()) abort(403);
+        $user = auth()->user();
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
         $brand->delete();
         return redirect()->route('brands.index')->with('success', 'Brand deleted successfully.');
     }

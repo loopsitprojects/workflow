@@ -733,7 +733,7 @@ class DeliverableController extends Controller
     public function destroy(Deliverable $deliverable)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') {
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') {
             abort(403);
         }
         $deliverable->delete();

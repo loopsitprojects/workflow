@@ -42,7 +42,7 @@ class AuthorizationTest extends TestCase
         $response->assertSee('Delete Project');
     }
 
-    public function test_brand_manager_can_see_project_settings_but_not_brand_edit_or_project_delete()
+    public function test_brand_manager_can_see_project_settings_and_brand_edit_and_project_delete()
     {
         $manager = User::factory()->create(['role' => 'Brand Manager']);
         $brand = Brand::create(['name' => 'Test Brand', 'slug' => 'test-brand']);
@@ -55,12 +55,12 @@ class AuthorizationTest extends TestCase
 
         $response = $this->actingAs($manager)->get(route('brands.index'));
         $response->assertStatus(200);
-        $response->assertDontSee('Create New Brand');
-        $response->assertDontSee('Edit Brand');
+        $response->assertSee('Create New Brand');
+        $response->assertSee('Edit Brand');
 
         $response = $this->actingAs($manager)->get(route('brands.show', $brand));
         $response->assertStatus(200);
-        $response->assertDontSee('Edit'); // Brand edit
+        $response->assertSee('Edit'); // Brand edit
         $response->assertSee('New Project');
 
         $response = $this->actingAs($manager)->get(route('projects.show', $project));
@@ -69,7 +69,7 @@ class AuthorizationTest extends TestCase
 
         $response = $this->actingAs($manager)->get(route('projects.edit', $project));
         $response->assertStatus(200);
-        $response->assertDontSee('Delete Project');
+        $response->assertSee('Delete Project');
     }
 
     public function test_writer_cannot_see_settings_brand_edit_new_project_or_project_delete()

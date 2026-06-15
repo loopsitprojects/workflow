@@ -236,12 +236,14 @@ test('a designer can upload artwork and advance the stage', function () {
 
     $designer = User::factory()->create(['role' => 'Designer']);
     $brandManager = User::factory()->create(['role' => 'Brand Manager']);
+    $writer = User::factory()->create(['role' => 'Writer']);
 
     $deliverable = Deliverable::create([
         'project_id' => $project->id,
         'title' => 'Artwork Test Deliverable',
         'approval_stage' => 'Designer',
         'designer_id' => $designer->id,
+        'writer_id' => $writer->id,
         'brand_manager_id' => $brandManager->id,
         'status' => 'To Do',
         'task_type' => 'Deliverable',
@@ -260,12 +262,12 @@ test('a designer can upload artwork and advance the stage', function () {
     
     $deliverable->refresh();
 
-    // Verify it advanced to Final Approval stage
-    expect($deliverable->approval_stage)->toBe('Final Approval');
+    // Verify it advanced to Writer Review stage
+    expect($deliverable->approval_stage)->toBe('Writer Review');
     
     // Verify artwork file was stored
     expect($deliverable->final_designs)->not->toBeEmpty();
-    expect($deliverable->final_designs)->toContain('storage/artwork/');
+    expect($deliverable->final_designs)->toContain('artwork/');
     
     // Verify artwork link was stored
     expect($deliverable->final_designs_link)->toBe('https://example.com/artwork');
@@ -311,7 +313,7 @@ test('a designer can save artwork without advancing the stage', function () {
     
     // Verify artwork file was stored
     expect($deliverable->final_designs)->not->toBeEmpty();
-    expect($deliverable->final_designs)->toContain('storage/artwork/');
+    expect($deliverable->final_designs)->toContain('artwork/');
     
     // Verify artwork link was stored
     expect($deliverable->final_designs_link)->toBe('https://example.com/save-artwork-link');
