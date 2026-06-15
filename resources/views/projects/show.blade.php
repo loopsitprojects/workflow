@@ -2024,7 +2024,7 @@
                     if (isImage) {
                         finalHtml += `
                             <div style="display:inline-block; margin-right:12px; vertical-align:top; text-align:center;">
-                                <div onclick="openImagePreview('${task.final_designs}', canDesignerEdit, ${task.id})" style="text-decoration:none; cursor:pointer;">
+                                <div onclick="openImagePreview('${task.final_designs}', ${canDesignerEdit}, ${task.id})" style="text-decoration:none; cursor:pointer;">
                                     <img src="${task.final_designs}" class="task-thumbnail" alt="Final Design">
                                     <span style="display:block; font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; margin-top:6px; text-align:center;">Preview Artwork</span>
                                 </div>
