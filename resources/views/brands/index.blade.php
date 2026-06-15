@@ -73,7 +73,7 @@
 
         <!-- ========== EDIT MODAL ========== -->
 
-        @if(auth()->user()->isAdmin())
+        @if(auth()->user()->isAdmin() || auth()->user()->role === 'Brand Manager')
         <!-- Backdrop -->
         <div x-show="editOpen"
              x-transition:enter="transition ease-out duration-200"
