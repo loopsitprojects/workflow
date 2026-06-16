@@ -551,12 +551,9 @@ class DeliverableController extends Controller
             }
             $deliverable->save();
 
-            $deliverable->approvalsHistory()->create([
-                'user_id'     => auth()->id(),
-                'stage'       => $oldStage,
-                'notes'       => ($data['submit_notes'] ?? null),
-                'hours_spent' => $hoursSpent,
-            ]);
+            $bmApprovalData = ['user_id' => auth()->id(), 'stage' => $oldStage, 'notes' => ($data['submit_notes'] ?? null)];
+            if ($hoursSpent) $bmApprovalData['hours_spent'] = $hoursSpent;
+            $deliverable->approvalsHistory()->create($bmApprovalData);
 
             $furtherApprover = \App\Models\User::find($furtherApproverId);
             if ($furtherApprover) {
@@ -621,12 +618,9 @@ class DeliverableController extends Controller
         $deliverable->save();
 
         // History
-        $deliverable->approvalsHistory()->create([
-            'user_id'     => auth()->id(),
-            'stage'       => $oldStage,
-            'notes'       => $data['submit_notes'] ?? null,
-            'hours_spent' => $hoursSpent,
-        ]);
+        $approvalData = ['user_id' => auth()->id(), 'stage' => $oldStage, 'notes' => $data['submit_notes'] ?? null];
+        if ($hoursSpent) $approvalData['hours_spent'] = $hoursSpent;
+        $deliverable->approvalsHistory()->create($approvalData);
         $deliverable->revisionsHistory()->whereNull('fixed_by_user_id')->latest()->first()?->update(['fixed_by_user_id' => auth()->id(), 'fixed_at' => now()]);
 
         // Notify
