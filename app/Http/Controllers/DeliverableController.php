@@ -647,6 +647,11 @@ class DeliverableController extends Controller
                 $deliverable->approval_stage = $firstStage;
             }
 
+            // Reset approver so the submitter can pick a fresh one on resubmission
+            if ($deliverable->approval_stage === $firstStage) {
+                $deliverable->approver_id = null;
+            }
+
             // Revert status to "To Do" if moved back for revisions
             $deliverable->status = 'To Do';
 
@@ -708,6 +713,11 @@ class DeliverableController extends Controller
                     }
                 } else {
                     $task->approval_stage = $firstStage;
+                }
+
+                // Reset approver so the submitter can pick a fresh one on resubmission
+                if ($task->approval_stage === $firstStage) {
+                    $task->approver_id = null;
                 }
 
                 $task->status = 'To Do';
