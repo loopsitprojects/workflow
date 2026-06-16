@@ -366,12 +366,18 @@
                 <div class="section-label">Reference</div>
                 <div class="img-container">
                     <img src="{{ $refImgSrc }}" alt="Reference">
+                    @if($deliverable->reference)
+                        <div class="img-link" style="margin-top:6px;">{{ $deliverable->reference }}</div>
+                    @endif
                 </div>
             </div>
             <div class="two-col-cell">
                 <div class="section-label">Artwork</div>
                 <div class="img-container">
                     <img src="{{ $artImgSrc }}" alt="Artwork">
+                    @if($deliverable->final_designs_link)
+                        <div class="img-link" style="margin-top:6px;">{{ $deliverable->final_designs_link }}</div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -380,15 +386,37 @@
             <div class="section-label">Reference</div>
             <div class="img-full">
                 <img src="{{ $refImgSrc }}" alt="Reference">
+                @if($deliverable->reference)
+                    <div class="img-link" style="margin-top:6px;">{{ $deliverable->reference }}</div>
+                @endif
             </div>
         </div>
+        @if($deliverable->final_designs_link)
+        <div class="section">
+            <div class="section-label">Artwork Link</div>
+            <div class="img-container">
+                <div class="img-link">{{ $deliverable->final_designs_link }}</div>
+            </div>
+        </div>
+        @endif
     @elseif($hasArtImg)
         <div class="section">
             <div class="section-label">Artwork</div>
             <div class="img-full">
                 <img src="{{ $artImgSrc }}" alt="Artwork">
+                @if($deliverable->final_designs_link)
+                    <div class="img-link" style="margin-top:6px;">{{ $deliverable->final_designs_link }}</div>
+                @endif
             </div>
         </div>
+        @if($deliverable->reference)
+        <div class="section">
+            <div class="section-label">Reference Link</div>
+            <div class="img-container">
+                <div class="img-link">{{ $deliverable->reference }}</div>
+            </div>
+        </div>
+        @endif
     @else
         <div class="two-col">
             <div class="two-col-cell">

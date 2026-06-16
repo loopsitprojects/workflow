@@ -1038,10 +1038,12 @@ class DeliverableController extends Controller
         if ($task->revision_instructions) {
             $addSection('REVISION REQUESTED', $task->revision_instructions);
         }
-        $addSection('CONCEPT', $task->concept);
-        $addSection('CAPTION', $task->caption);
-        $addSection('COPY',    $task->post_copy ?: ($task->subtask_copy ?? null));
-        $addSection('NOTES',   $task->notes);
+        $addSection('CONCEPT',      $task->concept);
+        $addSection('CAPTION',      $task->caption);
+        $addSection('COPY',         $task->post_copy ?: ($task->subtask_copy ?? null));
+        $addSection('NOTES',        $task->notes);
+        $addSection('REFERENCE',    $task->reference);
+        $addSection('ARTWORK LINK', $task->final_designs_link);
 
         // ── Images (right column) ────────────────────────────────
         if ($hasImages) {
