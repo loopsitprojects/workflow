@@ -134,7 +134,12 @@ class ProjectController extends Controller
             ->get();
         
         $stages = $project->workflow_type === 'retainer' ? \App\Models\Deliverable::STAGES : \App\Models\Deliverable::CAMPAIGN_STAGES;
-        
+
+        // Push completed deliverables to the bottom
+        $project->setRelation('deliverables',
+            $project->deliverables->sortBy(fn($d) => $d->status === 'Done' ? 1 : 0)->values()
+        );
+
         return view('projects.show', compact('project', 'brandManagers', 'designers', 'approvers', 'coordinators', 'stages'));
     }
 
