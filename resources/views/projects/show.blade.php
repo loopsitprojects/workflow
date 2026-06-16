@@ -2830,6 +2830,10 @@
                 roleToFill = 'coordinator_id';
                 roleUsers = JSON.parse(document.getElementById('coordinators-data').textContent);
                 label = "Select Coordinator";
+            } else if (nextStage === 'Further Approver') {
+                roleToFill = 'brand_manager_id';
+                roleUsers = JSON.parse(document.getElementById('managers-data').textContent);
+                label = "Select Brand Manager";
             } else if (nextStage === 'Designer') {
                 roleToFill = 'designer_id';
                 roleUsers = JSON.parse(document.getElementById('designers-data').textContent);
@@ -2848,6 +2852,10 @@
                     stakeholderGroup.style.display = 'none';
                     genericConfirm.style.display = 'block';
                     genericConfirm.textContent = isIndividual ? `Are you sure you want to submit this task to the Approver stage?` : `Are you sure you want to submit this entire batch to the Approver stage?`;
+                } else if (nextStage === 'Further Approver' && stakeholders.brand_manager) {
+                    stakeholderGroup.style.display = 'none';
+                    genericConfirm.style.display = 'block';
+                    genericConfirm.textContent = isIndividual ? `Are you sure you want to submit this task to the Brand Manager stage?` : `Are you sure you want to submit this entire batch to the Brand Manager stage?`;
                 } else {
                     stakeholderGroup.style.display = 'block';
                     genericConfirm.style.display = 'none';
@@ -2977,7 +2985,16 @@
                 furtherApproverSelectEl.closest('#batchFurtherApproverGroup')?.style.display !== 'none' &&
                 furtherApproverSelectEl.value;
 
-            if (!hasFurtherApprover && stakeholderRole && stakeholderSelect.style.display !== 'none') {
+            // When submitting from Approver stage (nextStage = Further Approver), brand_manager_id
+            // is always required — even if routing via an optional Further Approver step first.
+            if (currentBatchNextStage === 'Further Approver' && stakeholderRole && stakeholderSelect.style.display !== 'none') {
+                assigneeId = stakeholderSelect.value;
+                if (!assigneeId) {
+                    alert('Please select a Brand Manager for this task.');
+                    return;
+                }
+                roleField = 'brand_manager_id';
+            } else if (!hasFurtherApprover && stakeholderRole && stakeholderSelect.style.display !== 'none') {
                 assigneeId = stakeholderSelect.value;
                 if (!assigneeId) {
                     alert('Please select a stakeholder for the next stage.');
