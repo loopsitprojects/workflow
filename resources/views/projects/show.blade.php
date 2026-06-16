@@ -460,7 +460,7 @@
                                                 
                                                 $canApproveBatch = $isAdmin || (
                                                     (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                     (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
                                                     ($stage === 'Coordinator' && $userRole === 'coordinator' && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                     ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
@@ -468,7 +468,7 @@
 
                                                 $canReviseBatch = $isAdmin || (
                                                     (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                     (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                 );
                                                 
@@ -677,7 +677,12 @@
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            @php $canEditHrs = $currentUserIsAdmin || ($currentUserRole === 'designer' && ($currentUserId == $subtask->designer_id || !$subtask->designer_id)); @endphp
+                                            @php $canEditHrs = $currentUserIsAdmin ||
+    (in_array($userRole, ['writer', 'assignee']) && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
+    ($userRole === 'approver'      && (!$subtask->approver_id      || $subtask->approver_id      == $currentUserId)) ||
+    ($userRole === 'brandmanager'  && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
+    ($userRole === 'coordinator'   && (!$subtask->coordinator_id   || $subtask->coordinator_id   == $currentUserId)) ||
+    ($userRole === 'designer'      && (!$subtask->designer_id      || $subtask->designer_id      == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $subtask->id }}" value="{{ $subtask->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
                                             @else
@@ -715,14 +720,14 @@
                                                     $subNextStage = $subtask->getNextStage();
                                                     $canApproveSub = $isAdmin || (
                                                         (($subStage === 'Writer' || $subStage === 'Assignee' || $subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
                                                         (($subStage === 'Brand Manager' || $subStage === 'AM/BD' || $subStage === 'Final Approval') && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
                                                         ($subStage === 'Coordinator' && $userRole === 'coordinator' && (!$subtask->coordinator_id || $subtask->coordinator_id == $currentUserId)) ||
                                                         ($subStage === 'Designer' && $userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId))
                                                     );
                                                     $canReviseSub = $isAdmin || (
                                                         (($subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
                                                         (in_array($subStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId))
                                                     );
 
@@ -874,7 +879,12 @@
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            @php $canEditHrs = $currentUserIsAdmin || ($currentUserRole === 'designer' && ($currentUserId == $task->designer_id || !$task->designer_id)); @endphp
+                                            @php $canEditHrs = $currentUserIsAdmin ||
+    (in_array($userRole, ['writer', 'assignee']) && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
+    ($userRole === 'approver'      && (!$task->approver_id      || $task->approver_id      == $currentUserId)) ||
+    ($userRole === 'brandmanager'  && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
+    ($userRole === 'coordinator'   && (!$task->coordinator_id   || $task->coordinator_id   == $currentUserId)) ||
+    ($userRole === 'designer'      && (!$task->designer_id      || $task->designer_id      == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $task->id }}" value="{{ $task->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
                                             @else
@@ -912,14 +922,14 @@
                                                     $nextStage = $task->getNextStage();
                                                     $canApproveIndividual = $isAdmin || (
                                                         (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                         (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
                                                         ($stage === 'Coordinator' && $userRole === 'coordinator' && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                         ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                                     );
                                                     $canReviseIndividual = $isAdmin || (
                                                         (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                         (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                     );
 
@@ -1034,7 +1044,7 @@
                                                 
                                                 $canApproveBatch = $isAdmin || (
                                                     (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                     (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
                                                     ($stage === 'Coordinator' && $userRole === 'coordinator' && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                     ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
@@ -1042,7 +1052,7 @@
 
                                                 $canReviseBatch = $isAdmin || (
                                                     (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                     (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                 );
                                                 
@@ -1234,7 +1244,12 @@
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            @php $canEditHrs = $currentUserIsAdmin || ($currentUserRole === 'designer' && ($currentUserId == $subtask->designer_id || !$subtask->designer_id)); @endphp
+                                            @php $canEditHrs = $currentUserIsAdmin ||
+    (in_array($userRole, ['writer', 'assignee']) && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
+    ($userRole === 'approver'      && (!$subtask->approver_id      || $subtask->approver_id      == $currentUserId)) ||
+    ($userRole === 'brandmanager'  && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
+    ($userRole === 'coordinator'   && (!$subtask->coordinator_id   || $subtask->coordinator_id   == $currentUserId)) ||
+    ($userRole === 'designer'      && (!$subtask->designer_id      || $subtask->designer_id      == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $subtask->id }}" value="{{ $subtask->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
                                             @else
@@ -1270,14 +1285,14 @@
                                                     $subNextStage = $subtask->getNextStage();
                                                     $canApproveSub = $isAdmin || (
                                                         (($subStage === 'Writer' || $subStage === 'Assignee' || $subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
                                                         (($subStage === 'Brand Manager' || $subStage === 'AM/BD' || $subStage === 'Final Approval') && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
                                                         ($subStage === 'Coordinator' && $userRole === 'coordinator' && (!$subtask->coordinator_id || $subtask->coordinator_id == $currentUserId)) ||
                                                         ($subStage === 'Designer' && $userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId))
                                                     );
                                                     $canReviseSub = $isAdmin || (
                                                         (($subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
                                                         (in_array($subStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId))
                                                     );
 
@@ -1435,7 +1450,12 @@
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            @php $canEditHrs = $currentUserIsAdmin || ($currentUserRole === 'designer' && ($currentUserId == $task->designer_id || !$task->designer_id)); @endphp
+                                            @php $canEditHrs = $currentUserIsAdmin ||
+    (in_array($userRole, ['writer', 'assignee']) && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
+    ($userRole === 'approver'      && (!$task->approver_id      || $task->approver_id      == $currentUserId)) ||
+    ($userRole === 'brandmanager'  && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
+    ($userRole === 'coordinator'   && (!$task->coordinator_id   || $task->coordinator_id   == $currentUserId)) ||
+    ($userRole === 'designer'      && (!$task->designer_id      || $task->designer_id      == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $task->id }}" value="{{ $task->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
                                             @else
@@ -1471,14 +1491,14 @@
                                                     $nextStage = $task->getNextStage();
                                                     $canApproveIndividual = $isAdmin || (
                                                         (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                         (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
                                                         ($stage === 'Coordinator' && $userRole === 'coordinator' && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                         ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                                     );
                                                     $canReviseIndividual = $isAdmin || (
                                                         (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                         (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                     );
 
@@ -2211,8 +2231,9 @@
                     (stage === 'Writer'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
                     (stage === 'Assignee'        && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
                     (stage === 'Writer Review'   && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                    (stage === 'Approver'        && userRole === 'approver'   && (!task.approver_id       || isAssignedApprover)) ||
-                    (stage === 'Approver Review' && userRole === 'approver'   && (!task.approver_id       || isAssignedApprover)) ||
+                    (stage === 'Approver'          && userRole === 'approver'   && (!task.approver_id       || isAssignedApprover)) ||
+                    (stage === 'Approver Review'   && userRole === 'approver'   && (!task.approver_id       || isAssignedApprover)) ||
+                    (stage === 'Further Approver'  && userRole === 'approver'   && (!task.approver_id       || isAssignedApprover)) ||
                     (stage === 'Brand Manager'   && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                     (stage === 'AM/BD'           && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                     (stage === 'Final Approval'  && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
@@ -2730,7 +2751,8 @@
                 });
             } else {
                 title.textContent = `${itemType} Submission`;
-                subtitle.textContent = isIndividual ? `Submitting this task to the ${nextStage} stage.` : `Preparing to submit ${count} tasks to ${nextStage} stage.`;
+                const displayStage = nextStage === 'Further Approver' ? 'Brand Manager' : nextStage;
+                subtitle.textContent = isIndividual ? `Submitting this task to the ${displayStage} stage.` : `Preparing to submit ${count} tasks to ${displayStage} stage.`;
                 stakeholderGroup.style.display = 'none';
                 revisionGroup.style.display = 'none';
                 genericConfirm.style.display = 'block';
@@ -2762,7 +2784,7 @@
             const furtherApproverSelect = document.getElementById('batchFurtherApproverSelect');
             const furtherApproverLabel = furtherApproverGroup ? furtherApproverGroup.querySelector('label') : null;
             if (furtherApproverGroup) {
-                const isApproverStage = (type === 'submit' && nextStage === 'Brand Manager');
+                const isApproverStage = (type === 'submit' && nextStage === 'Further Approver');
                 const isBrandManagerStage = (type === 'submit' && nextStage === 'Coordinator');
                 const showFurther = isApproverStage || isBrandManagerStage;
                 furtherApproverGroup.style.display = showFurther ? 'block' : 'none';
@@ -2948,7 +2970,14 @@
             let assigneeId = null;
             let roleField = null;
 
-            if (stakeholderRole && stakeholderSelect.style.display !== 'none') {
+            // If further approver is selected, skip the required-stakeholder validation
+            // (deliverable stays at current stage, so next-stage assignee isn't needed yet)
+            const furtherApproverSelectEl = document.getElementById('batchFurtherApproverSelect');
+            const hasFurtherApprover = furtherApproverSelectEl &&
+                furtherApproverSelectEl.closest('#batchFurtherApproverGroup')?.style.display !== 'none' &&
+                furtherApproverSelectEl.value;
+
+            if (!hasFurtherApprover && stakeholderRole && stakeholderSelect.style.display !== 'none') {
                 assigneeId = stakeholderSelect.value;
                 if (!assigneeId) {
                     alert('Please select a stakeholder for the next stage.');
@@ -2991,6 +3020,7 @@
                 const notesVal = document.getElementById('batchSubmitNotes').value.trim();
                 if (notesVal) payload.submit_notes = notesVal;
             }
+
 
             try {
                 const response = await fetch(`/deliverables/${currentBatchTask}/batch-submit`, {

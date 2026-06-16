@@ -11,6 +11,7 @@ class DeliverableApproval extends Model
         'user_id',
         'stage',
         'notes',
+        'hours_spent',
     ];
 
     public function user()

@@ -456,39 +456,57 @@ class DeliverableController extends Controller
             return ['success' => false, 'message' => 'Deliverable is already at the final stage.', 'code' => 400];
         }
 
+        $oldStage = $deliverable->approval_stage ?? $stages[0];
+
+        // Route Approver → Further Approver stage when a further approver is selected.
+        // This creates a real intermediate stage in the workflow timeline.
+        $routingToFurtherApprover = ($oldStage === 'Approver' && !empty($data['further_approver_id']));
+        if ($routingToFurtherApprover) {
+            $nextStage = 'Further Approver';
+            // Satisfy the required-field check for 'Further Approver' (approver_id)
+            if (empty($data['approver_id'])) {
+                $data['approver_id'] = $data['further_approver_id'];
+            }
+        } elseif ($nextStage === 'Further Approver') {
+            // Skip 'Further Approver' when no further approver is being assigned
+            $nextStage = 'Brand Manager';
+        }
+
+        // Brand Manager further approver: re-assign and stay at same stage (no new stage)
+        $hasFurtherApprover = !empty($data['further_approver_id']) && $oldStage === 'Brand Manager';
+
         $requiredField = $deliverable->getRequiredFieldForStage($nextStage);
-        if ($requiredField) {
+        if ($requiredField && !$hasFurtherApprover) {
             $assignedId = $data[$requiredField] ?? $deliverable->{$requiredField};
             if (!$assignedId && $deliverable->project) {
                 $assignedId = $deliverable->project->{$requiredField};
             }
-            
+
             if (!$assignedId) {
                 $roleName = ucwords(str_replace(['_id', '_'], ['', ' '], $requiredField));
                 return [
-                    'success' => false, 
-                    'message' => "Cannot move to **{$nextStage}**: Please assign a **{$roleName}** to this specific task first.", 
+                    'success' => false,
+                    'message' => "Cannot move to **{$nextStage}**: Please assign a **{$roleName}** to this specific task first.",
                     'code' => 422
                 ];
             }
         }
 
-        $oldStage = $deliverable->approval_stage ?? $stages[0];
-
         // Enforce: only the assigned person for the current stage (or admin) may submit
         $user = auth()->user();
         if ($user && !$user->isAdmin()) {
             $stageFieldMap = [
-                'Writer'          => 'writer_id',
-                'Assignee'        => 'writer_id',
-                'Writer Review'   => 'writer_id',
-                'Approver'        => 'approver_id',
-                'Approver Review' => 'approver_id',
-                'Brand Manager'   => 'brand_manager_id',
-                'AM/BD'           => 'brand_manager_id',
-                'Final Approval'  => 'brand_manager_id',
-                'Coordinator'     => 'coordinator_id',
-                'Designer'        => 'designer_id',
+                'Writer'           => 'writer_id',
+                'Assignee'         => 'writer_id',
+                'Writer Review'    => 'writer_id',
+                'Approver'         => 'approver_id',
+                'Approver Review'  => 'approver_id',
+                'Further Approver' => 'approver_id',
+                'Brand Manager'    => 'brand_manager_id',
+                'AM/BD'            => 'brand_manager_id',
+                'Final Approval'   => 'brand_manager_id',
+                'Coordinator'      => 'coordinator_id',
+                'Designer'         => 'designer_id',
             ];
             $field     = $stageFieldMap[$oldStage] ?? null;
             $assignedId = $field ? $deliverable->{$field} : null;
@@ -519,22 +537,25 @@ class DeliverableController extends Controller
             }
         }
 
+        $hoursSpent = isset($data['hours_spent']) && is_numeric($data['hours_spent']) && $data['hours_spent'] > 0
+            ? (float) $data['hours_spent'] : null;
+
         if ($dryRun) return ['success' => true];
 
-        // "Further Approval": re-assign to another reviewer and stay at the same stage
-        if (in_array($oldStage, ['Approver', 'Brand Manager']) && !empty($data['further_approver_id'])) {
+        // Brand Manager "Further Approval": re-assign brand manager and stay at the same stage
+        if ($oldStage === 'Brand Manager' && !empty($data['further_approver_id'])) {
             $furtherApproverId = (int) $data['further_approver_id'];
-            if ($oldStage === 'Approver') {
-                $deliverable->approver_id = $furtherApproverId;
-            } else {
-                $deliverable->brand_manager_id = $furtherApproverId;
+            $deliverable->brand_manager_id = $furtherApproverId;
+            if ($hoursSpent) {
+                $deliverable->work_hours = ($deliverable->work_hours ?? 0) + $hoursSpent;
             }
             $deliverable->save();
 
             $deliverable->approvalsHistory()->create([
-                'user_id' => auth()->id(),
-                'stage'   => $oldStage,
-                'notes'   => ($data['submit_notes'] ?? null),
+                'user_id'     => auth()->id(),
+                'stage'       => $oldStage,
+                'notes'       => ($data['submit_notes'] ?? null),
+                'hours_spent' => $hoursSpent,
             ]);
 
             $furtherApprover = \App\Models\User::find($furtherApproverId);
@@ -560,6 +581,10 @@ class DeliverableController extends Controller
 
         // Stakeholder updates
         if (isset($data['approver_id'])) $deliverable->approver_id = $data['approver_id'];
+        // When routing to Further Approver stage, overwrite approver_id with the further approver
+        if ($routingToFurtherApprover) {
+            $deliverable->approver_id = (int) $data['further_approver_id'];
+        }
         if (isset($data['brand_manager_id'])) $deliverable->brand_manager_id = $data['brand_manager_id'];
         if (isset($data['coordinator_id'])) $deliverable->coordinator_id = $data['coordinator_id'];
         if (isset($data['designer_id'])) $deliverable->designer_id = $data['designer_id'];
@@ -589,14 +614,18 @@ class DeliverableController extends Controller
         $deliverable->progress_percent = $deliverable->getStageProgress();
         $deliverable->revision_instructions = null;
         $deliverable->status = ($nextStage === 'Closed' || $nextStage === 'closed') ? 'Done' : 'To Do';
-        $deliverable->is_ready = false; // Reset for next stage logic
+        $deliverable->is_ready = false;
+        if ($hoursSpent) {
+            $deliverable->work_hours = ($deliverable->work_hours ?? 0) + $hoursSpent;
+        }
         $deliverable->save();
 
         // History
         $deliverable->approvalsHistory()->create([
-            'user_id' => auth()->id(),
-            'stage'   => $oldStage,
-            'notes'   => $data['submit_notes'] ?? null,
+            'user_id'     => auth()->id(),
+            'stage'       => $oldStage,
+            'notes'       => $data['submit_notes'] ?? null,
+            'hours_spent' => $hoursSpent,
         ]);
         $deliverable->revisionsHistory()->whereNull('fixed_by_user_id')->latest()->first()?->update(['fixed_by_user_id' => auth()->id(), 'fixed_at' => now()]);
 

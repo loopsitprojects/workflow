@@ -51,6 +51,7 @@ class Deliverable extends Model
     const STAGES = [
         'Writer',
         'Approver',
+        'Further Approver',
         'Brand Manager',
         'Coordinator',
         'Designer',
@@ -87,6 +88,11 @@ class Deliverable extends Model
             return $milestones[$index] ?? 0;
         }
         
+        // 10-stage retainer workflow (with Further Approver)
+        if ($count === 10) {
+            $milestones = [0, 10, 20, 32, 47, 60, 72, 84, 93, 100];
+            return $milestones[$index] ?? 0;
+        }
         $milestones = [0, 10, 25, 40, 55, 68, 80, 92, 100];
         return $milestones[$index] ?? 0;
     }
@@ -223,9 +229,9 @@ class Deliverable extends Model
     public function getRequiredFieldForStage($stage)
     {
         return match ($stage) {
-            'Writer', 'Assignee', 'Writer Review' => 'writer_id',
-            'Approver', 'Approver Review'          => 'approver_id',
-            'Brand Manager', 'AM/BD', 'Final Approval' => 'brand_manager_id',
+            'Writer', 'Assignee', 'Writer Review'          => 'writer_id',
+            'Approver', 'Approver Review', 'Further Approver' => 'approver_id',
+            'Brand Manager', 'AM/BD', 'Final Approval'        => 'brand_manager_id',
             'Coordinator'        => 'coordinator_id',
             'Designer'           => 'designer_id',
             default              => null,
@@ -238,7 +244,7 @@ class Deliverable extends Model
     public function getNotifyTarget($stage)
     {
         $target = match ($stage) {
-            'Approver', 'Approver Review' => $this->approver ?? $this->project?->approver,
+            'Approver', 'Approver Review', 'Further Approver' => $this->approver ?? $this->project?->approver,
             'Brand Manager'  => $this->brandManager ?? $this->project?->brandManager,
             'Coordinator'    => $this->coordinator ?? $this->project?->coordinator,
             'Designer'       => $this->designer ?? $this->project?->designer,
