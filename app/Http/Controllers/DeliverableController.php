@@ -597,16 +597,6 @@ class DeliverableController extends Controller
             }
         }
 
-        // Advance stage skipping logic
-        if ($oldStage === 'Writer' || $oldStage === 'Assignee') {
-            $lastRevision = $deliverable->revisionsHistory()->latest()->first();
-            if (is_object($lastRevision) && $lastRevision->stage_at_revision === 'Brand Manager') {
-                if (in_array('Brand Manager', $stages)) {
-                    $nextStage = 'Brand Manager';
-                }
-            }
-        }
-
         $deliverable->approval_stage = $nextStage;
         $deliverable->progress_percent = $deliverable->getStageProgress();
         $deliverable->revision_instructions = null;
@@ -656,10 +646,10 @@ class DeliverableController extends Controller
             } else {
                 $deliverable->approval_stage = $firstStage;
             }
-            
+
             // Revert status to "To Do" if moved back for revisions
             $deliverable->status = 'To Do';
-            
+
             $deliverable->progress_percent = $deliverable->getStageProgress();
             $deliverable->revisions += 1;
             $deliverable->revision_instructions = $validated['revision_instructions'];
@@ -672,12 +662,15 @@ class DeliverableController extends Controller
                 'stage_at_revision' => $oldStage,
             ]);
 
-            // Notify writer
-            if ($deliverable->writer) {
-                $deliverable->writer->notify(new \App\Notifications\DeliverableUpdated(
-                    $deliverable, 
-                    "requested revisions at stage **{$oldStage}**", 
-                    'revision_request', 
+            // Notify the person responsible for the target stage
+            $notifyTarget = $deliverable->approval_stage === 'Designer'
+                ? ($deliverable->designer ?? $deliverable->project?->designer)
+                : ($deliverable->writer ?? $deliverable->project?->writer);
+            if ($notifyTarget) {
+                $notifyTarget->notify(new \App\Notifications\DeliverableUpdated(
+                    $deliverable,
+                    "requested revisions at stage **{$oldStage}**",
+                    'revision_request',
                     auth()->user()
                 ));
             }
@@ -721,7 +714,7 @@ class DeliverableController extends Controller
                 $task->progress_percent = $task->getStageProgress();
                 $task->revisions += 1;
                 $task->revision_instructions = $validated['revision_instructions'];
-                $task->is_ready = false; 
+                $task->is_ready = false;
                 $task->save();
 
                 // History
@@ -731,12 +724,15 @@ class DeliverableController extends Controller
                     'stage_at_revision' => $oldStage,
                 ]);
 
-                // Notify
-                if ($task->writer) {
-                    $task->writer->notify(new \App\Notifications\DeliverableUpdated(
-                        $task, 
-                        "requested revisions for batch **{$deliverable->title}**", 
-                        'revision_request', 
+                // Notify the person responsible for the target stage
+                $notifyTarget = $task->approval_stage === 'Designer'
+                    ? ($task->designer ?? $task->project?->designer)
+                    : ($task->writer ?? $task->project?->writer);
+                if ($notifyTarget) {
+                    $notifyTarget->notify(new \App\Notifications\DeliverableUpdated(
+                        $task,
+                        "requested revisions for batch **{$deliverable->title}**",
+                        'revision_request',
                         auth()->user()
                     ));
                 }
