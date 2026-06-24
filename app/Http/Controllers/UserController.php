@@ -35,7 +35,7 @@ class UserController extends Controller
             'username' => 'required|string|max:30|alpha_dash|unique:users',
             'email'    => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role'     => ['required', Rule::in(['Admin', 'Writer', 'Approver', 'Brand Manager', 'Designer', 'Coordinator'])],
+            'role'     => ['required', Rule::in(['Admin', 'Writer', 'Approver', 'Approver Coordinator', 'Brand Manager', 'Designer', 'Coordinator'])],
         ]);
 
         User::create([
@@ -66,7 +66,7 @@ class UserController extends Controller
             'username' => ['required', 'string', 'max:30', 'alpha_dash', Rule::unique('users')->ignore($user->id)],
             'email'    => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:8|confirmed',
-            'role'     => ['required', Rule::in(['Admin', 'Writer', 'Approver', 'Brand Manager', 'Designer', 'Coordinator'])],
+            'role'     => ['required', Rule::in(['Admin', 'Writer', 'Approver', 'Approver Coordinator', 'Brand Manager', 'Designer', 'Coordinator'])],
         ]);
 
         $user->name     = strtolower($validated['username']);

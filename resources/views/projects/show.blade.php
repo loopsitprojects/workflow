@@ -460,15 +460,15 @@
                                                 
                                                 $canApproveBatch = $isAdmin || (
                                                     (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                     (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
-                                                    ($stage === 'Coordinator' && $userRole === 'coordinator' && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
+                                                    ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                     ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                                 );
 
                                                 $canReviseBatch = $isAdmin || (
                                                     (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                     (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                 );
                                                 
@@ -492,29 +492,26 @@
                                                 $stageOrder = ['Writer', 'Assignee', 'Approver', 'Brand Manager', 'AM/BD', 'Coordinator', 'Designer', 'Writer Review', 'Approver Review', 'Final Approval', 'Closed'];
                                                 $currIdx = array_search($stage, $stageOrder);
 
-                                                $readyInBatch = $allTasksForBatch->filter(function($t) use ($stage, $stageOrder, $currIdx) {
-                                                    $tIdx = array_search($t->approval_stage, $stageOrder);
-                                                    if ($tIdx > $currIdx) return true; // Already moved ahead
-                                                    if ($tIdx < $currIdx) return false; // Behind (Revision Request)
-                                                    
-                                                    return true; // Consider ready since it is at the current stage
+                                                // Ready = subtask is at exactly the same stage as the parent
+                                                $parentStageNorm = $stage ?: 'Writer';
+                                                $readyInBatch = $allTasksForBatch->filter(function($t) use ($parentStageNorm) {
+                                                    return ($t->approval_stage ?: 'Writer') === $parentStageNorm;
                                                 })->count();
 
                                                 $progressBatch = ($totalInBatch > 0) ? ($readyInBatch / $totalInBatch) * 100 : 0;
                                                 $allReady = $readyInBatch === $totalInBatch;
 
-                                                $hasIndividuallySubmitted = $subtasks->contains(function($t) use ($stage, $stageOrder, $currIdx) {
-                                                    $tIdx = array_search($t->approval_stage, $stageOrder);
-                                                    return $tIdx > $currIdx;
-                                                });
-
-                                                if ($hasIndividuallySubmitted) {
-                                                    $label = "Batch Gated (Individual Submission)";
+                                                // Gate batch when not all subtasks are at the same stage (ahead OR behind)
+                                                if (!$allReady) {
+                                                    $hasAhead = $subtasks->contains(function($t) use ($currIdx, $stageOrder) {
+                                                        $tIdx = array_search($t->approval_stage, $stageOrder);
+                                                        return $tIdx !== false && $currIdx !== false && $tIdx > $currIdx;
+                                                    });
+                                                    $label = $hasAhead ? "Batch Gated (Individual Submission)" : "Batch Gated (Not All Ready)";
                                                 }
 
-                                                // Block batch submission if any subtask is individually submitted ahead
-                                                $isGated = $hasIndividuallySubmitted;
-                                                $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . "}";
+                                                $isGated = !$allReady;
+                                                $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "'}";
                                             @endphp
                                             <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px;">
                                                 {{-- Stage badge --}}
@@ -532,18 +529,24 @@
 
                                                 {{-- Actions --}}
                                                 <div style="display:flex; align-items:center; gap:6px;">
-                                                    <a href="{{ route('deliverables.export-batch.pdf', $task->id) }}" class="cd-btn cd-btn-outline" title="Export Batch PDF" style="padding:6px 10px; border-radius:7px; font-size:11px; font-weight:600;">PDF</a>
+                                                    <a href="{{ route('deliverables.showBatch', $task->id) }}" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:7px;text-decoration:none;white-space:nowrap;">
+                                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                        View
+                                                    </a>
+                                                    @if(in_array(auth()->user()->role, ['Writer', 'Brand Manager']) || auth()->user()->isAdmin())
+                                                    <form method="POST" action="{{ route('deliverables.addToBatch', $task->id) }}" style="display:inline;">
+                                                        @csrf
+                                                        <button type="submit" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:7px;cursor:pointer;white-space:nowrap;">
+                                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                                            Add Post
+                                                        </button>
+                                                    </form>
+                                                    @endif
                                                     <a href="{{ route('deliverables.export-batch.ppt', $task->id) }}" class="cd-btn cd-btn-outline" title="Export Batch PPT" style="padding:6px 10px; border-radius:7px; font-size:11px; font-weight:600;">PPT</a>
                                                     @if($canReviseBatch)
-                                                        @php
-                                                            $hasRevisionInBatch = $allTasksForBatch->contains(function($t) use ($stageOrder, $currIdx) {
-                                                                $tIdx = array_search($t->approval_stage, $stageOrder);
-                                                                return $tIdx !== false && $tIdx < $currIdx;
-                                                            });
-                                                        @endphp
                                                         <button onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', {{ $totalInBatch }}, 'revision', {{ $batchStakeholders }})"
-                                                                style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; transition:all 0.15s; {{ !$hasRevisionInBatch ? 'color:#ef4444; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); cursor:pointer;' : 'color:var(--color-text-secondary); background:none; border:1px solid var(--color-border-primary); cursor:not-allowed; opacity:0.6;' }}"
-                                                                {{ $hasRevisionInBatch ? 'disabled' : '' }}>
+                                                                style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; transition:all 0.15s; {{ $allReady ? 'color:#ef4444; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); cursor:pointer;' : 'color:var(--color-text-secondary); background:none; border:1px solid var(--color-border-primary); cursor:not-allowed; opacity:0.6;' }}"
+                                                                {{ !$allReady ? 'disabled' : '' }}>
                                                             {{ in_array($stage, ['Final Approval', 'Writer Review', 'Approver Review']) ? 'Revise All → Designer' : 'Revise All → Writer' }}
                                                         </button>
                                                     @endif
@@ -562,7 +565,7 @@
                                     @php
                                         $isWriterStage = ($subtask->approval_stage === 'Writer' || $subtask->approval_stage === 'Assignee');
                                         $isWriter = ($userRole === 'writer' || $userRole === 'assignee');
-                                        $canEditInline = $isWriterStage && ($isWriter || auth()->id() == $subtask->writer_id || $isAdmin);
+                                        $canEditInline = $isAdmin || ($isWriterStage && $isWriter && (!$subtask->writer_id || auth()->id() == $subtask->writer_id));
                                     @endphp
                                     <tr class="subtask-row rtb-subtask-row subtask-of-{{ $task->id }} {{ $subIndex === $task->subtasks->count() - 1 ? 'last-subtask' : '' }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                         <td>
@@ -571,8 +574,13 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <div style="font-weight:800;">{{ $subtask->deadline ? \Carbon\Carbon::parse($subtask->deadline)->format('M d, Y') : '—' }}</div>
-                                            <div style="font-size:9px; color:var(--color-text-secondary);">{{ $subtask->deadline ? \Carbon\Carbon::parse($subtask->deadline)->format('H:i') : '' }}</div>
+                                            @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
+                                            <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                            <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
+                                            @if($subtask->designer_deadline)
+                                            <div style="margin-top:6px; font-size:9px; font-weight:700; color:#8b5cf6; text-transform:uppercase;">Designer:</div>
+                                            <div style="font-weight:700; color:#8b5cf6; font-size:11px;">{{ \Carbon\Carbon::parse($subtask->designer_deadline)->format('M d, Y H:i') }}</div>
+                                            @endif
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
@@ -601,19 +609,21 @@
                                                 @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ $subtask->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif
                                             @endif
                                         </td>
-                                        <td>
+                                        <td onclick="event.stopPropagation()">
                                             @if($subtask->reference_file)
-                                                <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->reference_file }}', false)">
+                                                <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Image">
                                             @elseif($subtask->reference)
-                                                <a href="{{ $subtask->reference }}" target="_blank" class="ref-chip" style="padding:4px 8px; font-size:9px;">Link</a>
+                                                <a href="{{ $subtask->reference }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15);" title="Visit Link">
+                                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                                </a>
                                             @else
-                                                —
+                                                <span style="color:var(--color-text-secondary); font-size:11px;">-</span>
                                             @endif
                                         </td>
                                         <td>
                                             @if($subtask->final_designs)
-                                                @php 
-                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $subtask->final_designs); 
+                                                @php
+                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $subtask->final_designs);
                                                     $isAssignedDesigner = $currentUserId == $subtask->designer_id;
                                                     $designerEditPermission = $isAssignedDesigner;
                                                     $canRemoveSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
@@ -679,9 +689,9 @@
                                         <td onclick="event.stopPropagation()">
                                             @php $canEditHrs = $currentUserIsAdmin ||
     (in_array($userRole, ['writer', 'assignee']) && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-    ($userRole === 'approver'      && (!$subtask->approver_id      || $subtask->approver_id      == $currentUserId)) ||
+    (in_array($userRole, ['approver', 'approvercoordinator'])      && (!$subtask->approver_id      || $subtask->approver_id      == $currentUserId)) ||
     ($userRole === 'brandmanager'  && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
-    ($userRole === 'coordinator'   && (!$subtask->coordinator_id   || $subtask->coordinator_id   == $currentUserId)) ||
+    (in_array($userRole, ['coordinator', 'approvercoordinator'])   && (!$subtask->coordinator_id   || $subtask->coordinator_id   == $currentUserId)) ||
     ($userRole === 'designer'      && (!$subtask->designer_id      || $subtask->designer_id      == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $subtask->id }}" value="{{ $subtask->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
@@ -690,20 +700,10 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @php
-                                                $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
-                                                $subRevHistory = $subtask->getRelation('revisionsHistory') ?? collect();
-                                                $subWrevs = $subRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
-                                                $subDrevs = $subRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
-                                            @endphp
                                             <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                                @if($subWrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $subWrevs }}</span>
-                                                @endif
-                                                @if($subDrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $subDrevs }}</span>
-                                                @endif
-                                                @if($subWrevs === 0 && $subDrevs === 0)
+                                                @if($subtask->revisions > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(239,68,68,0.1);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $subtask->revisions }}</span>
+                                                @else
                                                     <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
                                                 @endif
                                             </div>
@@ -720,14 +720,14 @@
                                                     $subNextStage = $subtask->getNextStage();
                                                     $canApproveSub = $isAdmin || (
                                                         (($subStage === 'Writer' || $subStage === 'Assignee' || $subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
                                                         (($subStage === 'Brand Manager' || $subStage === 'AM/BD' || $subStage === 'Final Approval') && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
-                                                        ($subStage === 'Coordinator' && $userRole === 'coordinator' && (!$subtask->coordinator_id || $subtask->coordinator_id == $currentUserId)) ||
+                                                        ($subStage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$subtask->coordinator_id || $subtask->coordinator_id == $currentUserId)) ||
                                                         ($subStage === 'Designer' && $userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId))
                                                     );
                                                     $canReviseSub = $isAdmin || (
                                                         (($subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
                                                         (in_array($subStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId))
                                                     );
 
@@ -741,10 +741,10 @@
                                                 @endphp
 
                                                 @php
-                                                    $subStakeholders = "{approver: " . ($subtask->approver_id ?? 'null') . ", brand_manager: " . ($subtask->brand_manager_id ?? 'null') . ", coordinator: " . ($subtask->coordinator_id ?? 'null') . ", designer: " . ($subtask->designer_id ?? 'null') . "}";
+                                                    $subStakeholders = "{approver: " . ($subtask->approver_id ?? 'null') . ", brand_manager: " . ($subtask->brand_manager_id ?? 'null') . ", coordinator: " . ($subtask->coordinator_id ?? 'null') . ", designer: " . ($subtask->designer_id ?? 'null') . ", writerName: '" . addslashes($subtask->writer->name ?? '') . "', approverName: '" . addslashes($subtask->approver->name ?? $project->approver->name ?? '') . "'}";
                                                 @endphp
                                                 @if($subtask->revision_instructions)
-                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
+                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->last()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
                                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
                                                         Revision Requested
                                                     </button>
@@ -769,7 +769,7 @@
                                                 </button>
 
 
-                                                @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
+                                                @if($isAdmin || $userRole === 'brandmanager')
                                                 <form action="{{ route('deliverables.destroy', $subtask) }}" method="POST" onsubmit="return confirm('Delete Deliverable?')" style="display:contents;" onclick="event.stopPropagation()">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="quick-action-btn btn-delete-quick">
@@ -791,8 +791,13 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <div style="font-weight:800;">{{ $task->deadline ? \Carbon\Carbon::parse($task->deadline)->format('M d, Y') : '—' }}</div>
-                                            <div style="font-size:9px; color:var(--color-text-secondary);">{{ $task->deadline ? \Carbon\Carbon::parse($task->deadline)->format('H:i') : '' }}</div>
+                                            @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
+                                            <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                            <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
+                                            @if($task->designer_deadline)
+                                            <div style="margin-top:6px; font-size:9px; font-weight:700; color:#8b5cf6; text-transform:uppercase;">Designer:</div>
+                                            <div style="font-weight:700; color:#8b5cf6; font-size:11px;">{{ \Carbon\Carbon::parse($task->designer_deadline)->format('M d, Y H:i') }}</div>
+                                            @endif
                                         </td>
                                         <td>@if($task->concept)<div class="cell-text" onclick="openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ $task->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif</td>
                                         <td>
@@ -881,9 +886,9 @@
                                         <td onclick="event.stopPropagation()">
                                             @php $canEditHrs = $currentUserIsAdmin ||
     (in_array($userRole, ['writer', 'assignee']) && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-    ($userRole === 'approver'      && (!$task->approver_id      || $task->approver_id      == $currentUserId)) ||
+    (in_array($userRole, ['approver', 'approvercoordinator'])      && (!$task->approver_id      || $task->approver_id      == $currentUserId)) ||
     ($userRole === 'brandmanager'  && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
-    ($userRole === 'coordinator'   && (!$task->coordinator_id   || $task->coordinator_id   == $currentUserId)) ||
+    (in_array($userRole, ['coordinator', 'approvercoordinator'])   && (!$task->coordinator_id   || $task->coordinator_id   == $currentUserId)) ||
     ($userRole === 'designer'      && (!$task->designer_id      || $task->designer_id      == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $task->id }}" value="{{ $task->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
@@ -892,20 +897,10 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @php
-                                                $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
-                                                $taskRevHistory = $task->getRelation('revisionsHistory') ?? collect();
-                                                $taskWrevs = $taskRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
-                                                $taskDrevs = $taskRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
-                                            @endphp
                                             <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                                @if($taskWrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $taskWrevs }}</span>
-                                                @endif
-                                                @if($taskDrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $taskDrevs }}</span>
-                                                @endif
-                                                @if($taskWrevs === 0 && $taskDrevs === 0)
+                                                @if($task->revisions > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(239,68,68,0.1);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $task->revisions }}</span>
+                                                @else
                                                     <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
                                                 @endif
                                             </div>
@@ -922,14 +917,14 @@
                                                     $nextStage = $task->getNextStage();
                                                     $canApproveIndividual = $isAdmin || (
                                                         (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                         (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
-                                                        ($stage === 'Coordinator' && $userRole === 'coordinator' && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
+                                                        ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                         ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                                     );
                                                     $canReviseIndividual = $isAdmin || (
                                                         (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                         (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                     );
 
@@ -943,20 +938,20 @@
                                                 @endphp
 
                                                 @if($task->revision_instructions)
-                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
+                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->last()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
                                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
                                                         Revision Requested
                                                     </button>
                                                 @endif
                                                 @if($canApproveIndividual && $nextStage)
-                                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {approver: {{ $task->approver_id ?? 'null' }}, brand_manager: {{ $task->brand_manager_id ?? 'null' }}, coordinator: {{ $task->coordinator_id ?? 'null' }}, designer: {{ $task->designer_id ?? 'null' }}}, {{ $task->revision_instructions ? 'true' : 'false' }})" class="quick-action-btn btn-approve-quick">
+                                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {approver: {{ $task->approver_id ?? 'null' }}, brand_manager: {{ $task->brand_manager_id ?? 'null' }}, coordinator: {{ $task->coordinator_id ?? 'null' }}, designer: {{ $task->designer_id ?? 'null' }}, writerName: '{{ addslashes($task->writer->name ?? '') }}', approverName: '{{ addslashes($task->approver->name ?? $project->approver->name ?? '') }}'}, {{ $task->revision_instructions ? 'true' : 'false' }})" class="quick-action-btn btn-approve-quick">
                                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                                         {{ $btnLabel }}
                                                     </button>
                                                 @endif
 
                                                 @if($canReviseIndividual && $stage !== 'Writer' && $stage !== 'Assignee')
-                                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', 1, 'revision', {approver: {{ $task->approver_id ?? 'null' }}, brand_manager: {{ $task->brand_manager_id ?? 'null' }}, coordinator: {{ $task->coordinator_id ?? 'null' }}, designer: {{ $task->designer_id ?? 'null' }}})" class="quick-action-btn btn-revise-quick">
+                                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', 1, 'revision', {approver: {{ $task->approver_id ?? 'null' }}, brand_manager: {{ $task->brand_manager_id ?? 'null' }}, coordinator: {{ $task->coordinator_id ?? 'null' }}, designer: {{ $task->designer_id ?? 'null' }}, writerName: '{{ addslashes($task->writer->name ?? '') }}', approverName: '{{ addslashes($task->approver->name ?? $project->approver->name ?? '') }}'})" class="quick-action-btn btn-revise-quick">
                                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                                         {{ in_array($stage, ['Final Approval', 'Writer Review', 'Approver Review']) ? '→ Designer' : '→ Writer' }}
                                                     </button>
@@ -968,7 +963,7 @@
                                                 </button>
 
 
-                                                @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
+                                                @if($isAdmin || $userRole === 'brandmanager')
                                                 <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirm('Delete Deliverable?')" style="display:contents;" onclick="event.stopPropagation()">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="quick-action-btn btn-delete-quick">
@@ -1044,15 +1039,15 @@
                                                 
                                                 $canApproveBatch = $isAdmin || (
                                                     (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                     (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
-                                                    ($stage === 'Coordinator' && $userRole === 'coordinator' && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
+                                                    ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                     ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                                 );
 
                                                 $canReviseBatch = $isAdmin || (
                                                     (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                     (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                 );
                                                 
@@ -1110,10 +1105,9 @@
                                                 </div>
                                                 <div style="display:flex; flex-direction:column; align-items:stretch; gap:8px; width: 100%;">
                                                     @php 
-                                                        $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . "}";
+                                                        $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "'}";
                                                     @endphp
                                                     <div style="display:flex; gap:6px; width: 100%;">
-                                                        <a href="{{ route('deliverables.export-batch.pdf', $task->id) }}" class="cd-btn cd-btn-outline" title="Export Batch PDF" style="flex:1; justify-content:center; padding:6px; border-radius:8px; font-size:9px; font-weight:600; letter-spacing:0.05em;">PDF</a>
                                                         <a href="{{ route('deliverables.export-batch.ppt', $task->id) }}" class="cd-btn cd-btn-outline" title="Export Batch PPT" style="flex:1; justify-content:center; padding:6px; border-radius:8px; font-size:9px; font-weight:600; letter-spacing:0.05em;">PPT</a>
                                                     </div>
                                                     @if($canReviseBatch)
@@ -1148,9 +1142,17 @@
                                                 <span style="font-weight:700; color:#475569;">{{ $subtask->title }}</span>
                                             </div>
                                         </td>
-                                        <td>{{ $subtask->deadline ? \Carbon\Carbon::parse($subtask->deadline)->format('M d, Y') : '—' }}</td>
+                                        <td>
+                                            @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
+                                            <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                            <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
+                                            @if($subtask->designer_deadline)
+                                            <div style="margin-top:6px; font-size:9px; font-weight:700; color:#8b5cf6; text-transform:uppercase;">Designer:</div>
+                                            <div style="font-weight:700; color:#8b5cf6; font-size:11px;">{{ \Carbon\Carbon::parse($subtask->designer_deadline)->format('M d, Y H:i') }}</div>
+                                            @endif
+                                        </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="concept" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $subtask->concept }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="concept" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $subtask->concept }}</textarea>
                                         </td>
                                         <td>
                                             @if($subtask->subtask_type)
@@ -1163,24 +1165,26 @@
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="caption" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $subtask->caption }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="caption" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $subtask->caption }}</textarea>
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="post_copy" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $subtask->post_copy }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="post_copy" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $subtask->post_copy }}</textarea>
                                         </td>
-                                        <td>
+                                        <td onclick="event.stopPropagation()">
                                             @if($subtask->reference_file)
-                                                <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->reference_file }}', false)">
+                                                <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Image">
                                             @elseif($subtask->reference)
-                                                <a href="{{ $subtask->reference }}" target="_blank" class="ref-chip" style="padding:4px 8px; font-size:9px;">Link</a>
+                                                <a href="{{ $subtask->reference }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15);" title="Visit Link">
+                                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                                </a>
                                             @else
-                                                —
+                                                <span style="color:var(--color-text-secondary); font-size:11px;">-</span>
                                             @endif
                                         </td>
                                         <td>
                                             @if($subtask->final_designs)
-                                                @php 
-                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $subtask->final_designs); 
+                                                @php
+                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $subtask->final_designs);
                                                     $isAssignedDesigner = $currentUserId == $subtask->designer_id;
                                                     $designerEditPermission = $isAssignedDesigner || ($currentUserRole === 'designer' && !$subtask->designer_id);
                                                     $canRemoveSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
@@ -1246,9 +1250,9 @@
                                         <td onclick="event.stopPropagation()">
                                             @php $canEditHrs = $currentUserIsAdmin ||
     (in_array($userRole, ['writer', 'assignee']) && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-    ($userRole === 'approver'      && (!$subtask->approver_id      || $subtask->approver_id      == $currentUserId)) ||
+    (in_array($userRole, ['approver', 'approvercoordinator'])      && (!$subtask->approver_id      || $subtask->approver_id      == $currentUserId)) ||
     ($userRole === 'brandmanager'  && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
-    ($userRole === 'coordinator'   && (!$subtask->coordinator_id   || $subtask->coordinator_id   == $currentUserId)) ||
+    (in_array($userRole, ['coordinator', 'approvercoordinator'])   && (!$subtask->coordinator_id   || $subtask->coordinator_id   == $currentUserId)) ||
     ($userRole === 'designer'      && (!$subtask->designer_id      || $subtask->designer_id      == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $subtask->id }}" value="{{ $subtask->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
@@ -1257,20 +1261,10 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @php
-                                                $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
-                                                $subRevHistory = $subtask->getRelation('revisionsHistory') ?? collect();
-                                                $subWrevs = $subRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
-                                                $subDrevs = $subRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
-                                            @endphp
                                             <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                                @if($subWrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $subWrevs }}</span>
-                                                @endif
-                                                @if($subDrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $subDrevs }}</span>
-                                                @endif
-                                                @if($subWrevs === 0 && $subDrevs === 0)
+                                                @if($subtask->revisions > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(239,68,68,0.1);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $subtask->revisions }}</span>
+                                                @else
                                                     <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
                                                 @endif
                                             </div>
@@ -1285,14 +1279,14 @@
                                                     $subNextStage = $subtask->getNextStage();
                                                     $canApproveSub = $isAdmin || (
                                                         (($subStage === 'Writer' || $subStage === 'Assignee' || $subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
                                                         (($subStage === 'Brand Manager' || $subStage === 'AM/BD' || $subStage === 'Final Approval') && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
-                                                        ($subStage === 'Coordinator' && $userRole === 'coordinator' && (!$subtask->coordinator_id || $subtask->coordinator_id == $currentUserId)) ||
+                                                        ($subStage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$subtask->coordinator_id || $subtask->coordinator_id == $currentUserId)) ||
                                                         ($subStage === 'Designer' && $userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId))
                                                     );
                                                     $canReviseSub = $isAdmin || (
                                                         (($subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && $userRole === 'approver' && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
                                                         (in_array($subStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId))
                                                     );
 
@@ -1306,10 +1300,10 @@
                                                 @endphp
 
                                                 @php
-                                                    $subStakeholders = "{approver: " . ($subtask->approver_id ?? 'null') . ", brand_manager: " . ($subtask->brand_manager_id ?? 'null') . ", coordinator: " . ($subtask->coordinator_id ?? 'null') . ", designer: " . ($subtask->designer_id ?? 'null') . "}";
+                                                    $subStakeholders = "{approver: " . ($subtask->approver_id ?? 'null') . ", brand_manager: " . ($subtask->brand_manager_id ?? 'null') . ", coordinator: " . ($subtask->coordinator_id ?? 'null') . ", designer: " . ($subtask->designer_id ?? 'null') . ", writerName: '" . addslashes($subtask->writer->name ?? '') . "', approverName: '" . addslashes($subtask->approver->name ?? $project->approver->name ?? '') . "'}";
                                                 @endphp
                                                 @if($subtask->revision_instructions)
-                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
+                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->last()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
                                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
                                                         Revision Requested
                                                     </button>
@@ -1354,9 +1348,17 @@
                                                 <span style="font-weight:900; color:var(--color-text-primary);">{{ $task->title }}</span>
                                             </div>
                                         </td>
-                                        <td>{{ $task->deadline ? \Carbon\Carbon::parse($task->deadline)->format('M d, Y') : '—' }}</td>
+                                        <td>
+                                            @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
+                                            <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                            <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
+                                            @if($task->designer_deadline)
+                                            <div style="margin-top:6px; font-size:9px; font-weight:700; color:#8b5cf6; text-transform:uppercase;">Designer:</div>
+                                            <div style="font-weight:700; color:#8b5cf6; font-size:11px;">{{ \Carbon\Carbon::parse($task->designer_deadline)->format('M d, Y H:i') }}</div>
+                                            @endif
+                                        </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="concept" placeholder="Concept..." onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $task->concept }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="concept" placeholder="Concept..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $task->concept }}</textarea>
                                         </td>
                                         <td>
                                             @if($task->subtask_type)
@@ -1369,24 +1371,26 @@
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="caption" placeholder="Caption..." onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $task->caption }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="caption" placeholder="Caption..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $task->caption }}</textarea>
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="post_copy" placeholder="Copy..." onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $task->post_copy }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="post_copy" placeholder="Copy..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $task->post_copy }}</textarea>
                                         </td>
-                                        <td>
+                                        <td onclick="event.stopPropagation()">
                                             @if($task->reference_file)
-                                                <img src="{{ $task->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $task->reference_file }}', false)">
+                                                <img src="{{ $task->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $task->reference_file }}', false)" title="View Image">
                                             @elseif($task->reference)
-                                                <a href="{{ $task->reference }}" target="_blank" class="ref-chip" style="padding:4px 8px; font-size:9px;">Link</a>
+                                                <a href="{{ $task->reference }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15);" title="Visit Link">
+                                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                                </a>
                                             @else
-                                                —
+                                                <span style="color:var(--color-text-secondary); font-size:11px;">-</span>
                                             @endif
                                         </td>
                                         <td>
                                             @if($task->final_designs)
-                                                @php 
-                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $task->final_designs); 
+                                                @php
+                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $task->final_designs);
                                                     $isAssignedDesigner = $currentUserId == $task->designer_id;
                                                     $designerEditPermission = $isAssignedDesigner;
                                                     $canRemoveTask = ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
@@ -1452,9 +1456,9 @@
                                         <td onclick="event.stopPropagation()">
                                             @php $canEditHrs = $currentUserIsAdmin ||
     (in_array($userRole, ['writer', 'assignee']) && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-    ($userRole === 'approver'      && (!$task->approver_id      || $task->approver_id      == $currentUserId)) ||
+    (in_array($userRole, ['approver', 'approvercoordinator'])      && (!$task->approver_id      || $task->approver_id      == $currentUserId)) ||
     ($userRole === 'brandmanager'  && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
-    ($userRole === 'coordinator'   && (!$task->coordinator_id   || $task->coordinator_id   == $currentUserId)) ||
+    (in_array($userRole, ['coordinator', 'approvercoordinator'])   && (!$task->coordinator_id   || $task->coordinator_id   == $currentUserId)) ||
     ($userRole === 'designer'      && (!$task->designer_id      || $task->designer_id      == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $task->id }}" value="{{ $task->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
@@ -1463,20 +1467,10 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @php
-                                                $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
-                                                $taskRevHistory = $task->getRelation('revisionsHistory') ?? collect();
-                                                $taskWrevs = $taskRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
-                                                $taskDrevs = $taskRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
-                                            @endphp
                                             <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                                @if($taskWrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $taskWrevs }}</span>
-                                                @endif
-                                                @if($taskDrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $taskDrevs }}</span>
-                                                @endif
-                                                @if($taskWrevs === 0 && $taskDrevs === 0)
+                                                @if($task->revisions > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(239,68,68,0.1);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $task->revisions }}</span>
+                                                @else
                                                     <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
                                                 @endif
                                             </div>
@@ -1491,14 +1485,14 @@
                                                     $nextStage = $task->getNextStage();
                                                     $canApproveIndividual = $isAdmin || (
                                                         (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                         (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
-                                                        ($stage === 'Coordinator' && $userRole === 'coordinator' && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
+                                                        ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                         ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                                     );
                                                     $canReviseIndividual = $isAdmin || (
                                                         (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && $userRole === 'approver' && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                                         (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                     );
 
@@ -1512,10 +1506,10 @@
                                                 @endphp
 
                                                 @php
-                                                    $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . "}";
+                                                    $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "'}";
                                                 @endphp
                                                 @if($task->revision_instructions)
-                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
+                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->last()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
                                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
                                                         Revision Requested
                                                     </button>
@@ -1542,7 +1536,7 @@
                                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                                                     Sub
                                                 </a>
-                                                @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
+                                                @if($isAdmin || $userRole === 'brandmanager')
                                                 <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirm('Delete Deliverable?')" style="display:contents;" onclick="event.stopPropagation()">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="quick-action-btn btn-delete-quick">
@@ -1586,11 +1580,10 @@
             <div class="cd-modal-header">
                 <div>
                     <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:12px;"></div>
-                    <h2 id="modalTaskTitle" style="font-size:24px; font-weight:900; color:var(--color-text-primary); margin:0;"></h2>
+                    <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" style="font-size:24px; font-weight:900; color:var(--color-text-primary); margin:0; border:1px solid transparent; background:transparent; width:100%; outline:none; border-radius:8px; padding:4px 8px; margin-left:-8px; transition:all 0.2s;" readonly onfocus="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-secondary)'" onblur="this.style.borderColor='transparent'; this.style.background='transparent'">
                 </div>
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="display:flex; gap:8px; margin-right:12px; border-right:1px solid var(--color-border-primary); padding-right:12px;">
-                                        <a id="btnExportPdf" href="#" class="cd-btn cd-btn-outline" style="padding:6px 10px; font-size:11px;" title="Download PDF">PDF</a>
                                         <a id="btnExportPpt" href="#" class="cd-btn cd-btn-outline" style="padding:6px 10px; font-size:11px;" title="Download PPT">PPT</a>
                                         @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
                                             <a id="modalEditBtn" href="#" class="cd-btn cd-btn-outline" style="padding:6px 10px; font-size:11px; border-color:#0055D4; color:#0055D4;" title="Edit Deliverable">Edit</a>
@@ -1640,7 +1633,18 @@
                         <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.1); border-radius:16px;">
                             <div>
                                 <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Upload New Reference File</div>
-                                <input type="file" name="reference_file" form="submitStageForm" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;">
+                                <input type="file" name="reference_file" form="submitStageForm" accept="image/*" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                                    const f = this.files[0];
+                                    const prev = document.getElementById('modalReferenceImagePreview');
+                                    if (f && f.type.startsWith('image/')) {
+                                        const r = new FileReader();
+                                        r.onload = e => { prev.src = e.target.result; prev.style.display='block'; };
+                                        r.readAsDataURL(f);
+                                    } else {
+                                        prev.style.display='none'; prev.src='';
+                                    }
+                                ">
+                                <img id="modalReferenceImagePreview" src="" alt="Reference Preview" style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
                             </div>
                             <div>
                                 <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Reference URL</div>
@@ -1651,6 +1655,11 @@
                     <div class="detail-item">
                         <label class="detail-label">Current Stage</label>
                         <div id="modalStage" class="detail-val" style="font-weight:900; color:#0055D4;">-</div>
+                    </div>
+
+                    <div class="detail-item" id="modalDesignerDeadlineBox" style="display:none;">
+                        <label class="detail-label" style="color:#8b5cf6;">Designer Deadline</label>
+                        <div id="modalDesignerDeadline" style="font-size:13px; font-weight:700; color:#8b5cf6; padding:8px 12px; background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.2); border-radius:8px;"></div>
                     </div>
 
                     <div class="detail-item full" style="border-top:1px solid var(--color-border-primary); padding-top:20px; margin-top:10px;">
@@ -1711,6 +1720,21 @@
                             @endforeach
                         </select>
                         <p style="font-size:11px; color:#8b5cf6; margin-top:8px; font-weight:600;">Selection required to advance to Designer stage.</p>
+                        <div style="margin-top:14px;">
+                            <label style="display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#8b5cf6; margin-bottom:6px;">Internal Designer Deadline <span style="font-weight:500; opacity:0.65; text-transform:none; letter-spacing:0;">(optional)</span></label>
+                            <div style="display:flex; gap:8px;">
+                                <input type="date" id="designerDeadlineDateInput"
+                                    style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'"
+                                    onchange="syncDesignerDeadline()">
+                                <input type="time" id="designerDeadlineTimeInput"
+                                    style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'"
+                                    onchange="syncDesignerDeadline()">
+                            </div>
+                            <input type="hidden" name="designer_deadline" id="designerDeadlineInput" form="submitStageForm">
+                            <p style="font-size:11px; color:var(--color-text-secondary); margin-top:6px; font-weight:500;">Set an internal due date/time for the designer — earlier than the final project deadline.</p>
+                        </div>
                     </div>
 
                     <div id="designerDeliveryArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.1); border-radius:16px;">
@@ -1789,7 +1813,7 @@
                             <p id="modalRevisionTargetNote" style="font-size:12px; color:#ef4444; font-weight:600; margin:0; opacity:0.8;">The task will be sent back to the Writer</p>
                         </div>
                     </div>
-                    <form id="revisionsForm" method="POST">
+                    <form id="revisionsForm" method="POST" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="revision_target" id="modalRevisionTarget" value="writer">
                         <!-- Post-designer revision target toggle (shown only for Writer Review / Approver Review / Final Approval) -->
@@ -1806,7 +1830,23 @@
                                 </label>
                             </div>
                         </div>
-                        <textarea name="revision_instructions" required placeholder="Describe specifically what needs to be fixed..." style="width:100%; height:160px; padding:16px; border-radius:16px; border:1.5px solid rgba(239, 68, 68, 0.2); font-size:14px; resize:none; font-family:inherit; margin-bottom:20px; display:block; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); transition:all 0.2s;"></textarea>
+                        <textarea name="revision_instructions" required placeholder="Describe specifically what needs to be fixed..." style="width:100%; height:160px; padding:16px; border-radius:16px; border:1.5px solid rgba(239, 68, 68, 0.2); font-size:14px; resize:none; font-family:inherit; margin-bottom:12px; display:block; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); transition:all 0.2s;"></textarea>
+                        <!-- Optional revision image -->
+                        <div style="margin-bottom:20px;">
+                            <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;margin-bottom:8px;">Attach Image <span style="font-weight:500;opacity:0.6;text-transform:none;letter-spacing:0;">(optional)</span></label>
+                            <label for="revisionImageInput" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;border:1.5px dashed rgba(239,68,68,0.3);background:rgba(239,68,68,0.04);cursor:pointer;font-size:13px;font-weight:600;color:#ef4444;transition:all 0.15s;" onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='rgba(239,68,68,0.04)'">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <span id="revisionImageLabel">Choose image…</span>
+                            </label>
+                            <input type="file" id="revisionImageInput" name="revision_image" accept="image/*" style="display:none;" onchange="
+                                const f = this.files[0];
+                                document.getElementById('revisionImageLabel').textContent = f ? f.name : 'Choose image…';
+                                const prev = document.getElementById('revisionImagePreview');
+                                if (f) { const r = new FileReader(); r.onload = e => { prev.src = e.target.result; prev.style.display='block'; }; r.readAsDataURL(f); }
+                                else { prev.style.display='none'; prev.src=''; }
+                            ">
+                            <img id="revisionImagePreview" src="" alt="" style="display:none;margin-top:10px;max-width:100%;max-height:200px;border-radius:10px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;">
+                        </div>
                         <div style="display:flex; justify-content:flex-end; gap:12px;">
                             <button type="button" class="cd-btn cd-btn-outline" onclick="toggleRevisionInput(false)" style="padding:12px 24px;">Cancel</button>
                             <button type="submit" class="cd-btn" style="background:#ef4444; color:#fff; border:none; padding:12px 32px; font-weight:800; font-size:14px; border-radius:14px; cursor:pointer; shadow:0 10px 20px rgba(239,68,68,0.2);">Send Request</button>
@@ -1923,14 +1963,27 @@
             btn.classList.toggle('open', !isOpen);
         }
 
-        function openTextPreview(label, text) {
+        function openTextPreview(label, text, imagePath) {
             document.getElementById('tp-label').textContent = label;
-            document.getElementById('tp-body').textContent = text;
-            const modal = document.getElementById('text-preview-modal');
-            modal.style.display = 'flex';
+            const body = document.getElementById('tp-body');
+            body.innerHTML = '';
+            const textNode = document.createElement('div');
+            textNode.style.cssText = 'white-space:pre-wrap;word-break:break-word;';
+            textNode.textContent = text;
+            body.appendChild(textNode);
+            if (imagePath) {
+                const img = document.createElement('img');
+                img.src = imagePath;
+                img.alt = 'Revision reference';
+                img.style.cssText = 'display:block;margin-top:14px;max-width:100%;max-height:300px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;cursor:pointer;';
+                img.onclick = () => window.open(imagePath, '_blank');
+                body.appendChild(img);
+            }
+            document.getElementById('text-preview-modal').style.display = 'flex';
         }
         function closeTextPreview() {
             document.getElementById('text-preview-modal').style.display = 'none';
+            document.getElementById('tp-body').innerHTML = '';
         }
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') closeTextPreview();
@@ -1940,6 +1993,13 @@
         const AUTH_USER_ROLE = "{{ auth()->user()->role }}";
         const WORKFLOW_STAGES = @json($stages);
         let currentTaskData = null;
+
+        function syncDesignerDeadline() {
+            const d = document.getElementById('designerDeadlineDateInput')?.value;
+            const t = document.getElementById('designerDeadlineTimeInput')?.value;
+            const h = document.getElementById('designerDeadlineInput');
+            if (h) h.value = d ? (t ? `${d}T${t}` : d) : '';
+        }
 
         function openTaskModal(task) {
             try {
@@ -1957,7 +2017,7 @@
                 const isAssignedDesigner    = AUTH_USER_ID == task.designer_id;
                 const hasWriterRole = userRole === 'writer' || userRole === 'assignee';
                 const hasDesignerRole = userRole === 'designer';
-                const writerEditPermission = hasWriterRole || isAdmin;
+                const writerEditPermission = isAdmin || (hasWriterRole && (!task.writer_id || AUTH_USER_ID == task.writer_id));
                 // Allow any designer to upload when no designer is assigned (matches PHP logic)
                 const designerEditPermission = isAssignedDesigner || (hasDesignerRole && !task.designer_id);
                 const canDesignerEdit = (designerEditPermission && stage === 'Designer') || isAdmin;
@@ -1965,7 +2025,9 @@
                 const overlay = document.getElementById('taskModalOverlay');
                 const modal = overlay.querySelector('.cd-modal');
                 
-                document.getElementById('modalTaskTitle').textContent = task.title || 'Untitled';
+                const titleEl = document.getElementById('modalTaskTitle');
+                titleEl.value = task.title || '';
+                titleEl.setAttribute('data-task-id', task.id);
                 const ptEl = document.getElementById('modalSubtaskType');
                 ptEl.textContent = task.subtask_type || 'Standard';
                 
@@ -1978,6 +2040,29 @@
                 document.getElementById('modalCaption').value = task.caption || '';
                 document.getElementById('modalSubtaskCopy').value = task.subtask_copy || task.post_copy || '';
                 document.getElementById('modalStage').textContent = task.approval_stage || 'Unknown';
+
+                // Designer deadline display
+                const ddBox = document.getElementById('modalDesignerDeadlineBox');
+                const ddEl  = document.getElementById('modalDesignerDeadline');
+                const ddDateInput = document.getElementById('designerDeadlineDateInput');
+                const ddTimeInput = document.getElementById('designerDeadlineTimeInput');
+                const ddHidden   = document.getElementById('designerDeadlineInput');
+                if (task.designer_deadline) {
+                    const ddDate = new Date(task.designer_deadline);
+                    ddEl.textContent = ddDate.toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'});
+                    ddBox.style.display = 'block';
+                    const pad = n => String(n).padStart(2,'0');
+                    const dateStr = `${ddDate.getFullYear()}-${pad(ddDate.getMonth()+1)}-${pad(ddDate.getDate())}`;
+                    const timeStr = `${pad(ddDate.getHours())}:${pad(ddDate.getMinutes())}`;
+                    if (ddDateInput) ddDateInput.value = dateStr;
+                    if (ddTimeInput) ddTimeInput.value = timeStr;
+                    if (ddHidden)    ddHidden.value = `${dateStr}T${timeStr}`;
+                } else {
+                    ddBox.style.display = 'none';
+                    if (ddDateInput) ddDateInput.value = '';
+                    if (ddTimeInput) ddTimeInput.value = '';
+                    if (ddHidden)    ddHidden.value = '';
+                }
 
                 let refHtml = '';
                 if (task.reference_file) {
@@ -2004,7 +2089,6 @@
                 document.getElementById('artworkFileLabel').textContent = 'Choose image file…';
 
                 // Update export links
-                document.getElementById('btnExportPdf').href = `/deliverables/${task.id}/export/pdf`;
                 const btnExportDocx = document.getElementById('btnExportDocx');
                 if (btnExportDocx) btnExportDocx.href = `/deliverables/${task.id}/export/docx`;
                 document.getElementById('btnExportPpt').href = `/deliverables/${task.id}/export/ppt`;
@@ -2165,6 +2249,11 @@
                                 </div>`;
                         }
 
+                        const imageHtml = rev.image_path
+                            ? `<a href="${rev.image_path}" target="_blank" style="display:block;margin-top:8px;">
+                                <img src="${rev.image_path}" alt="Revision reference" style="max-width:100%;max-height:260px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;cursor:pointer;">
+                               </a>`
+                            : '';
                         row.innerHTML = `
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div style="font-size:11px; font-weight:800; color:#ef4444; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
@@ -2175,6 +2264,7 @@
                                 <div style="font-size:10px; color:#ef4444; opacity:0.8; font-weight:600;">${dateStr}</div>
                             </div>
                             <div style="font-size:13px; font-weight:500; color:var(--color-text-primary); line-height:1.5; padding:10px; background:var(--color-bg-primary); border-radius:8px; border:1px solid rgba(239,68,68,0.1); margin-top:4px;">${(rev.instructions || '').replace(/\n/g, '<br>')}</div>
+                            ${imageHtml}
                             ${fixedBadge}
                         `;
                         revHistory.appendChild(row);
@@ -2188,7 +2278,23 @@
                 // Revision Alert
                 const revAlert = document.getElementById('modalRevisionAlert');
                 if (task.revision_instructions) {
-                    document.getElementById('modalRevisionAlertText').textContent = task.revision_instructions;
+                    const alertTextEl = document.getElementById('modalRevisionAlertText');
+                    alertTextEl.innerHTML = '';
+                    const textNode = document.createElement('div');
+                    textNode.textContent = task.revision_instructions;
+                    alertTextEl.appendChild(textNode);
+                    // Show image from the most recent revision entry if present
+                    const latestRev = task.revisions_history && task.revisions_history.length
+                        ? task.revisions_history[task.revisions_history.length - 1]
+                        : null;
+                    if (latestRev && latestRev.image_path) {
+                        const img = document.createElement('img');
+                        img.src = latestRev.image_path;
+                        img.alt = 'Revision reference';
+                        img.style.cssText = 'display:block;margin-top:12px;max-width:100%;max-height:280px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;cursor:pointer;';
+                        img.onclick = () => window.open(latestRev.image_path, '_blank');
+                        alertTextEl.appendChild(img);
+                    }
                     revAlert.style.display = 'block';
                 } else revAlert.style.display = 'none';
 
@@ -2231,13 +2337,13 @@
                     (stage === 'Writer'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
                     (stage === 'Assignee'        && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
                     (stage === 'Writer Review'   && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                    (stage === 'Approver'          && userRole === 'approver'   && (!task.approver_id       || isAssignedApprover)) ||
-                    (stage === 'Approver Review'   && userRole === 'approver'   && (!task.approver_id       || isAssignedApprover)) ||
-                    (stage === 'Further Approver'  && userRole === 'approver'   && (!task.approver_id       || isAssignedApprover)) ||
+                    (stage === 'Approver'          && (userRole === 'approver' || userRole === 'approvercoordinator')   && (!task.approver_id       || isAssignedApprover)) ||
+                    (stage === 'Approver Review'   && (userRole === 'approver' || userRole === 'approvercoordinator')   && (!task.approver_id       || isAssignedApprover)) ||
+                    (stage === 'Further Approver'  && (userRole === 'approver' || userRole === 'approvercoordinator')   && (!task.approver_id       || isAssignedApprover)) ||
                     (stage === 'Brand Manager'   && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                     (stage === 'AM/BD'           && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                     (stage === 'Final Approval'  && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                    (stage === 'Coordinator'     && userRole === 'coordinator'  && (!task.coordinator_id  || isAssignedCoordinator)) ||
+                    (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
                     (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner));
 
                 if (canAct) {
@@ -2279,6 +2385,7 @@
 
                 // Edit Permissions (already computed above)
 
+                document.getElementById('modalTaskTitle').readOnly = !writerEditPermission;
                 document.getElementById('modalConcept').readOnly = !writerEditPermission;
                 document.getElementById('modalCaption').readOnly = !writerEditPermission;
                 document.getElementById('modalSubtaskCopy').readOnly = !writerEditPermission;
@@ -2324,7 +2431,7 @@
                     }
                 }
 
-                const isAuthorizedToDelete = isAdmin || userRole === 'brandmanager' || userRole === 'writer';
+                const isAuthorizedToDelete = isAdmin || userRole === 'brandmanager';
                 const modalDeleteBtn = document.getElementById('modalDeleteBtn');
                 if (modalDeleteBtn) {
                     modalDeleteBtn.style.display = isAuthorizedToDelete ? 'block' : 'none';
@@ -2350,12 +2457,39 @@
             setTimeout(() => { overlay.style.display = 'none'; toggleRevisionInput(false); }, 300);
         }
 
-        function deleteTaskFromModal() {
+        async function deleteTaskFromModal() {
             if (!currentTaskData) return;
-            if (confirm('Are you sure you want to delete this deliverable? This action cannot be undone.')) {
-                const form = document.getElementById('deleteTaskForm');
-                form.action = `/deliverables/${currentTaskData.id}`;
-                form.submit();
+            const confirmed = await showConfirm('Delete Deliverable?', 'This cannot be undone. The deliverable and all its subtasks will be permanently removed.');
+            if (!confirmed) return;
+
+            const btn = document.getElementById('modalDeleteBtn');
+            const origText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Deleting…';
+
+            try {
+                const res = await fetch(`/deliverables/${currentTaskData.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: new URLSearchParams({ _method: 'DELETE' }),
+                });
+
+                if (res.ok) {
+                    window.location.reload();
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'You do not have permission to delete this deliverable.', type: 'error' } }));
+                    btn.disabled = false;
+                    btn.textContent = origText;
+                }
+            } catch (e) {
+                window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Network error — please try again.', type: 'error' } }));
+                btn.disabled = false;
+                btn.textContent = origText;
             }
         }
 
@@ -2394,6 +2528,14 @@
             document.querySelector('.detail-grid').style.display = show ? 'none' : 'grid';
             // Hide footer buttons when editing revision
             document.querySelector('.cd-modal-footer').style.display = show ? 'none' : 'flex';
+            if (!show) {
+                // Reset file input and preview when closing
+                const inp = document.getElementById('revisionImageInput');
+                if (inp) inp.value = '';
+                document.getElementById('revisionImageLabel').textContent = 'Choose image…';
+                const prev = document.getElementById('revisionImagePreview');
+                prev.src = ''; prev.style.display = 'none';
+            }
         }
 
         async function submitBatch(e, taskId, nextStage) {
@@ -2415,19 +2557,30 @@
                 batchData[id][key] = field.value;
             });
 
+            // Collect reference files — use FormData if any are attached
+            const sbRefFiles = {};
+            document.querySelectorAll('.batch-ref-file').forEach(input => {
+                if (input.files && input.files.length > 0) {
+                    sbRefFiles[input.getAttribute('data-task-id')] = input.files[0];
+                }
+            });
+            const sbCsrf = document.querySelector('meta[name="csrf-token"]').content;
+            let sbFetchOpts;
+            if (Object.keys(sbRefFiles).length > 0) {
+                const fd = new FormData();
+                fd.append('batch_data', JSON.stringify(batchData));
+                Object.entries(sbRefFiles).forEach(([id, file]) => fd.append('reference_files[' + id + ']', file));
+                sbFetchOpts = { method: 'POST', headers: { 'X-CSRF-TOKEN': sbCsrf, 'Accept': 'application/json' }, body: fd };
+            } else {
+                sbFetchOpts = { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': sbCsrf, 'Accept': 'application/json' }, body: JSON.stringify({ batch_data: batchData }) };
+            }
+
             try {
-                const response = await fetch(`/deliverables/${taskId}/batch-submit`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ batch_data: batchData })
-                });
+                const response = await fetch(`/deliverables/${taskId}/batch-submit`, sbFetchOpts);
 
                 const data = await response.json();
                 if (data.success) {
+                    clearBatchDrafts();
                     window.location.reload();
                 } else {
                     window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Error advancing batch', type: 'error' } }));
@@ -2626,6 +2779,19 @@
                         This person will handle all remaining approval steps for this batch.
                     </p>
                 </div>
+                <!-- Designer Deadline (shown only when advancing to Designer stage) -->
+                <div id="batchDesignerDeadlineGroup" style="display:none; margin-top:16px; padding:16px; border-radius:12px; border:1.5px solid rgba(139,92,246,0.2); background:rgba(139,92,246,0.04);">
+                    <label style="display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#8b5cf6; margin-bottom:8px;">Internal Designer Deadline <span style="font-weight:500; opacity:0.65; text-transform:none; letter-spacing:0;">(optional)</span></label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="date" id="batchDesignerDeadlineDateInput"
+                            style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                            onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'">
+                        <input type="time" id="batchDesignerDeadlineTimeInput"
+                            style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                            onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'">
+                    </div>
+                    <p style="font-size:11px; color:var(--color-text-secondary); margin-top:6px; font-weight:500;">Set an internal due date/time for the designer — earlier than the final project deadline.</p>
+                </div>
                 <!-- Revision Group -->
                 <div id="batchRevisionGroup" style="display: none;">
                     <!-- Send-back target toggle — only shown for post-designer review stages -->
@@ -2647,6 +2813,22 @@
                     <p id="batchRevisionNote" style="font-size: 10px; color: #ef4444; font-weight: 700; margin-top: 8px;">
                         The task will be sent back to the Writer.
                     </p>
+                    <!-- Optional revision image -->
+                    <div style="margin-top:14px;">
+                        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;margin-bottom:8px;">Attach Image <span style="font-weight:500;opacity:0.6;text-transform:none;letter-spacing:0;">(optional)</span></label>
+                        <label for="batchRevisionImageInput" style="display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:8px;border:1.5px dashed rgba(239,68,68,0.3);background:rgba(239,68,68,0.04);cursor:pointer;font-size:12px;font-weight:600;color:#ef4444;" onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='rgba(239,68,68,0.04)'">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <span id="batchRevisionImageLabel">Choose image…</span>
+                        </label>
+                        <input type="file" id="batchRevisionImageInput" accept="image/*" style="display:none;" onchange="
+                            const f = this.files[0];
+                            document.getElementById('batchRevisionImageLabel').textContent = f ? f.name : 'Choose image…';
+                            const prev = document.getElementById('batchRevisionImagePreview');
+                            if (f) { const r = new FileReader(); r.onload = e => { prev.src = e.target.result; prev.style.display='block'; }; r.readAsDataURL(f); }
+                            else { prev.style.display='none'; prev.src=''; }
+                        ">
+                        <img id="batchRevisionImagePreview" src="" alt="" style="display:none;margin-top:10px;max-width:100%;max-height:180px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;">
+                    </div>
                 </div>
                 <!-- Submit Notes Group (shown when submitting to Approver) -->
                 <div id="batchSubmitNotesGroup" style="display: none; margin-top: 16px;">
@@ -2756,7 +2938,13 @@
                 stakeholderGroup.style.display = 'none';
                 revisionGroup.style.display = 'none';
                 genericConfirm.style.display = 'block';
-                genericConfirm.textContent = isIndividual ? `Are you sure you want to advance this task?` : `Are you sure you want to advance this entire batch?`;
+                if (nextStage === 'Writer Review' && stakeholders.writerName) {
+                    genericConfirm.innerHTML = isIndividual ? `Are you sure you want to submit this task to <b>${stakeholders.writerName}</b> for review?` : `Are you sure you want to submit this entire batch to <b>${stakeholders.writerName}</b> for review?`;
+                } else if (nextStage === 'Approver Review' && stakeholders.approverName) {
+                    genericConfirm.innerHTML = isIndividual ? `Are you sure you want to submit this task to <b>${stakeholders.approverName}</b> for review?` : `Are you sure you want to submit this entire batch to <b>${stakeholders.approverName}</b> for review?`;
+                } else {
+                    genericConfirm.textContent = isIndividual ? `Are you sure you want to advance this task?` : `Are you sure you want to advance this entire batch?`;
+                }
                 confirmBtn.textContent = 'Confirm & Submit';
                 confirmBtn.style.background = ''; // default
 
@@ -2785,22 +2973,20 @@
             const furtherApproverLabel = furtherApproverGroup ? furtherApproverGroup.querySelector('label') : null;
             if (furtherApproverGroup) {
                 const isApproverStage = (type === 'submit' && nextStage === 'Further Approver');
-                const isBrandManagerStage = (type === 'submit' && nextStage === 'Coordinator');
-                const showFurther = isApproverStage || isBrandManagerStage;
+                const showFurther = isApproverStage;
                 furtherApproverGroup.style.display = showFurther ? 'block' : 'none';
                 if (showFurther) {
-                    let users, skipLabel, roleName;
+                    let users, skipLabel, roleName, hintText;
                     if (isApproverStage) {
                         users = JSON.parse(document.getElementById('approvers-data').textContent);
                         skipLabel = '— Skip, go directly to Brand Manager —';
                         roleName = 'Further Approver';
-                    } else {
-                        users = JSON.parse(document.getElementById('managers-data').textContent);
-                        skipLabel = '— Skip, go directly to Coordinator —';
-                        roleName = 'Further Brand Manager';
+                        hintText = '(optional — adds another approval step before Brand Manager)';
                     }
                     if (furtherApproverLabel) {
                         furtherApproverLabel.childNodes[0].textContent = roleName + ' ';
+                        const hintSpan = document.getElementById('batchFurtherApproverHint');
+                        if (hintSpan) hintSpan.textContent = hintText;
                     }
                     furtherApproverSelect.innerHTML = `<option value="">${skipLabel}</option>`;
                     users.forEach(u => {
@@ -2891,6 +3077,19 @@
                 }
             }
 
+            // Show designer deadline field only when advancing to Designer stage
+            const batchDeadlineGroup = document.getElementById('batchDesignerDeadlineGroup');
+            if (batchDeadlineGroup) {
+                const showDeadline = (type === 'submit' && nextStage === 'Designer');
+                batchDeadlineGroup.style.display = showDeadline ? 'block' : 'none';
+                if (!showDeadline) {
+                    const di = document.getElementById('batchDesignerDeadlineDateInput');
+                    const ti = document.getElementById('batchDesignerDeadlineTimeInput');
+                    if (di) di.value = '';
+                    if (ti) ti.value = '';
+                }
+            }
+
             modal.style.display = 'flex';
             setTimeout(() => {
                 modal.style.opacity = '1';
@@ -2904,6 +3103,17 @@
             modal.style.opacity = '0';
             modal.querySelector('.cd-modal').classList.remove('active');
             setTimeout(() => modal.style.display = 'none', 300);
+            // Reset revision image input
+            const inp = document.getElementById('batchRevisionImageInput');
+            if (inp) inp.value = '';
+            document.getElementById('batchRevisionImageLabel').textContent = 'Choose image…';
+            const prev = document.getElementById('batchRevisionImagePreview');
+            prev.src = ''; prev.style.display = 'none';
+            // Reset designer deadline
+            const ddDateInp = document.getElementById('batchDesignerDeadlineDateInput');
+            const ddTimeInp = document.getElementById('batchDesignerDeadlineTimeInput');
+            if (ddDateInp) ddDateInp.value = '';
+            if (ddTimeInp) ddTimeInp.value = '';
         }
 
         async function executeBatchAction() {
@@ -2931,17 +3141,20 @@
             const revisionTarget = revisionTargetRadio ? revisionTargetRadio.value : null;
 
             try {
-                const postBody = { revision_instructions: instructions };
-                if (revisionTarget) postBody.revision_target = revisionTarget;
+                const formData = new FormData();
+                formData.append('revision_instructions', instructions);
+                formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+                if (revisionTarget) formData.append('revision_target', revisionTarget);
+                const imgFile = document.getElementById('batchRevisionImageInput').files[0];
+                if (imgFile) formData.append('revision_image', imgFile);
 
                 const response = await fetch(`/deliverables/${currentBatchTask}/batch-revisions`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify(postBody)
+                    body: formData
                 });
 
                 const contentType = response.headers.get("content-type");
@@ -2955,6 +3168,7 @@
                 }
 
                 if (data.success) {
+                    clearBatchDrafts();
                     window.location.reload();
                 } else {
                     window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Error requesting revisions', type: 'error' } }));
@@ -2985,15 +3199,16 @@
                 furtherApproverSelectEl.closest('#batchFurtherApproverGroup')?.style.display !== 'none' &&
                 furtherApproverSelectEl.value;
 
-            // When submitting from Approver stage (nextStage = Further Approver), brand_manager_id
-            // is always required — even if routing via an optional Further Approver step first.
+            // If the user selected a Further Approver, we do not STRICTLY require a Brand Manager to be selected right now.
             if (currentBatchNextStage === 'Further Approver' && stakeholderRole && stakeholderSelect.style.display !== 'none') {
                 assigneeId = stakeholderSelect.value;
-                if (!assigneeId) {
+                if (!assigneeId && !hasFurtherApprover) {
                     alert('Please select a Brand Manager for this task.');
                     return;
                 }
-                roleField = 'brand_manager_id';
+                if (assigneeId) {
+                    roleField = 'brand_manager_id';
+                }
             } else if (!hasFurtherApprover && stakeholderRole && stakeholderSelect.style.display !== 'none') {
                 assigneeId = stakeholderSelect.value;
                 if (!assigneeId) {
@@ -3031,6 +3246,16 @@
                 payload.further_approver_id = furtherApproverSelect.value;
             }
 
+            // Include designer deadline if set (combine separate date + time inputs)
+            const batchDeadlineGroup = document.getElementById('batchDesignerDeadlineGroup');
+            if (batchDeadlineGroup && batchDeadlineGroup.style.display !== 'none') {
+                const batchDate = document.getElementById('batchDesignerDeadlineDateInput')?.value;
+                const batchTime = document.getElementById('batchDesignerDeadlineTimeInput')?.value;
+                if (batchDate || batchTime) {
+                    payload.designer_deadline = (batchDate && batchTime) ? `${batchDate}T${batchTime}` : (batchDate || batchTime);
+                }
+            }
+
             // Include writer's change notes if the textarea is visible
             const submitNotesGroup = document.getElementById('batchSubmitNotesGroup');
             if (submitNotesGroup && submitNotesGroup.style.display !== 'none') {
@@ -3039,16 +3264,30 @@
             }
 
 
+            // Collect reference image files — switch to FormData if any are selected
+            const refFiles = {};
+            document.querySelectorAll('.batch-ref-file').forEach(input => {
+                if (input.files && input.files.length > 0) {
+                    refFiles[input.getAttribute('data-task-id')] = input.files[0];
+                }
+            });
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+            let fetchOpts;
+            if (Object.keys(refFiles).length > 0) {
+                const fd = new FormData();
+                fd.append('batch_data', JSON.stringify(batchData));
+                if (roleField && assigneeId && assigneeId !== 'individual') fd.append(roleField, assigneeId);
+                if (payload.further_approver_id) fd.append('further_approver_id', payload.further_approver_id);
+                if (payload.designer_deadline) fd.append('designer_deadline', payload.designer_deadline);
+                if (payload.submit_notes) fd.append('submit_notes', payload.submit_notes);
+                Object.entries(refFiles).forEach(([id, file]) => fd.append('reference_files[' + id + ']', file));
+                fetchOpts = { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }, body: fd };
+            } else {
+                fetchOpts = { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }, body: JSON.stringify(payload) };
+            }
+
             try {
-                const response = await fetch(`/deliverables/${currentBatchTask}/batch-submit`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
+                const response = await fetch(`/deliverables/${currentBatchTask}/batch-submit`, fetchOpts);
 
                 const contentType = response.headers.get("content-type");
                 let data;
@@ -3061,6 +3300,7 @@
                 }
 
                 if (data.success) {
+                    clearBatchDrafts();
                     window.location.reload();
                 } else {
                     window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Error advancing batch', type: 'error' } }));
@@ -3081,7 +3321,7 @@
         <div class="cd-modal" style="max-width: 600px;" onclick="event.stopPropagation()">
             <div class="cd-modal-header" style="padding: 20px 32px; background: var(--color-bg-secondary);">
                 <div>
-                    <h2 id="cellEditorTitle" style="font-size: 16px; font-weight: 900; color: var(--color-text-primary); margin: 0;">Edit Field</h2>
+                    <h2 id="cellEditorTitle" style="font-size: 16px; font-weight: 900; color: var(--color-text-primary); margin: 0;">View Field</h2>
                     <p id="cellEditorSubtitle" style="font-size: 10px; color: var(--color-text-secondary); margin: 4px 0 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;"></p>
                 </div>
                 <button onclick="closeCellEditor()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer;">
@@ -3089,11 +3329,10 @@
                 </button>
             </div>
             <div class="cd-modal-body" style="padding: 24px;">
-                <textarea id="cellEditorTextarea" style="width: 100%; min-height: 300px; padding: 20px; border-radius: 16px; border: 1.5px solid var(--color-border-primary); background: var(--color-bg-primary); color: var(--color-text-primary); font-size: 14px; line-height: 1.6; font-family: inherit; outline: none; transition: border-color 0.2s; resize: vertical;"></textarea>
+                <textarea id="cellEditorTextarea" readonly style="width: 100%; min-height: 300px; padding: 20px; border-radius: 16px; border: 1.5px solid var(--color-border-primary); background: var(--color-bg-secondary); color: var(--color-text-primary); font-size: 14px; line-height: 1.6; font-family: inherit; outline: none; transition: border-color 0.2s; resize: vertical;"></textarea>
             </div>
             <div class="cd-modal-footer" style="padding: 16px 24px;">
-                <button onclick="closeCellEditor()" class="cd-btn cd-btn-outline">Cancel</button>
-                <button onclick="saveCellEditor()" class="cd-btn cd-btn-primary" style="padding: 12px 32px;">Apply Changes</button>
+                <button onclick="closeCellEditor()" class="cd-btn cd-btn-outline" style="width:100%; justify-content:center;">Close</button>
             </div>
         </div>
     </div>
@@ -3109,7 +3348,7 @@
             const titleEl = activeTextarea.closest('tr').querySelector('.deliverable-name-cell span');
             const taskTitle = titleEl ? titleEl.textContent : 'Deliverable Field';
             
-            document.getElementById('cellEditorTitle').textContent = `Edit ${fieldName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+            document.getElementById('cellEditorTitle').textContent = `View ${fieldName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
             document.getElementById('cellEditorSubtitle').textContent = taskTitle;
             document.getElementById('cellEditorTextarea').value = activeTextarea.value;
             
@@ -3118,24 +3357,10 @@
             setTimeout(() => {
                 overlay.style.opacity = '1';
                 overlay.querySelector('.cd-modal').classList.add('active');
-                document.getElementById('cellEditorTextarea').focus();
             }, 10);
         }
 
-        function saveCellEditor() {
-            if (activeTextarea) {
-                activeTextarea.value = document.getElementById('cellEditorTextarea').value;
-                // Trigger input event to update auto-height if applicable
-                activeTextarea.dispatchEvent(new Event('input'));
-                
-                // Visual feedback on the original cell
-                activeTextarea.style.background = 'rgba(16, 185, 129, 0.05)';
-                setTimeout(() => {
-                    activeTextarea.style.background = '';
-                }, 1000);
-            }
-            closeCellEditor();
-        }
+        // Save logic removed since we are in readonly preview mode
 
         function closeCellEditor(e) {
             if (e && e.target !== document.getElementById('cellEditorOverlay')) return;
@@ -3348,5 +3573,260 @@
         pollForUpdates();
         setInterval(pollForUpdates, POLL_INTERVAL_MS);
     }, 5000);
+})();
+</script>
+
+<script>
+/* ── Form loading states ── */
+(function () {
+    const SPINNER_SVG = `<svg style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px;animation:frmSpin 0.75s linear infinite;" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.3"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`;
+
+    function spinBtn(btn, label) {
+        btn.disabled = true;
+        btn.innerHTML = SPINNER_SVG + label;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // ── Modal stage submit (Submit to Next / Save Content) ──────────────
+        const stageForm = document.getElementById('submitStageForm');
+        let _stageLastClicked = null;
+        if (stageForm) {
+            stageForm.querySelectorAll('[type="submit"]').forEach(function (btn) {
+                btn.addEventListener('click', function () { _stageLastClicked = btn; });
+            });
+            stageForm.addEventListener('submit', function () {
+                const clicked = _stageLastClicked || stageForm.querySelector('[type="submit"]:not([style*="display: none"])');
+                if (!clicked || clicked.disabled) return;
+                const isSave = clicked.value === 'save_only';
+                spinBtn(clicked, isSave ? 'Saving…' : 'Submitting…');
+            });
+        }
+
+        // ── Artwork delivery form (Save Artwork) ────────────────────────────
+        const artworkForm = document.getElementById('artworkDeliveryForm');
+        if (artworkForm) {
+            artworkForm.addEventListener('submit', function () {
+                const btn = artworkForm.querySelector('[type="submit"]');
+                if (btn && !btn.disabled) spinBtn(btn, 'Uploading…');
+            });
+        }
+
+        // ── Revision request form (Send Request) ────────────────────────────
+        const revForm = document.getElementById('revisionsForm');
+        if (revForm) {
+            revForm.addEventListener('submit', function () {
+                const btn = revForm.querySelector('[type="submit"]');
+                if (btn && !btn.disabled) spinBtn(btn, 'Sending…');
+            });
+        }
+
+        // ── Reset button states when modals close (so they're fresh next open) ──
+        document.getElementById('taskModalOverlay')?.addEventListener('transitionend', function () {
+            if (this.style.opacity === '0' || this.style.display === 'none') {
+                _stageLastClicked = null;
+                [stageForm, artworkForm, revForm].forEach(function (form) {
+                    if (!form) return;
+                    form.querySelectorAll('[type="submit"]').forEach(function (btn) {
+                        btn.disabled = false;
+                    });
+                });
+            }
+        });
+    });
+})();
+</script>
+<style>@keyframes frmSpin{to{transform:rotate(360deg)}}</style>
+<script>
+(function() {
+    const DRAFT_KEY = 'batch_drafts_{{ $project->id }}';
+
+    function getDrafts() {
+        try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}'); } catch(e) { return {}; }
+    }
+
+    function saveDraft(taskId, field, value) {
+        const drafts = getDrafts();
+        if (!drafts[taskId]) drafts[taskId] = {};
+        drafts[taskId][field] = value;
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+    }
+
+    window.clearBatchDrafts = function() {
+        localStorage.removeItem(DRAFT_KEY);
+    };
+
+    window.updateRefBtnGlow = function updateRefBtnGlow(taskId, hasRef) {
+        const btn = document.getElementById('refBtn_' + taskId);
+        if (!btn) return;
+        if (hasRef) {
+            btn.style.color = '#0055D4';
+            btn.style.border = '1px solid rgba(0,85,212,0.35)';
+            btn.style.background = 'rgba(0,85,212,0.1)';
+            btn.style.boxShadow = '0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15)';
+        } else {
+            btn.style.color = 'var(--color-text-secondary)';
+            btn.style.border = '1px solid var(--color-border-primary)';
+            btn.style.background = 'var(--color-bg-secondary)';
+            btn.style.boxShadow = '';
+        }
+    }
+
+    window.batchRefFileChanged = function(input) {
+        const taskId = input.getAttribute('data-task-id');
+        const nameEl = document.getElementById('batchRefName' + taskId);
+        if (nameEl) {
+            if (input.files && input.files.length > 0) {
+                nameEl.textContent = '📎 ' + input.files[0].name;
+            } else {
+                nameEl.textContent = 'Upload image';
+            }
+        }
+        
+        let previewImg = document.getElementById('localPreview_' + taskId);
+        if (input.files && input.files.length > 0) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                if (previewImg) {
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                    previewImg.onclick = function(ev) {
+                        ev.stopPropagation();
+                        openImagePreview(e.target.result, false);
+                    };
+                }
+            };
+            reader.readAsDataURL(file);
+            updateRefBtnGlow(taskId, true);
+            
+            // Immediate AJAX Save for image
+            const fd = new FormData();
+            fd.append('action', 'save_only');
+            fd.append('reference_file', file);
+            fetch(`/deliverables/${taskId}/submit`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: fd
+            }).catch(e => console.error("Autosave image error:", e));
+
+        } else {
+            if (previewImg && !previewImg.src.startsWith('http')) {
+                previewImg.style.display = 'none';
+                previewImg.src = '';
+            }
+            // Glow depends on text reference too, handled elsewhere
+        }
+    };
+
+    window.toggleRefPanel = function(e, taskId) {
+        e.stopPropagation();
+        const panel = document.getElementById('refPanel_' + taskId);
+        const btn   = document.getElementById('refBtn_' + taskId);
+        const isOpen = panel.style.display !== 'none';
+
+        // Close all other open ref panels
+        document.querySelectorAll('[id^="refPanel_"]').forEach(p => { p.style.display = 'none'; });
+
+        if (!isOpen) {
+            const rect = btn.getBoundingClientRect();
+            // Position panel below button, flip left if it would overflow right edge
+            const panelW = 210;
+            const left = (rect.left + panelW > window.innerWidth - 8) ? (rect.right - panelW) : rect.left;
+            panel.style.top  = (rect.bottom + 4) + 'px';
+            panel.style.left = left + 'px';
+            panel.style.display = 'block';
+
+            const urlInput = panel.querySelector('input[type="url"]');
+            if (urlInput) setTimeout(() => urlInput.focus(), 30);
+
+            const closeOnOutside = function(ev) {
+                if (!panel.contains(ev.target) && ev.target !== btn) {
+                    panel.style.display = 'none';
+                    document.removeEventListener('click', closeOnOutside);
+                }
+            };
+            setTimeout(() => document.addEventListener('click', closeOnOutside), 0);
+        }
+    };
+
+    // Restore saved drafts on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const drafts = getDrafts();
+        if (!Object.keys(drafts).length) return;
+        document.querySelectorAll('.batch-field').forEach(function(field) {
+            const taskId = field.getAttribute('data-task-id');
+            const fieldName = field.getAttribute('data-field');
+            if (taskId && fieldName && drafts[taskId] && drafts[taskId][fieldName] !== undefined) {
+                field.value = drafts[taskId][fieldName];
+            }
+        });
+    });
+
+    let saveTimeout = null;
+    const saveQueue = {};
+
+    async function flushSaveQueue() {
+        if (!Object.keys(saveQueue).length) return;
+        const currentQueue = { ...saveQueue };
+        for (const key in saveQueue) delete saveQueue[key];
+        
+        for (const tId in currentQueue) {
+            const fd = new FormData();
+            fd.append('action', 'save_only');
+            for (const f in currentQueue[tId]) {
+                fd.append(f, currentQueue[tId][f]);
+            }
+            try {
+                // Use keepalive for page unloads
+                await fetch(`/deliverables/${tId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: fd,
+                    keepalive: true
+                });
+            } catch (e) {
+                console.error("Autosave error:", e);
+            }
+        }
+    }
+
+    function debounceSave(taskId, fieldName, value) {
+        if (!saveQueue[taskId]) saveQueue[taskId] = {};
+        saveQueue[taskId][fieldName] = value;
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(flushSaveQueue, 1000);
+    }
+
+    window.addEventListener('beforeunload', () => {
+        clearTimeout(saveTimeout);
+        flushSaveQueue();
+    });
+
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('batch-field')) {
+            clearTimeout(saveTimeout);
+            flushSaveQueue();
+        }
+    });
+
+    // Save every keystroke / change
+    document.addEventListener('input', function(e) {
+        const field = e.target;
+        if (!field.classList.contains('batch-field')) return;
+        const taskId = field.getAttribute('data-task-id');
+        const fieldName = field.getAttribute('data-field');
+        if (taskId && fieldName) {
+            saveDraft(taskId, fieldName, field.value);
+            debounceSave(taskId, fieldName, field.value);
+            if (fieldName === 'reference') updateRefBtnGlow(taskId, !!(field.value.trim()));
+        }
+    });
 })();
 </script>

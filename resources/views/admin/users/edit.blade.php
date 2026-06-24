@@ -51,7 +51,7 @@
                 <div>
                     <label class="f-label">Workspace Role</label>
                     <select name="role" required class="f-input">
-                        @foreach(['Writer','Designer','Coordinator','Approver','Brand Manager','Admin'] as $role)
+                        @foreach(['Writer','Designer','Coordinator','Approver','Approver Coordinator','Brand Manager','Admin'] as $role)
                             <option value="{{ $role }}" {{ old('role', $user->role) == $role ? 'selected' : '' }}>{{ $role }}</option>
                         @endforeach
                     </select>

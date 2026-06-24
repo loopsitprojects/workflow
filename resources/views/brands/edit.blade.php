@@ -159,7 +159,11 @@
         </div>
 
         <div class="f-footer">
+            @if(auth()->user()->isAdmin() || $brand->created_by === auth()->id())
             <button type="button" @click="showDeleteModal = true" class="btn-d">Delete Brand</button>
+            @else
+            <span></span>
+            @endif
             <div style="display:flex;gap:8px;">
                 <a href="{{ route('brands.index') }}" class="btn-c">Cancel</a>
                 <button type="submit" class="btn-s">Save Changes</button>

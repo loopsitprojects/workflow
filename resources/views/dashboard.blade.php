@@ -70,48 +70,101 @@
                 {{-- Active --}}
                 <div>
                     <p class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-3">Active Deliverables</p>
-                    @forelse($deliverables->where('status', '!=', 'Done')->sortBy('deadline') as $task)
-                    <a href="{{ route('projects.show', $task->project_id) }}"
-                       class="flex items-center justify-between bg-white dark:bg-[#111827] rounded-xl px-5 py-4 border border-gray-100 dark:border-white/[0.05] card-shadow hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-md transition-all mb-2 group">
-                        <div class="flex items-center gap-4 min-w-0">
-                            {{-- Priority dot --}}
-                            @php
-                                $priorityColors = [
-                                    'High Priority' => 'bg-red-400',
-                                    'Medium'        => 'bg-amber-400',
-                                    'Standard'      => 'bg-gray-300 dark:bg-slate-600',
-                                    'Low'           => 'bg-gray-300 dark:bg-slate-600',
+                    @php
+                        $activeTasks = $deliverables->where('status', '!=', 'Done')->sortBy('deadline');
+                        $groupedActive = [];
+                        foreach($activeTasks as $t) {
+                            $key = $t->parent_deliverable_id ? 'batch_' . $t->parent_deliverable_id : 'single_' . $t->id;
+                            if (!isset($groupedActive[$key])) {
+                                $groupedActive[$key] = [
+                                    'is_batch' => (bool)$t->parent_deliverable_id,
+                                    'parent' => $t->parent,
+                                    'project' => $t->project,
+                                    'priority' => $t->priority,
+                                    'deadline' => $t->deadline,
+                                    'subtasks' => []
                                 ];
-                                $dot = $priorityColors[$task->priority] ?? 'bg-gray-300 dark:bg-slate-600';
-                            @endphp
-                            <div class="w-2 h-2 rounded-full flex-shrink-0 {{ $dot }}"></div>
-                            <div class="min-w-0">
-                                <h3 class="text-[13px] font-bold text-gray-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ $task->title }}</h3>
-                                <div class="flex items-center gap-2 mt-0.5">
-                                    <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500 truncate">{{ $task->project->brand->name ?? '' }}</span>
-                                    @if($task->approval_stage)
-                                        <span class="text-gray-200 dark:text-slate-700">·</span>
-                                        <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wide">{{ $task->approval_stage }}</span>
-                                    @endif
+                            }
+                            $groupedActive[$key]['subtasks'][] = $t;
+                            if ($t->deadline && (!$groupedActive[$key]['deadline'] || $t->deadline < $groupedActive[$key]['deadline'])) {
+                                $groupedActive[$key]['deadline'] = $t->deadline;
+                            }
+                        }
+                        uasort($groupedActive, function($a, $b) {
+                            if (!$a['deadline']) return 1;
+                            if (!$b['deadline']) return -1;
+                            return $a['deadline'] <=> $b['deadline'];
+                        });
+                    @endphp
+                    @forelse($groupedActive as $group)
+                    @php
+                        $isBatch = $group['is_batch'];
+                        $mainTitle = $isBatch ? $group['parent']->title : $group['subtasks'][0]->title;
+                        $project = $group['project'];
+                        $priority = $group['priority'];
+                        $deadline = $group['deadline'];
+                        $subtasks = $group['subtasks'];
+
+                        $priorityColors = [
+                            'High Priority' => 'bg-red-400',
+                            'Medium'        => 'bg-amber-400',
+                            'Standard'      => 'bg-gray-300 dark:bg-slate-600',
+                            'Low'           => 'bg-gray-300 dark:bg-slate-600',
+                        ];
+                        $dot = $priorityColors[$priority] ?? 'bg-gray-300 dark:bg-slate-600';
+                    @endphp
+                    <a href="{{ route('projects.show', $project->id) }}"
+                       class="flex flex-col bg-white dark:bg-[#111827] rounded-xl px-5 py-4 border border-gray-100 dark:border-white/[0.05] card-shadow hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-md transition-all mb-2 group block">
+                        <div class="flex items-start justify-between min-w-0">
+                            <div class="flex items-start gap-4 min-w-0">
+                                <div class="w-2 h-2 rounded-full flex-shrink-0 mt-1.5 {{ $dot }}"></div>
+                                <div class="min-w-0">
+                                    <h3 class="text-[13px] font-bold text-gray-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                        {{ $mainTitle }}
+                                    </h3>
+                                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                        <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ $project->brand->name ?? '' }}</span>
+                                        @if($project)
+                                            <span class="text-gray-200 dark:text-slate-700">·</span>
+                                            <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500 truncate">{{ $project->name }}</span>
+                                        @endif
+                                        @if(!$isBatch && $subtasks[0]->approval_stage)
+                                            <span class="text-gray-200 dark:text-slate-700">·</span>
+                                            <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wide">{{ $subtasks[0]->approval_stage }}</span>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="flex-shrink-0 text-right ml-4">
-                            @if($task->deadline)
-                                @php $daysLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($task->deadline)->startOfDay(), false); @endphp
-                                @if($daysLeft < 0)
-                                    <span class="text-[10px] font-black text-red-500 uppercase tracking-widest">Overdue</span>
-                                @elseif($daysLeft === 0)
-                                    <span class="text-[10px] font-black text-orange-500 uppercase tracking-widest">Due Today</span>
-                                @elseif($daysLeft <= 3)
-                                    <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest">{{ $daysLeft }}d left</span>
+                            <div class="flex-shrink-0 text-right ml-4">
+                                @if($deadline)
+                                    @php $daysLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($deadline)->startOfDay(), false); @endphp
+                                    @if($daysLeft < 0)
+                                        <span class="text-[10px] font-black text-red-500 uppercase tracking-widest">Overdue</span>
+                                    @elseif($daysLeft === 0)
+                                        <span class="text-[10px] font-black text-orange-500 uppercase tracking-widest">Due Today</span>
+                                    @elseif($daysLeft <= 3)
+                                        <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest">{{ $daysLeft }}d left</span>
+                                    @else
+                                        <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ \Carbon\Carbon::parse($deadline)->format('M j') }}</span>
+                                    @endif
                                 @else
-                                    <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ \Carbon\Carbon::parse($task->deadline)->format('M j') }}</span>
+                                    <span class="text-[10px] text-gray-300 dark:text-slate-700">No date</span>
                                 @endif
-                            @else
-                                <span class="text-[10px] text-gray-300 dark:text-slate-700">No date</span>
-                            @endif
+                            </div>
                         </div>
+
+                        @if($isBatch)
+                            <div class="mt-3 ml-6 pl-3 border-l-2 border-gray-100 dark:border-slate-800 flex flex-col gap-2">
+                                @foreach($subtasks as $t)
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[11px] font-semibold text-blue-500 dark:text-blue-400 truncate pr-2">{{ $t->title }}</span>
+                                        @if($t->approval_stage)
+                                            <span class="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider flex-shrink-0">{{ $t->approval_stage }}</span>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </a>
                     @empty
                     <div class="bg-gray-50 dark:bg-white/[0.02] rounded-xl p-8 text-center border border-dashed border-gray-200 dark:border-white/[0.06]">
@@ -124,17 +177,54 @@
                 @if($deliverables->where('status', 'Done')->count() > 0)
                 <div>
                     <p class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-3">Completed</p>
-                    @foreach($deliverables->where('status', 'Done') as $task)
-                    <a href="{{ route('projects.show', $task->project_id) }}"
-                       class="flex items-center justify-between bg-white dark:bg-[#111827] rounded-xl px-5 py-3.5 border border-gray-50 dark:border-white/[0.03] mb-2 opacity-60 hover:opacity-90 transition-opacity group">
-                        <div class="flex items-center gap-4 min-w-0">
-                            <div class="w-2 h-2 rounded-full flex-shrink-0 bg-emerald-400"></div>
-                            <div class="min-w-0">
-                                <h3 class="text-[13px] font-bold text-gray-500 dark:text-slate-400 line-through truncate">{{ $task->title }}</h3>
-                                <span class="text-[10px] text-gray-400 dark:text-slate-600">{{ $task->project->brand->name ?? '' }}</span>
+                    @php
+                        $completedTasks = $deliverables->where('status', 'Done');
+                        $groupedCompleted = [];
+                        foreach($completedTasks as $t) {
+                            $key = $t->parent_deliverable_id ? 'batch_' . $t->parent_deliverable_id : 'single_' . $t->id;
+                            if (!isset($groupedCompleted[$key])) {
+                                $groupedCompleted[$key] = [
+                                    'is_batch' => (bool)$t->parent_deliverable_id,
+                                    'parent' => $t->parent,
+                                    'project' => $t->project,
+                                    'subtasks' => []
+                                ];
+                            }
+                            $groupedCompleted[$key]['subtasks'][] = $t;
+                        }
+                    @endphp
+                    @foreach($groupedCompleted as $group)
+                    @php
+                        $isBatch = $group['is_batch'];
+                        $mainTitle = $isBatch ? $group['parent']->title : $group['subtasks'][0]->title;
+                        $project = $group['project'];
+                        $subtasks = $group['subtasks'];
+                    @endphp
+                    <a href="{{ route('projects.show', $project->id) }}"
+                       class="flex flex-col bg-white dark:bg-[#111827] rounded-xl px-5 py-3.5 border border-gray-50 dark:border-white/[0.03] mb-2 opacity-60 hover:opacity-90 transition-opacity group block">
+                        <div class="flex items-start justify-between min-w-0">
+                            <div class="flex items-start gap-4 min-w-0">
+                                <div class="w-2 h-2 rounded-full flex-shrink-0 mt-1.5 bg-emerald-400"></div>
+                                <div class="min-w-0">
+                                    <h3 class="text-[13px] font-bold text-gray-500 dark:text-slate-400 line-through truncate">{{ $mainTitle }}</h3>
+                                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                        <span class="text-[10px] text-gray-400 dark:text-slate-600">{{ $project->brand->name ?? '' }}</span>
+                                        @if($project)
+                                            <span class="text-gray-200 dark:text-slate-700">·</span>
+                                            <span class="text-[10px] text-gray-400 dark:text-slate-600 truncate">{{ $project->name }}</span>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
+                            <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex-shrink-0 ml-4">Closed</span>
                         </div>
-                        <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex-shrink-0 ml-4">Closed</span>
+                        @if($isBatch)
+                            <div class="mt-2 ml-6 pl-3 border-l-2 border-gray-100 dark:border-slate-800 flex flex-col gap-1.5">
+                                @foreach($subtasks as $t)
+                                    <span class="text-[11px] font-semibold text-gray-400 dark:text-slate-500 line-through truncate">{{ $t->title }}</span>
+                                @endforeach
+                            </div>
+                        @endif
                     </a>
                     @endforeach
                 </div>
@@ -153,26 +243,46 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
                     </div>
-                    @forelse($deliverables->where('status', '!=', 'Done')->whereNotNull('deadline')->sortBy('deadline')->take(5) as $task)
-                    <a href="{{ route('projects.show', $task->project_id) }}" class="flex items-start gap-3 mb-4 last:mb-0 group">
-                        @php $daysLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($task->deadline)->startOfDay(), false); @endphp
-                        <div class="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-black
-                            {{ $daysLeft < 0 ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400' : ($daysLeft <= 2 ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' : 'bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400') }}">
-                            {{ \Carbon\Carbon::parse($task->deadline)->format('d') }}
+                    @php
+                        $upcomingGroups = collect($groupedActive)->filter(function($g) { return !empty($g['deadline']); })->take(5);
+                    @endphp
+                    @forelse($upcomingGroups as $group)
+                    @php
+                        $isBatch = $group['is_batch'];
+                        $mainTitle = $isBatch ? $group['parent']->title : $group['subtasks'][0]->title;
+                        $project = $group['project'];
+                        $deadline = $group['deadline'];
+                    @endphp
+                    <a href="{{ route('projects.show', $project->id) }}" class="flex flex-col gap-2 mb-4 last:mb-0 group block">
+                        <div class="flex items-start gap-3">
+                            @php $daysLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($deadline)->startOfDay(), false); @endphp
+                            <div class="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-black
+                                {{ $daysLeft < 0 ? 'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400' : ($daysLeft <= 2 ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400' : 'bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400') }}">
+                                {{ \Carbon\Carbon::parse($deadline)->format('d') }}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-[12px] font-bold text-gray-800 dark:text-slate-200 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ $mainTitle }}</p>
+                                <p class="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5">
+                                    {{ \Carbon\Carbon::parse($deadline)->format('M j') }}
+                                    @if($daysLeft < 0)
+                                        · <span class="text-red-500 font-bold">{{ abs($daysLeft) }}d overdue</span>
+                                    @elseif($daysLeft === 0)
+                                        · <span class="text-orange-500 font-bold">today</span>
+                                    @elseif($daysLeft <= 7)
+                                        · <span class="text-amber-500 font-bold">{{ $daysLeft }}d left</span>
+                                    @endif
+                                </p>
+                            </div>
                         </div>
-                        <div class="min-w-0 flex-1">
-                            <p class="text-[12px] font-bold text-gray-800 dark:text-slate-200 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ $task->title }}</p>
-                            <p class="text-[10px] text-gray-400 dark:text-slate-500">
-                                {{ \Carbon\Carbon::parse($task->deadline)->format('M j') }}
-                                @if($daysLeft < 0)
-                                    · <span class="text-red-500 font-bold">{{ abs($daysLeft) }}d overdue</span>
-                                @elseif($daysLeft === 0)
-                                    · <span class="text-orange-500 font-bold">today</span>
-                                @elseif($daysLeft <= 7)
-                                    · <span class="text-amber-500 font-bold">{{ $daysLeft }}d left</span>
-                                @endif
-                            </p>
-                        </div>
+                        @if($isBatch)
+                            <div class="ml-11 pl-2 border-l-2 border-gray-100 dark:border-slate-800 flex flex-col gap-1">
+                                @foreach($group['subtasks'] as $t)
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] font-semibold text-gray-500 dark:text-slate-400 truncate">{{ $t->title }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </a>
                     @empty
                     <p class="text-[12px] text-gray-400 dark:text-slate-500 font-medium text-center py-4">No upcoming deadlines.</p>

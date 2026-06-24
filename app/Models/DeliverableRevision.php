@@ -10,6 +10,7 @@ class DeliverableRevision extends Model
         'deliverable_id',
         'user_id',
         'instructions',
+        'image_path',
         'stage_at_revision',
         'fixed_by_user_id',
         'fixed_at',

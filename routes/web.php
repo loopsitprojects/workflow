@@ -25,15 +25,15 @@ Route::middleware('auth')->group(function () {
     Route::post('deliverables/{deliverable}/submit', [DeliverableController::class, 'submitStage'])->name('deliverables.submit');
     Route::post('deliverables/{deliverable}/batch-revisions', [DeliverableController::class, 'batchRevisions'])->name('deliverables.batchRevisions');
     Route::post('deliverables/{deliverable}/revisions', [DeliverableController::class, 'requestRevisions'])->name('deliverables.revisions');
+    Route::post('deliverables/{deliverable}/add-to-batch', [DeliverableController::class, 'addToBatch'])->name('deliverables.addToBatch');
+    Route::get('deliverables/{deliverable}/batch', [DeliverableController::class, 'showBatch'])->name('deliverables.showBatch');
     Route::post('/deliverables/{deliverable}/checklist', [DeliverableController::class, 'updateChecklist'])->name('deliverables.update-checklist');
 
     // Deliverable exports
-    Route::get('deliverables/{deliverable}/export/pdf', [DeliverableController::class, 'exportPdf'])->name('deliverables.export.pdf');
     Route::get('deliverables/{deliverable}/export/docx', [DeliverableController::class, 'exportDocx'])->name('deliverables.export.docx');
     Route::get('deliverables/{deliverable}/export/ppt', [DeliverableController::class, 'exportPpt'])->name('deliverables.export.ppt');
-    
+
     // Batch Deliverable Exports
-    Route::get('deliverables/{deliverable}/export-batch/pdf', [DeliverableController::class, 'exportBatchPdf'])->name('deliverables.export-batch.pdf');
     Route::get('deliverables/{deliverable}/export-batch/ppt', [DeliverableController::class, 'exportBatchPpt'])->name('deliverables.export-batch.ppt');
 
     // Admin Routes

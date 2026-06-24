@@ -10,9 +10,9 @@ class DashboardController extends Controller
     public function index()
     {
         $userId = auth()->id();
-        
+
         $deliverables = Deliverable::doesntHave('subtasks')
-            ->with(['project.brand', 'writer', 'approver', 'brandManager', 'coordinator', 'designer'])
+            ->with(['project.brand', 'parent', 'writer', 'approver', 'brandManager', 'coordinator', 'designer'])
             ->where(function($q) use ($userId) {
                 // Done deliverables: user is associated in any role
                 $q->where(function($sub) use ($userId) {
@@ -64,11 +64,11 @@ class DashboardController extends Controller
                         });
                 });
             })
-            ->orderByRaw("CASE 
-                WHEN priority = 'High Priority' THEN 1 
-                WHEN priority = 'Medium' THEN 2 
-                WHEN priority = 'Standard' THEN 3 
-                WHEN priority = 'Low' THEN 4 
+            ->orderByRaw("CASE
+                WHEN priority = 'High Priority' THEN 1
+                WHEN priority = 'Medium' THEN 2
+                WHEN priority = 'Standard' THEN 3
+                WHEN priority = 'Low' THEN 4
                 ELSE 5 END")
             ->orderBy('deadline', 'asc')
             ->get();

@@ -46,6 +46,11 @@ class Deliverable extends Model
         'reference_file',
         'notes',
         'work_hours',
+        'designer_deadline',
+    ];
+
+    protected $casts = [
+        'designer_deadline' => 'datetime',
     ];
 
     const STAGES = [
@@ -214,12 +219,32 @@ class Deliverable extends Model
 
     public function getAssociatesAttribute()
     {
+        // Build a name lookup from approval history (most reliable — who actually performed each stage)
+        // Use the eager-loaded relation if available to avoid N+1
+        $historyNames = [];
+        $stageToKey = [
+            'Writer' => 'writer', 'Assignee' => 'writer', 'Writer Review' => 'writer',
+            'Approver' => 'approver', 'Approver Review' => 'approver', 'Further Approver' => 'approver',
+            'Brand Manager' => 'brand_manager', 'AM/BD' => 'brand_manager', 'Final Approval' => 'brand_manager',
+            'Coordinator' => 'coordinator',
+            'Designer' => 'designer',
+        ];
+        $approvals = $this->relationLoaded('approvalsHistory')
+            ? $this->getRelation('approvalsHistory')
+            : collect();
+        foreach ($approvals as $approval) {
+            $key = $stageToKey[$approval->stage] ?? null;
+            if ($key && $approval->user && !isset($historyNames[$key])) {
+                $historyNames[$key] = $approval->user->name;
+            }
+        }
+
         return [
-            'writer' => $this->writer?->name ?: ($this->project?->writer?->name ?: 'None'),
-            'approver' => $this->approver?->name ?: ($this->project?->approver?->name ?: 'None'),
-            'brand_manager' => $this->brandManager?->name ?: ($this->project?->brandManager?->name ?: 'None'),
-            'coordinator' => $this->coordinator?->name ?: ($this->project?->coordinator?->name ?: 'None'),
-            'designer' => $this->designer?->name ?: ($this->project?->designer?->name ?: 'None'),
+            'writer'        => $this->writer?->name        ?: ($this->project?->writer?->name        ?: ($historyNames['writer']        ?? 'None')),
+            'approver'      => $this->approver?->name      ?: ($this->project?->approver?->name      ?: ($historyNames['approver']      ?? 'None')),
+            'brand_manager' => $this->brandManager?->name  ?: ($this->project?->brandManager?->name  ?: ($historyNames['brand_manager'] ?? 'None')),
+            'coordinator'   => $this->coordinator?->name   ?: ($this->project?->coordinator?->name   ?: ($historyNames['coordinator']   ?? 'None')),
+            'designer'      => $this->designer?->name      ?: ($this->project?->designer?->name      ?: ($historyNames['designer']      ?? 'None')),
         ];
     }
 

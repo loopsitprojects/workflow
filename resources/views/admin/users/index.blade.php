@@ -1,6 +1,6 @@
 <x-layout title="User Management">
     @php
-        $roleOrder = ['Admin', 'Brand Manager', 'Approver', 'Coordinator', 'Designer', 'Writer'];
+        $roleOrder = ['Admin', 'Brand Manager', 'Approver', 'Approver Coordinator', 'Coordinator', 'Designer', 'Writer'];
         $groupedUsers = $users->sortBy(function($user) use ($roleOrder) {
             $pos = array_search($user->role, $roleOrder);
             return $pos === false ? 999 : $pos;
@@ -10,6 +10,7 @@
             'Admin' => ['bg' => 'bg-emerald-900', 'text' => 'text-emerald-50', 'accent' => 'border-emerald-500', 'dot' => 'bg-emerald-500'],
             'Brand Manager' => ['bg' => 'bg-blue-900', 'text' => 'text-blue-50', 'accent' => 'border-blue-500', 'dot' => 'bg-blue-500'],
             'Approver' => ['bg' => 'bg-amber-600', 'text' => 'text-amber-50', 'accent' => 'border-amber-400', 'dot' => 'bg-amber-400'],
+            'Approver Coordinator' => ['bg' => 'bg-orange-600', 'text' => 'text-orange-50', 'accent' => 'border-orange-400', 'dot' => 'bg-orange-400'],
             'Coordinator' => ['bg' => 'bg-indigo-600', 'text' => 'text-indigo-50', 'accent' => 'border-indigo-400', 'dot' => 'bg-indigo-400'],
             'Designer' => ['bg' => 'bg-pink-600', 'text' => 'text-pink-50', 'accent' => 'border-pink-400', 'dot' => 'bg-pink-400'],
             'Writer' => ['bg' => 'bg-sky-500', 'text' => 'text-sky-50', 'accent' => 'border-sky-300', 'dot' => 'bg-sky-400'],

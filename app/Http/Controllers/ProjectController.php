@@ -18,7 +18,7 @@ class ProjectController extends Controller
     public function create()
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver'])) abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
 
         $brandId = request('brand_id');
         $brands = \App\Models\Brand::all();
@@ -31,19 +31,20 @@ class ProjectController extends Controller
         }
 
         $writers = $users->where('role', 'Writer');
-        $approvers = $users->where('role', 'Approver');
+        $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator']);
         $managers = $users->where('role', 'Brand Manager');
         $designers = $users->where('role', 'Designer');
         
         $groupedUsers = $users->groupBy('role');
+        $subtaskTypes = \App\Models\SubtaskType::orderBy('workflow_type')->orderBy('name')->get();
 
-        return view('projects.create', compact('brands', 'writers', 'approvers', 'managers', 'designers', 'users', 'groupedUsers'));
+        return view('projects.create', compact('brands', 'writers', 'approvers', 'managers', 'designers', 'users', 'groupedUsers', 'subtaskTypes'));
     }
 
     public function store(Request $request)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver'])) abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
 
         $validated = $request->validate([
             'brand_id' => 'required|exists:brands,id',
@@ -64,7 +65,14 @@ class ProjectController extends Controller
             'sub_type' => 'nullable|string',
             'lead_id' => 'nullable|exists:users,id',
             'brief_file' => 'nullable|file|mimes:pdf,doc,docx,txt,jpg,png|max:10240',
+            'posts_count' => 'nullable|integer|min:0|max:200',
+            'post_type_counts' => 'nullable|array',
+            'post_type_counts.*' => 'nullable|integer|min:0|max:200',
         ]);
+
+        $postTypeCounts = $request->input('post_type_counts', []);
+        $postsCount = (int) ($validated['posts_count'] ?? 0);
+        unset($validated['posts_count'], $validated['post_type_counts']);
 
         if ($request->hasFile('brief_file')) {
             $file = $request->file('brief_file');
@@ -74,6 +82,98 @@ class ProjectController extends Controller
         }
 
         $project = Project::create($validated);
+
+        // Bulk-generate blank deliverable slots per post type (or by count if no types given)
+        $firstStage = in_array($project->workflow_type, ['campaign', 'pitch'])
+            ? \App\Models\Deliverable::CAMPAIGN_STAGES[0]
+            : \App\Models\Deliverable::STAGES[0];
+
+        $writerName = $project->writer?->name ?? 'Unassigned';
+        $deliverables = [];
+
+        $hasTypeCounts = !empty(array_filter($postTypeCounts, fn($v) => (int)$v > 0));
+
+        if ($hasTypeCounts) {
+            $activeCounts = array_filter($postTypeCounts, fn($v) => (int)$v > 0);
+            $multipleTypes = count($activeCounts) > 1;
+            $subtaskTypeModels = \App\Models\SubtaskType::whereIn('id', array_keys($activeCounts))->get()->keyBy('id');
+
+            $baseRow = [
+                'project_id'       => $project->id,
+                'status'           => 'To Do',
+                'task_type'        => 'Deliverable',
+                'approval_stage'   => $firstStage,
+                'priority'         => $project->priority ?? 'Medium',
+                'progress_percent' => 0,
+                'revisions'        => 0,
+                'deadline'         => $project->deadline,
+                'writer_id'        => $project->writer_id,
+                'approver_id'      => $project->approver_id,
+                'brand_manager_id' => $project->brand_manager_id,
+                'coordinator_id'   => $project->coordinator_id,
+                'designer_id'      => $project->designer_id,
+                'assignee_name'    => $writerName,
+                'created_at'       => now(),
+                'updated_at'       => now(),
+            ];
+
+            foreach ($activeCounts as $typeId => $count) {
+                $count = (int) $count;
+                $typeName = $subtaskTypeModels[$typeId]->name ?? 'Post';
+
+                if ($multipleTypes) {
+                    // Create a parent batch deliverable for this post type
+                    $parent = \App\Models\Deliverable::create(array_merge($baseRow, [
+                        'title'     => $typeName,
+                        'post_type' => $typeName,
+                    ]));
+
+                    $children = [];
+                    for ($i = 1; $i <= $count; $i++) {
+                        $children[] = array_merge($baseRow, [
+                            'parent_deliverable_id' => $parent->id,
+                            'title'                 => $typeName . ' ' . $i,
+                            'post_type'             => $typeName,
+                        ]);
+                    }
+                    \App\Models\Deliverable::insert($children);
+                } else {
+                    // Single type — flat deliverables, no parent
+                    for ($i = 1; $i <= $count; $i++) {
+                        $deliverables[] = array_merge($baseRow, [
+                            'title'     => $typeName . ' ' . $i,
+                            'post_type' => $typeName,
+                        ]);
+                    }
+                }
+            }
+        } elseif ($postsCount > 0) {
+            for ($i = 1; $i <= $postsCount; $i++) {
+                $deliverables[] = [
+                    'project_id'       => $project->id,
+                    'title'            => 'Post ' . $i,
+                    'status'           => 'To Do',
+                    'task_type'        => 'Deliverable',
+                    'approval_stage'   => $firstStage,
+                    'priority'         => $project->priority ?? 'Medium',
+                    'progress_percent' => 0,
+                    'revisions'        => 0,
+                    'deadline'         => $project->deadline,
+                    'writer_id'        => $project->writer_id,
+                    'approver_id'      => $project->approver_id,
+                    'brand_manager_id' => $project->brand_manager_id,
+                    'coordinator_id'   => $project->coordinator_id,
+                    'designer_id'      => $project->designer_id,
+                    'assignee_name'    => $writerName,
+                    'created_at'       => now(),
+                    'updated_at'       => now(),
+                ];
+            }
+        }
+
+        if (!empty($deliverables)) {
+            \App\Models\Deliverable::insert($deliverables);
+        }
 
         // Automatically sync brand members to the project
         $brand = Brand::with('members')->find($validated['brand_id']);
@@ -126,10 +226,10 @@ class ProjectController extends Controller
         $designers = \App\Models\User::where('role', 'Designer')
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
             ->get();
-        $approvers = \App\Models\User::where('role', 'Approver')
+        $approvers = \App\Models\User::whereIn('role', ['Approver', 'Approver Coordinator'])
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
             ->get();
-        $coordinators = \App\Models\User::where('role', 'Coordinator')
+        $coordinators = \App\Models\User::whereIn('role', ['Coordinator', 'Approver Coordinator'])
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
             ->get();
         
@@ -146,13 +246,13 @@ class ProjectController extends Controller
     public function edit(Project $project)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver'])) abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
         $brands = \App\Models\Brand::all();
         $brand = $project->brand()->with('members')->first();
         $users = $brand ? $brand->members : collect();
 
         $writers = $users->where('role', 'Writer');
-        $approvers = $users->where('role', 'Approver');
+        $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator']);
         $managers = $users->where('role', 'Brand Manager');
         $designers = $users->where('role', 'Designer');
         
@@ -164,7 +264,7 @@ class ProjectController extends Controller
     public function update(Request $request, Project $project)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver'])) abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
         $validated = $request->validate([
             'brand_id' => 'required|exists:brands,id',
             'job_number' => 'nullable|string|max:255',

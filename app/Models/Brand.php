@@ -24,7 +24,13 @@ class Brand extends Model
         'milestones_met',
         'revenue_impact',
         'current_lead',
+        'created_by',
     ];
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
     public function projects()
     {

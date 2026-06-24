@@ -39,8 +39,9 @@ class BrandController extends Controller
         ]);
 
         $brandData = [
-            'name' => $validated['name'],
-            'slug' => $validated['slug'],
+            'name'       => $validated['name'],
+            'slug'       => $validated['slug'],
+            'created_by' => auth()->id(),
         ];
 
         if ($request->hasFile('logo')) {
@@ -139,7 +140,7 @@ class BrandController extends Controller
     public function destroy(Brand $brand)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
+        if (!$user->isAdmin() && $brand->created_by !== $user->id) abort(403);
         $brand->delete();
         return redirect()->route('brands.index')->with('success', 'Brand deleted successfully.');
     }

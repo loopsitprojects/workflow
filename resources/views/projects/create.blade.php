@@ -53,7 +53,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
 </nav>
 
 <div class="f-wrap">
-    <form action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data">
+    <form id="createProjectForm" action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <input type="hidden" name="brand_id" value="{{ request('brand_id', $brands->first()->id ?? '') }}">
         <input type="hidden" name="priority" value="Medium">
@@ -109,14 +109,70 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
                 <label class="f-label">Brief Document <span style="opacity:0.5;font-weight:400;">(PDF, DOC, PNG, JPG · max 10MB)</span></label>
                 <input type="file" name="brief_file" class="f-input" style="padding:7px 12px;cursor:pointer;">
             </div>
+            <div style="margin-top:16px;">
+                <label class="f-label">Deliverables by Post Type <span style="opacity:0.5;font-weight:400;">(auto-generates deliverable slots)</span></label>
+
+                @php
+                    $retainerTypes = $subtaskTypes->where('workflow_type', 'retainer')->values();
+                    $campaignTypes = $subtaskTypes->where('workflow_type', 'campaign')->values();
+                    $allTypes = $subtaskTypes;
+                @endphp
+
+                {{-- Post type grid (shown when workflow type has subtask types) --}}
+                <div id="post-type-grid" style="margin-top:8px;">
+                    {{-- Retainer types --}}
+                    @if($retainerTypes->isNotEmpty())
+                    <div class="post-type-section" data-workflow="retainer" style="display:block;">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
+                            @foreach($retainerTypes as $type)
+                            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:8px 12px;">
+                                <span style="font-size:12px;font-weight:600;color:var(--color-text-primary);">{{ $type->name }}</span>
+                                <input type="number" name="post_type_counts[{{ $type->id }}]" min="0" max="200" value="{{ old('post_type_counts.'.$type->id, 0) }}"
+                                    style="width:52px;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:6px;padding:4px 6px;font-size:12px;font-weight:700;color:var(--color-text-primary);text-align:center;outline:none;"
+                                    onfocus="this.select()">
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Campaign/Pitch types --}}
+                    @if($campaignTypes->isNotEmpty())
+                    <div class="post-type-section" data-workflow="campaign pitch" style="display:none;">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
+                            @foreach($campaignTypes as $type)
+                            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:8px 12px;">
+                                <span style="font-size:12px;font-weight:600;color:var(--color-text-primary);">{{ $type->name }}</span>
+                                <input type="number" name="post_type_counts[{{ $type->id }}]" min="0" max="200" value="{{ old('post_type_counts.'.$type->id, 0) }}"
+                                    style="width:52px;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:6px;padding:4px 6px;font-size:12px;font-weight:700;color:var(--color-text-primary);text-align:center;outline:none;"
+                                    onfocus="this.select()">
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Fallback: no subtask types defined --}}
+                    @if($allTypes->isEmpty())
+                    <input type="number" name="posts_count" min="0" max="200" placeholder="0" class="f-input" style="max-width:140px;" value="{{ old('posts_count', 0) }}">
+                    @endif
+                </div>
+            </div>
         </div>
 
         <div class="f-footer">
             <a href="{{ url()->previous() }}" class="btn-c">Cancel</a>
-            <button type="submit" class="btn-s">Create Project</button>
+            <button type="submit" id="createProjectBtn" class="btn-s">Create Project</button>
         </div>
     </form>
 </div>
+
+{{-- Full-page loading overlay --}}
+<div id="pageLoadingOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+    <div style="width:52px;height:52px;border-radius:50%;border:3px solid rgba(255,255,255,0.15);border-top-color:#fff;animation:loopSpin 0.75s linear infinite;"></div>
+    <span id="pageLoadingText" style="color:#fff;font-size:13px;font-weight:700;letter-spacing:0.04em;">Creating project…</span>
+</div>
+<style>@keyframes loopSpin{to{transform:rotate(360deg)}}</style>
 
 <script>
 function setWorkflow(type) {
@@ -124,6 +180,30 @@ function setWorkflow(type) {
     ['retainer','campaign','pitch'].forEach(t =>
         document.getElementById('option-'+t).classList.toggle('active', t === type)
     );
+
+    // Show/hide post type sections based on workflow
+    document.querySelectorAll('.post-type-section').forEach(section => {
+        const workflows = section.dataset.workflow.split(' ');
+        const visible = workflows.includes(type);
+        section.style.display = visible ? 'block' : 'none';
+        // Zero out hidden section inputs so they don't submit
+        if (!visible) {
+            section.querySelectorAll('input[type="number"]').forEach(i => i.value = 0);
+        }
+    });
 }
+
+// Set initial state on page load (retainer is default)
+document.addEventListener('DOMContentLoaded', () => {
+    setWorkflow('retainer');
+
+    document.getElementById('createProjectForm').addEventListener('submit', function() {
+        const btn = document.getElementById('createProjectBtn');
+        const overlay = document.getElementById('pageLoadingOverlay');
+        btn.disabled = true;
+        btn.innerHTML = '<svg style="width:14px;height:14px;animation:loopSpin 0.75s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>Creating…';
+        overlay.style.display = 'flex';
+    });
+});
 </script>
 </x-layout>

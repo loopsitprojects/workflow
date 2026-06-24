@@ -118,17 +118,22 @@
             <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
                 <div class="grid-cell br">
                     <label class="field-label">Assigned Writer</label>
-                    <div class="styled-input-wrapper">
-                        <select name="writer_id" class="styled-input" required>
-                            <option value="">Select Writer...</option>
-                            @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ (old('writer_id', $parentTask->writer_id ?? '') == $user->id) ? 'selected' : '' }}>
-                                    {{ $user->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    @error('writer_id') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:6px;">{{ $message }}</p> @enderror
+                    @if(auth()->user()->role === 'Writer')
+                        <input type="hidden" name="writer_id" value="{{ auth()->id() }}">
+                        <div class="styled-input" style="cursor:default;opacity:0.75;">{{ auth()->user()->name }}</div>
+                    @else
+                        <div class="styled-input-wrapper">
+                            <select name="writer_id" class="styled-input" required>
+                                <option value="">Select Writer...</option>
+                                @foreach($users as $user)
+                                    <option value="{{ $user->id }}" {{ (old('writer_id', $parentTask->writer_id ?? '') == $user->id) ? 'selected' : '' }}>
+                                        {{ $user->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @error('writer_id') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:6px;">{{ $message }}</p> @enderror
+                    @endif
                 </div>
 
                 <div class="grid-cell br">
@@ -167,10 +172,17 @@
             {{-- ── Footer ── --}}
             <div class="form-footer">
                 <a href="{{ url()->previous() }}" class="btn btn-cancel">Cancel</a>
-                <button type="submit" class="btn btn-primary">Submit</button>
+                <button type="submit" id="createDeliverableBtn" class="btn btn-primary">Submit</button>
             </div>
         </form>
     </div>
+
+    {{-- Full-page loading overlay --}}
+    <div id="dlvLoadingOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+        <div style="width:52px;height:52px;border-radius:50%;border:3px solid rgba(255,255,255,0.15);border-top-color:#fff;animation:dlvSpin 0.75s linear infinite;"></div>
+        <span style="color:#fff;font-size:13px;font-weight:700;letter-spacing:0.04em;">Creating deliverable…</span>
+    </div>
+    <style>@keyframes dlvSpin{to{transform:rotate(360deg)}}</style>
 
     {{-- ── Focus Mode Modal ── --}}
     <div id="focus-modal" class="focus-modal-overlay">
@@ -350,6 +362,15 @@
 
         // Initial subtask
         addSubtask();
+
+        // Loading state on form submit
+        document.querySelector('form').addEventListener('submit', function() {
+            const btn = document.getElementById('createDeliverableBtn');
+            const overlay = document.getElementById('dlvLoadingOverlay');
+            btn.disabled = true;
+            btn.innerHTML = '<svg style="width:13px;height:13px;animation:dlvSpin 0.75s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>Submitting…';
+            overlay.style.display = 'flex';
+        });
 
         // Handle Dynamic Types on Project Change
         const projectSelect = document.querySelector('select[name="project_id"]');

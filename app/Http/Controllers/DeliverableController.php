@@ -47,6 +47,13 @@ class DeliverableController extends Controller
 
         $validated = $request->validated();
 
+        // Auto-assign the logged-in user as writer if they have the Writer role
+        $creator = auth()->user();
+        if ($creator->role === 'Writer' && empty($validated['writer_id'])) {
+            $validated['writer_id'] = $creator->id;
+            $validated['assignee_name'] = $creator->name;
+        }
+
         $subtasks = !empty($validated['subtasks']) ? $validated['subtasks'] : [];
         $parentId = $validated['parent_deliverable_id'] ?? null;
 
@@ -144,6 +151,60 @@ class DeliverableController extends Controller
     }
 
 
+    public function showBatch(Deliverable $deliverable)
+    {
+        if ($deliverable->parent_deliverable_id) abort(404);
+
+        $deliverable->load([
+            'project.brand',
+            'writer', 'approver', 'brandManager', 'coordinator', 'designer',
+            'subtasks.writer', 'subtasks.approver', 'subtasks.brandManager',
+            'subtasks.coordinator', 'subtasks.designer',
+            'subtasks.revisionsHistory.user',
+            'subtasks.approvalsHistory.user',
+        ]);
+
+        return view('deliverables.batch', compact('deliverable'));
+    }
+
+    public function addToBatch(Deliverable $deliverable)
+    {
+        $user = auth()->user();
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Writer'])) abort(403);
+        if ($deliverable->parent_deliverable_id) abort(403); // must be a parent
+
+        $project = $deliverable->project;
+        $firstStage = in_array($project->workflow_type, ['campaign', 'pitch'])
+            ? Deliverable::CAMPAIGN_STAGES[0]
+            : Deliverable::STAGES[0];
+
+        $siblingCount = $deliverable->subtasks()->count();
+        $postType = $deliverable->post_type ?? $deliverable->title;
+        $title = $postType . ' ' . ($siblingCount + 1);
+
+        Deliverable::create([
+            'project_id'            => $deliverable->project_id,
+            'parent_deliverable_id' => $deliverable->id,
+            'title'                 => $title,
+            'post_type'             => $deliverable->post_type,
+            'status'                => 'To Do',
+            'task_type'             => 'Deliverable',
+            'approval_stage'        => $firstStage,
+            'priority'              => $deliverable->priority ?? 'Medium',
+            'progress_percent'      => 0,
+            'revisions'             => 0,
+            'deadline'              => $deliverable->deadline,
+            'writer_id'             => $deliverable->writer_id,
+            'approver_id'           => $deliverable->approver_id,
+            'brand_manager_id'      => $deliverable->brand_manager_id,
+            'coordinator_id'        => $deliverable->coordinator_id,
+            'designer_id'           => $deliverable->designer_id,
+            'assignee_name'         => $deliverable->writer?->name ?? 'Unassigned',
+        ]);
+
+        return redirect()->route('projects.show', $deliverable->project_id)->with('success', 'Post added to batch.');
+    }
+
     /**
      * Show the form for editing the specified resource.
      */
@@ -153,7 +214,7 @@ class DeliverableController extends Controller
         if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
         $projects = Project::all();
         $users = \App\Models\User::where('role', 'Writer')->get();
-        $approvers = \App\Models\User::whereIn('role', ['Approver', 'Admin'])->get();
+        $approvers = \App\Models\User::whereIn('role', ['Approver', 'Approver Coordinator', 'Admin'])->get();
         $subtaskTypes = \App\Models\SubtaskType::all();
         return view('deliverables.edit', compact('deliverable', 'projects', 'users', 'approvers', 'subtaskTypes'));
     }
@@ -190,6 +251,7 @@ class DeliverableController extends Controller
             'final_designs' => 'nullable|string',
             'revisions' => 'nullable|integer',
             'is_ready' => 'nullable|boolean',
+            'designer_deadline' => 'nullable|date',
         ]);
 
         if ($request->has('writer_id')) {
@@ -272,6 +334,21 @@ class DeliverableController extends Controller
         }
 
         if ($request->input('action') === 'save_only') {
+            $user = auth()->user();
+            $userRole = strtolower(str_replace(' ', '', $user->role));
+
+            if ($request->hasAny(['concept', 'caption', 'post_copy', 'notes', 'title'])) {
+                $isWriterStage = in_array($deliverable->approval_stage, ['Writer', 'Assignee', 'Writer Review']);
+                $hasWriterRole = in_array($userRole, ['writer', 'assignee']);
+                $isAssignedWriter = ($deliverable->writer_id && $user->id == $deliverable->writer_id);
+                $isUnassignedWriter = (!$deliverable->writer_id && $hasWriterRole);
+                
+                if (!$user->isAdmin() && !($isWriterStage && ($isAssignedWriter || $isUnassignedWriter))) {
+                    abort(403, 'Unauthorized action: only the assigned writer can edit content.');
+                }
+            }
+
+            if ($request->has('title')) $deliverable->title = $request->title;
             if ($request->has('concept')) $deliverable->concept = $request->concept;
             if ($request->has('notes')) $deliverable->notes = $request->notes;
             if ($request->has('caption')) $deliverable->caption = $request->caption;
@@ -279,6 +356,7 @@ class DeliverableController extends Controller
             if ($request->has('reference')) $deliverable->reference = $request->reference;
             if ($request->has('final_designs_link')) $deliverable->final_designs_link = $request->final_designs_link;
             if ($request->has('work_hours')) $deliverable->work_hours = $request->work_hours ?: null;
+            if ($request->has('designer_deadline')) $deliverable->designer_deadline = $request->designer_deadline ?: null;
             
             if ($request->hasFile('reference_file')) {
                 $deliverable->reference_file = $this->moveUploadedFile($request->file('reference_file'), 'references');
@@ -341,23 +419,26 @@ class DeliverableController extends Controller
      */
     public function batchSubmit(Request $request, Deliverable $deliverable)
     {
-        $batchData = $request->input('batch_data', []); // Array keyed by task ID
+        // Support both JSON (application/json) and FormData (multipart/form-data) submissions
+        $rawBatchData = $request->input('batch_data', null);
+        $batchData = is_string($rawBatchData) ? (json_decode($rawBatchData, true) ?? []) : ($rawBatchData ?: []);
         
         // Ensure we have current subtasks
         $deliverable->load('subtasks');
         $subtasks = $deliverable->subtasks;
 
-        // Enforce: if one of the subtasks has been individually submitted (its stage is ahead of the parent's stage), block batch submit!
+        // Enforce: all subtasks must be at the same stage as the parent before batch submit is allowed
         $parentStage = $deliverable->approval_stage;
         $stages = $deliverable->getStages();
         $currIdx = array_search($parentStage, $stages);
 
+        $parentStageNorm = $parentStage ?: $stages[0];
         foreach ($subtasks as $subtask) {
-            $subIdx = array_search($subtask->approval_stage, $stages);
-            if ($subIdx !== false && $currIdx !== false && $subIdx > $currIdx) {
+            $subStage = $subtask->approval_stage ?: $stages[0];
+            if ($subStage !== $parentStageNorm) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This batch cannot be submitted because one or more subtasks have already been submitted individually.'
+                    'message' => 'All subtasks must be at the same stage before a batch action can be performed.'
                 ], 422);
             }
         }
@@ -391,7 +472,15 @@ class DeliverableController extends Controller
                 // Ensure task belongs to the same project context if needed
                 $taskSpecificData = $batchData[$task->id] ?? [];
                 $mergedData = array_merge($request->all(), $taskSpecificData);
-                
+
+                // Handle per-task reference image uploads (FormData submissions)
+                if ($request->hasFile("reference_files.{$task->id}")) {
+                    $mergedData['reference_file'] = $this->moveUploadedFile(
+                        $request->file("reference_files.{$task->id}"),
+                        'references'
+                    );
+                }
+
                 $result = $this->internallyAdvanceStage($task, $mergedData);
                 if (!$result['success']) {
                     \DB::rollBack();
@@ -473,7 +562,7 @@ class DeliverableController extends Controller
         }
 
         // Brand Manager further approver: re-assign and stay at same stage (no new stage)
-        $hasFurtherApprover = !empty($data['further_approver_id']) && $oldStage === 'Brand Manager';
+        $hasFurtherApprover = !empty($data['further_approver_id']) && in_array($oldStage, ['Brand Manager', 'AM/BD', 'Final Approval']);
 
         $requiredField = $deliverable->getRequiredFieldForStage($nextStage);
         if ($requiredField && !$hasFurtherApprover) {
@@ -543,7 +632,7 @@ class DeliverableController extends Controller
         if ($dryRun) return ['success' => true];
 
         // Brand Manager "Further Approval": re-assign brand manager and stay at the same stage
-        if ($oldStage === 'Brand Manager' && !empty($data['further_approver_id'])) {
+        if (in_array($oldStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && !empty($data['further_approver_id'])) {
             $furtherApproverId = (int) $data['further_approver_id'];
             $deliverable->brand_manager_id = $furtherApproverId;
             if ($hoursSpent) {
@@ -568,6 +657,12 @@ class DeliverableController extends Controller
             return ['success' => true, 'message' => 'Deliverable sent to ' . ($furtherApprover->name ?? 'further approver') . ' for additional approval.'];
         }
 
+        // Record who performed the current stage (if the FK isn't already set)
+        $currentStageField = $deliverable->getRequiredFieldForStage($oldStage);
+        if ($currentStageField && !$deliverable->{$currentStageField}) {
+            $deliverable->{$currentStageField} = auth()->id();
+        }
+
         // Content updates
         if (isset($data['concept'])) $deliverable->concept = $data['concept'];
         if (isset($data['notes'])) $deliverable->notes = $data['notes'];
@@ -585,6 +680,11 @@ class DeliverableController extends Controller
         if (isset($data['brand_manager_id'])) $deliverable->brand_manager_id = $data['brand_manager_id'];
         if (isset($data['coordinator_id'])) $deliverable->coordinator_id = $data['coordinator_id'];
         if (isset($data['designer_id'])) $deliverable->designer_id = $data['designer_id'];
+
+        // Coordinator sets an internal deadline for the designer when handing off
+        if ($oldStage === 'Coordinator' && !empty($data['designer_deadline'])) {
+            $deliverable->designer_deadline = $data['designer_deadline'];
+        }
 
         // Designer Delivery
         if ($oldStage === 'Designer') {
@@ -631,6 +731,7 @@ class DeliverableController extends Controller
             $validated = $request->validate([
                 'revision_instructions' => 'required|string|max:1000',
                 'revision_target'       => 'nullable|in:writer,designer',
+                'revision_image'        => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
             ]);
 
             $oldStage = $deliverable->approval_stage;
@@ -660,10 +761,20 @@ class DeliverableController extends Controller
             $deliverable->revision_instructions = $validated['revision_instructions'];
             $deliverable->save();
 
+            // Handle optional image upload
+            $imagePath = null;
+            if ($request->hasFile('revision_image')) {
+                $file = $request->file('revision_image');
+                $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('revision_images'), $filename);
+                $imagePath = '/revision_images/' . $filename;
+            }
+
             // Record in history
             $deliverable->revisionsHistory()->create([
                 'user_id' => auth()->id(),
                 'instructions' => $validated['revision_instructions'],
+                'image_path' => $imagePath,
                 'stage_at_revision' => $oldStage,
             ]);
 
@@ -693,7 +804,31 @@ class DeliverableController extends Controller
         $validated = $request->validate([
             'revision_instructions' => 'required|string|max:2000',
             'revision_target'       => 'nullable|in:writer,designer',
+            'revision_image'        => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
         ]);
+
+        // Handle optional image upload once for the whole batch
+        $imagePath = null;
+        if ($request->hasFile('revision_image')) {
+            $file = $request->file('revision_image');
+            $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('revision_images'), $filename);
+            $imagePath = '/revision_images/' . $filename;
+        }
+
+        // Enforce: all subtasks must be at the same stage before batch revision
+        $deliverable->load('subtasks');
+        $batchStages = $deliverable->getStages();
+        $batchParentStage = $deliverable->approval_stage ?: $batchStages[0];
+        foreach ($deliverable->subtasks as $subtask) {
+            $subStage = $subtask->approval_stage ?: $batchStages[0];
+            if ($subStage !== $batchParentStage) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'All subtasks must be at the same stage before a batch revision can be requested.'
+                ], 422);
+            }
+        }
 
         $revisionTarget = $validated['revision_target'] ?? 'designer';
         $allTasks = collect([$deliverable])->merge($deliverable->subtasks);
@@ -731,6 +866,7 @@ class DeliverableController extends Controller
                 $task->revisionsHistory()->create([
                     'user_id' => auth()->id(),
                     'instructions' => $validated['revision_instructions'],
+                    'image_path' => $imagePath,
                     'stage_at_revision' => $oldStage,
                 ]);
 
@@ -759,23 +895,20 @@ class DeliverableController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Deliverable $deliverable)
+    public function destroy(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
         if (!$user->isAdmin() && $user->role !== 'Brand Manager') {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['message' => 'Only Admins and Brand Managers can delete deliverables.'], 403);
+            }
             abort(403);
         }
         $deliverable->delete();
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true]);
+        }
         return redirect()->back()->with('success', 'Deliverable deleted successfully.');
-    }
-
-    /**
-     * Export Deliverable to PDF
-     */
-    public function exportPdf(Deliverable $deliverable)
-    {
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('deliverables.pdf', compact('deliverable'));
-        return $pdf->download(str_replace(' ', '_', $deliverable->title) . '.pdf');
     }
 
     /**
@@ -876,24 +1009,12 @@ class DeliverableController extends Controller
     }
 
     /**
-     * Batch Export Deliverables to PDF
-     */
-    public function exportBatchPdf(Deliverable $deliverable)
-    {
-        $deliverables = $deliverable->subtasks->isNotEmpty() ? $deliverable->subtasks : collect([$deliverable]);
-        $parent = $deliverable;
-        
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('deliverables.batch_pdf', compact('deliverables', 'parent'));
-        $fileName = str_replace(' ', '_', $deliverable->title) . '_batch.pdf';
-        
-        return $pdf->download($fileName);
-    }
-
-    /**
      * Batch Export Deliverables to PPTX
      */
     public function exportBatchPpt(Deliverable $deliverable)
     {
+        $deliverable->load(['subtasks.project.brand', 'subtasks.writer', 'subtasks.approver', 'subtasks.brandManager', 'subtasks.coordinator', 'subtasks.designer']);
+
         $deliverables = $deliverable->subtasks->isNotEmpty()
             ? $deliverable->subtasks
             : collect([$deliverable]);
@@ -969,6 +1090,7 @@ class DeliverableController extends Controller
         $hdrBg->getFill()->setFillType($Fill::FILL_SOLID)
               ->setStartColor($color('FF0055D4'));
         $hdrBg->getBorder()->setLineStyle($Border::LINE_NONE);
+        $hdrBg->createTextRun('')->getFont()->setSize(1)->setColor($color('FF0055D4'));
 
         // ── Header text ─────────────────────────────────────────
         $hdr = $slide->createRichTextShape()
@@ -993,6 +1115,7 @@ class DeliverableController extends Controller
             $div->getFill()->setFillType($Fill::FILL_SOLID)
                 ->setStartColor($color('FFE2E8F0'));
             $div->getBorder()->setLineStyle($Border::LINE_NONE);
+            $div->createTextRun('')->getFont()->setSize(1)->setColor($color('FFE2E8F0'));
         }
 
         // ── Text sections (left column) ─────────────────────────
@@ -1035,6 +1158,8 @@ class DeliverableController extends Controller
             $offsetY += $blockH + 8;
         };
 
+        $addSection('STAGE',        $task->approval_stage ?? '—');
+        $addSection('POST TYPE',    $task->post_type ?? $task->subtask_type ?? null);
         if ($task->revision_instructions) {
             $addSection('REVISION REQUESTED', $task->revision_instructions);
         }
@@ -1090,6 +1215,7 @@ class DeliverableController extends Controller
             ->setHeight($footerH)->setWidth($SW)->setOffsetX(0)->setOffsetY($SH - $footerH);
         $ftrBg->getFill()->setFillType($Fill::FILL_SOLID)->setStartColor($color('FFF8FAFC'));
         $ftrBg->getBorder()->setLineStyle($Border::LINE_NONE);
+        $ftrBg->createTextRun('')->getFont()->setSize(1)->setColor($color('FFF8FAFC'));
 
         $brand   = $task->project->brand->name ?? '';
         $project = $task->project->name ?? '';
