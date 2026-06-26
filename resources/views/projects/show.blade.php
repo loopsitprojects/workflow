@@ -3874,15 +3874,8 @@ document.addEventListener('DOMContentLoaded', function() {
         window.Echo.private('project.{{ $project->id }}')
             .listen('DeliverablesUpdated', (e) => {
                 console.log('Deliverables updated in real-time!', e);
-                // Dispatch a toast so the user knows
-                window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Changes detected. Refreshing...', type: 'info' } }));
-                
-                // Add a small delay so they can see the toast before reload
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
+                window.location.reload();
             });
     }
 });
 </script>
-</x-layout>
