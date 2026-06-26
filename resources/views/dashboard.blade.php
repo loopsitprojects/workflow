@@ -6,7 +6,7 @@
             <div>
                 <p class="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Workspace Overview</p>
                 <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                    Good {{ now()->hour < 12 ? 'morning' : (now()->hour < 17 ? 'afternoon' : 'evening') }}, {{ explode(' ', auth()->user()->name)[0] }}
+                    Good {{ now()->timezone('Asia/Colombo')->hour < 12 ? 'morning' : (now()->timezone('Asia/Colombo')->hour < 17 ? 'afternoon' : 'evening') }}, {{ explode(' ', auth()->user()->name)[0] }}
                 </h1>
             </div>
             <span class="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">{{ now()->format('l, M j') }}</span>

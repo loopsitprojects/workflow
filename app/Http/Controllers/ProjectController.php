@@ -178,7 +178,16 @@ class ProjectController extends Controller
         // Automatically sync brand members to the project
         $brand = Brand::with('members')->find($validated['brand_id']);
         if ($brand) {
-            $project->members()->sync($brand->members->pluck('id'));
+            $membersToSync = $brand->members;
+            
+            // If a Brand Manager created the project, only include them, exclude other Brand Managers
+            if ($user->role === 'Brand Manager') {
+                $membersToSync = $membersToSync->reject(function ($member) use ($user) {
+                    return $member->role === 'Brand Manager' && $member->id !== $user->id;
+                });
+            }
+            
+            $project->members()->sync($membersToSync->pluck('id'));
         }
 
         // Notify all writers in the brand
@@ -298,7 +307,16 @@ class ProjectController extends Controller
         // Automatically sync brand members to the project
         $brand = Brand::with('members')->find($validated['brand_id']);
         if ($brand) {
-            $project->members()->sync($brand->members->pluck('id'));
+            $membersToSync = $brand->members;
+            
+            // Maintain the existing Brand Managers on the project so we don't overwrite restrictions
+            $existingBrandManagerIds = $project->members()->where('role', 'Brand Manager')->pluck('users.id')->toArray();
+            
+            $membersToSync = $membersToSync->reject(function ($member) use ($existingBrandManagerIds) {
+                return $member->role === 'Brand Manager' && !in_array($member->id, $existingBrandManagerIds);
+            });
+
+            $project->members()->sync($membersToSync->pluck('id'));
         }
 
         if (isset($validated['brief_file_path'])) {

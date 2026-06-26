@@ -2596,6 +2596,34 @@
 
         // Handle AJAX submission of the task stage form to prevent modal closing on validation error
         document.addEventListener('DOMContentLoaded', function() {
+            // Mutual exclusion for Further Approver and Brand Manager
+            const furtherApproverSelect = document.getElementById('batchFurtherApproverSelect');
+            const stakeholderSelect = document.getElementById('batchStakeholderSelect');
+
+            if (furtherApproverSelect && stakeholderSelect) {
+                furtherApproverSelect.addEventListener('change', function() {
+                    if (this.value) {
+                        stakeholderSelect.value = '';
+                        stakeholderSelect.disabled = true;
+                    } else {
+                        stakeholderSelect.disabled = false;
+                    }
+                });
+
+                stakeholderSelect.addEventListener('change', function() {
+                    // Only apply mutual exclusion if both are visible (i.e. at Approver stage)
+                    const furtherApproverGroup = document.getElementById('batchFurtherApproverGroup');
+                    if (furtherApproverGroup && furtherApproverGroup.style.display !== 'none') {
+                        if (this.value) {
+                            furtherApproverSelect.value = '';
+                            furtherApproverSelect.disabled = true;
+                        } else {
+                            furtherApproverSelect.disabled = false;
+                        }
+                    }
+                });
+            }
+
             // Auto-save selects (like Designer assignment)
             document.querySelectorAll('.batch-field-select').forEach(select => {
                 select.addEventListener('change', async function() {
@@ -2975,6 +3003,10 @@
                 const isApproverStage = (type === 'submit' && nextStage === 'Further Approver');
                 const showFurther = isApproverStage;
                 furtherApproverGroup.style.display = showFurther ? 'block' : 'none';
+                if (furtherApproverSelect) {
+                    furtherApproverSelect.value = '';
+                    furtherApproverSelect.disabled = false;
+                }
                 if (showFurther) {
                     let users, skipLabel, roleName, hintText;
                     if (isApproverStage) {
@@ -3046,6 +3078,7 @@
                     stakeholderGroup.style.display = 'block';
                     genericConfirm.style.display = 'none';
                     stakeholderLabel.textContent = label;
+                    stakeholderSelect.disabled = false;
                     
                     if (nextStage === 'Designer' && !isIndividual) {
                         stakeholderSelect.innerHTML = '<option value="individual">-- Use Individual Task Assignments --</option>';
@@ -3073,6 +3106,10 @@
                             if (user.id == preSelectId) opt.selected = true;
                             stakeholderSelect.appendChild(opt);
                         });
+                        
+                        if (nextStage === 'Further Approver') {
+                            stakeholderSelect.dispatchEvent(new Event('change'));
+                        }
                     }
                 }
             }
@@ -3830,3 +3867,22 @@
     });
 })();
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.Echo) {
+        window.Echo.private('project.{{ $project->id }}')
+            .listen('DeliverablesUpdated', (e) => {
+                console.log('Deliverables updated in real-time!', e);
+                // Dispatch a toast so the user knows
+                window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Changes detected. Refreshing...', type: 'info' } }));
+                
+                // Add a small delay so they can see the toast before reload
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            });
+    }
+});
+</script>
+</x-layout>

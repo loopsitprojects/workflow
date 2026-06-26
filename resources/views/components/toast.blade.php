@@ -10,7 +10,7 @@
     }
 }" 
 @toast.window="addToast($event.detail.message, $event.detail.type)"
-class="fixed bottom-8 right-8 z-[200] flex flex-col gap-3 w-80 pointer-events-none">
+class="fixed bottom-8 right-8 z-[9999999] flex flex-col gap-3 w-80 pointer-events-none">
     
     <!-- Initial Flash Messages -->
     @if(session('success'))

@@ -53,6 +53,21 @@ class Deliverable extends Model
         'designer_deadline' => 'datetime',
     ];
 
+    protected static function booted()
+    {
+        static::saved(function ($deliverable) {
+            if ($deliverable->project_id) {
+                event(new \App\Events\DeliverablesUpdated($deliverable->project_id));
+            }
+        });
+
+        static::deleted(function ($deliverable) {
+            if ($deliverable->project_id) {
+                event(new \App\Events\DeliverablesUpdated($deliverable->project_id));
+            }
+        });
+    }
+
     const STAGES = [
         'Writer',
         'Approver',
