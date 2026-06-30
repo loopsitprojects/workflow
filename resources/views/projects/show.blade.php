@@ -2250,9 +2250,9 @@
                         }
 
                         const imageHtml = rev.image_path
-                            ? `<a href="${rev.image_path}" target="_blank" style="display:block;margin-top:8px;">
+                            ? `<div onclick="openImagePreview('${rev.image_path}')" style="display:block;margin-top:8px;cursor:pointer;">
                                 <img src="${rev.image_path}" alt="Revision reference" style="max-width:100%;max-height:260px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;cursor:pointer;">
-                               </a>`
+                               </div>`
                             : '';
                         row.innerHTML = `
                             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -2292,7 +2292,7 @@
                         img.src = latestRev.image_path;
                         img.alt = 'Revision reference';
                         img.style.cssText = 'display:block;margin-top:12px;max-width:100%;max-height:280px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;cursor:pointer;';
-                        img.onclick = () => window.open(latestRev.image_path, '_blank');
+                        img.onclick = () => openImagePreview(latestRev.image_path);
                         alertTextEl.appendChild(img);
                     }
                     revAlert.style.display = 'block';
