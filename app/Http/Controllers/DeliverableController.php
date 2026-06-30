@@ -552,10 +552,6 @@ class DeliverableController extends Controller
         $routingToFurtherApprover = ($oldStage === 'Approver' && !empty($data['further_approver_id']));
         if ($routingToFurtherApprover) {
             $nextStage = 'Further Approver';
-            // Satisfy the required-field check for 'Further Approver' (approver_id)
-            if (empty($data['approver_id'])) {
-                $data['approver_id'] = $data['further_approver_id'];
-            }
         } elseif ($nextStage === 'Further Approver') {
             // Skip 'Further Approver' when no further approver is being assigned
             $nextStage = 'Brand Manager';
@@ -590,7 +586,7 @@ class DeliverableController extends Controller
                 'Writer Review'    => 'writer_id',
                 'Approver'         => 'approver_id',
                 'Approver Review'  => 'approver_id',
-                'Further Approver' => 'approver_id',
+                'Further Approver' => 'further_approver_id',
                 'Brand Manager'    => 'brand_manager_id',
                 'AM/BD'            => 'brand_manager_id',
                 'Final Approval'   => 'brand_manager_id',
@@ -673,9 +669,9 @@ class DeliverableController extends Controller
 
         // Stakeholder updates
         if (isset($data['approver_id'])) $deliverable->approver_id = $data['approver_id'];
-        // When routing to Further Approver stage, overwrite approver_id with the further approver
+        // When routing to Further Approver stage, save the further approver ID
         if ($routingToFurtherApprover) {
-            $deliverable->approver_id = (int) $data['further_approver_id'];
+            $deliverable->further_approver_id = (int) $data['further_approver_id'];
         }
         if (isset($data['brand_manager_id'])) $deliverable->brand_manager_id = $data['brand_manager_id'];
         if (isset($data['coordinator_id'])) $deliverable->coordinator_id = $data['coordinator_id'];

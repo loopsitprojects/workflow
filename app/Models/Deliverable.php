@@ -34,6 +34,7 @@ class Deliverable extends Model
         'start_date',
         'end_date',
         'approver_id',
+        'further_approver_id',
         'writer_id',
         'brand_manager_id',
         'coordinator_id',
@@ -150,6 +151,11 @@ class Deliverable extends Model
     public function brandManager()
     {
         return $this->belongsTo(User::class, 'brand_manager_id');
+    }
+
+    public function furtherApprover()
+    {
+        return $this->belongsTo(User::class, 'further_approver_id');
     }
 
     public function coordinator()
@@ -270,8 +276,9 @@ class Deliverable extends Model
     {
         return match ($stage) {
             'Writer', 'Assignee', 'Writer Review'          => 'writer_id',
-            'Approver', 'Approver Review', 'Further Approver' => 'approver_id',
-            'Brand Manager', 'AM/BD', 'Final Approval'        => 'brand_manager_id',
+            'Approver', 'Approver Review'                  => 'approver_id',
+            'Further Approver'                             => 'further_approver_id',
+            'Brand Manager', 'AM/BD', 'Final Approval'     => 'brand_manager_id',
             'Coordinator'        => 'coordinator_id',
             'Designer'           => 'designer_id',
             default              => null,
