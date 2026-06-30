@@ -133,7 +133,10 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
         {{-- Brief --}}
         <div class="f-section">
             <label class="f-label">Project Brief</label>
-            <textarea name="description" rows="3" placeholder="Core objectives and creative vision…" class="f-input">{{ old('description', $project->description) }}</textarea>
+            <div x-data="quillEditor(`{!! old('description', $project->description) !!}`)" style="margin-bottom: 12px;">
+                <textarea name="description" x-model="content" style="display:none;"></textarea>
+                <div x-ref="editor" class="f-input" style="min-height: 120px; border-top-left-radius: 0; border-top-right-radius: 0; padding: 0;"></div>
+            </div>
             <div style="margin-top:12px;">
                 <label class="f-label">Brief Document <span style="opacity:0.5;font-weight:400;">(PDF, DOC, PNG, JPG · max 10MB)</span></label>
                 @if($project->brief_file_path)

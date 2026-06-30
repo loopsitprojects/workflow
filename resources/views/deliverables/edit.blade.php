@@ -202,7 +202,10 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
         {{-- Description --}}
         <div class="f-section" style="border-bottom:none;">
             <label class="f-label">Brief & Objectives</label>
-            <textarea name="description" rows="4" placeholder="Outline the success criteria…" class="f-input">{{ old('description', $deliverable->description) }}</textarea>
+            <div x-data="quillEditor(`{!! old('description', $deliverable->description) !!}`)" style="margin-bottom: 12px;">
+                <textarea name="description" x-model="content" style="display:none;"></textarea>
+                <div x-ref="editor" class="f-input" style="min-height: 120px; border-top-left-radius: 0; border-top-right-radius: 0; padding: 0;"></div>
+            </div>
         </div>
 
         <input type="hidden" name="status" id="status_mapping" value="{{ $deliverable->status }}">

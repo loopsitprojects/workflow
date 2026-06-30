@@ -11,6 +11,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
+    <!-- Quill.js for Rich Text Editing -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: var(--color-bg-secondary); color: var(--color-text-primary); transition: background-color 0.3s, color 0.3s; }
@@ -42,7 +47,35 @@
                     localStorage.setItem('theme', this.current);
                     document.documentElement.classList.toggle('dark', this.current === 'dark');
                 }
-            })
+            });
+
+            Alpine.data('quillEditor', (initialValue) => ({
+                content: initialValue,
+                init() {
+                    const quill = new Quill(this.$refs.editor, {
+                        theme: 'snow',
+                        placeholder: 'Start typing...',
+                        modules: {
+                            toolbar: [
+                                [{ 'header': [1, 2, 3, false] }],
+                                ['bold', 'italic', 'underline', 'strike'],
+                                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                ['clean']
+                            ]
+                        }
+                    });
+
+                    // Set initial content if any
+                    if (this.content) {
+                        quill.clipboard.dangerouslyPasteHTML(this.content);
+                    }
+
+                    // Update hidden textarea on change
+                    quill.on('text-change', () => {
+                        this.content = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
+                    });
+                }
+            }));
         })
     </script>
 </head>
