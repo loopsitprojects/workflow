@@ -167,7 +167,7 @@ class DeliverableController extends Controller
         return view('deliverables.batch', compact('deliverable'));
     }
 
-    public function addToBatch(Deliverable $deliverable)
+    public function addToBatch(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
         if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Writer'])) abort(403);
@@ -178,15 +178,22 @@ class DeliverableController extends Controller
             ? Deliverable::CAMPAIGN_STAGES[0]
             : Deliverable::STAGES[0];
 
-        $siblingCount = $deliverable->subtasks()->count();
-        $postType = $deliverable->post_type ?? $deliverable->title;
-        $title = $postType . ' ' . ($siblingCount + 1);
+        $postType = $request->input('post_type');
+        if (empty($postType)) {
+            $postType = $deliverable->post_type ?? $deliverable->title;
+        }
+
+        $title = $request->input('title');
+        if (empty($title)) {
+            $siblingCount = $deliverable->subtasks()->where('post_type', $postType)->count();
+            $title = $postType . ' ' . ($siblingCount + 1);
+        }
 
         Deliverable::create([
             'project_id'            => $deliverable->project_id,
             'parent_deliverable_id' => $deliverable->id,
             'title'                 => $title,
-            'post_type'             => $deliverable->post_type,
+            'post_type'             => $postType,
             'status'                => 'To Do',
             'task_type'             => 'Deliverable',
             'approval_stage'        => $firstStage,

@@ -108,58 +108,22 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
                 <textarea name="description" x-model="content" style="display:none;"></textarea>
                 <div x-ref="editor" class="f-input" style="min-height: 120px; border-top-left-radius: 0; border-top-right-radius: 0; padding: 0;"></div>
             </div>
+            <div style="margin-top:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <label class="f-label" style="margin-bottom:0;font-size:12px;font-weight:700;">Project Batches</label>
+                    <button type="button" onclick="addBatchCard()" style="padding:6px 12px;background:#0055D4;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 6px rgba(0,85,212,0.15);">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                        Add Batch
+                    </button>
+                </div>
+
+                <div id="batches-container" style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+                    <!-- Dynamically loaded batch cards -->
+                </div>
+            </div>
             <div style="margin-top:12px;">
                 <label class="f-label">Brief Document <span style="opacity:0.5;font-weight:400;">(PDF, DOC, PNG, JPG · max 10MB)</span></label>
                 <input type="file" name="brief_file" class="f-input" style="padding:7px 12px;cursor:pointer;">
-            </div>
-            <div style="margin-top:16px;">
-                <label class="f-label">Deliverables by Post Type <span style="opacity:0.5;font-weight:400;">(auto-generates deliverable slots)</span></label>
-
-                @php
-                    $retainerTypes = $subtaskTypes->where('workflow_type', 'retainer')->values();
-                    $campaignTypes = $subtaskTypes->where('workflow_type', 'campaign')->values();
-                    $allTypes = $subtaskTypes;
-                @endphp
-
-                {{-- Post type grid (shown when workflow type has subtask types) --}}
-                <div id="post-type-grid" style="margin-top:8px;">
-                    {{-- Retainer types --}}
-                    @if($retainerTypes->isNotEmpty())
-                    <div class="post-type-section" data-workflow="retainer" style="display:block;">
-                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
-                            @foreach($retainerTypes as $type)
-                            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:8px 12px;">
-                                <span style="font-size:12px;font-weight:600;color:var(--color-text-primary);">{{ $type->name }}</span>
-                                <input type="number" name="post_type_counts[{{ $type->id }}]" min="0" max="200" value="{{ old('post_type_counts.'.$type->id, 0) }}"
-                                    style="width:52px;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:6px;padding:4px 6px;font-size:12px;font-weight:700;color:var(--color-text-primary);text-align:center;outline:none;"
-                                    onfocus="this.select()">
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
-                    @endif
-
-                    {{-- Campaign/Pitch types --}}
-                    @if($campaignTypes->isNotEmpty())
-                    <div class="post-type-section" data-workflow="campaign pitch" style="display:none;">
-                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
-                            @foreach($campaignTypes as $type)
-                            <div style="display:flex;align-items:center;justify-content:space-between;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:8px 12px;">
-                                <span style="font-size:12px;font-weight:600;color:var(--color-text-primary);">{{ $type->name }}</span>
-                                <input type="number" name="post_type_counts[{{ $type->id }}]" min="0" max="200" value="{{ old('post_type_counts.'.$type->id, 0) }}"
-                                    style="width:52px;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:6px;padding:4px 6px;font-size:12px;font-weight:700;color:var(--color-text-primary);text-align:center;outline:none;"
-                                    onfocus="this.select()">
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
-                    @endif
-
-                    {{-- Fallback: no subtask types defined --}}
-                    @if($allTypes->isEmpty())
-                    <input type="number" name="posts_count" min="0" max="200" placeholder="0" class="f-input" style="max-width:140px;" value="{{ old('posts_count', 0) }}">
-                    @endif
-                </div>
             </div>
         </div>
 
@@ -178,25 +142,98 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
 <style>@keyframes loopSpin{to{transform:rotate(360deg)}}</style>
 
 <script>
+const subtaskTypes = @json($subtaskTypes);
+let batchIndex = 0;
+
+function addBatchCard() {
+    batchIndex++;
+    const container = document.getElementById('batches-container');
+    const workflowType = document.getElementById('workflow_type').value;
+
+    const card = document.createElement('div');
+    card.className = 'batch-card';
+    card.id = `batch-card-${batchIndex}`;
+    card.style = 'border:1.5px solid var(--color-border-primary);border-radius:10px;padding:16px;background:var(--color-bg-secondary);position:relative;display:flex;flex-direction:column;gap:10px;';
+
+    const activeWorkflow = (workflowType === 'retainer') ? 'retainer' : 'campaign';
+    const filteredTypes = subtaskTypes.filter(t => t.workflow_type === activeWorkflow);
+
+    let typesHtml = '';
+    if (filteredTypes.length > 0) {
+        typesHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;">`;
+        filteredTypes.forEach(type => {
+            typesHtml += `
+                <div style="display:flex;align-items:center;justify-content:space-between;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:8px 12px;">
+                    <span style="font-size:11px;font-weight:600;color:var(--color-text-primary);">${type.name}</span>
+                    <input type="number" name="batches[${batchIndex}][post_types][${type.id}]" min="0" max="200" value="0"
+                        style="width:48px;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:6px;padding:4px 6px;font-size:12px;font-weight:700;color:var(--color-text-primary);text-align:center;outline:none;"
+                        onfocus="this.select()">
+                </div>
+            `;
+        });
+        typesHtml += `</div>`;
+    } else {
+        typesHtml = `
+            <div>
+                <label style="font-size:11px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:4px;">Posts Count</label>
+                <input type="number" name="batches[${batchIndex}][posts_count]" min="0" max="200" value="0" class="f-input" style="max-width:100px;">
+            </div>
+        `;
+    }
+
+    card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+            <div style="flex:1;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:11px;font-weight:800;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;" class="batch-number-badge">1</span>
+                <input type="text" name="batches[${batchIndex}][name]" value="Batch ${batchIndex}" placeholder="Enter Batch Name..." required
+                    style="width:100%;max-width:240px;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--color-text-primary);outline:none;">
+            </div>
+            <button type="button" onclick="removeBatchCard(${batchIndex})" style="background:none;border:none;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:2px;">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Remove
+            </button>
+        </div>
+        ${typesHtml}
+    `;
+
+    container.appendChild(card);
+    reindexBatchNumbers();
+}
+
+function removeBatchCard(id) {
+    const card = document.getElementById(`batch-card-${id}`);
+    if (card) {
+        card.remove();
+        reindexBatchNumbers();
+    }
+}
+
+function reindexBatchNumbers() {
+    const cards = document.querySelectorAll('.batch-card');
+    cards.forEach((card, index) => {
+        const badge = card.querySelector('.batch-number-badge');
+        if (badge) {
+            badge.textContent = index + 1;
+        }
+
+        const removeBtn = card.querySelector('button[onclick^="removeBatchCard"]');
+        if (removeBtn) {
+            removeBtn.style.display = (cards.length === 1) ? 'none' : 'inline-flex';
+        }
+    });
+}
+
 function setWorkflow(type) {
     document.getElementById('workflow_type').value = type;
     ['retainer','campaign','pitch'].forEach(t =>
         document.getElementById('option-'+t).classList.toggle('active', t === type)
     );
 
-    // Show/hide post type sections based on workflow
-    document.querySelectorAll('.post-type-section').forEach(section => {
-        const workflows = section.dataset.workflow.split(' ');
-        const visible = workflows.includes(type);
-        section.style.display = visible ? 'block' : 'none';
-        // Zero out hidden section inputs so they don't submit
-        if (!visible) {
-            section.querySelectorAll('input[type="number"]').forEach(i => i.value = 0);
-        }
-    });
+    document.getElementById('batches-container').innerHTML = '';
+    batchIndex = 0;
+    addBatchCard();
 }
 
-// Set initial state on page load (retainer is default)
 document.addEventListener('DOMContentLoaded', () => {
     setWorkflow('retainer');
 

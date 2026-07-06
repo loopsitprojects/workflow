@@ -9,11 +9,14 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $userId = auth()->id();
+        $user = auth()->user();
+        $userId = $user->id;
 
-        $deliverables = Deliverable::doesntHave('subtasks')
-            ->with(['project.brand', 'parent', 'writer', 'approver', 'brandManager', 'coordinator', 'designer'])
-            ->where(function($q) use ($userId) {
+        $query = Deliverable::doesntHave('subtasks')
+            ->with(['project.brand', 'parent', 'writer', 'approver', 'brandManager', 'coordinator', 'designer']);
+
+        if (!$user->isAdmin()) {
+            $query->where(function($q) use ($userId) {
                 // Done deliverables: user is associated in any role
                 $q->where(function($sub) use ($userId) {
                     $sub->where('status', 'Done')
@@ -22,7 +25,8 @@ class DashboardController extends Controller
                                   ->orWhere('approver_id', $userId)
                                   ->orWhere('brand_manager_id', $userId)
                                   ->orWhere('coordinator_id', $userId)
-                                  ->orWhere('designer_id', $userId);
+                                  ->orWhere('designer_id', $userId)
+                                  ->orWhere('further_approver_id', $userId);
                         });
                 })
                 // Active/Pending deliverables: user is responsible for the current stage
@@ -59,12 +63,14 @@ class DashboardController extends Controller
                             })
                             ->orWhere(function($fa) use ($userId) {
                                 $fa->where('approval_stage', 'Further Approver')
-                                   ->where('approver_id', $userId);
+                                   ->where('further_approver_id', $userId);
                             });
                         });
                 });
-            })
-            ->orderByRaw("CASE
+            });
+        }
+
+        $deliverables = $query->orderByRaw("CASE
                 WHEN priority = 'High Priority' THEN 1
                 WHEN priority = 'Medium' THEN 2
                 WHEN priority = 'Standard' THEN 3

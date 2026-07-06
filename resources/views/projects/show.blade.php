@@ -5,6 +5,7 @@
         $currentUserId = auth()->id();
         $currentUserRole = $userRole;
         $currentUserIsAdmin = $isAdmin;
+        $allSubtaskTypes = \App\Models\SubtaskType::all();
     @endphp
     <style>
         /* Content Deliverables Table Styles */
@@ -64,13 +65,20 @@
         .subtask-row.collapsed { display: none; }
         .subtask-toggle { 
             display: inline-flex; align-items: center; justify-content: center;
-            width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--color-border-primary);
-            background: var(--color-bg-primary); color: var(--color-text-secondary); cursor: pointer; margin-right: 8px;
-            transition: all 0.2s;
+            padding: 4px 8px; border-radius: 6px; border: 1.5px solid rgba(0, 85, 212, 0.25);
+            background: rgba(0, 85, 212, 0.05); color: #0055D4; cursor: pointer; margin-right: 8px;
+            font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+            transition: all 0.15s;
         }
-        .subtask-toggle:hover { background: var(--color-bg-secondary); color: #0055D4; border-color: #0055D4; }
-        .subtask-toggle svg { transition: transform 0.2s; }
-        .subtask-toggle.active svg { transform: rotate(90deg); }
+        .subtask-toggle:hover { background: rgba(0, 85, 212, 0.12); color: #0044aa; border-color: rgba(0, 85, 212, 0.45); }
+        .subtask-toggle:not(.active) {
+            background: rgba(16, 185, 129, 0.08); color: #10b981; border-color: rgba(16, 185, 129, 0.25);
+        }
+        .subtask-toggle:not(.active):hover {
+            background: rgba(16, 185, 129, 0.14); color: #059669; border-color: rgba(16, 185, 129, 0.45);
+        }
+        .subtask-toggle::after { content: 'Collapse'; }
+        .subtask-toggle:not(.active)::after { content: 'Expand'; }
         .deliverable-name-cell { display: flex; align-items: center; }
 
         /* Workflow Steps Tracker */
@@ -445,14 +453,15 @@
                             @forelse($project->deliverables->whereNull('parent_deliverable_id') as $task)
                                 @if($task->subtasks->count() > 0)
                                     <!-- Heading Row for Deliverable with Subtasks -->
-                                    <tr class="rtb-heading-row" style="background:var(--color-bg-secondary); border-left:3px solid #3b82f6;">
+                                    <tr class="rtb-heading-row" style="background:var(--color-bg-secondary); border-left:3px solid #3b82f6; cursor:pointer;" onclick="toggleSubtasks(event, {{ $task->id }})">
                                         <td colspan="4">
                                             <div class="deliverable-name-cell" style="padding: 8px 0; display:flex; align-items:center; gap:10px;">
+                                                <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle active" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:6px; outline:none;"></button>
                                                 <span style="font-weight:800; color:var(--color-text-primary); font-size:13px; letter-spacing:-0.01em;">{{ $task->title }}</span>
                                                 <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary); background:var(--color-bg-primary); border:1px solid var(--color-border-primary); padding:2px 7px; border-radius:6px;">{{ $task->subtasks->count() }} posts</span>
                                             </div>
                                         </td>
-                                        <td colspan="7" style="padding-right:15px;">
+                                        <td colspan="7" style="padding-right:15px;" onclick="event.stopPropagation()">
                                             @php
                                                 $userRole = strtolower(str_replace(' ', '', auth()->user()->role));
                                                 $isAdmin = $userRole === 'admin';
@@ -529,29 +538,26 @@
 
                                                 {{-- Actions --}}
                                                 <div style="display:flex; align-items:center; gap:6px;">
-                                                    <a href="{{ route('deliverables.showBatch', $task->id) }}" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:7px;text-decoration:none;white-space:nowrap;">
+                                                    <a href="{{ route('deliverables.showBatch', $task->id) }}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:7px;text-decoration:none;white-space:nowrap;">
                                                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                                         View
                                                     </a>
                                                     @if(in_array(auth()->user()->role, ['Writer', 'Brand Manager']) || auth()->user()->isAdmin())
-                                                    <form method="POST" action="{{ route('deliverables.addToBatch', $task->id) }}" style="display:inline;">
-                                                        @csrf
-                                                        <button type="submit" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:7px;cursor:pointer;white-space:nowrap;">
-                                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                                                            Add Post
-                                                        </button>
-                                                    </form>
+                                                    <button type="button" onclick="openAddPostTypeModal(event, {{ $task->id }}, '{{ $project->workflow_type }}')" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:7px;cursor:pointer;white-space:nowrap; outline:none;">
+                                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                                        Add Post
+                                                    </button>
                                                     @endif
-                                                    <a href="{{ route('deliverables.export-batch.ppt', $task->id) }}" class="cd-btn cd-btn-outline" title="Export Batch PPT" style="padding:6px 10px; border-radius:7px; font-size:11px; font-weight:600;">PPT</a>
+                                                    <a href="{{ route('deliverables.export-batch.ppt', $task->id) }}" onclick="event.stopPropagation()" class="cd-btn cd-btn-outline" title="Export Batch PPT" style="padding:6px 10px; border-radius:7px; font-size:11px; font-weight:600;">PPT</a>
                                                     @if($canReviseBatch)
-                                                        <button onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', {{ $totalInBatch }}, 'revision', {{ $batchStakeholders }})"
+                                                        <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $stage }}', {{ $totalInBatch }}, 'revision', {{ $batchStakeholders }})"
                                                                 style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; transition:all 0.15s; {{ $allReady ? 'color:#ef4444; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); cursor:pointer;' : 'color:var(--color-text-secondary); background:none; border:1px solid var(--color-border-primary); cursor:not-allowed; opacity:0.6;' }}"
                                                                 {{ !$allReady ? 'disabled' : '' }}>
                                                             {{ in_array($stage, ['Final Approval', 'Writer Review', 'Approver Review']) ? 'Revise All → Designer' : 'Revise All → Writer' }}
                                                         </button>
                                                     @endif
                                                     @if($canApproveBatch && $nextStage)
-                                                        <button onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }}, {{ $task->revision_instructions ? 'true' : 'false' }})"
+                                                        <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }}, {{ $task->revision_instructions ? 'true' : 'false' }})"
                                                                 style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; transition:all 0.15s; {{ !$isGated ? 'background:#0055D4; color:#fff; border:1px solid #0055D4; cursor:pointer;' : 'background:var(--color-bg-secondary); color:var(--color-text-secondary); border:1px solid var(--color-border-primary); cursor:not-allowed; opacity:0.6;' }}"
                                                                 {{ $isGated ? 'disabled' : '' }}>
                                                             {{ $label }}
@@ -577,10 +583,6 @@
                                             @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
                                             <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
-                                            @if($subtask->designer_deadline)
-                                            <div style="margin-top:6px; font-size:9px; font-weight:700; color:#8b5cf6; text-transform:uppercase;">Designer:</div>
-                                            <div style="font-weight:700; color:#8b5cf6; font-size:11px;">{{ \Carbon\Carbon::parse($subtask->designer_deadline)->format('M d, Y H:i') }}</div>
-                                            @endif
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
@@ -700,10 +702,20 @@
                                             @endif
                                         </td>
                                         <td>
+                                            @php
+                                                $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
+                                                $subRevHistory = $subtask->getRelation('revisionsHistory') ?? collect();
+                                                $subWrevs = $subRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
+                                                $subDrevs = $subRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
+                                            @endphp
                                             <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                                @if($subtask->revisions > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(239,68,68,0.1);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $subtask->revisions }}</span>
-                                                @else
+                                                @if($subWrevs > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $subWrevs }}</span>
+                                                @endif
+                                                @if($subDrevs > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $subDrevs }}</span>
+                                                @endif
+                                                @if($subWrevs === 0 && $subDrevs === 0)
                                                     <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
                                                 @endif
                                             </div>
@@ -897,10 +909,20 @@
                                             @endif
                                         </td>
                                         <td>
+                                            @php
+                                                $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
+                                                $taskRevHistory = $task->getRelation('revisionsHistory') ?? collect();
+                                                $taskWrevs = $taskRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
+                                                $taskDrevs = $taskRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
+                                            @endphp
                                             <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                                @if($task->revisions > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(239,68,68,0.1);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $task->revisions }}</span>
-                                                @else
+                                                @if($taskWrevs > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $taskWrevs }}</span>
+                                                @endif
+                                                @if($taskDrevs > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $taskDrevs }}</span>
+                                                @endif
+                                                @if($taskWrevs === 0 && $taskDrevs === 0)
                                                     <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
                                                 @endif
                                             </div>
@@ -1013,17 +1035,15 @@
                                 @forelse($project->deliverables->whereNull('parent_deliverable_id') as $task)
                                 @if($task->subtasks->count() > 0)
                                     <!-- Heading Row for Deliverable with Subtasks -->
-                                    <tr class="rtb-heading-row" style="background:rgba(255,255,255,0.03); border-left:4px solid #0055D4;">
+                                    <tr class="rtb-heading-row" style="background:rgba(255,255,255,0.03); border-left:4px solid #0055D4; cursor:pointer;" onclick="toggleSubtasks(event, {{ $task->id }})">
                                         <td colspan="8">
                                             <div class="deliverable-name-cell" style="padding: 10px 0; display:flex; align-items:center; gap:12px;">
-                                                <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:4px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:4px; padding:2px;">
-                                                    <svg width="10" height="10" fill="none" stroke="#0055D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
-                                                </button>
+                                                <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle active" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:6px; outline:none;"></button>
                                                 <span style="font-weight:900; color:#0055D4; font-size:15px; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->title }}</span>
                                                 <span style="font-size:11px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:20px;">{{ $task->subtasks->count() }} Tasks</span>
                                             </div>
                                         </td>
-                                        <td></td>
+                                        <td onclick="event.stopPropagation()"></td>
                                         <td>
                                             <div class="rtb-stage-label" style="background:#0055D4; color:#ffffff; font-weight:800; padding:4px 10px; border-radius:6px; font-size:10px; box-shadow:0 2px 4px rgba(0,0,0,0.3);">
                                                 {{ $task->approval_stage ?: 'Writer' }}
@@ -1103,12 +1123,12 @@
                                                         <div style="width:{{ $progressBatch }}%; height:100%; background:{{ $allReady ? '#10b981' : '#0055D4' }}; transition:width 0.3s ease;"></div>
                                                     </div>
                                                 </div>
-                                                <div style="display:flex; flex-direction:column; align-items:stretch; gap:8px; width: 100%;">
+                                                <div style="display:flex; flex-direction:column; align-items:stretch; gap:8px; width: 100%;" onclick="event.stopPropagation()">
                                                     @php 
                                                         $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "'}";
                                                     @endphp
                                                     <div style="display:flex; gap:6px; width: 100%;">
-                                                        <a href="{{ route('deliverables.export-batch.ppt', $task->id) }}" class="cd-btn cd-btn-outline" title="Export Batch PPT" style="flex:1; justify-content:center; padding:6px; border-radius:8px; font-size:9px; font-weight:600; letter-spacing:0.05em;">PPT</a>
+                                                        <a href="{{ route('deliverables.export-batch.ppt', $task->id) }}" onclick="event.stopPropagation()" class="cd-btn cd-btn-outline" title="Export Batch PPT" style="flex:1; justify-content:center; padding:6px; border-radius:8px; font-size:9px; font-weight:600; letter-spacing:0.05em;">PPT</a>
                                                     </div>
                                                     @if($canReviseBatch)
                                                         @php
@@ -1117,7 +1137,7 @@
                                                                 return $tIdx !== false && $tIdx < $currIdx;
                                                             });
                                                         @endphp
-                                                        <button onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', {{ $totalInBatch }}, 'revision', {{ $batchStakeholders }})" 
+                                                        <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $stage }}', {{ $totalInBatch }}, 'revision', {{ $batchStakeholders }})" 
                                                                 class="cd-btn cd-btn-outline" 
                                                                 style="padding:6px 12px; border-radius:8px; font-size:9px; letter-spacing:0.05em; width: 100%; justify-content: center; {{ !$hasRevisionInBatch ? 'color:#ef4444; border-color:rgba(239,68,68,0.2); background:rgba(239,68,68,0.05); cursor:pointer;' : 'color:var(--color-text-secondary); border-color:var(--color-border-primary); background:none; cursor:not-allowed; opacity:0.6;' }}"
                                                                 {{ $hasRevisionInBatch ? 'disabled' : '' }}>
@@ -1125,7 +1145,7 @@
                                                         </button>
                                                     @endif
                                                     @if($canApproveBatch && $nextStage)
-                                                        <button onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }}, {{ $task->revision_instructions ? 'true' : 'false' }})" 
+                                                        <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }}, {{ $task->revision_instructions ? 'true' : 'false' }})" 
                                                                 class="cd-btn {{ (!$isGated) ? 'cd-btn-primary' : 'cd-btn-outline' }}" 
                                                                 style="padding:6px 12px; border-radius:8px; font-size:9px; letter-spacing:0.05em; box-shadow:none; width: 100%; justify-content: center; {{ $isGated ? 'opacity:0.6; cursor:not-allowed; color:#94a3b8; border-color:#e2e8f0;' : '' }}"
                                                                 {{ $isGated ? 'disabled' : '' }}>
@@ -1136,7 +1156,7 @@
                                         </td>
                                     </tr>
                                     @foreach($task->subtasks as $subtask)
-                                    <tr class="subtask-row subtask-of-{{ $task->id }} collapsed {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
+                                    <tr class="subtask-row subtask-of-{{ $task->id }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                         <td>
                                             <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
                                                 <span style="font-weight:700; color:#475569;">{{ $subtask->title }}</span>
@@ -1146,10 +1166,6 @@
                                             @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
                                             <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
-                                            @if($subtask->designer_deadline)
-                                            <div style="margin-top:6px; font-size:9px; font-weight:700; color:#8b5cf6; text-transform:uppercase;">Designer:</div>
-                                            <div style="font-weight:700; color:#8b5cf6; font-size:11px;">{{ \Carbon\Carbon::parse($subtask->designer_deadline)->format('M d, Y H:i') }}</div>
-                                            @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="concept" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $subtask->concept }}</textarea>
@@ -1261,10 +1277,20 @@
                                             @endif
                                         </td>
                                         <td>
+                                            @php
+                                                $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
+                                                $subRevHistory = $subtask->getRelation('revisionsHistory') ?? collect();
+                                                $subWrevs = $subRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
+                                                $subDrevs = $subRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
+                                            @endphp
                                             <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                                @if($subtask->revisions > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(239,68,68,0.1);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $subtask->revisions }}</span>
-                                                @else
+                                                @if($subWrevs > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $subWrevs }}</span>
+                                                @endif
+                                                @if($subDrevs > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $subDrevs }}</span>
+                                                @endif
+                                                @if($subWrevs === 0 && $subDrevs === 0)
                                                     <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
                                                 @endif
                                             </div>
@@ -1467,10 +1493,20 @@
                                             @endif
                                         </td>
                                         <td>
+                                            @php
+                                                $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
+                                                $taskRevHistory = $task->getRelation('revisionsHistory') ?? collect();
+                                                $taskWrevs = $taskRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
+                                                $taskDrevs = $taskRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
+                                            @endphp
                                             <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                                @if($task->revisions > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(239,68,68,0.1);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $task->revisions }}</span>
-                                                @else
+                                                @if($taskWrevs > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $taskWrevs }}</span>
+                                                @endif
+                                                @if($taskDrevs > 0)
+                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $taskDrevs }}</span>
+                                                @endif
+                                                @if($taskWrevs === 0 && $taskDrevs === 0)
                                                     <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
                                                 @endif
                                             </div>
@@ -3468,6 +3504,86 @@
             </div>
         </div>
     </div>
+
+    <!-- Add Post Type Selection Modal -->
+    <div id="addPostTypeOverlay" class="cd-modal-overlay" onclick="closeAddPostTypeModal(event)" style="z-index: 10000;">
+        <div class="cd-modal" style="max-width: 400px; border-radius: 20px;" onclick="event.stopPropagation()">
+            <div class="cd-modal-header" style="padding: 20px 24px; background: var(--color-bg-secondary); align-items: center;">
+                <h2 style="font-size: 15px; font-weight: 900; color: var(--color-text-primary); margin: 0;">Add New Post</h2>
+                <button onclick="closeAddPostTypeModal()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form id="addPostTypeForm" method="POST" style="margin: 0;">
+                @csrf
+                <div class="cd-modal-body" style="padding: 24px; display:flex; flex-direction:column; gap:16px;">
+                    <div>
+                        <label class="detail-label" style="margin-bottom: 8px;">Deliverable Name</label>
+                        <input type="text" name="title" id="addPostTypeTitle" placeholder="e.g. Carousel 1 (Leave blank to auto-generate)" style="width: 100%; padding: 10px 14px; font-size: 13px; font-weight: 500; border-radius: 10px; border: 1.5px solid var(--color-border-primary); background: var(--color-bg-secondary); color: var(--color-text-primary); outline: none;">
+                    </div>
+                    <div>
+                        <label class="detail-label" style="margin-bottom: 8px;">Select Post Type</label>
+                        <select name="post_type" id="addPostTypeSelect" required style="width: 100%; padding: 10px 14px; font-size: 13px; font-weight: 600; border-radius: 10px; border: 1.5px solid var(--color-border-primary); background: var(--color-bg-secondary); color: var(--color-text-primary); outline: none;">
+                            <!-- Dynamically filled options -->
+                        </select>
+                    </div>
+                </div>
+                <div class="cd-modal-footer" style="padding: 16px 24px;">
+                    <button type="button" onclick="closeAddPostTypeModal()" class="cd-btn cd-btn-outline">Cancel</button>
+                    <button type="submit" class="cd-btn cd-btn-primary" style="padding: 10px 20px; box-shadow:none;">Add to Batch</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    const allSubtaskTypes = @json($allSubtaskTypes);
+    function openAddPostTypeModal(e, taskId, workflowType) {
+        e.stopPropagation();
+        
+        const titleInput = document.getElementById('addPostTypeTitle');
+        if (titleInput) titleInput.value = '';
+        
+        const select = document.getElementById('addPostTypeSelect');
+        select.innerHTML = '';
+        
+        const activeWorkflow = (workflowType === 'retainer') ? 'retainer' : 'campaign';
+        const filtered = allSubtaskTypes.filter(t => t.workflow_type === activeWorkflow);
+        
+        filtered.forEach(type => {
+            const opt = document.createElement('option');
+            opt.value = type.name;
+            opt.textContent = type.name;
+            select.appendChild(opt);
+        });
+        
+        if (filtered.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = 'Post';
+            opt.textContent = 'Post';
+            select.appendChild(opt);
+        }
+        
+        document.getElementById('addPostTypeForm').action = '/deliverables/' + taskId + '/add-to-batch';
+        
+        const overlay = document.getElementById('addPostTypeOverlay');
+        overlay.style.display = 'flex';
+        setTimeout(() => {
+            overlay.style.opacity = '1';
+            overlay.querySelector('.cd-modal').classList.add('active');
+        }, 10);
+    }
+
+    function closeAddPostTypeModal(e) {
+        if (e && e.target !== document.getElementById('addPostTypeOverlay')) return;
+        const overlay = document.getElementById('addPostTypeOverlay');
+        overlay.style.opacity = '0';
+        overlay.querySelector('.cd-modal').classList.remove('active');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 300);
+    }
+    </script>
 </x-layout>
 
 {{-- ============================================================ --}}

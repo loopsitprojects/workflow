@@ -197,8 +197,16 @@
                 @if($post->deadline)
                     <span style="font-size:11px;font-weight:600;color:var(--color-text-secondary);">{{ \Carbon\Carbon::parse($post->deadline)->format('M d') }}</span>
                 @endif
-                @if($post->revisions > 0)
-                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(239,68,68,0.1);color:#ef4444;border:1.5px solid rgba(239,68,68,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $post->revisions }}</span>
+                @php
+                    $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
+                    $postWrevs = $revs->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
+                    $postDrevs = $revs->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
+                @endphp
+                @if($postWrevs > 0)
+                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $postWrevs }}</span>
+                @endif
+                @if($postDrevs > 0)
+                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $postDrevs }}</span>
                 @endif
                 @if($post->work_hours)
                     <span style="font-size:11px;font-weight:600;color:var(--color-text-secondary);">{{ number_format($post->work_hours, 1) }}h</span>

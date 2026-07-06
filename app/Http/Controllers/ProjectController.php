@@ -68,11 +68,17 @@ class ProjectController extends Controller
             'posts_count' => 'nullable|integer|min:0|max:200',
             'post_type_counts' => 'nullable|array',
             'post_type_counts.*' => 'nullable|integer|min:0|max:200',
+            'batches' => 'nullable|array',
+            'batches.*.name' => 'required|string',
+            'batches.*.post_types' => 'nullable|array',
+            'batches.*.post_types.*' => 'nullable|integer|min:0|max:200',
+            'batches.*.posts_count' => 'nullable|integer|min:0|max:200',
         ]);
 
         $postTypeCounts = $request->input('post_type_counts', []);
         $postsCount = (int) ($validated['posts_count'] ?? 0);
-        unset($validated['posts_count'], $validated['post_type_counts']);
+        $batches = $request->input('batches', []);
+        unset($validated['posts_count'], $validated['post_type_counts'], $validated['batches']);
 
         if ($request->hasFile('brief_file')) {
             $file = $request->file('brief_file');
@@ -91,44 +97,56 @@ class ProjectController extends Controller
         $writerName = $project->writer?->name ?? 'Unassigned';
         $deliverables = [];
 
-        $hasTypeCounts = !empty(array_filter($postTypeCounts, fn($v) => (int)$v > 0));
+        $baseRow = [
+            'project_id'       => $project->id,
+            'status'           => 'To Do',
+            'task_type'        => 'Deliverable',
+            'approval_stage'   => $firstStage,
+            'priority'         => $project->priority ?? 'Medium',
+            'progress_percent' => 0,
+            'revisions'        => 0,
+            'deadline'         => $project->deadline,
+            'writer_id'        => $project->writer_id,
+            'approver_id'      => $project->approver_id,
+            'brand_manager_id' => $project->brand_manager_id,
+            'coordinator_id'   => $project->coordinator_id,
+            'designer_id'      => $project->designer_id,
+            'assignee_name'    => $writerName,
+            'created_at'       => now(),
+            'updated_at'       => now(),
+        ];
 
-        if ($hasTypeCounts) {
-            $activeCounts = array_filter($postTypeCounts, fn($v) => (int)$v > 0);
-            $multipleTypes = count($activeCounts) > 1;
-            $subtaskTypeModels = \App\Models\SubtaskType::whereIn('id', array_keys($activeCounts))->get()->keyBy('id');
+        if (!empty($batches)) {
+            $typeIds = [];
+            foreach ($batches as $batch) {
+                if (!empty($batch['post_types'])) {
+                    foreach (array_keys($batch['post_types']) as $tId) {
+                        $typeIds[] = $tId;
+                    }
+                }
+            }
+            $subtaskTypeModels = collect();
+            if (!empty($typeIds)) {
+                $subtaskTypeModels = \App\Models\SubtaskType::whereIn('id', array_unique($typeIds))->get()->keyBy('id');
+            }
 
-            $baseRow = [
-                'project_id'       => $project->id,
-                'status'           => 'To Do',
-                'task_type'        => 'Deliverable',
-                'approval_stage'   => $firstStage,
-                'priority'         => $project->priority ?? 'Medium',
-                'progress_percent' => 0,
-                'revisions'        => 0,
-                'deadline'         => $project->deadline,
-                'writer_id'        => $project->writer_id,
-                'approver_id'      => $project->approver_id,
-                'brand_manager_id' => $project->brand_manager_id,
-                'coordinator_id'   => $project->coordinator_id,
-                'designer_id'      => $project->designer_id,
-                'assignee_name'    => $writerName,
-                'created_at'       => now(),
-                'updated_at'       => now(),
-            ];
+            foreach ($batches as $batch) {
+                $batchName = $batch['name'] ?? 'Batch';
+                $postTypes = $batch['post_types'] ?? [];
 
-            foreach ($activeCounts as $typeId => $count) {
-                $count = (int) $count;
-                $typeName = $subtaskTypeModels[$typeId]->name ?? 'Post';
+                // Create the parent deliverable (the batch itself)
+                $parent = \App\Models\Deliverable::create(array_merge($baseRow, [
+                    'title'     => $batchName,
+                    'post_type' => null,
+                ]));
 
-                if ($multipleTypes) {
-                    // Create a parent batch deliverable for this post type
-                    $parent = \App\Models\Deliverable::create(array_merge($baseRow, [
-                        'title'     => $typeName,
-                        'post_type' => $typeName,
-                    ]));
+                $children = [];
 
-                    $children = [];
+                foreach ($postTypes as $typeId => $count) {
+                    $count = (int)$count;
+                    if ($count <= 0) continue;
+
+                    $typeName = $subtaskTypeModels[$typeId]->name ?? 'Post';
                     for ($i = 1; $i <= $count; $i++) {
                         $children[] = array_merge($baseRow, [
                             'parent_deliverable_id' => $parent->id,
@@ -136,43 +154,70 @@ class ProjectController extends Controller
                             'post_type'             => $typeName,
                         ]);
                     }
-                    \App\Models\Deliverable::insert($children);
-                } else {
-                    // Single type — flat deliverables, no parent
-                    for ($i = 1; $i <= $count; $i++) {
-                        $deliverables[] = array_merge($baseRow, [
-                            'title'     => $typeName . ' ' . $i,
-                            'post_type' => $typeName,
+                }
+
+                $bPostsCount = (int)($batch['posts_count'] ?? 0);
+                if ($bPostsCount > 0) {
+                    for ($i = 1; $i <= $bPostsCount; $i++) {
+                        $children[] = array_merge($baseRow, [
+                            'parent_deliverable_id' => $parent->id,
+                            'title'                 => 'Post ' . $i,
+                            'post_type'             => null,
                         ]);
                     }
                 }
-            }
-        } elseif ($postsCount > 0) {
-            for ($i = 1; $i <= $postsCount; $i++) {
-                $deliverables[] = [
-                    'project_id'       => $project->id,
-                    'title'            => 'Post ' . $i,
-                    'status'           => 'To Do',
-                    'task_type'        => 'Deliverable',
-                    'approval_stage'   => $firstStage,
-                    'priority'         => $project->priority ?? 'Medium',
-                    'progress_percent' => 0,
-                    'revisions'        => 0,
-                    'deadline'         => $project->deadline,
-                    'writer_id'        => $project->writer_id,
-                    'approver_id'      => $project->approver_id,
-                    'brand_manager_id' => $project->brand_manager_id,
-                    'coordinator_id'   => $project->coordinator_id,
-                    'designer_id'      => $project->designer_id,
-                    'assignee_name'    => $writerName,
-                    'created_at'       => now(),
-                    'updated_at'       => now(),
-                ];
-            }
-        }
 
-        if (!empty($deliverables)) {
-            \App\Models\Deliverable::insert($deliverables);
+                if (!empty($children)) {
+                    \App\Models\Deliverable::insert($children);
+                }
+            }
+        } else {
+            $hasTypeCounts = !empty(array_filter($postTypeCounts, fn($v) => (int)$v > 0));
+
+            if ($hasTypeCounts) {
+                $activeCounts = array_filter($postTypeCounts, fn($v) => (int)$v > 0);
+                $multipleTypes = count($activeCounts) > 1;
+                $subtaskTypeModels = \App\Models\SubtaskType::whereIn('id', array_keys($activeCounts))->get()->keyBy('id');
+
+                foreach ($activeCounts as $typeId => $count) {
+                    $count = (int) $count;
+                    $typeName = $subtaskTypeModels[$typeId]->name ?? 'Post';
+
+                    if ($multipleTypes) {
+                        $parent = \App\Models\Deliverable::create(array_merge($baseRow, [
+                            'title'     => $typeName,
+                            'post_type' => $typeName,
+                        ]));
+
+                        $children = [];
+                        for ($i = 1; $i <= $count; $i++) {
+                            $children[] = array_merge($baseRow, [
+                                'parent_deliverable_id' => $parent->id,
+                                'title'                 => $typeName . ' ' . $i,
+                                'post_type'             => $typeName,
+                            ]);
+                        }
+                        \App\Models\Deliverable::insert($children);
+                    } else {
+                        for ($i = 1; $i <= $count; $i++) {
+                            $deliverables[] = array_merge($baseRow, [
+                                'title'     => $typeName . ' ' . $i,
+                                'post_type' => $typeName,
+                            ]);
+                        }
+                    }
+                }
+            } elseif ($postsCount > 0) {
+                for ($i = 1; $i <= $postsCount; $i++) {
+                    $deliverables[] = array_merge($baseRow, [
+                        'title' => 'Post ' . $i,
+                    ]);
+                }
+            }
+
+            if (!empty($deliverables)) {
+                \App\Models\Deliverable::insert($deliverables);
+            }
         }
 
         // Automatically sync brand members to the project
