@@ -1150,9 +1150,7 @@ class DeliverableController extends Controller
         $run = $hdr->createTextRun($task->title);
         $run->getFont()->setBold(true)->setSize(16)->setColor($color('FF0F172A'));
 
-        $hdr->createBreak();
-        $run = $hdr->createTextRun('● ' . ($task->approval_stage ?? ''));
-        $run->getFont()->setSize(8)->setColor($color('FF64748B'));
+        // Stage indicator removed for client presentation
 
         // ── 5. Column divider ────────────────────────────────────
         if ($hasImages) {
@@ -1206,7 +1204,7 @@ class DeliverableController extends Controller
             $offsetY += $blockH + 12;
         };
 
-        $addSection('STAGE',        $task->approval_stage ?? '—');
+        // Stage section excluded for client presentation
         $addSection('POST TYPE',    $task->post_type ?? $task->subtask_type ?? null);
         // Revision instructions are excluded from PPT slide layout as requested
         $addSection('CONCEPT',      $task->concept);
