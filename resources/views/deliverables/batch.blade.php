@@ -145,12 +145,49 @@
             $total  = $deliverable->subtasks->count();
             $closed = $deliverable->subtasks->where('approval_stage', 'Closed')->count();
             $pct    = $total > 0 ? round($closed / $total * 100) : 0;
+            
+            // Resolve parent revisions
+            if (!$deliverable->relationLoaded('revisionsHistory')) {
+                $deliverable->load('revisionsHistory.user');
+            }
+            $parentRevs = $deliverable->revisionsHistory;
         @endphp
         <div class="bv-bar-wrap">
             <div class="bv-bar"><div class="bv-bar-fill" style="width:{{ $pct }}%;"></div></div>
             <span style="font-size:11px;font-weight:700;color:{{ $closed === $total && $total > 0 ? '#10b981' : 'var(--color-text-secondary)' }};">{{ $closed }}/{{ $total }} closed</span>
         </div>
+
     </div>
+
+    {{-- Unified Revision Requests Section --}}
+    @php
+        $postsWithRevisions = $deliverable->subtasks->filter(fn($p) => !empty($p->revision_instructions));
+    @endphp
+    @if($postsWithRevisions->isNotEmpty())
+    <div style="margin-bottom: 20px; padding: 20px; background: rgba(239, 68, 68, 0.04); border: 1.5px solid rgba(239, 68, 68, 0.2); border-radius: 14px;">
+        <div style="font-size: 13px; font-weight: 800; color: #ef4444; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            Active Revision Requests
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+            @foreach($postsWithRevisions as $p)
+                <div style="padding: 14px; background: var(--color-bg-primary); border: 1px solid rgba(239, 68, 68, 0.15); border-radius: 10px;">
+                    <div style="font-size: 12px; font-weight: 800; color: var(--color-text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: #ef4444;"></span>
+                        {{ $p->title }}
+                    </div>
+                    <div style="font-size: 13px; color: #ef4444; font-weight: 600; line-height: 1.5; white-space: pre-wrap; margin-left: 12px;">{{ $p->revision_instructions }}</div>
+                    @php $pLatestRevImg = $p->revisionsHistory->last()?->image_path; @endphp
+                    @if($pLatestRevImg)
+                        <a href="{{ $pLatestRevImg }}" target="_blank" style="display: inline-block; margin-top: 10px; margin-left: 12px;">
+                            <img src="{{ $pLatestRevImg }}" alt="Revision reference" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2); object-fit: contain; cursor: pointer;">
+                        </a>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 
     {{-- Post Cards --}}
     @forelse($deliverable->subtasks as $post)
@@ -215,21 +252,10 @@
             </div>
         </div>
 
+
+
         {{-- Body --}}
         <div class="post-card-body">
-            {{-- Revision notice --}}
-            @if($post->revision_instructions)
-            <div class="pc-field full" style="background:rgba(239,68,68,0.03);">
-                <div class="pc-label" style="color:#ef4444;">Revision Instructions</div>
-                <div class="pc-val" style="color:#ef4444;">{{ $post->revision_instructions }}</div>
-                @php $latestRevImg = $revs->last()?->image_path; @endphp
-                @if($latestRevImg)
-                    <a href="{{ $latestRevImg }}" target="_blank" style="display:block;margin-top:10px;">
-                        <img src="{{ $latestRevImg }}" alt="Revision reference" style="max-width:100%;max-height:260px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;cursor:pointer;">
-                    </a>
-                @endif
-            </div>
-            @endif
 
             <div class="pc-field">
                 <div class="pc-label">Concept</div>
@@ -282,63 +308,9 @@
                 @else<div class="pc-val pc-empty">No artwork yet</div>@endif
             </div>
 
-            <div class="pc-field full">
-                <div class="pc-label">Assignees</div>
-                <div class="assignee-row">
-                    @foreach([
-                        'Writer'        => $post->writer        ?? $deliverable->writer,
-                        'Approver'      => $post->approver      ?? $deliverable->approver,
-                        'Brand Manager' => $post->brandManager  ?? $deliverable->brandManager,
-                        'Coordinator'   => $post->coordinator   ?? $deliverable->coordinator,
-                        'Designer'      => $post->designer      ?? $deliverable->designer,
-                    ] as $roleLabel => $person)
-                        @if($person)
-                        <div class="assignee-chip">
-                            <img src="{{ $person->avatarUrl }}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;" alt="">
-                            <span class="chip-role">{{ $roleLabel }}:</span>
-                            {{ $person->name }}
-                        </div>
-                        @endif
-                    @endforeach
-                </div>
-            </div>
 
-            @if($revs->isNotEmpty())
-            <div class="pc-field full">
-                <div class="pc-label" style="color:#ef4444;">Revision History ({{ $revs->count() }})</div>
-                @foreach($revs as $rev)
-                <div class="rev-item">
-                    <div class="rev-item-head">
-                        <span style="font-size:10px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.06em;">Rev @ {{ $rev->stage_at_revision }}</span>
-                        <span style="font-size:10px;color:var(--color-text-secondary);">by {{ $rev->user?->name ?? '—' }}</span>
-                        <span style="font-size:10px;color:var(--color-text-secondary);margin-left:auto;">{{ $rev->created_at->format('M d, Y') }}</span>
-                    </div>
-                    @if($rev->instructions)<div class="rev-item-text">{{ $rev->instructions }}</div>@endif
-                    @if($rev->image_path)
-                        <a href="{{ $rev->image_path }}" target="_blank" style="display:block;margin-top:8px;">
-                            <img src="{{ $rev->image_path }}" alt="Revision reference" style="max-width:100%;max-height:260px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;cursor:pointer;">
-                        </a>
-                    @endif
-                    @if($rev->fixed_at)<div class="rev-item-fixed">Fixed by {{ $rev->fixedByUser?->name ?? '—' }} · {{ \Carbon\Carbon::parse($rev->fixed_at)->format('M d, Y') }}</div>@endif
-                </div>
-                @endforeach
-            </div>
-            @endif
 
-            @if($approvals->isNotEmpty())
-            <div class="pc-field full">
-                <div class="pc-label" style="color:#10b981;">Approval History</div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                    @foreach($approvals as $approval)
-                    <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);color:#10b981;">
-                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                        {{ $approval->stage }}
-                        <span style="opacity:.55;font-size:10px;">· {{ $approval->user?->name ?? '—' }}</span>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
+
         </div>
 
         {{-- Action Footer --}}

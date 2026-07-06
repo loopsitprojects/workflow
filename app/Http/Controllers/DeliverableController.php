@@ -684,9 +684,9 @@ class DeliverableController extends Controller
         if (isset($data['coordinator_id'])) $deliverable->coordinator_id = $data['coordinator_id'];
         if (isset($data['designer_id'])) $deliverable->designer_id = $data['designer_id'];
 
-        // Coordinator sets an internal deadline for the designer when handing off
-        if ($oldStage === 'Coordinator' && !empty($data['designer_deadline'])) {
-            $deliverable->designer_deadline = $data['designer_deadline'];
+        // Coordinator sets an internal deadline for the designer when handing off (optional)
+        if ($oldStage === 'Coordinator') {
+            $deliverable->designer_deadline = !empty($data['designer_deadline']) ? $data['designer_deadline'] : null;
         }
 
         // Designer Delivery
@@ -1077,53 +1077,96 @@ class DeliverableController extends Controller
 
         // Slide canvas (px, 96dpi, default 4:3 = 960×720)
         $SW = 960; $SH = 720;
-        $headerH = 72; $footerH = 18;
-        $contentY = $headerH + 6;
-        $contentH = $SH - $headerH - $footerH - 8;
+        $headerH = 72; $footerH = 22;
+        $contentY = $headerH + 16;
+        $contentH = $SH - $headerH - $footerH - 24;
 
         // Column widths
-        $textX = 22;
-        $textW = $hasImages ? 488 : ($SW - 44);
+        $textX = 24;
+        $textW = $hasImages ? 480 : ($SW - 48);
         $imgX  = 532;
-        $imgW  = $SW - $imgX - 18;
+        $imgW  = $SW - $imgX - 24;
 
-        // ── Blue header background ──────────────────────────────
+        // ── 1. Slide canvas background ───────────────────────────
+        $slideBg = $slide->createRichTextShape()
+            ->setHeight($SH)->setWidth($SW)->setOffsetX(0)->setOffsetY(0);
+        $slideBg->getFill()->setFillType($Fill::FILL_SOLID)->setStartColor($color('FFF8FAFC'));
+        $slideBg->getBorder()->setLineStyle($Border::LINE_NONE);
+        $slideBg->createTextRun('')->getFont()->setSize(1)->setColor($color('FFF8FAFC'));
+
+        // ── 2. White header background ───────────────────────────
         $hdrBg = $slide->createRichTextShape()
             ->setHeight($headerH)->setWidth($SW)->setOffsetX(0)->setOffsetY(0);
         $hdrBg->getFill()->setFillType($Fill::FILL_SOLID)
-              ->setStartColor($color('FF0055D4'));
+              ->setStartColor($color('FFFFFFFF'));
         $hdrBg->getBorder()->setLineStyle($Border::LINE_NONE);
-        $hdrBg->createTextRun('')->getFont()->setSize(1)->setColor($color('FF0055D4'));
+        $hdrBg->createTextRun('')->getFont()->setSize(1)->setColor($color('FFFFFFFF'));
 
-        // ── Header text ─────────────────────────────────────────
+        // Bottom border line for header
+        $hdrLine = $slide->createRichTextShape()
+            ->setHeight(1)->setWidth($SW)->setOffsetX(0)->setOffsetY($headerH - 1);
+        $hdrLine->getFill()->setFillType($Fill::FILL_SOLID)
+                ->setStartColor($color('FFE2E8F0'));
+        $hdrLine->getBorder()->setLineStyle($Border::LINE_NONE);
+        $hdrLine->createTextRun('')->getFont()->setSize(1)->setColor($color('FFE2E8F0'));
+
+        // ── 3. Loops Logo (Top-Right of Header) ──────────────────
+        $logoPath = public_path('LoopsBlack.png');
+        if (file_exists($logoPath)) {
+            $logoH = 44;
+            $logoW = 120; // max width
+            [$origLogoW, $origLogoH] = @getimagesize($logoPath) ?: [1, 1];
+            if ($origLogoW > 0 && $origLogoH > 0) {
+                $logoRatio = $origLogoW / $origLogoH;
+                $logoFitH = min($logoH, (int)($logoW / $logoRatio));
+                $logoFitW = min($logoW, (int)($logoFitH * $logoRatio));
+            } else {
+                $logoFitW = $logoW;
+                $logoFitH = $logoH;
+            }
+            
+            $logoX = $SW - $logoFitW - 24;
+            $logoY = (int) (($headerH - $logoFitH) / 2);
+            
+            $logoDrawing = new \PhpOffice\PhpPresentation\Shape\Drawing\File();
+            $logoDrawing->setName('Loops Logo')
+                        ->setPath($logoPath)
+                        ->setWidth($logoFitW)
+                        ->setHeight($logoFitH)
+                        ->setOffsetX($logoX)
+                        ->setOffsetY($logoY);
+            $slide->addShape($logoDrawing);
+        }
+
+        // ── 4. Header text (dark slate colors) ───────────────────
         $hdr = $slide->createRichTextShape()
-            ->setHeight($headerH - 4)->setWidth($SW - 40)->setOffsetX(20)->setOffsetY(4);
+            ->setHeight($headerH - 8)->setWidth($SW - 200)->setOffsetX(24)->setOffsetY(6);
         $hdr->getBorder()->setLineStyle($Border::LINE_NONE);
 
         $run = $hdr->createTextRun('[' . ($task->subtask_type ?? 'Standard') . ']  ');
-        $run->getFont()->setSize(8)->setColor($color('FFBFDBFE'));
+        $run->getFont()->setSize(8)->setColor($color('FF2563EB'));
 
         $hdr->createBreak();
         $run = $hdr->createTextRun($task->title);
-        $run->getFont()->setBold(true)->setSize(17)->setColor($color('FFFFFFFF'));
+        $run->getFont()->setBold(true)->setSize(16)->setColor($color('FF0F172A'));
 
         $hdr->createBreak();
         $run = $hdr->createTextRun('● ' . ($task->approval_stage ?? ''));
-        $run->getFont()->setSize(8)->setColor($color('FF93C5FD'));
+        $run->getFont()->setSize(8)->setColor($color('FF64748B'));
 
-        // ── Column divider ───────────────────────────────────────
+        // ── 5. Column divider ────────────────────────────────────
         if ($hasImages) {
             $div = $slide->createRichTextShape()
-                ->setHeight($contentH)->setWidth(1)->setOffsetX($imgX - 10)->setOffsetY($contentY);
+                ->setHeight($contentH)->setWidth(1)->setOffsetX($imgX - 16)->setOffsetY($contentY);
             $div->getFill()->setFillType($Fill::FILL_SOLID)
                 ->setStartColor($color('FFE2E8F0'));
             $div->getBorder()->setLineStyle($Border::LINE_NONE);
             $div->createTextRun('')->getFont()->setSize(1)->setColor($color('FFE2E8F0'));
         }
 
-        // ── Text sections (left column) ─────────────────────────
+        // ── 6. Text sections (left column) with clean cards ──────
         $offsetY = $contentY;
-        $maxBottom = $SH - $footerH - 6;
+        $maxBottom = $SH - $footerH - 12;
 
         $addSection = function(string $label, ?string $content) use (
             $slide, $textX, $textW, &$offsetY, $maxBottom, $color, $Fill, $Border
@@ -1140,32 +1183,32 @@ class DeliverableController extends Controller
             $lr = $lbl->createTextRun($label);
             $lr->getFont()->setBold(true)->setSize(7)
                ->setColor($color($isRevision ? 'FFEF4444' : 'FF94A3B8'));
-            $offsetY += 14;
+            $offsetY += 16;
 
-            // Content block
+            // Content card block
             $excerpt  = mb_strlen($content) > 350 ? mb_substr($content, 0, 347) . '…' : $content;
-            $lines    = max(1, (int) ceil(mb_strlen($excerpt) / 65));
-            $blockH   = min((int)($lines * 13) + 10, 110);
+            $lines    = max(1, (int) ceil(mb_strlen($excerpt) / 60));
+            $blockH   = min((int)($lines * 13) + 14, 110);
             $blockH   = min($blockH, $maxBottom - $offsetY);
-            if ($blockH < 12) return;
+            if ($blockH < 14) return;
 
             $blk = $slide->createRichTextShape()
                 ->setHeight($blockH)->setWidth($textW)->setOffsetX($textX)->setOffsetY($offsetY);
-            $blk->getFill()->setFillType($Fill::FILL_NONE);
-            $blk->getBorder()->setLineStyle($Border::LINE_NONE);
+            
+            // Styled card container
+            $blk->getFill()->setFillType($Fill::FILL_SOLID)->setStartColor($color($isRevision ? 'FFFFF5F5' : 'FFFFFFFF'));
+            $blk->getBorder()->setLineStyle($Border::LINE_SINGLE)->setColor($color($isRevision ? 'FFFEE2E2' : 'FFE2E8F0'));
 
             $run = $blk->createTextRun($excerpt);
             $run->getFont()->setSize(9)->setColor($color($isRevision ? 'FF991B1B' : 'FF334155'));
-            $blk->getActiveParagraph()->getAlignment()->setMarginLeft(6)->setMarginTop(4);
+            $blk->getActiveParagraph()->getAlignment()->setMarginLeft(10)->setMarginTop(6)->setMarginRight(10);
 
-            $offsetY += $blockH + 8;
+            $offsetY += $blockH + 12;
         };
 
         $addSection('STAGE',        $task->approval_stage ?? '—');
         $addSection('POST TYPE',    $task->post_type ?? $task->subtask_type ?? null);
-        if ($task->revision_instructions) {
-            $addSection('REVISION REQUESTED', $task->revision_instructions);
-        }
+        // Revision instructions are excluded from PPT slide layout as requested
         $addSection('CONCEPT',      $task->concept);
         $addSection('CAPTION',      $task->caption);
         $addSection('COPY',         $task->post_copy ?: ($task->subtask_copy ?? null));
@@ -1173,9 +1216,9 @@ class DeliverableController extends Controller
         $addSection('REFERENCE',    $task->reference);
         $addSection('ARTWORK LINK', $task->final_designs_link);
 
-        // ── Images (right column) ────────────────────────────────
+        // ── 7. Images (right column) ─────────────────────────────
         if ($hasImages) {
-            $imgPairs  = array_filter([['REFERENCE', $refPath], ['ARTWORK', $artPath]],
+            $imgPairs  = array_filter([['REFERENCE IMAGE', $refPath], ['FINAL ARTWORK', $artPath]],
                                       fn($p) => (bool) $p[1]);
             $totalImgs = count($imgPairs);
             $imgY      = $contentY;
@@ -1191,7 +1234,7 @@ class DeliverableController extends Controller
                 $imgY += 16;
 
                 // Scale image to fit slot while preserving aspect ratio
-                $maxH = $slotH - 22;
+                $maxH = $slotH - 26;
                 $maxW = $imgW;
                 [$origW, $origH] = @getimagesize($path) ?: [1, 1];
                 if ($origW > 0 && $origH > 0) {
@@ -1213,17 +1256,17 @@ class DeliverableController extends Controller
             }
         }
 
-        // ── Footer bar ───────────────────────────────────────────
+        // ── 8. Footer bar ────────────────────────────────────────
         $ftrBg = $slide->createRichTextShape()
             ->setHeight($footerH)->setWidth($SW)->setOffsetX(0)->setOffsetY($SH - $footerH);
-        $ftrBg->getFill()->setFillType($Fill::FILL_SOLID)->setStartColor($color('FFF8FAFC'));
+        $ftrBg->getFill()->setFillType($Fill::FILL_SOLID)->setStartColor($color('FFFFFFFF'));
         $ftrBg->getBorder()->setLineStyle($Border::LINE_NONE);
-        $ftrBg->createTextRun('')->getFont()->setSize(1)->setColor($color('FFF8FAFC'));
+        $ftrBg->createTextRun('')->getFont()->setSize(1)->setColor($color('FFFFFFFF'));
 
         $brand   = $task->project->brand->name ?? '';
         $project = $task->project->name ?? '';
         $ftr = $slide->createRichTextShape()
-            ->setHeight($footerH)->setWidth($SW - 40)->setOffsetX(20)->setOffsetY($SH - $footerH);
+            ->setHeight($footerH)->setWidth($SW - 48)->setOffsetX(24)->setOffsetY($SH - $footerH + 4);
         $ftr->getBorder()->setLineStyle($Border::LINE_NONE);
         $fr = $ftr->createTextRun(implode('  ·  ', array_filter(['Loops Work', $brand, $project])));
         $fr->getFont()->setSize(7)->setColor($color('FF94A3B8'));

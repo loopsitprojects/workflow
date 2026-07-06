@@ -1615,7 +1615,10 @@
         <div class="cd-modal" onclick="event.stopPropagation()">
             <div class="cd-modal-header">
                 <div>
-                    <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:12px;"></div>
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                        <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:0;"></div>
+                        <div id="modalTopDeadlines" style="display:flex; align-items:center; gap:8px;"></div>
+                    </div>
                     <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" style="font-size:24px; font-weight:900; color:var(--color-text-primary); margin:0; border:1px solid transparent; background:transparent; width:100%; outline:none; border-radius:8px; padding:4px 8px; margin-left:-8px; transition:all 0.2s;" readonly onfocus="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-secondary)'" onblur="this.style.borderColor='transparent'; this.style.background='transparent'">
                 </div>
                 <div style="display:flex; align-items:center; gap:12px;">
@@ -2076,6 +2079,33 @@
                 document.getElementById('modalCaption').value = task.caption || '';
                 document.getElementById('modalSubtaskCopy').value = task.subtask_copy || task.post_copy || '';
                 document.getElementById('modalStage').textContent = task.approval_stage || 'Unknown';
+
+                // Populate top deadlines list
+                const topDeadlinesEl = document.getElementById('modalTopDeadlines');
+                if (topDeadlinesEl) {
+                    topDeadlinesEl.innerHTML = '';
+                    
+                    // 1. Deliverable Due Date
+                    const displayDeadline = task.deadline || (task.parent ? task.parent.deadline : null);
+                    if (displayDeadline) {
+                        const dDate = new Date(displayDeadline);
+                        const dateStr = dDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                        const dueBadge = document.createElement('div');
+                        dueBadge.style.cssText = 'background: rgba(59, 130, 246, 0.08); color: #3b82f6; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
+                        dueBadge.textContent = `Due: ${dateStr}`;
+                        topDeadlinesEl.appendChild(dueBadge);
+                    }
+                    
+                    // 2. Designer Deadline (if assigned)
+                    if (task.designer_deadline) {
+                        const ddDate = new Date(task.designer_deadline);
+                        const ddStr = ddDate.toLocaleString(undefined, {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'});
+                        const dsBadge = document.createElement('div');
+                        dsBadge.style.cssText = 'background: rgba(139, 92, 246, 0.08); color: #8b5cf6; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
+                        dsBadge.textContent = `Designer Due: ${ddStr}`;
+                        topDeadlinesEl.appendChild(dsBadge);
+                    }
+                }
 
                 // Designer deadline display
                 const ddBox = document.getElementById('modalDesignerDeadlineBox');
