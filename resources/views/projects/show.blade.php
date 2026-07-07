@@ -469,7 +469,7 @@
                                                 
                                                 $canApproveBatch = $isAdmin || (
                                                     (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
                                                     (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
                                                     ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                     ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
@@ -477,7 +477,7 @@
 
                                                 $canReviseBatch = $isAdmin || (
                                                     (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
                                                     (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                 );
                                                 
@@ -732,14 +732,14 @@
                                                     $subNextStage = $subtask->getNextStage();
                                                     $canApproveSub = $isAdmin || (
                                                         (($subStage === 'Writer' || $subStage === 'Assignee' || $subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        ((in_array($subStage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) || ($subStage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->further_approver_id || $subtask->further_approver_id == $currentUserId))) ||
                                                         (($subStage === 'Brand Manager' || $subStage === 'AM/BD' || $subStage === 'Final Approval') && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
                                                         ($subStage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$subtask->coordinator_id || $subtask->coordinator_id == $currentUserId)) ||
                                                         ($subStage === 'Designer' && $userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId))
                                                     );
                                                     $canReviseSub = $isAdmin || (
                                                         (($subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        ((in_array($subStage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) || ($subStage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->further_approver_id || $subtask->further_approver_id == $currentUserId))) ||
                                                         (in_array($subStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId))
                                                     );
 
@@ -939,14 +939,14 @@
                                                     $nextStage = $task->getNextStage();
                                                     $canApproveIndividual = $isAdmin || (
                                                         (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
                                                         (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
                                                         ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                         ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                                     );
                                                     $canReviseIndividual = $isAdmin || (
                                                         (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
                                                         (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                     );
 
@@ -1059,7 +1059,7 @@
                                                 
                                                 $canApproveBatch = $isAdmin || (
                                                     (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
                                                     (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
                                                     ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                     ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
@@ -1067,7 +1067,7 @@
 
                                                 $canReviseBatch = $isAdmin || (
                                                     (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                    ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
                                                     (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                 );
                                                 
@@ -1305,14 +1305,14 @@
                                                     $subNextStage = $subtask->getNextStage();
                                                     $canApproveSub = $isAdmin || (
                                                         (($subStage === 'Writer' || $subStage === 'Assignee' || $subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        ((in_array($subStage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) || ($subStage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->further_approver_id || $subtask->further_approver_id == $currentUserId))) ||
                                                         (($subStage === 'Brand Manager' || $subStage === 'AM/BD' || $subStage === 'Final Approval') && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
                                                         ($subStage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$subtask->coordinator_id || $subtask->coordinator_id == $currentUserId)) ||
                                                         ($subStage === 'Designer' && $userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId))
                                                     );
                                                     $canReviseSub = $isAdmin || (
                                                         (($subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        (($subStage === 'Approver' || $subStage === 'Approver Review' || $subStage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) ||
+                                                        ((in_array($subStage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) || ($subStage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$subtask->further_approver_id || $subtask->further_approver_id == $currentUserId))) ||
                                                         (in_array($subStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId))
                                                     );
 
@@ -1521,14 +1521,14 @@
                                                     $nextStage = $task->getNextStage();
                                                     $canApproveIndividual = $isAdmin || (
                                                         (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
                                                         (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
                                                         ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                                         ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                                     );
                                                     $canReviseIndividual = $isAdmin || (
                                                         (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        (($stage === 'Approver' || $stage === 'Approver Review' || $stage === 'Further Approver') && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                                        ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
                                                         (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
                                                     );
 
@@ -2166,10 +2166,15 @@
                     const roles = [
                         {key: 'writer', label: 'Writer'},
                         {key: 'approver', label: 'Approver'},
+                    ];
+                    if (task.associates.further_approver && task.associates.further_approver !== 'None') {
+                        roles.push({key: 'further_approver', label: 'Further Approver'});
+                    }
+                    roles.push(
                         {key: 'brand_manager', label: 'Brand Manager'},
                         {key: 'coordinator', label: 'Coordinator'},
                         {key: 'designer', label: 'Designer'}
-                    ];
+                    );
                     
                     roles.forEach(role => {
                         const name = task.associates[role.key] || 'None';

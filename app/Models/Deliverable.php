@@ -245,7 +245,7 @@ class Deliverable extends Model
         $historyNames = [];
         $stageToKey = [
             'Writer' => 'writer', 'Assignee' => 'writer', 'Writer Review' => 'writer',
-            'Approver' => 'approver', 'Approver Review' => 'approver', 'Further Approver' => 'approver',
+            'Approver' => 'approver', 'Approver Review' => 'approver', 'Further Approver' => 'further_approver',
             'Brand Manager' => 'brand_manager', 'AM/BD' => 'brand_manager', 'Final Approval' => 'brand_manager',
             'Coordinator' => 'coordinator',
             'Designer' => 'designer',
@@ -263,6 +263,7 @@ class Deliverable extends Model
         return [
             'writer'        => $this->writer?->name        ?: ($this->project?->writer?->name        ?: ($historyNames['writer']        ?? 'None')),
             'approver'      => $this->approver?->name      ?: ($this->project?->approver?->name      ?: ($historyNames['approver']      ?? 'None')),
+            'further_approver' => $this->furtherApprover?->name ?: ($historyNames['further_approver'] ?? 'None'),
             'brand_manager' => $this->brandManager?->name  ?: ($this->project?->brandManager?->name  ?: ($historyNames['brand_manager'] ?? 'None')),
             'coordinator'   => $this->coordinator?->name   ?: ($this->project?->coordinator?->name   ?: ($historyNames['coordinator']   ?? 'None')),
             'designer'      => $this->designer?->name      ?: ($this->project?->designer?->name      ?: ($historyNames['designer']      ?? 'None')),
@@ -291,7 +292,8 @@ class Deliverable extends Model
     public function getNotifyTarget($stage)
     {
         $target = match ($stage) {
-            'Approver', 'Approver Review', 'Further Approver' => $this->approver ?? $this->project?->approver,
+            'Approver', 'Approver Review' => $this->approver ?? $this->project?->approver,
+            'Further Approver' => $this->furtherApprover ?? $this->approver ?? $this->project?->approver,
             'Brand Manager'  => $this->brandManager ?? $this->project?->brandManager,
             'Coordinator'    => $this->coordinator ?? $this->project?->coordinator,
             'Designer'       => $this->designer ?? $this->project?->designer,

@@ -201,7 +201,7 @@
 
         $canApprove = $isAdmin || (
             (in_array($stage, ['Writer','Assignee','Writer Review']) && in_array($authRole, ['writer','assignee']) && (!$post->writer_id || $post->writer_id == $authId)) ||
-            (in_array($stage, ['Approver','Approver Review','Further Approver']) && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->approver_id || $post->approver_id == $authId)) ||
+            ((in_array($stage, ['Approver', 'Approver Review']) && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->approver_id || $post->approver_id == $authId)) || ($stage === 'Further Approver' && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->further_approver_id || $post->further_approver_id == $authId))) ||
             (in_array($stage, ['Brand Manager','AM/BD','Final Approval']) && $authRole === 'brandmanager' && (!$post->brand_manager_id || $post->brand_manager_id == $authId)) ||
             ($stage === 'Coordinator' && in_array($authRole, ['coordinator', 'approvercoordinator']) && (!$post->coordinator_id || $post->coordinator_id == $authId)) ||
             ($stage === 'Designer' && $authRole === 'designer' && (!$post->designer_id || $post->designer_id == $authId))
@@ -209,7 +209,7 @@
 
         $canRevise = $isAdmin || (
             ($stage === 'Writer Review' && in_array($authRole, ['writer','assignee']) && (!$post->writer_id || $post->writer_id == $authId)) ||
-            (in_array($stage, ['Approver','Approver Review','Further Approver']) && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->approver_id || $post->approver_id == $authId)) ||
+            ((in_array($stage, ['Approver', 'Approver Review']) && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->approver_id || $post->approver_id == $authId)) || ($stage === 'Further Approver' && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->further_approver_id || $post->further_approver_id == $authId))) ||
             (in_array($stage, ['Brand Manager','AM/BD','Final Approval']) && $authRole === 'brandmanager' && (!$post->brand_manager_id || $post->brand_manager_id == $authId))
         );
 
