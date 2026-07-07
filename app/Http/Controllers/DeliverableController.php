@@ -1037,6 +1037,26 @@ class DeliverableController extends Controller
     }
 
     /**
+     * Batch Export Deliverables to PDF
+     */
+    public function exportBatchPdf(Deliverable $deliverable)
+    {
+        $deliverable->load(['subtasks.project.brand', 'subtasks.writer', 'subtasks.approver', 'subtasks.brandManager', 'subtasks.coordinator', 'subtasks.designer']);
+
+        $deliverables = $deliverable->subtasks->isNotEmpty()
+            ? $deliverable->subtasks
+            : collect([$deliverable]);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('deliverables.batch_pdf', [
+            'deliverables' => $deliverables,
+            'parent' => $deliverable
+        ]);
+
+        $fileName = str_replace(' ', '_', $deliverable->title) . '_batch.pdf';
+        return $pdf->download($fileName);
+    }
+
+    /**
      * Resolve a stored image URL to an absolute local filesystem path.
      * Images are stored as asset('storage/...') URLs; this extracts the
      * relative part after /storage/ and maps it to storage/app/public/.

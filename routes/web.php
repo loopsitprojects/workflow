@@ -35,6 +35,7 @@ Route::middleware('auth')->group(function () {
 
     // Batch Deliverable Exports
     Route::get('deliverables/{deliverable}/export-batch/ppt', [DeliverableController::class, 'exportBatchPpt'])->name('deliverables.export-batch.ppt');
+    Route::get('deliverables/{deliverable}/export-batch/pdf', [DeliverableController::class, 'exportBatchPdf'])->name('deliverables.export-batch.pdf');
 
     // Admin Routes
     Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {

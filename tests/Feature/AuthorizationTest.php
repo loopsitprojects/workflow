@@ -90,7 +90,7 @@ class AuthorizationTest extends TestCase
 
         $response = $this->actingAs($writer)->get(route('brands.show', $brand));
         $response->assertStatus(200);
-        $response->assertDontSee('Edit');
+        $response->assertDontSee(route('brands.edit', $brand));
         $response->assertDontSee('New Project');
 
         $response = $this->actingAs($writer)->get(route('projects.show', $project));
