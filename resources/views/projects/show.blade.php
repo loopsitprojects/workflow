@@ -588,7 +588,7 @@
                                             @if($canEditInline)
                                                 <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="concept" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->concept }}</textarea>
                                             @else
-                                                @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ $subtask->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif
+                                                @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ $subtask->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td>
@@ -601,14 +601,14 @@
                                             @if($canEditInline)
                                                 <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="caption" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->caption }}</textarea>
                                             @else
-                                                @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ $subtask->caption }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif
+                                                @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ $subtask->caption }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
                                                 <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="post_copy" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->post_copy }}</textarea>
                                             @else
-                                                @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ $subtask->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif
+                                                @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ $subtask->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
