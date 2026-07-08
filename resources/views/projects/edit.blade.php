@@ -49,7 +49,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
     <span style="opacity:0.35;">/</span>
     <a href="{{ route('projects.show', $project) }}" style="text-decoration:none;color:inherit;">{{ $project->name }}</a>
     <span style="opacity:0.35;">/</span>
-    <span style="color:var(--color-text-primary);">Settings</span>
+    <span style="color:var(--color-text-primary);">Edit</span>
 </nav>
 
 <div class="f-wrap" x-data="{ showDeleteModal: false }">
@@ -140,11 +140,21 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
             <div style="margin-top:12px;">
                 <label class="f-label">Brief Document <span style="opacity:0.5;font-weight:400;">(PDF, DOC, PNG, JPG · max 10MB)</span></label>
                 @if($project->brief_file_path)
-                    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(59,130,246,0.04);border:1px solid rgba(59,130,246,0.15);border-radius:7px;margin-bottom:8px;">
+                    <div id="current-brief-container" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(59,130,246,0.04);border:1px solid rgba(59,130,246,0.15);border-radius:7px;margin-bottom:8px;">
                         <svg width="12" height="12" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         <a href="{{ $project->brief_file_path }}" target="_blank" style="font-size:12px;font-weight:600;color:#3b82f6;text-decoration:none;flex:1;">{{ basename($project->brief_file_path) }}</a>
-                        <span style="font-size:10px;color:var(--color-text-secondary);">Current</span>
+                        <span style="font-size:10px;color:var(--color-text-secondary);margin-right:4px;">Current</span>
+                        <button type="button" onclick="removeBriefFile()" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:#ef4444;font-size:10px;font-weight:700;cursor:pointer;padding:3px 8px;border-radius:5px;display:inline-flex;align-items:center;transition:all 0.15s;outline:none;" onmouseover="this.style.background='rgba(239,68,68,0.15)'" onmouseout="this.style.background='rgba(239,68,68,0.08)'">
+                            Remove
+                        </button>
                     </div>
+                    <input type="hidden" name="remove_brief_file" id="remove_brief_file" value="0">
+                    <script>
+                        function removeBriefFile() {
+                            document.getElementById('remove_brief_file').value = '1';
+                            document.getElementById('current-brief-container').style.display = 'none';
+                        }
+                    </script>
                 @endif
                 <input type="file" name="brief_file" class="f-input" style="padding:7px 12px;cursor:pointer;">
             </div>

@@ -366,8 +366,8 @@
                     @if(auth()->user()->isAdmin() || in_array(auth()->user()->role, ['Brand Manager', 'Coordinator', 'Approver']))
                     <a href="{{ route('projects.edit', $project) }}"
                        style="padding: 8px 16px; background: var(--color-bg-primary); border: 1.5px solid var(--color-border-primary); border-radius: 9px; font-size: 12px; font-weight: 600; color: var(--color-text-secondary); text-decoration: none; transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
-                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        Settings
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        Edit
                     </a>
                     @endif
                     @can('create-deliverable')
@@ -387,7 +387,7 @@
                 <div style="flex:1; min-width:0;">
                     <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--color-text-secondary); margin-bottom:6px;">Project Brief</div>
                     @if($project->description)
-                        <div style="font-size:13px; color:var(--color-text-primary); line-height:1.6; font-weight:500;">{!! nl2br(e($project->description)) !!}</div>
+                        <div style="font-size:13px; color:var(--color-text-primary); line-height:1.6; font-weight:500;">{!! $project->description !!}</div>
                     @endif
                     @if($project->brief_file_path)
                         <a href="{{ $project->brief_file_path }}" target="_blank"
@@ -586,7 +586,7 @@
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
-                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="concept" placeholder="Enter Concept..." onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $subtask->concept }}</textarea>
+                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="concept" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->concept }}</textarea>
                                             @else
                                                 @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ $subtask->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif
                                             @endif
@@ -599,14 +599,14 @@
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
-                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="caption" placeholder="Enter Caption..." onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $subtask->caption }}</textarea>
+                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="caption" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->caption }}</textarea>
                                             @else
                                                 @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ $subtask->caption }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif
                                             @endif
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
-                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="post_copy" placeholder="Enter Copy..." onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $subtask->post_copy }}</textarea>
+                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="post_copy" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->post_copy }}</textarea>
                                             @else
                                                 @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ $subtask->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif
                                             @endif

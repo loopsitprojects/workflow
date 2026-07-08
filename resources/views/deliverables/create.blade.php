@@ -292,7 +292,7 @@
                 '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4h4M4 4l5 5m11-1V4h-4m4 0l-5 5M4 16v4h4m-4 0l5-5m11 5v-4h-4m4 4l-5-5"/></svg>' +
                 '</span>' +
                 '</div>' +
-                '<textarea name="subtasks[' + idx + '][concept]" rows="2" placeholder="Enter Concept..." class="styled-textarea" style="min-height:60px;"></textarea>' +
+                '<textarea name="subtasks[' + idx + '][concept]" rows="2" placeholder="N/A" class="styled-textarea" style="min-height:60px;"></textarea>' +
                 '</div>' +
                 '<div class="subtask-cell full">' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">' +
@@ -301,7 +301,7 @@
                 '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4h4M4 4l5 5m11-1V4h-4m4 0l-5 5M4 16v4h4m-4 0l5-5m11 5v-4h-4m4 4l-5-5"/></svg>' +
                 '</span>' +
                 '</div>' +
-                '<textarea name="subtasks[' + idx + '][caption]" rows="2" placeholder="Enter Caption..." class="styled-textarea" style="min-height:60px;"></textarea>' +
+                '<textarea name="subtasks[' + idx + '][caption]" rows="2" placeholder="N/A" class="styled-textarea" style="min-height:60px;"></textarea>' +
                 '</div>' +
                 '<div class="subtask-cell full">' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">' +
@@ -310,7 +310,7 @@
                 '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4h4M4 4l5 5m11-1V4h-4m4 0l-5 5M4 16v4h4m-4 0l5-5m11 5v-4h-4m4 4l-5-5"/></svg>' +
                 '</span>' +
                 '</div>' +
-                '<textarea name="subtasks[' + idx + '][post_copy]" rows="3" placeholder="Enter Copy..." class="styled-textarea" style="min-height:70px;"></textarea>' +
+                '<textarea name="subtasks[' + idx + '][post_copy]" rows="3" placeholder="N/A" class="styled-textarea" style="min-height:70px;"></textarea>' +
                 '</div>' +
                 '<div class="subtask-cell full" style="border-bottom:none;">' +
                 '<label class="field-label">Reference</label>' +

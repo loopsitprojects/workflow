@@ -345,6 +345,8 @@ class ProjectController extends Controller
             $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
             $file->move(public_path('briefs'), $filename);
             $validated['brief_file_path'] = '/briefs/' . $filename;
+        } elseif ($request->input('remove_brief_file') == '1') {
+            $validated['brief_file_path'] = null;
         }
 
         $project->update($validated);

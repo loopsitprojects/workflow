@@ -35,7 +35,7 @@ class AuthorizationTest extends TestCase
 
         $response = $this->actingAs($admin)->get(route('projects.show', $project));
         $response->assertStatus(200);
-        $response->assertSee('Settings');
+        $response->assertSee(route('projects.edit', $project));
 
         $response = $this->actingAs($admin)->get(route('projects.edit', $project));
         $response->assertStatus(200);
@@ -65,7 +65,7 @@ class AuthorizationTest extends TestCase
 
         $response = $this->actingAs($manager)->get(route('projects.show', $project));
         $response->assertStatus(200);
-        $response->assertSee('Settings');
+        $response->assertSee(route('projects.edit', $project));
 
         $response = $this->actingAs($manager)->get(route('projects.edit', $project));
         $response->assertStatus(200);
@@ -95,7 +95,7 @@ class AuthorizationTest extends TestCase
 
         $response = $this->actingAs($writer)->get(route('projects.show', $project));
         $response->assertStatus(200);
-        $response->assertDontSee('Settings');
+        $response->assertDontSee(route('projects.edit', $project));
 
         // Accessing edit directly should fail
         $response = $this->actingAs($writer)->get(route('projects.edit', $project));
