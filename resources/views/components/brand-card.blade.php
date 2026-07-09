@@ -25,7 +25,7 @@
                             {{ $brand->location }}
                         </p>
                     @elseif($brand->description)
-                        <p class="text-[11px] text-gray-400 dark:text-slate-500 truncate mt-0.5">{{ $brand->description }}</p>
+                        <p class="text-[11px] text-gray-400 dark:text-slate-500 truncate mt-0.5">{{ strip_tags($brand->description) }}</p>
                     @endif
                 </div>
             </a>

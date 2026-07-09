@@ -809,15 +809,15 @@
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
 
                                         </td>
-                                        <td>@if($task->concept)<div class="cell-text" onclick="openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ $task->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif</td>
+                                        <td>@if($task->concept)<div class="cell-text" onclick="openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ $task->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif</td>
                                         <td>
                                             @php $taskColors = $subtaskTypeColors[$task->subtask_type] ?? $subtaskTypeColors['default']; @endphp
                                             <span class="subtask-pill" style="background:{{ $taskColors['bg'] }}; color:{{ $taskColors['text'] }}; border-color:{{ $taskColors['border'] }};">
                                                 {{ $task->subtask_type ?: 'Standard' }}
                                             </span>
                                         </td>
-                                        <td>@if($task->caption)<div class="cell-text" onclick="openTextPreview('Caption',{{ json_encode($task->caption) }})">{{ $task->caption }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif</td>
-                                        <td>@if($task->post_copy)<div class="cell-text" onclick="openTextPreview('Post Copy',{{ json_encode($task->post_copy) }})">{{ $task->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif</td>
+                                        <td>@if($task->caption)<div class="cell-text" onclick="openTextPreview('Caption',{{ json_encode($task->caption) }})">{{ $task->caption }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif</td>
+                                        <td>@if($task->post_copy)<div class="cell-text" onclick="openTextPreview('Post Copy',{{ json_encode($task->post_copy) }})">{{ $task->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif</td>
                                         <td>
                                             @if($task->reference_file)
                                                 <img src="{{ $task->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $task->reference_file }}', false)">

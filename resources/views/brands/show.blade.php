@@ -137,7 +137,7 @@
                         </a>
                     </div>
                     @if($project->description)
-                        <p class="text-[12px] text-gray-400 dark:text-slate-500 truncate mt-0.5">{{ $project->description }}</p>
+                        <p class="text-[12px] text-gray-400 dark:text-slate-500 truncate mt-0.5">{{ strip_tags($project->description) }}</p>
                     @endif
                 </div>
 
