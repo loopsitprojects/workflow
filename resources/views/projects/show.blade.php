@@ -807,10 +807,7 @@
                                             @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
                                             <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
-                                            @if($task->designer_deadline)
-                                            <div style="margin-top:6px; font-size:9px; font-weight:700; color:#8b5cf6; text-transform:uppercase;">Designer:</div>
-                                            <div style="font-weight:700; color:#8b5cf6; font-size:11px;">{{ \Carbon\Carbon::parse($task->designer_deadline)->format('M d, Y H:i') }}</div>
-                                            @endif
+
                                         </td>
                                         <td>@if($task->concept)<div class="cell-text" onclick="openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ $task->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">—</span>@endif</td>
                                         <td>
@@ -1382,10 +1379,7 @@
                                             @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
                                             <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
-                                            @if($task->designer_deadline)
-                                            <div style="margin-top:6px; font-size:9px; font-weight:700; color:#8b5cf6; text-transform:uppercase;">Designer:</div>
-                                            <div style="font-weight:700; color:#8b5cf6; font-size:11px;">{{ \Carbon\Carbon::parse($task->designer_deadline)->format('M d, Y H:i') }}</div>
-                                            @endif
+
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="concept" placeholder="Concept..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $task->concept }}</textarea>
