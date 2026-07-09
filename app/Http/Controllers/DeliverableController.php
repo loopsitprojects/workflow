@@ -599,6 +599,7 @@ class DeliverableController extends Controller
                 'Final Approval'   => 'brand_manager_id',
                 'Coordinator'      => 'coordinator_id',
                 'Designer'         => 'designer_id',
+                'Scheduled'        => 'writer_id',
             ];
             $field     = $stageFieldMap[$oldStage] ?? null;
             $assignedId = $field ? $deliverable->{$field} : null;

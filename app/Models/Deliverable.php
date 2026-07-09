@@ -79,6 +79,7 @@ class Deliverable extends Model
         'Writer Review',
         'Approver Review',
         'Final Approval',
+        'Scheduled',
         'Closed'
     ];
 
@@ -114,6 +115,12 @@ class Deliverable extends Model
             $milestones = [0, 10, 20, 32, 47, 60, 72, 84, 93, 100];
             return $milestones[$index] ?? 0;
         }
+        // 11-stage standard workflow
+        if ($count === 11) {
+            $milestones = [0, 9, 18, 27, 36, 45, 54, 63, 72, 81, 100];
+            return $milestones[$index] ?? 0;
+        }
+
         $milestones = [0, 10, 25, 40, 55, 68, 80, 92, 100];
         return $milestones[$index] ?? 0;
     }
@@ -276,7 +283,7 @@ class Deliverable extends Model
     public function getRequiredFieldForStage($stage)
     {
         return match ($stage) {
-            'Writer', 'Assignee', 'Writer Review'          => 'writer_id',
+            'Writer', 'Assignee', 'Writer Review', 'Scheduled' => 'writer_id',
             'Approver', 'Approver Review'                  => 'approver_id',
             'Further Approver'                             => 'further_approver_id',
             'Brand Manager', 'AM/BD', 'Final Approval'     => 'brand_manager_id',

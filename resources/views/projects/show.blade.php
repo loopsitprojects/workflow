@@ -485,6 +485,7 @@
                                                 $label = "Approve Batch";
                                                 if ($nextStage) {
                                                     if ($stage === 'Writer' || $stage === 'Assignee') $label = "Submit Batch to Approver";
+                                                    elseif ($stage === 'Scheduled') $label = "Scheduled and Closed";
                                                     elseif ($stage === 'Approver') $label = "Submit to Brand Manager";
                                                     elseif ($stage === 'Brand Manager') $label = "Submit to Coordinator";
                                                     elseif ($stage === 'Coordinator') $label = "Submit to Designer";
@@ -498,7 +499,7 @@
                                                 $allTasksForBatch = $subtasks;
                                                 $totalInBatch = $allTasksForBatch->count();
                                                 
-                                                $stageOrder = ['Writer', 'Assignee', 'Approver', 'Brand Manager', 'AM/BD', 'Coordinator', 'Designer', 'Writer Review', 'Approver Review', 'Final Approval', 'Closed'];
+                                                $stageOrder = ['Writer', 'Assignee', 'Approver', 'Brand Manager', 'AM/BD', 'Coordinator', 'Designer', 'Writer Review', 'Approver Review', 'Final Approval', 'Scheduled', 'Closed'];
                                                 $currIdx = array_search($stage, $stageOrder);
 
                                                 // Ready = subtask is at exactly the same stage as the parent
@@ -553,7 +554,7 @@
                                                         <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $stage }}', {{ $totalInBatch }}, 'revision', {{ $batchStakeholders }})"
                                                                 style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; transition:all 0.15s; {{ $allReady ? 'color:#ef4444; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); cursor:pointer;' : 'color:var(--color-text-secondary); background:none; border:1px solid var(--color-border-primary); cursor:not-allowed; opacity:0.6;' }}"
                                                                 {{ !$allReady ? 'disabled' : '' }}>
-                                                            {{ in_array($stage, ['Final Approval', 'Writer Review', 'Approver Review']) ? 'Revise All → Designer' : 'Revise All → Writer' }}
+                                                            Revise All
                                                         </button>
                                                     @endif
                                                     @if($canApproveBatch && $nextStage)
@@ -569,9 +570,9 @@
                                     </tr>
                                     @foreach($task->subtasks as $subIndex => $subtask)
                                     @php
-                                        $isWriterStage = ($subtask->approval_stage === 'Writer' || $subtask->approval_stage === 'Assignee');
+                                        $isWriterStage = ($subtask->approval_stage === 'Writer' || $subtask->approval_stage === 'Assignee' || $subtask->approval_stage === 'Scheduled');
                                         $isWriter = ($userRole === 'writer' || $userRole === 'assignee');
-                                        $canEditInline = $isAdmin || ($isWriterStage && $isWriter && (!$subtask->writer_id || auth()->id() == $subtask->writer_id));
+                                        $canEditInline = $isAdmin || (($subtask->approval_stage === 'Writer' || $subtask->approval_stage === 'Assignee') && $isWriter && (!$subtask->writer_id || auth()->id() == $subtask->writer_id));
                                     @endphp
                                     <tr class="subtask-row rtb-subtask-row subtask-of-{{ $task->id }} {{ $subIndex === $task->subtasks->count() - 1 ? 'last-subtask' : '' }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                         <td>
@@ -771,7 +772,7 @@
                                                 @if($canReviseSub && $subStage !== 'Writer' && $subStage !== 'Assignee')
                                                     <button type="button" onclick="openBatchModal(event, {{ $subtask->id }}, '{{ $subStage }}', 1, 'revision', {{ $subStakeholders }})" class="quick-action-btn btn-revise-quick">
                                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                                        {{ in_array($subStage, ['Final Approval', 'Writer Review', 'Approver Review']) ? '→ Designer' : '→ Writer' }}
+                                                        Revise
                                                     </button>
                                                 @endif
 
@@ -955,6 +956,7 @@
                                                     if ($stage === 'Writer' || $stage === 'Assignee') $btnLabel = 'Submit';
                                                     elseif ($stage === 'Coordinator') $btnLabel = 'Assign';
                                                     elseif ($stage === 'Designer') $btnLabel = 'Send';
+                                                    elseif ($stage === 'Scheduled') $btnLabel = 'Scheduled and Closed';
                                                     elseif ($stage === 'Writer Review') $btnLabel = 'Approve';
                                                     elseif ($stage === 'Approver Review') $btnLabel = 'Approve';
                                                 @endphp
@@ -975,7 +977,7 @@
                                                 @if($canReviseIndividual && $stage !== 'Writer' && $stage !== 'Assignee')
                                                     <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', 1, 'revision', {approver: {{ $task->approver_id ?? 'null' }}, brand_manager: {{ $task->brand_manager_id ?? 'null' }}, coordinator: {{ $task->coordinator_id ?? 'null' }}, designer: {{ $task->designer_id ?? 'null' }}, writerName: '{{ addslashes($task->writer->name ?? '') }}', approverName: '{{ addslashes($task->approver->name ?? $project->approver->name ?? '') }}'})" class="quick-action-btn btn-revise-quick">
                                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                                        {{ in_array($stage, ['Final Approval', 'Writer Review', 'Approver Review']) ? '→ Designer' : '→ Writer' }}
+                                                        Revise
                                                     </button>
                                                 @endif
 
@@ -1075,6 +1077,7 @@
                                                 $label = "Approve Batch";
                                                 if ($nextStage) {
                                                     if ($stage === 'Writer' || $stage === 'Assignee') $label = "Submit Batch to Approver";
+                                                    elseif ($stage === 'Scheduled') $label = "Scheduled and Closed";
                                                     elseif ($stage === 'Approver') $label = "Submit to Brand Manager";
                                                     elseif ($stage === 'Brand Manager') $label = "Submit to Coordinator";
                                                     elseif ($stage === 'Coordinator') $label = "Submit to Designer";
@@ -1088,7 +1091,7 @@
                                                 $allTasksForBatch = $subtasks;
                                                 $totalInBatch = $allTasksForBatch->count();
 
-                                                $stageOrder = ['Writer', 'Assignee', 'Approver', 'Brand Manager', 'AM/BD', 'Coordinator', 'Designer', 'Writer Review', 'Approver Review', 'Final Approval', 'Closed'];
+                                                $stageOrder = ['Writer', 'Assignee', 'Approver', 'Brand Manager', 'AM/BD', 'Coordinator', 'Designer', 'Writer Review', 'Approver Review', 'Final Approval', 'Scheduled', 'Closed'];
                                                 $currIdx = array_search($stage, $stageOrder);
                                                 
                                                 $readyInBatch = $allTasksForBatch->filter(function($t) use ($stage, $stageOrder, $currIdx) {
@@ -1141,7 +1144,7 @@
                                                                 class="cd-btn cd-btn-outline" 
                                                                 style="padding:6px 12px; border-radius:8px; font-size:9px; letter-spacing:0.05em; width: 100%; justify-content: center; {{ !$hasRevisionInBatch ? 'color:#ef4444; border-color:rgba(239,68,68,0.2); background:rgba(239,68,68,0.05); cursor:pointer;' : 'color:var(--color-text-secondary); border-color:var(--color-border-primary); background:none; cursor:not-allowed; opacity:0.6;' }}"
                                                                 {{ $hasRevisionInBatch ? 'disabled' : '' }}>
-                                                            {{ in_array($stage, ['Final Approval', 'Writer Review', 'Approver Review']) ? 'Revise Batch → Designer' : 'Revise Batch → Writer' }}
+                                                            Revise Batch
                                                         </button>
                                                     @endif
                                                     @if($canApproveBatch && $nextStage)
@@ -1321,6 +1324,7 @@
                                                     if ($subStage === 'Writer' || $subStage === 'Assignee') $btnLabel = 'Submit';
                                                     elseif ($subStage === 'Coordinator') $btnLabel = 'Assign';
                                                     elseif ($subStage === 'Designer') $btnLabel = 'Send';
+                                                    elseif ($subStage === 'Scheduled') $btnLabel = 'Scheduled and Closed';
                                                     elseif ($subStage === 'Writer Review') $btnLabel = 'Approve';
                                                     elseif ($subStage === 'Approver Review') $btnLabel = 'Approve';
                                                 @endphp
@@ -1344,7 +1348,7 @@
                                                 @if($canReviseSub && $subStage !== 'Writer' && $subStage !== 'Assignee')
                                                     <button type="button" onclick="openBatchModal(event, {{ $subtask->id }}, '{{ $subStage }}', 1, 'revision', {{ $subStakeholders }})" class="quick-action-btn btn-revise-quick">
                                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                                        {{ in_array($subStage, ['Final Approval', 'Writer Review', 'Approver Review']) ? '→ Designer' : '→ Writer' }}
+                                                        Revise
                                                     </button>
                                                 @endif
 
@@ -1537,6 +1541,7 @@
                                                     if ($stage === 'Writer' || $stage === 'Assignee') $btnLabel = 'Submit';
                                                     elseif ($stage === 'Coordinator') $btnLabel = 'Assign';
                                                     elseif ($stage === 'Designer') $btnLabel = 'Send';
+                                                    elseif ($stage === 'Scheduled') $btnLabel = 'Scheduled and Closed';
                                                     elseif ($stage === 'Writer Review') $btnLabel = 'Approve';
                                                     elseif ($stage === 'Approver Review') $btnLabel = 'Approve';
                                                 @endphp
@@ -1560,7 +1565,7 @@
                                                 @if($canReviseIndividual && $stage !== 'Writer' && $stage !== 'Assignee')
                                                     <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', 1, 'revision', {{ $taskStakeholders }})" class="quick-action-btn btn-revise-quick">
                                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                                        {{ in_array($stage, ['Final Approval', 'Writer Review', 'Approver Review']) ? '→ Designer' : '→ Writer' }}
+                                                        Revise
                                                     </button>
                                                 @endif
 
@@ -2246,7 +2251,7 @@
                 appHistory.innerHTML = '';
                 if (task.approvals_history && task.approvals_history.length > 0) {
                     task.approvals_history.forEach(app => {
-                        const dateStr = new Date(app.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const dateStr = new Date(app.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
                         const row = document.createElement('div');
                         row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(16, 185, 129, 0.05); padding:10px 14px; border-radius:10px; border:1px solid rgba(16, 185, 129, 0.1);';
                         row.innerHTML = `
@@ -2270,13 +2275,13 @@
                 revHistory.innerHTML = '';
                 if (task.revisions_history && task.revisions_history.length > 0) {
                     task.revisions_history.forEach(rev => {
-                        const dateStr = new Date(rev.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const dateStr = new Date(rev.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
                         const row = document.createElement('div');
                         row.style.cssText = 'display:flex; flex-direction:column; gap:8px; background:rgba(239, 68, 68, 0.05); padding:12px; border-radius:12px; border:1px solid rgba(239, 68, 68, 0.1);';
                         
                         let fixedBadge = '';
                         if (rev.fixed_at) {
-                            const fixedDate = new Date(rev.fixed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            const fixedDate = new Date(rev.fixed_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
                             
                             // Find the corresponding approval record where the writer wrote what they changed.
                             const fixTime = new Date(rev.fixed_at).getTime();
