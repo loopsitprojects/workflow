@@ -64,7 +64,7 @@ class ProjectController extends Controller
             'designer_id' => 'nullable|exists:users,id',
             'sub_type' => 'nullable|string',
             'lead_id' => 'nullable|exists:users,id',
-            'brief_file' => 'nullable|file|mimes:pdf,doc,docx,txt,jpg,png|max:10240',
+            'brief_file' => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx,txt,jpg,png|max:10240',
             'posts_count' => 'nullable|integer|min:0|max:200',
             'post_type_counts' => 'nullable|array',
             'post_type_counts.*' => 'nullable|integer|min:0|max:200',

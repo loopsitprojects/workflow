@@ -131,8 +131,8 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
                 </div>
             </div>
             <div style="margin-top:12px;">
-                <label class="f-label">Brief Document <span style="opacity:0.5;font-weight:400;">(PDF, DOC, PNG, JPG · max 10MB)</span></label>
-                <input type="file" name="brief_file" class="f-input" style="padding:7px 12px;cursor:pointer;">
+                <label class="f-label">Brief Document <span style="opacity:0.5;font-weight:400;">(PDF, DOC, PPT, PNG, JPG · max 10MB)</span></label>
+                <input type="file" name="brief_file" class="f-input" style="padding:7px 12px;cursor:pointer;" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png">
             </div>
         </div>
 
@@ -268,12 +268,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('createProjectBtn');
         const overlay = document.getElementById('pageLoadingOverlay');
         setTimeout(() => {
-            // Only disable if form is valid according to HTML5 validation
-            if (this.checkValidity()) {
-                btn.disabled = true;
-                btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:loopSpin 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>Creating…';
-                overlay.style.display = 'flex';
-            }
+            btn.disabled = true;
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:loopSpin 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>Creating…';
+            overlay.style.display = 'flex';
         }, 10);
     });
 });
