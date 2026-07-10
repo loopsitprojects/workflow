@@ -7,13 +7,13 @@
   "theme_color": "#ffffff",
   "icons": [
     {
-      "src": "/loops-icon.png",
+      "src": "/loops-icon-512.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/loops-icon.png",
+      "src": "/loops-icon-512.png",
       "sizes": "192x192 512x512",
       "type": "image/png"
     }
