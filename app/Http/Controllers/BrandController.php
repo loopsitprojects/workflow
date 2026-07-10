@@ -58,10 +58,12 @@ class BrandController extends Controller
 
         $brand = Brand::create($brandData);
 
-        if ($request->has('members')) {
-            $brand->members()->sync($request->members);
-            $brand->update(['total_members' => count($request->members)]);
+        $members = $request->members ?? [];
+        if (!in_array(auth()->id(), $members)) {
+            $members[] = auth()->id();
         }
+        $brand->members()->sync($members);
+        $brand->update(['total_members' => count($members)]);
 
         return redirect()->route('brands.index')->with('success', 'Brand created successfully.');
     }

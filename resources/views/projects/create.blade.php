@@ -237,12 +237,14 @@ function setWorkflow(type) {
 document.addEventListener('DOMContentLoaded', () => {
     setWorkflow('retainer');
 
-    document.getElementById('createProjectForm').addEventListener('submit', function() {
+    document.getElementById('createProjectForm').addEventListener('submit', function(e) {
         const btn = document.getElementById('createProjectBtn');
         const overlay = document.getElementById('pageLoadingOverlay');
-        btn.disabled = true;
-        btn.innerHTML = '<svg style="width:14px;height:14px;animation:loopSpin 0.75s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>Creating…';
-        overlay.style.display = 'flex';
+        setTimeout(() => {
+            btn.disabled = true;
+            btn.innerHTML = '<svg style="width:14px;height:14px;animation:loopSpin 0.75s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>Creating…';
+            overlay.style.display = 'flex';
+        }, 10);
     });
 });
 </script>

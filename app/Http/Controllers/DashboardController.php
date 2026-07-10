@@ -70,14 +70,18 @@ class DashboardController extends Controller
             });
         }
 
-        $deliverables = $query->orderByRaw("CASE
-                WHEN priority = 'High Priority' THEN 1
-                WHEN priority = 'Medium' THEN 2
-                WHEN priority = 'Standard' THEN 3
-                WHEN priority = 'Low' THEN 4
-                ELSE 5 END")
-            ->orderBy('deadline', 'asc')
-            ->get();
+        if ($user->isAdmin()) {
+            $deliverables = collect();
+        } else {
+            $deliverables = $query->orderByRaw("CASE
+                    WHEN priority = 'High Priority' THEN 1
+                    WHEN priority = 'Medium' THEN 2
+                    WHEN priority = 'Standard' THEN 3
+                    WHEN priority = 'Low' THEN 4
+                    ELSE 5 END")
+                ->orderBy('deadline', 'asc')
+                ->get();
+        }
 
         $brands = \App\Models\Brand::select('id', 'name', 'slug', 'logo_url')->get();
         $brandCount = $brands->count();
