@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ?? 'Loops' }}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="icon" type="image/png" href="{{ asset('loops-icon.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('desktop.png') }}">
     
     <!-- PWA Setup -->
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <meta name="theme-color" content="#ffffff">
-    <link rel="apple-touch-icon" href="{{ asset('loops-icon.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('desktop-512.png') }}">
     
     <script>
         if ('serviceWorker' in navigator) {
