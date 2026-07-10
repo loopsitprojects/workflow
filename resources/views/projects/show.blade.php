@@ -133,7 +133,9 @@
             padding: 4px 12px; 
             border-radius: 8px;
             letter-spacing: 0.05em;
-            white-space: nowrap;
+            white-space: normal;
+            text-align: center;
+            line-height: 1.2;
         }
 
         .rtb-heading-row { background: var(--color-bg-secondary); border-bottom: 1.5px solid var(--color-border-primary) !important; cursor: default !important; }
@@ -195,7 +197,7 @@
         .batch-select:focus { border-color: #0055D4; box-shadow: 0 0 0 4px rgba(0,85,212,0.1); }
 
         /* Stage color pills */
-        .stage-pill { display:inline-flex; align-items:center; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700; white-space:nowrap; }
+        .stage-pill { display:inline-flex; align-items:center; justify-content:center; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700; white-space:normal; text-align:center; line-height:1.2; }
         .stage-writer    { background:rgba(14,165,233,0.1);  color:#0ea5e9;  border:1px solid rgba(14,165,233,0.2); }
         .stage-approver  { background:rgba(245,158,11,0.1);  color:#d97706;  border:1px solid rgba(245,158,11,0.2); }
         .stage-manager   { background:rgba(59,130,246,0.1);  color:#3b82f6;  border:1px solid rgba(59,130,246,0.2); }
@@ -224,10 +226,11 @@
             border: 1px solid transparent;
             width: 100%;
             justify-content: center;
-            white-space: nowrap;
+            white-space: normal;
+            text-align: center;
             cursor: pointer;
             background: none;
-            line-height: 1;
+            line-height: 1.2;
         }
         .btn-approve-quick { background: rgba(16, 185, 129, 0.08); color: #10b981; border-color: rgba(16, 185, 129, 0.1); }
         .btn-approve-quick:hover { background: #10b981; color: white; }
@@ -348,20 +351,6 @@
                 </h1>
             </div>
             <div style="display: flex; align-items: center; gap: 12px; flex-shrink:0;">
-                <!-- Overlapping team avatars -->
-                <div style="display: flex; align-items: center;">
-                    @foreach($project->members->take(5) as $i => $member)
-                        <div style="width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--color-bg-primary); overflow: hidden; margin-left: {{ $i > 0 ? '-8px' : '0' }}; position: relative; z-index: {{ 10 - $i }};" title="{{ $member->name }} ({{ $member->role }})">
-                            <img src="{{ $member->avatar_url }}" style="width: 100%; height: 100%; object-fit: cover;">
-                        </div>
-                    @endforeach
-                    @if($project->members->count() > 5)
-                        <div style="width:30px;height:30px;border-radius:50%;border:2px solid var(--color-bg-primary);background:var(--color-bg-secondary);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--color-text-secondary);margin-left:-8px;z-index:5;">
-                            +{{ $project->members->count() - 5 }}
-                        </div>
-                    @endif
-                </div>
-
                 <div style="display: flex; gap: 8px;">
                     @if(auth()->user()->isAdmin() || in_array(auth()->user()->role, ['Brand Manager', 'Coordinator', 'Approver']))
                     <a href="{{ route('projects.edit', $project) }}"
@@ -620,7 +609,7 @@
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                                                 </a>
                                             @else
-                                                <span style="color:var(--color-text-secondary); font-size:11px;">-</span>
+                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
                                             @endif
                                         </td>
                                         <td>
@@ -717,7 +706,7 @@
                                                     <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $subDrevs }}</span>
                                                 @endif
                                                 @if($subWrevs === 0 && $subDrevs === 0)
-                                                    <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
+                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -824,7 +813,7 @@
                                             @elseif($task->reference)
                                                 <a href="{{ $task->reference }}" target="_blank" class="ref-chip" style="padding:4px 8px; font-size:9px;">Link</a>
                                             @else
-                                                —
+                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
                                             @endif
                                         </td>
                                         <td>
@@ -921,7 +910,7 @@
                                                     <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $taskDrevs }}</span>
                                                 @endif
                                                 @if($taskWrevs === 0 && $taskDrevs === 0)
-                                                    <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
+                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -1194,7 +1183,7 @@
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                                                 </a>
                                             @else
-                                                <span style="color:var(--color-text-secondary); font-size:11px;">-</span>
+                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
                                             @endif
                                         </td>
                                         <td>
@@ -1291,7 +1280,7 @@
                                                     <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $subDrevs }}</span>
                                                 @endif
                                                 @if($subWrevs === 0 && $subDrevs === 0)
-                                                    <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
+                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -1408,7 +1397,7 @@
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                                                 </a>
                                             @else
-                                                <span style="color:var(--color-text-secondary); font-size:11px;">-</span>
+                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
                                             @endif
                                         </td>
                                         <td>
@@ -1505,7 +1494,7 @@
                                                     <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $taskDrevs }}</span>
                                                 @endif
                                                 @if($taskWrevs === 0 && $taskDrevs === 0)
-                                                    <span style="color:var(--color-text-secondary);opacity:0.25;font-size:12px;">—</span>
+                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -1708,7 +1697,7 @@
                         <button class="hist-toggle" onclick="toggleHistory('modalApprovalHistory', this)">
                             <span style="display:flex; align-items:center; gap:8px; flex:1;">
                                 <span style="width:7px;height:7px;border-radius:50%;background:#10b981;flex-shrink:0;"></span>
-                                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#10b981;">Approval History</span>
+                                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#10b981;">Submission History</span>
                                 <span id="modalApprovalsCount" class="hist-count hist-count-green"></span>
                             </span>
                             <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
@@ -1761,7 +1750,7 @@
                         <div style="margin-top:14px;">
                             <label style="display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#8b5cf6; margin-bottom:6px;">Internal Designer Deadline <span style="font-weight:500; opacity:0.65; text-transform:none; letter-spacing:0;">(optional)</span></label>
                             <div style="display:flex; gap:8px;">
-                                <input type="date" id="designerDeadlineDateInput"
+                                <input type="date" id="designerDeadlineDateInput" min="{{ date('Y-m-d') }}"
                                     style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
                                     onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'"
                                     onchange="syncDesignerDeadline()">
@@ -2251,7 +2240,7 @@
                         row.innerHTML = `
                             <div style="font-size:12px; font-weight:700; color:var(--color-text-primary);">${app.user ? app.user.name : 'Unknown'}</div>
                             <div style="display:flex; align-items:center; gap:8px;">
-                                <span style="font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; letter-spacing:0.05em; background:rgba(16, 185, 129, 0.1); padding:2px 8px; border-radius:6px;">${app.stage} Approved</span>
+                                <span style="font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; letter-spacing:0.05em; background:rgba(16, 185, 129, 0.1); padding:2px 8px; border-radius:6px;">${app.stage} Submitted</span>
                                 <span style="font-size:11px; color:#10b981; opacity:0.8; font-weight:600;">${dateStr}</span>
                             </div>
                         `;
@@ -2881,7 +2870,7 @@
                 <div id="batchDesignerDeadlineGroup" style="display:none; margin-top:16px; padding:16px; border-radius:12px; border:1.5px solid rgba(139,92,246,0.2); background:rgba(139,92,246,0.04);">
                     <label style="display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#8b5cf6; margin-bottom:8px;">Internal Designer Deadline <span style="font-weight:500; opacity:0.65; text-transform:none; letter-spacing:0;">(optional)</span></label>
                     <div style="display:flex; gap:8px;">
-                        <input type="date" id="batchDesignerDeadlineDateInput"
+                        <input type="date" id="batchDesignerDeadlineDateInput" min="{{ date('Y-m-d') }}"
                             style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
                             onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'">
                         <input type="time" id="batchDesignerDeadlineTimeInput"
@@ -3092,6 +3081,7 @@
                     }
                     furtherApproverSelect.innerHTML = `<option value="">${skipLabel}</option>`;
                     users.forEach(u => {
+                        if (u.id == {{ $currentUserId }}) return;
                         const opt = document.createElement('option');
                         opt.value = u.id;
                         opt.textContent = u.name;

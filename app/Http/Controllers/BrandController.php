@@ -9,6 +9,7 @@ class BrandController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
         $brands = Brand::withCount('projects')->with('members')->get();
         return view('brands.index', compact('brands'));
     }
@@ -16,7 +17,9 @@ class BrandController extends Controller
     public function create()
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') {
+            return redirect()->route('brands.index')->with('error', 'Access Denied: You do not have permission to create brands.');
+        }
         $users = \App\Models\User::all();
         return view('brands.create', compact('users'));
     }
@@ -24,7 +27,9 @@ class BrandController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') {
+            return redirect()->route('brands.index')->with('error', 'Access Denied: You do not have permission to create brands.');
+        }
         // Auto-generate slug from name if not provided
         if (!$request->filled('slug')) {
             $request->merge(['slug' => \Illuminate\Support\Str::slug($request->name)]);
@@ -63,6 +68,11 @@ class BrandController extends Controller
 
     public function show(Brand $brand)
     {
+        $user = auth()->user();
+        if (!$user->isAdmin() && $brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
+            return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+        }
+
         $brand->load(['projects' => function($q) {
             $q->orderBy('type', 'desc'); // primary first
         }]);
@@ -74,6 +84,11 @@ class BrandController extends Controller
 
     public function retainerBoard(Brand $brand)
     {
+        $user = auth()->user();
+        if (!$user->isAdmin() && $brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
+            return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+        }
+
         $deliverables = $brand->deliverables()
             ->whereHas('project', function($q) {
                 $q->where('workflow_type', 'retainer');
@@ -88,7 +103,14 @@ class BrandController extends Controller
     public function edit(Brand $brand)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
+        if (!$user->isAdmin()) {
+            if ($user->role !== 'Brand Manager') {
+                return redirect()->route('brands.index')->with('error', 'Access Denied: Only Brand Managers can edit brands.');
+            }
+            if ($brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
+                return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+            }
+        }
         $users = \App\Models\User::all();
         $brand->load('members');
         return view('brands.edit', compact('brand', 'users'));
@@ -97,7 +119,14 @@ class BrandController extends Controller
     public function update(Request $request, Brand $brand)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
+        if (!$user->isAdmin()) {
+            if ($user->role !== 'Brand Manager') {
+                return redirect()->route('brands.index')->with('error', 'Access Denied: Only Brand Managers can edit brands.');
+            }
+            if ($brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
+                return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+            }
+        }
         // Auto-generate slug from name if not provided or empty
         if (!$request->filled('slug')) {
             $request->merge(['slug' => \Illuminate\Support\Str::slug($request->name)]);
@@ -140,7 +169,9 @@ class BrandController extends Controller
     public function destroy(Brand $brand)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $brand->created_by !== $user->id) abort(403);
+        if (!$user->isAdmin() && $brand->created_by !== $user->id) {
+            return redirect()->route('brands.index')->with('error', 'Access Denied: You can only delete brands you created.');
+        }
         $brand->delete();
         return redirect()->route('brands.index')->with('success', 'Brand deleted successfully.');
     }

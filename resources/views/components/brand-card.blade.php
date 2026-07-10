@@ -1,5 +1,9 @@
 @props(['brand'])
 
+@php
+    $isAssigned = auth()->user()->isAdmin() || $brand->created_by === auth()->id() || $brand->members->contains('id', auth()->id());
+@endphp
+
 <div class="bg-white dark:bg-[#111827] rounded-2xl card-shadow border border-gray-100 dark:border-white/[0.06] flex flex-col relative group transition-all hover:shadow-md hover:-translate-y-0.5 overflow-hidden">
 
     {{-- Accent bar --}}
@@ -9,7 +13,11 @@
 
         {{-- Header: logo + name + menu --}}
         <div class="flex justify-between items-start gap-3">
-            <a href="{{ route('brands.show', $brand) }}" class="flex items-center gap-3 flex-1 min-w-0">
+            @if($isAssigned)
+                <a href="{{ route('brands.show', $brand) }}" class="flex items-center gap-3 flex-1 min-w-0">
+            @else
+                <div onclick="window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'You are not assigned to this brand.', type: 'warning' } }))" class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+            @endif
                 <div class="w-11 h-11 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-100 dark:border-slate-700">
                     <img src="{{ $brand->logo_url }}" alt="{{ $brand->name }}"
                          class="w-8 h-8 object-contain"
@@ -28,7 +36,11 @@
                         <p class="text-[11px] text-gray-400 dark:text-slate-500 truncate mt-0.5">{{ strip_tags($brand->description) }}</p>
                     @endif
                 </div>
-            </a>
+            @if($isAssigned)
+                </a>
+            @else
+                </div>
+            @endif
 
             {{-- 3-dot menu --}}
             @if(auth()->user()->isAdmin() || auth()->user()->role === 'Brand Manager')
@@ -73,48 +85,25 @@
                 <span class="text-[12px] font-bold text-gray-700 dark:text-slate-300">{{ $brand->members->count() }}</span>
                 <span class="text-[11px] text-gray-400 dark:text-slate-500">members</span>
             </div>
-            @if($brand->health_score)
-                <div class="ml-auto">
-                    @php
-                        $healthColors = [
-                            'Stable'    => 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
-                            'At Risk'   => 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400',
-                            'Critical'  => 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400',
-                        ];
-                        $hc = $healthColors[$brand->health_score] ?? 'bg-gray-50 text-gray-500 dark:bg-slate-800 dark:text-slate-400';
-                    @endphp
-                    <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{ $hc }}">
-                        {{ $brand->health_score }}
-                    </span>
-                </div>
-            @endif
         </div>
 
-        {{-- Member avatars + View Brand --}}
-        <div class="flex items-center justify-between">
-            {{-- Real member avatars --}}
-            <div class="flex -space-x-2">
-                @foreach($brand->members->take(4) as $member)
-                    <div class="w-7 h-7 rounded-full border-2 border-white dark:border-[#0F172A] overflow-hidden flex-shrink-0" title="{{ $member->name }} ({{ $member->role }})">
-                        <img src="{{ $member->avatar_url }}" alt="{{ $member->name }}" class="w-full h-full object-cover">
-                    </div>
-                @endforeach
-                @if($brand->members->count() > 4)
-                    <div class="w-7 h-7 rounded-full border-2 border-white dark:border-[#0F172A] bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-[9px] font-black text-gray-500 dark:text-slate-400">
-                        +{{ $brand->members->count() - 4 }}
-                    </div>
-                @endif
-                @if($brand->members->isEmpty())
-                    <span class="text-[11px] text-gray-300 dark:text-slate-600 italic">No members</span>
-                @endif
-            </div>
-
-            <a href="{{ route('brands.show', $brand) }}" class="text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:gap-2 transition-all">
-                View Brand
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-            </a>
+        {{-- View Brand --}}
+        <div class="flex items-center justify-end">
+            @if($isAssigned)
+                <a href="{{ route('brands.show', $brand) }}" class="text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:gap-2 transition-all">
+                    View Brand
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </a>
+            @else
+                <div onclick="window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'You are not assigned to this brand.', type: 'warning' } }))" class="text-[11px] font-bold text-gray-400 dark:text-slate-500 flex items-center gap-1 cursor-pointer transition-all">
+                    Not Assigned
+                    <svg class="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+            @endif
         </div>
 
     </div>

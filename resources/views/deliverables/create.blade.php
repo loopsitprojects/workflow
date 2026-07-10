@@ -139,7 +139,7 @@
                 <div class="grid-cell br">
                     <label class="field-label">Project Due Date</label>
                     <div class="styled-input-wrapper">
-                        <input type="date" name="deadline" id="deadline" class="styled-input"
+                        <input type="date" name="deadline" id="deadline" class="styled-input" min="{{ date('Y-m-d') }}"
                             value="{{ old('deadline', $parentTask->deadline ?? '') }}" required>
                     </div>
                     @error('deadline') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:6px;">{{ $message }}</p> @enderror

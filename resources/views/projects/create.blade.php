@@ -76,7 +76,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
                 </div>
                 <div>
                     <label class="f-label">Due Date</label>
-                    <input type="date" name="deadline" class="f-input" value="{{ old('deadline') }}">
+                    <input type="date" name="deadline" class="f-input" min="{{ date('Y-m-d') }}" value="{{ old('deadline') }}">
                 </div>
             </div>
         </div>
