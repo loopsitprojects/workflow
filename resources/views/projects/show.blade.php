@@ -371,10 +371,16 @@
         </div>
 
         @if($project->description || $project->brief_file_path)
-            <div style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 16px 20px; display:flex; align-items:flex-start; gap:12px;">
-                <svg width="14" height="14" fill="none" stroke="#3b82f6" viewBox="0 0 24 24" style="flex-shrink:0; margin-top:3px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <div style="flex:1; min-width:0;">
-                    <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--color-text-secondary); margin-bottom:6px;">Project Brief</div>
+            <div x-data="{ expanded: false }" style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 16px 20px; display:flex; flex-direction: column; gap:12px;">
+                <div @click="expanded = !expanded" style="display:flex; align-items:center; gap:12px; cursor:pointer;">
+                    <svg width="14" height="14" fill="none" stroke="#3b82f6" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <div style="flex:1; min-width:0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--color-text-secondary);">
+                        Project Brief
+                    </div>
+                    <svg :style="expanded ? 'transform: rotate(180deg)' : ''" style="transition: transform 0.2s;" width="14" height="14" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+                
+                <div x-show="expanded" style="display: none; padding-left: 26px; padding-top: 4px;">
                     @if($project->description)
                         <div style="font-size:13px; color:var(--color-text-primary); line-height:1.6; font-weight:500;">{!! $project->description !!}</div>
                     @endif

@@ -53,6 +53,15 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
 </nav>
 
 <div class="f-wrap">
+    @if ($errors->any())
+        <div style="background: #fef2f2; border: 1px solid #fecaca; color: #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 12px; font-weight: 600;">
+            <ul style="margin: 0; padding-left: 16px;">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
     <form id="createProjectForm" action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <input type="hidden" name="brand_id" value="{{ request('brand_id', $brands->first()->id ?? '') }}">
@@ -145,7 +154,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
 const subtaskTypes = @json($subtaskTypes);
 let batchIndex = 0;
 
-function addBatchCard() {
+function addBatchCard(existingData = null) {
     batchIndex++;
     const container = document.getElementById('batches-container');
     const workflowType = document.getElementById('workflow_type').value;
@@ -158,14 +167,17 @@ function addBatchCard() {
     const activeWorkflow = (workflowType === 'retainer') ? 'retainer' : 'campaign';
     const filteredTypes = subtaskTypes.filter(t => t.workflow_type === activeWorkflow);
 
+    const batchName = existingData && existingData.name ? existingData.name : `Batch ${batchIndex}`;
+
     let typesHtml = '';
     if (filteredTypes.length > 0) {
         typesHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;">`;
         filteredTypes.forEach(type => {
+            const countValue = existingData && existingData.post_types && existingData.post_types[type.id] ? existingData.post_types[type.id] : 0;
             typesHtml += `
                 <div style="display:flex;align-items:center;justify-content:space-between;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:8px 12px;">
                     <span style="font-size:11px;font-weight:600;color:var(--color-text-primary);">${type.name}</span>
-                    <input type="number" name="batches[${batchIndex}][post_types][${type.id}]" min="0" max="200" value="0"
+                    <input type="number" name="batches[${batchIndex}][post_types][${type.id}]" min="0" max="200" value="${countValue}"
                         style="width:48px;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:6px;padding:4px 6px;font-size:12px;font-weight:700;color:var(--color-text-primary);text-align:center;outline:none;"
                         onfocus="this.select()">
                 </div>
@@ -173,10 +185,11 @@ function addBatchCard() {
         });
         typesHtml += `</div>`;
     } else {
+        const postsCount = existingData && existingData.posts_count ? existingData.posts_count : 0;
         typesHtml = `
             <div>
                 <label style="font-size:11px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:4px;">Posts Count</label>
-                <input type="number" name="batches[${batchIndex}][posts_count]" min="0" max="200" value="0" class="f-input" style="max-width:100px;">
+                <input type="number" name="batches[${batchIndex}][posts_count]" min="0" max="200" value="${postsCount}" class="f-input" style="max-width:100px;">
             </div>
         `;
     }
@@ -185,7 +198,7 @@ function addBatchCard() {
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
             <div style="flex:1;display:flex;align-items:center;gap:8px;">
                 <span style="font-size:11px;font-weight:800;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;" class="batch-number-badge">1</span>
-                <input type="text" name="batches[${batchIndex}][name]" value="Batch ${batchIndex}" placeholder="Enter Batch Name..." required
+                <input type="text" name="batches[${batchIndex}][name]" value="${batchName}" placeholder="Enter Batch Name..." required
                     style="width:100%;max-width:240px;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--color-text-primary);outline:none;">
             </div>
             <button type="button" onclick="removeBatchCard(${batchIndex})" style="background:none;border:none;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:2px;">
@@ -229,21 +242,38 @@ function setWorkflow(type) {
         document.getElementById('option-'+t).classList.toggle('active', t === type)
     );
 
-    document.getElementById('batches-container').innerHTML = '';
+    const container = document.getElementById('batches-container');
+    container.innerHTML = '';
     batchIndex = 0;
-    addBatchCard();
+    
+    // Only auto-add an empty batch if there are NO old batches
+    if (!oldBatches || Object.keys(oldBatches).length === 0) {
+        addBatchCard();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    setWorkflow('retainer');
+    // Determine the workflow type (from old input, or default to retainer)
+    const oldWorkflowType = "{{ old('workflow_type', 'retainer') }}";
+    setWorkflow(oldWorkflowType);
+
+    // If there are old batches from a validation error, reconstruct them
+    if (oldBatches && Object.keys(oldBatches).length > 0) {
+        for (const [key, batch] of Object.entries(oldBatches)) {
+            addBatchCard(batch); // We will pass 'batch' data to addBatchCard
+        }
+    }
 
     document.getElementById('createProjectForm').addEventListener('submit', function(e) {
         const btn = document.getElementById('createProjectBtn');
         const overlay = document.getElementById('pageLoadingOverlay');
         setTimeout(() => {
-            btn.disabled = true;
-            btn.innerHTML = '<svg style="width:14px;height:14px;animation:loopSpin 0.75s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>Creating…';
-            overlay.style.display = 'flex';
+            // Only disable if form is valid according to HTML5 validation
+            if (this.checkValidity()) {
+                btn.disabled = true;
+                btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:loopSpin 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>Creating…';
+                overlay.style.display = 'flex';
+            }
         }, 10);
     });
 });
