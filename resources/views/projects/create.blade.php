@@ -152,6 +152,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
 
 <script>
 const subtaskTypes = @json($subtaskTypes);
+const oldBatches = @json(old('batches', []));
 let batchIndex = 0;
 
 function addBatchCard(existingData = null) {
@@ -267,11 +268,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('createProjectForm').addEventListener('submit', function(e) {
         const btn = document.getElementById('createProjectBtn');
         const overlay = document.getElementById('pageLoadingOverlay');
-        setTimeout(() => {
-            btn.disabled = true;
-            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:loopSpin 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>Creating…';
-            overlay.style.display = 'flex';
-        }, 10);
+        setTimeout(() => { btn.disabled = true; }, 10);
+        btn.style.pointerEvents = 'none';
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:loopSpin 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>Creating…';
+        overlay.style.display = 'flex';
     });
 });
 </script>

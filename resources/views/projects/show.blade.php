@@ -9,7 +9,7 @@
     @endphp
     <style>
         /* Content Deliverables Table Styles */
-        .cd-table-wrap { background:var(--color-bg-primary); border-radius:16px; border:1px solid var(--color-border-primary); overflow:hidden; transition: background 0.3s, border-color 0.3s; }
+        .cd-table-wrap { background:var(--color-bg-primary); border-radius:16px; border:1px solid var(--color-border-primary); box-shadow:0 8px 30px rgba(0,0,0,0.04); overflow:hidden; transition: background 0.3s, border-color 0.3s; }
         .cd-header { display:flex; justify-content:space-between; align-items:center; padding:20px 24px 16px; border-bottom:1px solid var(--color-border-primary); }
         .cd-header-left h2 { font-size:15px; font-weight:700; color:var(--color-text-primary); letter-spacing:-0.01em; margin:0; }
         .cd-header-right { display:flex; gap:10px; align-items:center; }
@@ -207,6 +207,38 @@
         .stage-closed    { background:rgba(100,116,139,0.08); color:#64748b; border:1px solid rgba(100,116,139,0.15); }
         .stage-default   { background:rgba(59,130,246,0.08); color:#3b82f6;  border:1px solid rgba(59,130,246,0.15); }
 
+        /* Quill Dark Mode Overrides */
+        .ql-toolbar.ql-snow {
+            border: 1px solid var(--color-border-primary) !important;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            background: var(--color-bg-secondary);
+            padding: 8px;
+        }
+        .ql-container.ql-snow {
+            border: 1px solid var(--color-border-primary) !important;
+            border-top: none !important;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-family: inherit;
+            font-size: 13px;
+        }
+        .ql-snow .ql-stroke { stroke: var(--color-text-secondary); }
+        .ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill { fill: var(--color-text-secondary); }
+        .ql-snow .ql-picker { color: var(--color-text-secondary); }
+        .ql-snow .ql-picker-options { background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); color: var(--color-text-primary); }
+        .ql-snow .ql-picker-item:hover, .ql-snow .ql-picker-label:hover { color: var(--color-text-primary); }
+        .ql-snow .ql-picker-label:hover .ql-stroke { stroke: var(--color-text-primary); }
+        .ql-editor { padding: 12px; }
+        .ql-editor.ql-blank::before { color: rgba(255, 255, 255, 0.3) !important; font-style: normal; }
+        
+        button.ql-active .ql-stroke { stroke: #0ea5e9 !important; }
+        button.ql-active .ql-fill { fill: #0ea5e9 !important; }
+        .ql-picker-label.ql-active { color: #0ea5e9 !important; }
+        .ql-picker-label.ql-active .ql-stroke { stroke: #0ea5e9 !important; }
+
         /* Quick Action Buttons */
         .quick-actions-grid {
             display: grid;
@@ -339,7 +371,7 @@
             <div style="min-width: 0;">
                 <nav style="display: flex; gap: 6px; align-items: center; font-size: 11px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 8px;">
                     <a href="/brands" style="text-decoration: none; color: inherit; hover:color: var(--color-text-primary);">Brands</a>
-                    <span style="opacity:0.4;">/</span>
+                    <span style="opacity:0.7;">/</span>
                     <a href="{{ route('brands.show', $project->brand) }}" style="text-decoration: none; color: inherit;">{{ $project->brand->name }}</a>
                 </nav>
                 <h1 style="font-size: 24px; font-weight: 800; color: var(--color-text-primary); letter-spacing: -0.02em; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;">
@@ -371,7 +403,7 @@
         </div>
 
         @if($project->description || $project->brief_file_path)
-            <div x-data="{ expanded: false }" style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 16px 20px; display:flex; flex-direction: column; gap:12px;">
+            <div x-data="{ expanded: false }" style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.04); padding: 16px 20px; display:flex; flex-direction: column; gap:12px;">
                 <div @click="expanded = !expanded" style="display:flex; align-items:center; gap:12px; cursor:pointer;">
                     <svg width="14" height="14" fill="none" stroke="#3b82f6" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     <div style="flex:1; min-width:0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--color-text-secondary);">
@@ -584,7 +616,7 @@
                                             @if($canEditInline)
                                                 <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="concept" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->concept }}</textarea>
                                             @else
-                                                @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ $subtask->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif
+                                                @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ $subtask->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td>
@@ -597,14 +629,14 @@
                                             @if($canEditInline)
                                                 <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="caption" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->caption }}</textarea>
                                             @else
-                                                @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ $subtask->caption }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif
+                                                @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ $subtask->caption }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
                                                 <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="post_copy" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->post_copy }}</textarea>
                                             @else
-                                                @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ $subtask->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif
+                                                @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ $subtask->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
@@ -615,7 +647,7 @@
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                                                 </a>
                                             @else
-                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
+                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                             @endif
                                         </td>
                                         <td>
@@ -712,7 +744,7 @@
                                                     <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $subDrevs }}</span>
                                                 @endif
                                                 @if($subWrevs === 0 && $subDrevs === 0)
-                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
+                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -804,22 +836,22 @@
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
 
                                         </td>
-                                        <td>@if($task->concept)<div class="cell-text" onclick="openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ $task->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif</td>
+                                        <td>@if($task->concept)<div class="cell-text" onclick="openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ $task->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
                                         <td>
                                             @php $taskColors = $subtaskTypeColors[$task->subtask_type] ?? $subtaskTypeColors['default']; @endphp
                                             <span class="subtask-pill" style="background:{{ $taskColors['bg'] }}; color:{{ $taskColors['text'] }}; border-color:{{ $taskColors['border'] }};">
                                                 {{ $task->subtask_type ?: 'Standard' }}
                                             </span>
                                         </td>
-                                        <td>@if($task->caption)<div class="cell-text" onclick="openTextPreview('Caption',{{ json_encode($task->caption) }})">{{ $task->caption }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif</td>
-                                        <td>@if($task->post_copy)<div class="cell-text" onclick="openTextPreview('Post Copy',{{ json_encode($task->post_copy) }})">{{ $task->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.35;">N/A</span>@endif</td>
+                                        <td>@if($task->caption)<div class="cell-text" onclick="openTextPreview('Caption',{{ json_encode($task->caption) }})">{{ $task->caption }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
+                                        <td>@if($task->post_copy)<div class="cell-text" onclick="openTextPreview('Post Copy',{{ json_encode($task->post_copy) }})">{{ $task->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
                                         <td>
                                             @if($task->reference_file)
                                                 <img src="{{ $task->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $task->reference_file }}', false)">
                                             @elseif($task->reference)
                                                 <a href="{{ $task->reference }}" target="_blank" class="ref-chip" style="padding:4px 8px; font-size:9px;">Link</a>
                                             @else
-                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
+                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                             @endif
                                         </td>
                                         <td>
@@ -916,7 +948,7 @@
                                                     <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $taskDrevs }}</span>
                                                 @endif
                                                 @if($taskWrevs === 0 && $taskDrevs === 0)
-                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
+                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -1189,7 +1221,7 @@
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                                                 </a>
                                             @else
-                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
+                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                             @endif
                                         </td>
                                         <td>
@@ -1286,7 +1318,7 @@
                                                     <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $subDrevs }}</span>
                                                 @endif
                                                 @if($subWrevs === 0 && $subDrevs === 0)
-                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
+                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -1403,7 +1435,7 @@
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                                                 </a>
                                             @else
-                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
+                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                             @endif
                                         </td>
                                         <td>
@@ -1500,7 +1532,7 @@
                                                     <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $taskDrevs }}</span>
                                                 @endif
                                                 @if($taskWrevs === 0 && $taskDrevs === 0)
-                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.4;">N/A</span>
+                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                                 @endif
                                             </div>
                                         </td>
@@ -1648,17 +1680,20 @@
                 </div>
 
                 <div class="detail-grid">
-                    <div class="detail-item full">
-                        <label class="detail-label">Concept</label>
-                        <textarea id="modalConcept" name="concept" form="submitStageForm" class="detail-val-textarea" readonly></textarea>
+                    <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 24px;">
+                        <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Concept</div>
+                        <input type="hidden" id="modalConcept" name="concept" form="submitStageForm">
+                        <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full">
-                        <label class="detail-label">Caption</label>
-                        <textarea id="modalCaption" name="caption" form="submitStageForm" class="detail-val-textarea" readonly></textarea>
+                    <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 40px;">
+                        <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Caption</div>
+                        <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
+                        <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full">
-                        <label class="detail-label">Copy</label>
-                        <textarea id="modalSubtaskCopy" name="post_copy" form="submitStageForm" class="detail-val-textarea" style="min-height:180px;" readonly></textarea>
+                    <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 40px;">
+                        <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Copy</div>
+                        <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
+                        <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:180px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
                     <div class="detail-item full">
                         <label class="detail-label">Reference</label>
@@ -1937,6 +1972,31 @@
     </div>
 
     <script>
+        let quillConcept, quillCaption, quillCopy;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const quillOptions = {
+                theme: 'snow',
+                placeholder: 'Start typing...',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['clean']
+                    ]
+                }
+            };
+            
+            quillConcept = new Quill('#quillConcept', quillOptions);
+            quillCaption = new Quill('#quillCaption', quillOptions);
+            quillCopy = new Quill('#quillCopy', quillOptions);
+            
+            quillConcept.on('text-change', () => { document.getElementById('modalConcept').value = quillConcept.root.innerHTML === '<p><br></p>' ? '' : quillConcept.root.innerHTML; });
+            quillCaption.on('text-change', () => { document.getElementById('modalCaption').value = quillCaption.root.innerHTML === '<p><br></p>' ? '' : quillCaption.root.innerHTML; });
+            quillCopy.on('text-change', () => { document.getElementById('modalSubtaskCopy').value = quillCopy.root.innerHTML === '<p><br></p>' ? '' : quillCopy.root.innerHTML; });
+        });
+
         /* Work hours — auto-save on blur */
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.hrs-input').forEach(function (input) {
@@ -2070,8 +2130,13 @@
                 ptEl.style.borderColor = colors.border;
 
                 document.getElementById('modalConcept').value = task.concept || '';
+                quillConcept.clipboard.dangerouslyPasteHTML(task.concept || '');
+                
                 document.getElementById('modalCaption').value = task.caption || '';
+                quillCaption.clipboard.dangerouslyPasteHTML(task.caption || '');
+                
                 document.getElementById('modalSubtaskCopy').value = task.subtask_copy || task.post_copy || '';
+                quillCopy.clipboard.dangerouslyPasteHTML(task.subtask_copy || task.post_copy || '');
                 document.getElementById('modalStage').textContent = task.approval_stage || 'Unknown';
 
                 // Populate top deadlines list
@@ -2451,9 +2516,9 @@
                 // Edit Permissions (already computed above)
 
                 document.getElementById('modalTaskTitle').readOnly = !writerEditPermission;
-                document.getElementById('modalConcept').readOnly = !writerEditPermission;
-                document.getElementById('modalCaption').readOnly = !writerEditPermission;
-                document.getElementById('modalSubtaskCopy').readOnly = !writerEditPermission;
+                quillConcept.enable(writerEditPermission);
+                quillCaption.enable(writerEditPermission);
+                quillCopy.enable(writerEditPermission);
                 
                 // Reference Edit Area
                 const refEditArea = document.getElementById('modalReferenceEditArea');
