@@ -397,3 +397,39 @@ test('user can export batch pdf', function () {
     expect($deliverable->approval_stage)->toBe('Approver');
     expect($deliverable->approver_id)->toBe($approver->id);
 });
+
+test('a writer can submit a deliverable in scheduled stage to close it', function () {
+    $brand = Brand::create(['name' => 'Test Brand', 'slug' => 'test-brand', 'description' => 'Test Brand Description']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Test Project',
+        'workflow_type' => 'retainer',
+        'priority' => 'Medium',
+    ]);
+
+    $writer = User::factory()->create(['role' => 'Writer']);
+
+    $deliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Scheduled Test Deliverable',
+        'writer_id' => $writer->id,
+        'approval_stage' => 'Scheduled',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 90,
+    ]);
+
+    // Submit the stage transition
+    $response = $this->actingAs($writer)->post(route('deliverables.submit', $deliverable), [
+        'action' => 'submit',
+    ]);
+
+    $response->assertRedirect();
+    
+    $deliverable->refresh();
+
+    // Verify it advanced to Closed stage and status is Done
+    expect($deliverable->approval_stage)->toBe('Closed');
+    expect($deliverable->status)->toBe('Done');
+});
+
