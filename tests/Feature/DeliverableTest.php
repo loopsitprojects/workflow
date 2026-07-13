@@ -433,3 +433,53 @@ test('a writer can submit a deliverable in scheduled stage to close it', functio
     expect($deliverable->status)->toBe('Done');
 });
 
+test('only designer or admin can edit work hours', function () {
+    $brand = Brand::create(['name' => 'Test Brand', 'slug' => 'test-brand', 'description' => 'Test Brand Description']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Test Project',
+        'workflow_type' => 'retainer',
+        'priority' => 'Medium',
+    ]);
+
+    $writer = User::factory()->create(['role' => 'Writer']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $admin = User::factory()->create(['role' => 'Admin']);
+
+    $deliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Hours Test Deliverable',
+        'designer_id' => $designer->id,
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 50,
+        'work_hours' => 5,
+    ]);
+
+    // Writer tries to edit work hours (should be forbidden - 403)
+    $response = $this->actingAs($writer)->post(route('deliverables.submit', $deliverable), [
+        'action' => 'save_only',
+        'work_hours' => 10,
+    ]);
+    $response->assertStatus(403);
+    
+    // Designer tries to edit work hours (should succeed)
+    $response = $this->actingAs($designer)->post(route('deliverables.submit', $deliverable), [
+        'action' => 'save_only',
+        'work_hours' => 12.5,
+    ]);
+    $response->assertRedirect();
+    $deliverable->refresh();
+    expect($deliverable->work_hours)->toEqual(12.5);
+
+    // Admin tries to edit work hours (should succeed)
+    $response = $this->actingAs($admin)->post(route('deliverables.submit', $deliverable), [
+        'action' => 'save_only',
+        'work_hours' => 15,
+    ]);
+    $response->assertRedirect();
+    $deliverable->refresh();
+    expect($deliverable->work_hours)->toEqual(15);
+});
+
+

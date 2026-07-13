@@ -362,7 +362,15 @@ class DeliverableController extends Controller
             if ($request->has('post_copy')) $deliverable->post_copy = $request->post_copy;
             if ($request->has('reference')) $deliverable->reference = $request->reference;
             if ($request->has('final_designs_link')) $deliverable->final_designs_link = $request->final_designs_link;
-            if ($request->has('work_hours')) $deliverable->work_hours = $request->work_hours ?: null;
+            if ($request->has('work_hours')) {
+                $isDesigner = $userRole === 'designer';
+                $isAssignedDesigner = ($deliverable->designer_id && $user->id == $deliverable->designer_id);
+                $isUnassignedDesigner = (!$deliverable->designer_id && $isDesigner);
+                if (!$user->isAdmin() && !($isDesigner && ($isAssignedDesigner || $isUnassignedDesigner))) {
+                    abort(403, 'Unauthorized action: only the designer can edit work hours.');
+                }
+                $deliverable->work_hours = $request->work_hours ?: null;
+            }
             if ($request->has('designer_deadline')) $deliverable->designer_deadline = $request->designer_deadline ?: null;
             
             if ($request->hasFile('reference_file')) {

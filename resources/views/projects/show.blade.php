@@ -718,11 +718,7 @@
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @php $canEditHrs = $currentUserIsAdmin ||
-    (in_array($userRole, ['writer', 'assignee']) && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-    (in_array($userRole, ['approver', 'approvercoordinator'])      && (!$subtask->approver_id      || $subtask->approver_id      == $currentUserId)) ||
-    ($userRole === 'brandmanager'  && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
-    (in_array($userRole, ['coordinator', 'approvercoordinator'])   && (!$subtask->coordinator_id   || $subtask->coordinator_id   == $currentUserId)) ||
-    ($userRole === 'designer'      && (!$subtask->designer_id      || $subtask->designer_id      == $currentUserId)); @endphp
+    ($userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $subtask->id }}" value="{{ $subtask->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
                                             @else
@@ -922,11 +918,7 @@
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @php $canEditHrs = $currentUserIsAdmin ||
-    (in_array($userRole, ['writer', 'assignee']) && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-    (in_array($userRole, ['approver', 'approvercoordinator'])      && (!$task->approver_id      || $task->approver_id      == $currentUserId)) ||
-    ($userRole === 'brandmanager'  && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
-    (in_array($userRole, ['coordinator', 'approvercoordinator'])   && (!$task->coordinator_id   || $task->coordinator_id   == $currentUserId)) ||
-    ($userRole === 'designer'      && (!$task->designer_id      || $task->designer_id      == $currentUserId)); @endphp
+    ($userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $task->id }}" value="{{ $task->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
                                             @else
@@ -1292,11 +1284,7 @@
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @php $canEditHrs = $currentUserIsAdmin ||
-    (in_array($userRole, ['writer', 'assignee']) && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-    (in_array($userRole, ['approver', 'approvercoordinator'])      && (!$subtask->approver_id      || $subtask->approver_id      == $currentUserId)) ||
-    ($userRole === 'brandmanager'  && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
-    (in_array($userRole, ['coordinator', 'approvercoordinator'])   && (!$subtask->coordinator_id   || $subtask->coordinator_id   == $currentUserId)) ||
-    ($userRole === 'designer'      && (!$subtask->designer_id      || $subtask->designer_id      == $currentUserId)); @endphp
+    ($userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $subtask->id }}" value="{{ $subtask->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
                                             @else
@@ -1506,11 +1494,7 @@
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @php $canEditHrs = $currentUserIsAdmin ||
-    (in_array($userRole, ['writer', 'assignee']) && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-    (in_array($userRole, ['approver', 'approvercoordinator'])      && (!$task->approver_id      || $task->approver_id      == $currentUserId)) ||
-    ($userRole === 'brandmanager'  && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
-    (in_array($userRole, ['coordinator', 'approvercoordinator'])   && (!$task->coordinator_id   || $task->coordinator_id   == $currentUserId)) ||
-    ($userRole === 'designer'      && (!$task->designer_id      || $task->designer_id      == $currentUserId)); @endphp
+    ($userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId)); @endphp
                                             @if($canEditHrs)
                                                 <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $task->id }}" value="{{ $task->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
                                             @else
