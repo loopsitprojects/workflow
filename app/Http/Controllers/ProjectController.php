@@ -87,6 +87,13 @@ class ProjectController extends Controller
             $validated['brief_file_path'] = '/briefs/' . $filename;
         }
 
+        if (empty($validated['brand_manager_id'])) {
+            $brand = \App\Models\Brand::find($validated['brand_id']);
+            if ($brand && $brand->created_by) {
+                $validated['brand_manager_id'] = $brand->created_by;
+            }
+        }
+
         $project = Project::create($validated);
 
         // Bulk-generate blank deliverable slots per post type (or by count if no types given)
@@ -275,7 +282,13 @@ class ProjectController extends Controller
         ]);
         $brandId = $project->brand_id;
         $brandManagers = \App\Models\User::where('role', 'Brand Manager')
-            ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
+            ->where(function ($q) use ($project, $brandId) {
+                if ($project->brand_manager_id) {
+                    $q->where('id', $project->brand_manager_id);
+                } else {
+                    $q->whereHas('brands', fn($b) => $b->where('brands.id', $brandId));
+                }
+            })
             ->get();
         $designers = \App\Models\User::where('role', 'Designer')
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
@@ -347,6 +360,13 @@ class ProjectController extends Controller
             $validated['brief_file_path'] = '/briefs/' . $filename;
         } elseif ($request->input('remove_brief_file') == '1') {
             $validated['brief_file_path'] = null;
+        }
+
+        if (empty($validated['brand_manager_id'])) {
+            $brand = \App\Models\Brand::find($validated['brand_id']);
+            if ($brand && $brand->created_by) {
+                $validated['brand_manager_id'] = $brand->created_by;
+            }
         }
 
         $project->update($validated);

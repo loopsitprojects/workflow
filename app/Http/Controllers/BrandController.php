@@ -10,7 +10,20 @@ class BrandController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $brands = Brand::withCount('projects')->with('members')->get();
+        
+        $query = Brand::withCount('projects')->with('members');
+        
+        if (!$user->isAdmin()) {
+            if ($user->role === 'Brand Manager') {
+                $query->where('created_by', $user->id);
+            } else {
+                $query->whereHas('members', function($q) use ($user) {
+                    $q->where('users.id', $user->id);
+                });
+            }
+        }
+        
+        $brands = $query->get();
         return view('brands.index', compact('brands'));
     }
 
@@ -71,8 +84,13 @@ class BrandController extends Controller
     public function show(Brand $brand)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
-            return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+        if (!$user->isAdmin()) {
+            if ($user->role === 'Brand Manager' && $brand->created_by !== $user->id) {
+                return redirect()->route('brands.index')->with('error', 'Access Denied: Only the Brand Manager who created this brand can access it.');
+            }
+            if ($user->role !== 'Brand Manager' && $brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
+                return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+            }
         }
 
         $brand->load(['projects' => function($q) {
@@ -87,8 +105,13 @@ class BrandController extends Controller
     public function retainerBoard(Brand $brand)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
-            return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+        if (!$user->isAdmin()) {
+            if ($user->role === 'Brand Manager' && $brand->created_by !== $user->id) {
+                return redirect()->route('brands.index')->with('error', 'Access Denied: Only the Brand Manager who created this brand can access it.');
+            }
+            if ($user->role !== 'Brand Manager' && $brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
+                return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+            }
         }
 
         $deliverables = $brand->deliverables()
@@ -109,8 +132,8 @@ class BrandController extends Controller
             if ($user->role !== 'Brand Manager') {
                 return redirect()->route('brands.index')->with('error', 'Access Denied: Only Brand Managers can edit brands.');
             }
-            if ($brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
-                return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+            if ($user->role === 'Brand Manager' && $brand->created_by !== $user->id) {
+                return redirect()->route('brands.index')->with('error', 'Access Denied: Only the Brand Manager who created this brand can edit it.');
             }
         }
         $users = \App\Models\User::all();
@@ -125,8 +148,8 @@ class BrandController extends Controller
             if ($user->role !== 'Brand Manager') {
                 return redirect()->route('brands.index')->with('error', 'Access Denied: Only Brand Managers can edit brands.');
             }
-            if ($brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
-                return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+            if ($user->role === 'Brand Manager' && $brand->created_by !== $user->id) {
+                return redirect()->route('brands.index')->with('error', 'Access Denied: Only the Brand Manager who created this brand can edit it.');
             }
         }
         // Auto-generate slug from name if not provided or empty

@@ -120,6 +120,17 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
             <input type="hidden" name="workflow_type" id="workflow_type" value="{{ old('workflow_type', $project->workflow_type) }}">
         </div>
 
+        {{-- Brand Manager --}}
+        <div class="f-section">
+            <label class="f-label">Brand Manager <span style="opacity:0.5;font-weight:400;">(Defaults to Brand Creator if left empty)</span></label>
+            <select name="brand_manager_id" class="f-input" style="max-width:240px;">
+                <option value="">-- Auto-assign Brand Creator --</option>
+                @foreach($managers as $manager)
+                    <option value="{{ $manager->id }}" {{ old('brand_manager_id', $project->brand_manager_id) == $manager->id ? 'selected' : '' }}>{{ $manager->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
         {{-- Status --}}
         <div class="f-section">
             <label class="f-label">Status</label>
