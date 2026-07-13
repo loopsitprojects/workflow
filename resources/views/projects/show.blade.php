@@ -1923,11 +1923,6 @@
                 </div>
             </div>
             <div class="cd-modal-footer" style="flex-direction: column; align-items: stretch; gap: 12px;">
-                <!-- "What did you change?" notes (shown when submitting to Approver) -->
-                <div id="modalSubmitNotesGroup" style="display: none;">
-                    <label class="detail-label" style="color: #3b82f6; margin-bottom: 6px;">What did you change? <span style="font-size:10px; font-weight:500; color:var(--color-text-secondary);">(optional)</span></label>
-                    <textarea id="modalSubmitNotes" name="submit_notes" form="submitStageForm" placeholder="Briefly describe the changes you made in this revision..." style="width:100%; height:80px; padding:12px; border-radius:12px; border:1.5px solid rgba(59,130,246,0.2); font-size:13px; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); resize:none; transition: border-color 0.15s; box-sizing: border-box;" onfocus="this.style.borderColor='rgba(59,130,246,0.5)'" onblur="this.style.borderColor='rgba(59,130,246,0.2)'"></textarea>
-                </div>
                 <div style="display:flex; align-items:center; gap:12px;">
                     <form id="submitStageForm" method="POST" enctype="multipart/form-data" style="display:none; align-items:center; gap:12px;">
                         @csrf
@@ -2492,11 +2487,6 @@
                             apprArea.style.display = 'block';
                             apprArea.querySelector('select').disabled = false;
                         }
-                        // Show "What did you change?" box when submitting to Approver
-                        document.getElementById('modalSubmitNotesGroup').style.display = 'block';
-                        document.getElementById('modalSubmitNotes').value = '';
-                    } else {
-                        document.getElementById('modalSubmitNotesGroup').style.display = 'none';
                     }
                     if (stage === 'Approver') {
                         bmArea.style.display = 'block';
@@ -2988,11 +2978,6 @@
                         <img id="batchRevisionImagePreview" src="" alt="" style="display:none;margin-top:10px;max-width:100%;max-height:180px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;">
                     </div>
                 </div>
-                <!-- Submit Notes Group (shown when submitting to Approver) -->
-                <div id="batchSubmitNotesGroup" style="display: none; margin-top: 16px;">
-                    <label class="detail-label" style="color: #3b82f6;">What did you change? <span style="font-size:10px; font-weight:500; color:var(--color-text-secondary);">(optional)</span></label>
-                    <textarea id="batchSubmitNotes" placeholder="Briefly describe the changes you made in this revision..." style="width:100%; height:90px; padding:12px; border-radius:12px; border:1.5px solid rgba(59, 130, 246, 0.2); font-size:13px; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); resize:none; transition: border-color 0.15s;" onfocus="this.style.borderColor='rgba(59,130,246,0.5)'" onblur="this.style.borderColor='rgba(59,130,246,0.2)'"></textarea>
-                </div>
                 <!-- Further Approver (optional, shown at Approver → Brand Manager) -->
                 <div id="batchFurtherApproverGroup" style="display:none; margin-bottom:20px; padding:16px; border-radius:12px; border:1.5px solid rgba(124,58,237,0.15); background:rgba(124,58,237,0.04);">
                     <label class="detail-label" style="color:#7c3aed; margin-bottom:6px;">
@@ -3053,16 +3038,12 @@
             const stickyHint = document.getElementById('batchStickyHint');
             const confirmBtn = document.getElementById('batchConfirmBtn');
 
-            const submitNotesGroup = document.getElementById('batchSubmitNotesGroup');
-            const submitNotesArea  = document.getElementById('batchSubmitNotes');
-
             if (type === 'revision') {
                 title.textContent = `${itemType} Revision Request`;
                 subtitle.textContent = isIndividual ? `Moving this task back for revisions.` : `Moving ${count} tasks back for revisions.`;
                 stakeholderGroup.style.display = 'none';
                 revisionGroup.style.display = 'block';
                 genericConfirm.style.display = 'none';
-                submitNotesGroup.style.display = 'none';
                 confirmBtn.textContent = 'Request Revisions';
                 confirmBtn.style.background = '#ef4444';
 
@@ -3105,22 +3086,6 @@
                 }
                 confirmBtn.textContent = 'Confirm & Submit';
                 confirmBtn.style.background = ''; // default
-
-                // Show change notes when resubmitting after a revision, or when submitting to Approver
-                if (hasRevision || nextStage === 'Approver') {
-                    submitNotesArea.value = '';
-                    submitNotesGroup.style.display = 'block';
-                    const notesLabel = submitNotesGroup.querySelector('label');
-                    if (hasRevision) {
-                        notesLabel.innerHTML = 'What changes did you make? <span style="font-size:10px;font-weight:500;color:var(--color-text-secondary);">(optional)</span>';
-                        submitNotesArea.placeholder = 'Briefly describe the changes you made to address the revision...';
-                    } else {
-                        notesLabel.innerHTML = 'What did you change? <span style="font-size:10px;font-weight:500;color:var(--color-text-secondary);">(optional)</span>';
-                        submitNotesArea.placeholder = 'Briefly describe the changes you made in this revision...';
-                    }
-                } else {
-                    submitNotesGroup.style.display = 'none';
-                }
             }
 
             stickyHint.style.display = 'none';
@@ -3424,14 +3389,6 @@
                 }
             }
 
-            // Include writer's change notes if the textarea is visible
-            const submitNotesGroup = document.getElementById('batchSubmitNotesGroup');
-            if (submitNotesGroup && submitNotesGroup.style.display !== 'none') {
-                const notesVal = document.getElementById('batchSubmitNotes').value.trim();
-                if (notesVal) payload.submit_notes = notesVal;
-            }
-
-
             // Collect reference image files — switch to FormData if any are selected
             const refFiles = {};
             document.querySelectorAll('.batch-ref-file').forEach(input => {
@@ -3447,7 +3404,6 @@
                 if (roleField && assigneeId && assigneeId !== 'individual') fd.append(roleField, assigneeId);
                 if (payload.further_approver_id) fd.append('further_approver_id', payload.further_approver_id);
                 if (payload.designer_deadline) fd.append('designer_deadline', payload.designer_deadline);
-                if (payload.submit_notes) fd.append('submit_notes', payload.submit_notes);
                 Object.entries(refFiles).forEach(([id, file]) => fd.append('reference_files[' + id + ']', file));
                 fetchOpts = { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }, body: fd };
             } else {
