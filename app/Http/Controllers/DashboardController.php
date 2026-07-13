@@ -83,7 +83,7 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        $brands = \App\Models\Brand::select('id', 'name', 'slug', 'logo_url')->get();
+        $brands = \App\Models\Brand::select('id', 'name', 'slug', 'logo_url', 'created_by')->with('members')->get();
         $brandCount = $brands->count();
         return view('dashboard', compact('deliverables', 'brands', 'brandCount'));
     }

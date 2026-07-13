@@ -10,20 +10,7 @@ class BrandController extends Controller
     public function index()
     {
         $user = auth()->user();
-        
-        $query = Brand::withCount('projects')->with('members');
-        
-        if (!$user->isAdmin()) {
-            if ($user->role === 'Brand Manager') {
-                $query->where('created_by', $user->id);
-            } else {
-                $query->whereHas('members', function($q) use ($user) {
-                    $q->where('users.id', $user->id);
-                });
-            }
-        }
-        
-        $brands = $query->get();
+        $brands = Brand::withCount('projects')->with('members')->get();
         return view('brands.index', compact('brands'));
     }
 

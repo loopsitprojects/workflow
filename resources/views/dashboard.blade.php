@@ -45,8 +45,19 @@
             </div>
             <div class="flex flex-wrap gap-3">
                 @foreach($brands as $brand)
+                @php
+                    $user = auth()->user();
+                    $isAssigned = $user->isAdmin() || 
+                        ($user->role === 'Brand Manager' && $brand->created_by === $user->id) ||
+                        ($user->role !== 'Brand Manager' && ($brand->created_by === $user->id || $brand->members->contains('id', $user->id)));
+                @endphp
+                @if($isAssigned)
                 <a href="{{ route('brands.show', $brand) }}"
                    class="flex items-center gap-2.5 px-3 py-2 bg-white dark:bg-[#111827] border border-gray-100 dark:border-slate-800 rounded-xl hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-sm transition-all group">
+                @else
+                <div onclick="window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'You are not assigned to this brand.', type: 'warning' } }))"
+                   class="flex items-center gap-2.5 px-3 py-2 bg-white dark:bg-[#111827] border border-gray-100 dark:border-slate-800 rounded-xl opacity-60 cursor-pointer transition-all group">
+                @endif
                     <div class="w-6 h-6 rounded-md bg-gray-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0">
                         @if($brand->logo_url)
                             <img src="{{ $brand->logo_url }}" alt="{{ $brand->name }}" class="w-5 h-5 object-contain">
@@ -55,7 +66,11 @@
                         @endif
                     </div>
                     <span class="text-[12px] font-bold text-gray-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 whitespace-nowrap">{{ $brand->name }}</span>
+                @if($isAssigned)
                 </a>
+                @else
+                </div>
+                @endif
                 @endforeach
             </div>
         </div>

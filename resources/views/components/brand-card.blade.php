@@ -1,7 +1,10 @@
 @props(['brand'])
 
 @php
-    $isAssigned = auth()->user()->isAdmin() || $brand->created_by === auth()->id() || $brand->members->contains('id', auth()->id());
+    $user = auth()->user();
+    $isAssigned = $user->isAdmin() || 
+        ($user->role === 'Brand Manager' && $brand->created_by === $user->id) ||
+        ($user->role !== 'Brand Manager' && ($brand->created_by === $user->id || $brand->members->contains('id', $user->id)));
 @endphp
 
 <div class="bg-white dark:bg-[#111827] rounded-2xl card-shadow border border-gray-100 dark:border-white/[0.06] flex flex-col relative group transition-all hover:shadow-md hover:-translate-y-0.5 overflow-hidden">
@@ -43,7 +46,7 @@
             @endif
 
             {{-- 3-dot menu --}}
-            @if(auth()->user()->isAdmin() || auth()->user()->role === 'Brand Manager')
+            @if(auth()->user()->isAdmin() || (auth()->user()->role === 'Brand Manager' && $brand->created_by === auth()->id()))
             <div class="relative flex-shrink-0" x-data="{ open: false }" @click.away="open = false">
                 <button @click="open = !open" class="text-gray-300 dark:text-slate-600 hover:text-gray-500 dark:hover:text-slate-400 focus:outline-none p-1 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
