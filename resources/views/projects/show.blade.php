@@ -1650,9 +1650,7 @@
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="display:flex; gap:8px; margin-right:12px; border-right:1px solid var(--color-border-primary); padding-right:12px;">
                                         <a id="btnExportPpt" href="#" class="cd-btn cd-btn-outline" style="padding:6px 10px; font-size:11px;" title="Download PPT">PPT</a>
-                                        @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
-                                            <a id="modalEditBtn" href="#" class="cd-btn cd-btn-outline" style="padding:6px 10px; font-size:11px; border-color:#0055D4; color:#0055D4;" title="Edit Deliverable">Edit</a>
-                                        @endif
+
                                     </div>
                     <button onclick="closeTaskModal()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer;">
                         <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -1766,6 +1764,18 @@
                             @endforeach
                         </select>
                         <p style="font-size:11px; color:#3b82f6; margin-top:8px; font-weight:600;">Selection required to advance to Brand Manager stage.</p>
+                    </div>
+
+                    <div id="modalFurtherApproverGroup" style="display:none; margin-top:10px; padding:20px; background:rgba(124,58,237,0.05); border:1px solid rgba(124,58,237,0.1); border-radius:16px;">
+                        <label class="detail-label" style="color:#7c3aed; margin-bottom:12px; text-transform:uppercase; font-size:10px; letter-spacing:0.08em; font-weight:700;">
+                            Further Approver <span style="text-transform:none; letter-spacing:0; font-weight:500; opacity:0.8;">(optional — adds another approval step before Brand Manager)</span>
+                        </label>
+                        <select name="further_approver_id" form="submitStageForm" style="width:100%; padding:12px; border-radius:10px; border:1px solid rgba(124,58,237,0.2); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                            <option value="">— Skip, go directly to Brand Manager —</option>
+                            @foreach($approvers as $approver)
+                                <option value="{{ $approver->id }}">{{ $approver->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <div id="coordinatorSelectionArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(14,165,233,0.05); border:1px solid rgba(14,165,233,0.1); border-radius:16px;">
@@ -2201,8 +2211,7 @@
                 }
                 document.getElementById('modalReference').innerHTML = refHtml;
                 
-                const modalEditBtn = document.getElementById('modalEditBtn');
-                if (modalEditBtn) modalEditBtn.href = `/deliverables/${task.id}/edit`;
+
                 document.getElementById('revisionsForm').action = `/deliverables/${task.id}/revisions`;
                 document.getElementById('submitStageForm').action = `/deliverables/${task.id}/submit`;
                 document.getElementById('artworkDeliveryForm').action = `/deliverables/${task.id}/submit`;
@@ -2450,6 +2459,10 @@
                 apprArea.querySelector('select').disabled = true;
                 bmArea.style.display = 'none';
                 bmArea.querySelector('select').disabled = true;
+                document.getElementById('modalFurtherApproverGroup').style.display = 'none';
+                document.getElementById('modalFurtherApproverGroup').querySelector('select').disabled = true;
+                document.getElementById('modalFurtherApproverGroup').querySelector('select').value = '';
+                
                 coordArea.style.display = 'none';
                 coordArea.querySelector('select').disabled = true;
                 dArea.style.display = 'none';
@@ -2491,6 +2504,12 @@
                     if (stage === 'Approver') {
                         bmArea.style.display = 'block';
                         bmArea.querySelector('select').disabled = false;
+                        
+                        const faArea = document.getElementById('modalFurtherApproverGroup');
+                        if (faArea) {
+                            faArea.style.display = 'block';
+                            faArea.querySelector('select').disabled = false;
+                        }
                     }
                     if (stage === 'Brand Manager' || stage === 'AM/BD') {
                         coordArea.style.display = 'block';
@@ -2551,7 +2570,7 @@
                     }
                 }
 
-                const isAuthorizedToDelete = isAdmin || userRole === 'brandmanager';
+                const isAuthorizedToDelete = isAdmin || userRole === 'brandmanager' || (hasWriterRole && task.writer_id == {{ $currentUserId }});
                 const modalDeleteBtn = document.getElementById('modalDeleteBtn');
                 if (modalDeleteBtn) {
                     modalDeleteBtn.style.display = isAuthorizedToDelete ? 'block' : 'none';

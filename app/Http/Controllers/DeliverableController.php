@@ -902,9 +902,11 @@ class DeliverableController extends Controller
     public function destroy(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') {
+        $isCreatorWriter = $user->role === 'Writer' && $deliverable->writer_id === $user->id;
+
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && !$isCreatorWriter) {
             if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['message' => 'Only Admins and Brand Managers can delete deliverables.'], 403);
+                return response()->json(['message' => 'Only Admins, Brand Managers, and the assigned Writer can delete deliverables.'], 403);
             }
             abort(403);
         }
