@@ -614,9 +614,9 @@
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
-                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="concept" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->concept }}</textarea>
+                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="concept" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ strip_tags($subtask->concept) }}</textarea>
                                             @else
-                                                @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ $subtask->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                                @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ strip_tags($subtask->concept) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td>
@@ -627,16 +627,16 @@
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
-                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="caption" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->caption }}</textarea>
+                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="caption" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ strip_tags($subtask->caption) }}</textarea>
                                             @else
-                                                @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ $subtask->caption }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                                @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ strip_tags($subtask->caption) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
-                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="post_copy" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ $subtask->post_copy }}</textarea>
+                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="post_copy" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ strip_tags($subtask->post_copy) }}</textarea>
                                             @else
-                                                @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ $subtask->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                                @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ strip_tags($subtask->post_copy) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
@@ -832,15 +832,15 @@
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
 
                                         </td>
-                                        <td>@if($task->concept)<div class="cell-text" onclick="openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ $task->concept }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
+                                        <td>@if($task->concept)<div class="cell-text" onclick="openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ strip_tags($task->concept) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
                                         <td>
                                             @php $taskColors = $subtaskTypeColors[$task->subtask_type] ?? $subtaskTypeColors['default']; @endphp
                                             <span class="subtask-pill" style="background:{{ $taskColors['bg'] }}; color:{{ $taskColors['text'] }}; border-color:{{ $taskColors['border'] }};">
                                                 {{ $task->subtask_type ?: 'Standard' }}
                                             </span>
                                         </td>
-                                        <td>@if($task->caption)<div class="cell-text" onclick="openTextPreview('Caption',{{ json_encode($task->caption) }})">{{ $task->caption }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
-                                        <td>@if($task->post_copy)<div class="cell-text" onclick="openTextPreview('Post Copy',{{ json_encode($task->post_copy) }})">{{ $task->post_copy }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
+                                        <td>@if($task->caption)<div class="cell-text" onclick="openTextPreview('Caption',{{ json_encode($task->caption) }})">{{ strip_tags($task->caption) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
+                                        <td>@if($task->post_copy)<div class="cell-text" onclick="openTextPreview('Post Copy',{{ json_encode($task->post_copy) }})">{{ strip_tags($task->post_copy) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
                                         <td>
                                             @if($task->reference_file)
                                                 <img src="{{ $task->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $task->reference_file }}', false)">
@@ -1187,7 +1187,7 @@
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="concept" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $subtask->concept }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="concept" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($subtask->concept) }}</textarea>
                                         </td>
                                         <td>
                                             @if($subtask->subtask_type)
@@ -1200,10 +1200,10 @@
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="caption" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $subtask->caption }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="caption" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($subtask->caption) }}</textarea>
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="post_copy" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $subtask->post_copy }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="post_copy" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($subtask->post_copy) }}</textarea>
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @if($subtask->reference_file)
@@ -1397,7 +1397,7 @@
 
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="concept" placeholder="Concept..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $task->concept }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="concept" placeholder="Concept..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($task->concept) }}</textarea>
                                         </td>
                                         <td>
                                             @if($task->subtask_type)
@@ -1410,10 +1410,10 @@
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="caption" placeholder="Caption..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $task->caption }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="caption" placeholder="Caption..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($task->caption) }}</textarea>
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="post_copy" placeholder="Copy..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ $task->post_copy }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="post_copy" placeholder="Copy..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($task->post_copy) }}</textarea>
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @if($task->reference_file)

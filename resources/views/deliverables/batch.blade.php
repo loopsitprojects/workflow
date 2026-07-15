@@ -259,19 +259,19 @@
 
             <div class="pc-field">
                 <div class="pc-label">Concept</div>
-                @if($post->concept)<div class="pc-val">{{ $post->concept }}</div>
+                @if($post->concept)<div class="pc-val">{{ strip_tags($post->concept) }}</div>
                 @else<div class="pc-val pc-empty">No concept yet</div>@endif
             </div>
 
             <div class="pc-field">
                 <div class="pc-label">Caption</div>
-                @if($post->caption)<div class="pc-val">{{ $post->caption }}</div>
+                @if($post->caption)<div class="pc-val">{{ strip_tags($post->caption) }}</div>
                 @else<div class="pc-val pc-empty">No caption yet</div>@endif
             </div>
 
             <div class="pc-field full">
                 <div class="pc-label">Post Copy</div>
-                @if($post->post_copy)<div class="pc-val">{{ $post->post_copy }}</div>
+                @if($post->post_copy)<div class="pc-val">{{ strip_tags($post->post_copy) }}</div>
                 @else<div class="pc-val pc-empty">No copy yet</div>@endif
             </div>
 
