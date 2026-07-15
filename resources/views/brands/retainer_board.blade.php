@@ -116,17 +116,17 @@
                             </td>
                             <td class="col-text">
                                 <div class="text-truncate-box">
-                                    {{ $task->concept ?: 'No concept provided' }}
+                                    {{ $task->concept ? strip_tags($task->concept) : 'No concept provided' }}
                                 </div>
                             </td>
                             <td class="col-text">
                                 <div class="text-truncate-box">
-                                    {{ $task->caption ?: 'No caption provided' }}
+                                    {{ $task->caption ? strip_tags($task->caption) : 'No caption provided' }}
                                 </div>
                             </td>
                             <td class="col-text">
                                 <div class="text-truncate-box">
-                                    {{ $task->post_copy ?: 'No copy provided' }}
+                                    {{ $task->post_copy ? strip_tags($task->post_copy) : 'No copy provided' }}
                                 </div>
                             </td>
                             <td class="col-ref">

@@ -2050,8 +2050,9 @@
             const body = document.getElementById('tp-body');
             body.innerHTML = '';
             const textNode = document.createElement('div');
-            textNode.style.cssText = 'white-space:pre-wrap;word-break:break-word;';
-            textNode.textContent = text;
+            textNode.className = 'ql-editor';
+            textNode.style.cssText = 'word-break:break-word; padding:0;';
+            textNode.innerHTML = text;
             body.appendChild(textNode);
             if (imagePath) {
                 const img = document.createElement('img');
