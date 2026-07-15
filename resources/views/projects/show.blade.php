@@ -774,6 +774,7 @@
                                                     elseif ($subStage === 'Designer') $btnLabel = 'Send';
                                                     elseif ($subStage === 'Writer Review') $btnLabel = 'Approve';
                                                     elseif ($subStage === 'Approver Review') $btnLabel = 'Approve';
+                                                    elseif ($subStage === 'Scheduled') $btnLabel = 'Scheduled';
                                                 @endphp
 
                                                 @php
@@ -972,7 +973,7 @@
                                                     if ($stage === 'Writer' || $stage === 'Assignee') $btnLabel = 'Submit';
                                                     elseif ($stage === 'Coordinator') $btnLabel = 'Assign';
                                                     elseif ($stage === 'Designer') $btnLabel = 'Send';
-                                                    elseif ($stage === 'Scheduled') $btnLabel = 'Scheduled and Closed';
+                                                    elseif ($stage === 'Scheduled') $btnLabel = 'Scheduled';
                                                     elseif ($stage === 'Writer Review') $btnLabel = 'Approve';
                                                     elseif ($stage === 'Approver Review') $btnLabel = 'Approve';
                                                 @endphp

@@ -64,6 +64,10 @@ class DashboardController extends Controller
                             ->orWhere(function($fa) use ($userId) {
                                 $fa->where('approval_stage', 'Further Approver')
                                    ->where('further_approver_id', $userId);
+                            })
+                            ->orWhere(function($sch) use ($userId) {
+                                $sch->where('approval_stage', 'Scheduled')
+                                   ->where('writer_id', $userId);
                             });
                         });
                 });

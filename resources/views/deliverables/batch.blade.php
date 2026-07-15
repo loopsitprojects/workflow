@@ -217,6 +217,7 @@
             in_array($stage, ['Writer','Assignee']) => 'Submit',
             $stage === 'Coordinator'                => 'Assign to Designer',
             $stage === 'Designer'                   => 'Send Artwork',
+            $stage === 'Scheduled'                  => 'Scheduled',
             default                                 => 'Approve',
         };
 
