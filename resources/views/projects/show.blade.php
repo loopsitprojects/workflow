@@ -1653,6 +1653,23 @@
                     @endforeach
                 </div>
 
+                <div style="display:flex; gap:16px; margin-bottom:24px;">
+                    <div class="detail-item" id="modalDeliverableDeadlineBox" style="flex:1;">
+                        <label class="detail-label" style="color:#3b82f6;">Deliverable Deadline</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm"
+                                style="flex:1; padding:8px 12px; border:1.5px solid rgba(59,130,246,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
+                            <button type="button" id="saveDeadlineBtn" style="display:none; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
+                        </div>
+                    </div>
+
+                    <div class="detail-item" id="modalDesignerDeadlineBox" style="display:none; flex:1;">
+                        <label class="detail-label" style="color:#8b5cf6;">Designer Deadline</label>
+                        <div id="modalDesignerDeadline" style="font-size:13px; font-weight:700; color:#8b5cf6; padding:8px 12px; background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.2); border-radius:8px;"></div>
+                    </div>
+                </div>
+
                 <!-- Revision Alert Banner -->
                 <div id="modalRevisionAlert" style="display:none; padding:16px; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.2); border-radius:16px; margin-bottom:24px;">
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
@@ -1707,22 +1724,6 @@
                         <label class="detail-label">Current Stage</label>
                         <div id="modalStage" class="detail-val" style="font-weight:900; color:#0055D4;">-</div>
                     </div>
-
-                    <div class="detail-item" id="modalDesignerDeadlineBox" style="display:none;">
-                        <label class="detail-label" style="color:#8b5cf6;">Designer Deadline</label>
-                        <div id="modalDesignerDeadline" style="font-size:13px; font-weight:700; color:#8b5cf6; padding:8px 12px; background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.2); border-radius:8px;"></div>
-                    </div>
-
-                    <div class="detail-item" id="modalDeliverableDeadlineBox">
-                        <label class="detail-label" style="color:#3b82f6;">Deliverable Deadline</label>
-                        <div style="display:flex; gap:8px;">
-                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm"
-                                style="width:100%; padding:8px 12px; border:1.5px solid rgba(59,130,246,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
-                            <button type="button" id="saveDeadlineBtn" style="display:none; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
-                        </div>
-                    </div>
-
 
                     <div class="detail-item full" style="border-top:1px solid var(--color-border-primary); padding-top:20px; margin-top:10px;">
                         <label class="detail-label" style="margin-bottom:16px; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em; font-size:11px;">Deliverable Team</label>
@@ -2110,9 +2111,9 @@
                 btn.style.background = '#10b981';
                 btn.style.opacity = '1';
                 setTimeout(() => {
-                    btn.textContent = 'Save';
-                    btn.style.background = '#3b82f6';
-                }, 2000);
+                    window.location.reload();
+                }, 500);
+
             }).catch(() => {
                 btn.textContent = 'Error';
                 btn.style.background = '#ef4444';
