@@ -149,11 +149,18 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
             </div>
             <div class="f-grid" style="margin-top:16px;">
                 <div>
+                    <label class="f-label">Deadline</label>
+                    <input type="date" name="deadline" class="f-input"
+                           value="{{ old('deadline', $deliverable->deadline ? \Carbon\Carbon::parse($deliverable->deadline)->format('Y-m-d') : '') }}">
+                </div>
+                <div>
                     <label class="f-label">Revision Count</label>
                     <input type="number" name="revisions" min="0" class="f-input"
                            value="{{ old('revisions', $deliverable->revisions) }}">
                 </div>
-                <div>
+            </div>
+            <div class="f-grid" style="margin-top:16px;">
+                <div style="grid-column: span 2;">
                     <label class="f-label">Final Design Link</label>
                     <input type="url" name="final_designs" placeholder="https://…" class="f-input"
                            value="{{ old('final_designs', $deliverable->final_designs) }}">
