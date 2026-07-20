@@ -372,6 +372,13 @@ class DeliverableController extends Controller
                 $deliverable->work_hours = $request->work_hours ?: null;
             }
             if ($request->has('designer_deadline')) $deliverable->designer_deadline = $request->designer_deadline ?: null;
+            if ($request->has('deadline')) {
+                $isBrandManagerOrAdmin = $user->isAdmin() || $userRole === 'brandmanager';
+                if (!$isBrandManagerOrAdmin) {
+                    abort(403, 'Unauthorized action: only Brand Managers or Admins can edit the deadline.');
+                }
+                $deliverable->deadline = $request->deadline ?: null;
+            }
             
             if ($request->hasFile('reference_file')) {
                 $deliverable->reference_file = $this->moveUploadedFile($request->file('reference_file'), 'references');

@@ -1713,6 +1713,13 @@
                         <div id="modalDesignerDeadline" style="font-size:13px; font-weight:700; color:#8b5cf6; padding:8px 12px; background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.2); border-radius:8px;"></div>
                     </div>
 
+                    <div class="detail-item" id="modalDeliverableDeadlineBox">
+                        <label class="detail-label" style="color:#3b82f6;">Deliverable Deadline</label>
+                        <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm"
+                            style="width:100%; padding:8px 12px; border:1.5px solid rgba(59,130,246,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                            onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
+                    </div>
+
                     <div class="detail-item full" style="border-top:1px solid var(--color-border-primary); padding-top:20px; margin-top:10px;">
                         <label class="detail-label" style="margin-bottom:16px; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em; font-size:11px;">Deliverable Team</label>
                         <div id="modalTeamGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:12px;"></div>
@@ -2180,6 +2187,28 @@
                     if (ddHidden)    ddHidden.value = '';
                 }
 
+                // Deliverable Deadline Input Population
+                const delDeadlineInput = document.getElementById('modalDeliverableDeadlineInput');
+                if (delDeadlineInput) {
+                    let dDateStr = '';
+                    const displayDeadline = task.deadline || (task.parent ? task.parent.deadline : null);
+                    if (displayDeadline) {
+                        const dDate = new Date(displayDeadline);
+                        const pad = n => String(n).padStart(2,'0');
+                        dDateStr = `${dDate.getFullYear()}-${pad(dDate.getMonth()+1)}-${pad(dDate.getDate())}`;
+                    }
+                    delDeadlineInput.value = dDateStr;
+                    const isBrandManagerOrAdmin = isAdmin || userRole === 'brandmanager';
+                    delDeadlineInput.readOnly = !isBrandManagerOrAdmin;
+                    if (!isBrandManagerOrAdmin) {
+                        delDeadlineInput.style.opacity = '0.7';
+                        delDeadlineInput.style.pointerEvents = 'none';
+                    } else {
+                        delDeadlineInput.style.opacity = '1';
+                        delDeadlineInput.style.pointerEvents = 'auto';
+                    }
+                }
+
                 let refHtml = '';
                 if (task.reference_file) {
                     refHtml = `
@@ -2523,7 +2552,7 @@
                 }
 
                 if ((writerEditPermission && (stage === 'Writer' || stage === 'Assignee' || stage === 'Writer Review')) ||
-                    (designerEditPermission && stage === 'Designer') || isAdmin) {
+                    (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager') {
                     submitBtnForm.style.display = 'flex';
                     saveContentBtn.style.display = 'block';
                 }
