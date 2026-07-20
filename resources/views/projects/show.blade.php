@@ -374,12 +374,18 @@
                     <span style="opacity:0.7;">/</span>
                     <a href="{{ route('brands.show', $project->brand) }}" style="text-decoration: none; color: inherit;">{{ $project->brand->name }}</a>
                 </nav>
-                <h1 style="font-size: 24px; font-weight: 800; color: var(--color-text-primary); letter-spacing: -0.02em; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;">
+                <h1 style="font-size: 24px; font-weight: 800; color: var(--color-text-primary); letter-spacing: -0.02em; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0;">
                     @if($project->job_number)
                         <span style="color: #3b82f6; font-size:16px; font-weight:700; opacity:0.9;">[{{ $project->job_number }}]</span>
                     @endif
                     {{ $project->name }}
-                    <span style="font-size:11px; font-weight:600; color:var(--color-text-secondary); background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); padding:3px 8px; border-radius:6px; letter-spacing:0.04em; text-transform:uppercase;">{{ ucfirst($project->workflow_type) }}</span>
+                    <span style="font-size:11px; font-weight:600; color:var(--color-text-secondary); background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); padding:3px 8px; border-radius:6px; letter-spacing:0.04em; text-transform:uppercase; align-self:center;">{{ ucfirst($project->workflow_type) }}</span>
+                    @if($project->deadline)
+                        <span style="font-size:11px; font-weight:700; color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); padding:3px 8px; border-radius:6px; letter-spacing:0.04em; text-transform:uppercase; display:flex; align-items:center; gap:4px; align-self:center;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Due: {{ \Carbon\Carbon::parse($project->deadline)->format('M d, Y') }}
+                        </span>
+                    @endif
                 </h1>
             </div>
             <div style="display: flex; align-items: center; gap: 12px; flex-shrink:0;">
