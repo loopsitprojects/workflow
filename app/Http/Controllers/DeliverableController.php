@@ -344,24 +344,22 @@ class DeliverableController extends Controller
             $user = auth()->user();
             $userRole = strtolower(str_replace(' ', '', $user->role));
 
-            if ($request->hasAny(['concept', 'caption', 'post_copy', 'notes', 'title'])) {
-                $isWriterStage = in_array($deliverable->approval_stage, ['Writer', 'Assignee', 'Writer Review']);
-                $hasWriterRole = in_array($userRole, ['writer', 'assignee']);
-                $isAssignedWriter = ($deliverable->writer_id && $user->id == $deliverable->writer_id);
-                $isUnassignedWriter = (!$deliverable->writer_id && $hasWriterRole);
-                
-                if (!$user->isAdmin() && !($isWriterStage && ($isAssignedWriter || $isUnassignedWriter))) {
-                    abort(403, 'Unauthorized action: only the assigned writer can edit content.');
-                }
-            }
+            $isWriterStage = in_array($deliverable->approval_stage, ['Writer', 'Assignee', 'Writer Review']);
+            $hasWriterRole = in_array($userRole, ['writer', 'assignee']);
+            $isAssignedWriter = ($deliverable->writer_id && $user->id == $deliverable->writer_id);
+            $isUnassignedWriter = (!$deliverable->writer_id && $hasWriterRole);
+            
+            $canEditContent = $user->isAdmin() || ($isWriterStage && ($isAssignedWriter || $isUnassignedWriter));
 
-            if ($request->has('title')) $deliverable->title = $request->title;
-            if ($request->has('concept')) $deliverable->concept = $request->concept;
-            if ($request->has('notes')) $deliverable->notes = $request->notes;
-            if ($request->has('caption')) $deliverable->caption = $request->caption;
-            if ($request->has('post_copy')) $deliverable->post_copy = $request->post_copy;
-            if ($request->has('reference')) $deliverable->reference = $request->reference;
-            if ($request->has('final_designs_link')) $deliverable->final_designs_link = $request->final_designs_link;
+            if ($canEditContent) {
+                if ($request->has('title')) $deliverable->title = $request->title;
+                if ($request->has('concept')) $deliverable->concept = $request->concept;
+                if ($request->has('notes')) $deliverable->notes = $request->notes;
+                if ($request->has('caption')) $deliverable->caption = $request->caption;
+                if ($request->has('post_copy')) $deliverable->post_copy = $request->post_copy;
+                if ($request->has('reference')) $deliverable->reference = $request->reference;
+                if ($request->has('final_designs_link')) $deliverable->final_designs_link = $request->final_designs_link;
+            }
             if ($request->has('work_hours')) {
                 $isDesigner = $userRole === 'designer';
                 $isAssignedDesigner = ($deliverable->designer_id && $user->id == $deliverable->designer_id);

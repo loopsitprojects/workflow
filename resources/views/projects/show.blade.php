@@ -1715,10 +1715,14 @@
 
                     <div class="detail-item" id="modalDeliverableDeadlineBox">
                         <label class="detail-label" style="color:#3b82f6;">Deliverable Deadline</label>
-                        <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm"
-                            style="width:100%; padding:8px 12px; border:1.5px solid rgba(59,130,246,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                            onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
+                        <div style="display:flex; gap:8px;">
+                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm"
+                                style="width:100%; padding:8px 12px; border:1.5px solid rgba(59,130,246,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
+                            <button type="button" id="saveDeadlineBtn" style="display:none; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
+                        </div>
                     </div>
+
 
                     <div class="detail-item full" style="border-top:1px solid var(--color-border-primary); padding-top:20px; margin-top:10px;">
                         <label class="detail-label" style="margin-bottom:16px; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em; font-size:11px;">Deliverable Team</label>
@@ -2085,6 +2089,40 @@
         const WORKFLOW_STAGES = @json($stages);
         let currentTaskData = null;
 
+        function saveDeliverableDeadline(btn) {
+            if (!currentTaskData) return;
+            const input = document.getElementById('modalDeliverableDeadlineInput');
+            if (!input) return;
+            const deadlineVal = input.value;
+            const originalText = btn.textContent;
+            btn.textContent = 'Saving...';
+            btn.style.opacity = '0.7';
+            fetch(`/deliverables/${currentTaskData.id}/submit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ action: 'save_only', deadline: deadlineVal })
+            }).then(r => r.json()).then(data => {
+                btn.textContent = 'Saved!';
+                btn.style.background = '#10b981';
+                btn.style.opacity = '1';
+                setTimeout(() => {
+                    btn.textContent = 'Save';
+                    btn.style.background = '#3b82f6';
+                }, 2000);
+            }).catch(() => {
+                btn.textContent = 'Error';
+                btn.style.background = '#ef4444';
+                setTimeout(() => {
+                    btn.textContent = 'Save';
+                    btn.style.background = '#3b82f6';
+                }, 2000);
+            });
+        }
+
         function syncDesignerDeadline() {
             const d = document.getElementById('designerDeadlineDateInput')?.value;
             const t = document.getElementById('designerDeadlineTimeInput')?.value;
@@ -2200,12 +2238,15 @@
                     delDeadlineInput.value = dDateStr;
                     const isBrandManagerOrAdmin = isAdmin || userRole === 'brandmanager';
                     delDeadlineInput.readOnly = !isBrandManagerOrAdmin;
+                    const saveBtn = document.getElementById('saveDeadlineBtn');
                     if (!isBrandManagerOrAdmin) {
                         delDeadlineInput.style.opacity = '0.7';
                         delDeadlineInput.style.pointerEvents = 'none';
+                        if (saveBtn) saveBtn.style.display = 'none';
                     } else {
                         delDeadlineInput.style.opacity = '1';
                         delDeadlineInput.style.pointerEvents = 'auto';
+                        if (saveBtn) saveBtn.style.display = 'block';
                     }
                 }
 
