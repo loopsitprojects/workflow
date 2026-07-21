@@ -2482,7 +2482,7 @@
                     alertTextEl.appendChild(textNode);
                     // Show image from the most recent revision entry if present
                     const latestRev = task.revisions_history && task.revisions_history.length
-                        ? task.revisions_history[task.revisions_history.length - 1]
+                        ? task.revisions_history[0]
                         : null;
                     if (latestRev && latestRev.image_path) {
                         const img = document.createElement('img');
