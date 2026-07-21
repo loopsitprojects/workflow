@@ -361,21 +361,31 @@ class DeliverableController extends Controller
                 if ($request->has('final_designs_link')) $deliverable->final_designs_link = $request->final_designs_link;
             }
             if ($request->has('work_hours')) {
-                $isDesigner = $userRole === 'designer';
-                $isAssignedDesigner = ($deliverable->designer_id && $user->id == $deliverable->designer_id);
-                $isUnassignedDesigner = (!$deliverable->designer_id && $isDesigner);
-                if (!$user->isAdmin() && !($isDesigner && ($isAssignedDesigner || $isUnassignedDesigner))) {
-                    abort(403, 'Unauthorized action: only the designer can edit work hours.');
+                $newWorkHours = $request->work_hours ?: null;
+                $oldWorkHours = $deliverable->work_hours;
+                
+                if ($newWorkHours != $oldWorkHours) {
+                    $isDesigner = $userRole === 'designer';
+                    $isAssignedDesigner = ($deliverable->designer_id && $user->id == $deliverable->designer_id);
+                    $isUnassignedDesigner = (!$deliverable->designer_id && $isDesigner);
+                    if (!$user->isAdmin() && !($isDesigner && ($isAssignedDesigner || $isUnassignedDesigner))) {
+                        abort(403, 'Unauthorized action: only the designer can edit work hours.');
+                    }
+                    $deliverable->work_hours = $newWorkHours;
                 }
-                $deliverable->work_hours = $request->work_hours ?: null;
             }
             if ($request->has('designer_deadline')) $deliverable->designer_deadline = $request->designer_deadline ?: null;
             if ($request->has('deadline')) {
-                $isBrandManagerOrAdmin = $user->isAdmin() || $userRole === 'brandmanager';
-                if (!$isBrandManagerOrAdmin) {
-                    abort(403, 'Unauthorized action: only Brand Managers or Admins can edit the deadline.');
+                $newDeadline = $request->deadline ?: null;
+                $oldDeadline = $deliverable->deadline ? \Carbon\Carbon::parse($deliverable->deadline)->format('Y-m-d') : null;
+                
+                if ($newDeadline !== $oldDeadline) {
+                    $isBrandManagerOrAdmin = $user->isAdmin() || $userRole === 'brandmanager';
+                    if (!$isBrandManagerOrAdmin) {
+                        abort(403, 'Unauthorized action: only Brand Managers or Admins can edit the deadline.');
+                    }
+                    $deliverable->deadline = $newDeadline;
                 }
-                $deliverable->deadline = $request->deadline ?: null;
             }
             
             if ($request->hasFile('reference_file')) {
