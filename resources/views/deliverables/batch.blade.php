@@ -177,7 +177,7 @@
                         {{ $p->title }}
                     </div>
                     <div style="font-size: 13px; color: #ef4444; font-weight: 600; line-height: 1.5; white-space: pre-wrap; margin-left: 12px;">{{ $p->revision_instructions }}</div>
-                    @php $pLatestRevImg = $p->revisionsHistory->last()?->image_path; @endphp
+                    @php $pLatestRevImg = $p->revisionsHistory->first()?->image_path; @endphp
                     @if($pLatestRevImg)
                         <a href="{{ $pLatestRevImg }}" target="_blank" style="display: inline-block; margin-top: 10px; margin-left: 12px;">
                             <img src="{{ $pLatestRevImg }}" alt="Revision reference" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2); object-fit: contain; cursor: pointer;">

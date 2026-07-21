@@ -787,7 +787,7 @@
                                                     $subStakeholders = "{approver: " . ($subtask->approver_id ?? 'null') . ", brand_manager: " . ($subtask->brand_manager_id ?? 'null') . ", coordinator: " . ($subtask->coordinator_id ?? 'null') . ", designer: " . ($subtask->designer_id ?? 'null') . ", writerName: '" . addslashes($subtask->writer->name ?? '') . "', approverName: '" . addslashes($subtask->approver->name ?? $project->approver->name ?? '') . "'}";
                                                 @endphp
                                                 @if($subtask->revision_instructions)
-                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->last()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
+                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
                                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
                                                         Revision Requested
                                                     </button>
@@ -985,7 +985,7 @@
                                                 @endphp
 
                                                 @if($task->revision_instructions)
-                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->last()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
+                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
                                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
                                                         Revision Requested
                                                     </button>
@@ -1352,7 +1352,7 @@
                                                     $subStakeholders = "{approver: " . ($subtask->approver_id ?? 'null') . ", brand_manager: " . ($subtask->brand_manager_id ?? 'null') . ", coordinator: " . ($subtask->coordinator_id ?? 'null') . ", designer: " . ($subtask->designer_id ?? 'null') . ", writerName: '" . addslashes($subtask->writer->name ?? '') . "', approverName: '" . addslashes($subtask->approver->name ?? $project->approver->name ?? '') . "'}";
                                                 @endphp
                                                 @if($subtask->revision_instructions)
-                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->last()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
+                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
                                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
                                                         Revision Requested
                                                     </button>
@@ -1562,7 +1562,7 @@
                                                     $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "'}";
                                                 @endphp
                                                 @if($task->revision_instructions)
-                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->last()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
+                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
                                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
                                                         Revision Requested
                                                     </button>
