@@ -1231,23 +1231,41 @@ class DeliverableController extends Controller
 
             // Content card block
             // Clean up HTML before displaying
-            $cleanContent = str_ireplace(['</p>', '</div>', '<br>', '<br/>', '<br />'], "\n", $content);
-            $cleanContent = preg_replace('/<li[^>]*>/i', "• ", $cleanContent);
+            $cleanContent = $content;
+            
+            // Convert breaks and block ends to newlines
+            $cleanContent = str_ireplace(['</p>', '</div>', '<br>', '<br/>', '<br />'], "\n", $cleanContent);
+            
+            // Handle ordered lists by numbering them sequentially within each <ol>
+            $cleanContent = preg_replace_callback('/<ol[^>]*>(.*?)<\/ol>/is', function($matches) {
+                $count = 1;
+                return preg_replace_callback('/<li[^>]*data-list="ordered"[^>]*>/i', function($m2) use (&$count) {
+                    return ($count++) . ". ";
+                }, $matches[1]);
+            }, $cleanContent);
+
+            // Quill rich text editor uses data-list="bullet" and data-list="ordered" (if no <ol> wrapper)
+            $cleanContent = preg_replace('/<li[^>]*data-list="bullet"[^>]*>/i', "• ", $cleanContent);
+            $cleanContent = preg_replace('/<li[^>]*data-list="ordered"[^>]*>/i', "1. ", $cleanContent); // Fallback if no <ol>
+            $cleanContent = preg_replace('/<li[^>]*>/i', "• ", $cleanContent); // fallback
             $cleanContent = str_ireplace('</li>', "\n", $cleanContent);
+            
             $cleanContent = strip_tags($cleanContent);
             $cleanContent = html_entity_decode($cleanContent, ENT_QUOTES | ENT_HTML5, 'UTF-8');
             // Remove multiple consecutive newlines and trim
             $cleanContent = preg_replace("/\n\s*\n+/", "\n", $cleanContent);
             $cleanContent = trim($cleanContent);
 
-            $excerpt  = mb_strlen($cleanContent) > 350 ? mb_substr($cleanContent, 0, 347) . '…' : $cleanContent;
+            // Do not truncate text for client presentations
+            $excerpt = $cleanContent;
             
             // Calculate lines based on explicit newlines plus word wrap estimate
             $explicitLines = substr_count($excerpt, "\n") + 1;
-            $wordWrapLines = (int) ceil(mb_strlen(str_replace("\n", "", $excerpt)) / 60);
+            $wordWrapLines = (int) ceil(mb_strlen(str_replace("\n", "", $excerpt)) / 75);
             $lines = max($explicitLines, $wordWrapLines);
 
-            $blockH   = min((int)($lines * 13) + 14, 110);
+            // Allow the block to grow to fit the text, up to the remaining slide height
+            $blockH   = (int)($lines * 14) + 20;
             $blockH   = min($blockH, $maxBottom - $offsetY);
             if ($blockH < 14) return;
 
