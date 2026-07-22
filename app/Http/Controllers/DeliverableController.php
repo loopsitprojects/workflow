@@ -1230,8 +1230,23 @@ class DeliverableController extends Controller
             $offsetY += 16;
 
             // Content card block
-            $excerpt  = mb_strlen($content) > 350 ? mb_substr($content, 0, 347) . '…' : $content;
-            $lines    = max(1, (int) ceil(mb_strlen($excerpt) / 60));
+            // Clean up HTML before displaying
+            $cleanContent = str_ireplace(['</p>', '</div>', '<br>', '<br/>', '<br />'], "\n", $content);
+            $cleanContent = preg_replace('/<li[^>]*>/i', "• ", $cleanContent);
+            $cleanContent = str_ireplace('</li>', "\n", $cleanContent);
+            $cleanContent = strip_tags($cleanContent);
+            $cleanContent = html_entity_decode($cleanContent, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            // Remove multiple consecutive newlines and trim
+            $cleanContent = preg_replace("/\n\s*\n+/", "\n", $cleanContent);
+            $cleanContent = trim($cleanContent);
+
+            $excerpt  = mb_strlen($cleanContent) > 350 ? mb_substr($cleanContent, 0, 347) . '…' : $cleanContent;
+            
+            // Calculate lines based on explicit newlines plus word wrap estimate
+            $explicitLines = substr_count($excerpt, "\n") + 1;
+            $wordWrapLines = (int) ceil(mb_strlen(str_replace("\n", "", $excerpt)) / 60);
+            $lines = max($explicitLines, $wordWrapLines);
+
             $blockH   = min((int)($lines * 13) + 14, 110);
             $blockH   = min($blockH, $maxBottom - $offsetY);
             if ($blockH < 14) return;
@@ -1243,8 +1258,17 @@ class DeliverableController extends Controller
             $blk->getFill()->setFillType($Fill::FILL_SOLID)->setStartColor($color($isRevision ? 'FFFFF5F5' : 'FFFFFFFF'));
             $blk->getBorder()->setLineStyle($Border::LINE_SINGLE)->setColor($color($isRevision ? 'FFFEE2E2' : 'FFE2E8F0'));
 
-            $run = $blk->createTextRun($excerpt);
-            $run->getFont()->setSize(9)->setColor($color($isRevision ? 'FF991B1B' : 'FF334155'));
+            $parts = explode("\n", $excerpt);
+            foreach ($parts as $idx => $part) {
+                if ($idx > 0) {
+                    $blk->createBreak();
+                }
+                if ($part !== '') {
+                    $run = $blk->createTextRun($part);
+                    $run->getFont()->setSize(9)->setColor($color($isRevision ? 'FF991B1B' : 'FF334155'));
+                }
+            }
+            
             $blk->getActiveParagraph()->getAlignment()->setMarginLeft(10)->setMarginTop(6)->setMarginRight(10);
 
             $offsetY += $blockH + 12;
