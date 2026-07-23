@@ -309,7 +309,9 @@ class DeliverableController extends Controller
             
             if ($deliverable->final_designs) {
                 $path = $deliverable->final_designs;
-                if (str_starts_with($path, '/artwork/')) {
+                if (preg_match('#/(artwork|references|briefs|brand_logos|revision_images)/([^/]+)$#', $path, $m)) {
+                    \Illuminate\Support\Facades\Storage::disk('s3')->delete($m[1] . '/' . $m[2]);
+                } else if (str_starts_with($path, '/artwork/')) {
                     $fullPath = public_path(ltrim($path, '/'));
                     if (file_exists($fullPath)) @unlink($fullPath);
                 }
@@ -388,10 +390,21 @@ class DeliverableController extends Controller
                 }
             }
             
-            if ($request->hasFile('reference_file')) {
+            if ($request->boolean('delete_reference_file')) {
+                if ($deliverable->reference_file) {
+                    $path = $deliverable->reference_file;
+                    if (preg_match('#/(artwork|references|briefs|brand_logos|revision_images)/([^/]+)$#', $path, $m)) {
+                        \Illuminate\Support\Facades\Storage::disk('s3')->delete($m[1] . '/' . $m[2]);
+                    } else if (str_starts_with($path, '/references/')) {
+                        $fullPath = public_path(ltrim($path, '/'));
+                        if (file_exists($fullPath)) @unlink($fullPath);
+                    }
+                }
+                $deliverable->reference_file = null;
+            } elseif ($request->hasFile('reference_file')) {
                 $deliverable->reference_file = $this->moveUploadedFile($request->file('reference_file'), 'references');
             }
-
+            
             if ($request->hasFile('final_designs_file')) {
                 $deliverable->final_designs = $this->moveUploadedFile($request->file('final_designs_file'), 'artwork');
             }
@@ -558,9 +571,24 @@ class DeliverableController extends Controller
 
     private function moveUploadedFile($file, string $folder): string
     {
-        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-        $file->move(public_path($folder), $filename);
-        return '/' . $folder . '/' . $filename;
+        if (!$file->isValid()) {
+            throw new \Exception("File upload failed: " . $file->getErrorMessage());
+        }
+        
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeName = \Illuminate\Support\Str::slug($originalName);
+        $filename = date('Y-m-d') . '_' . $safeName . '.' . $file->getClientOriginalExtension();
+        
+        try {
+            $path = \Illuminate\Support\Facades\Storage::disk('s3')->putFileAs($folder, $file, $filename);
+        } catch (\Throwable $e) {
+            throw new \Exception("S3 Upload Exception: " . $e->getMessage());
+        }
+
+        if ($path === false) {
+            throw new \Exception("Failed to upload file to S3. Please verify your AWS credentials and bucket permissions.");
+        }
+        return \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
     }
 
     /**
@@ -758,7 +786,7 @@ class DeliverableController extends Controller
             $validated = $request->validate([
                 'revision_instructions' => 'required|string|max:1000',
                 'revision_target'       => 'nullable|in:writer,designer',
-                'revision_image'        => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+                'revision_image'        => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm|max:512000',
             ]);
 
             $oldStage = $deliverable->approval_stage;
@@ -793,8 +821,8 @@ class DeliverableController extends Controller
             if ($request->hasFile('revision_image')) {
                 $file = $request->file('revision_image');
                 $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('revision_images'), $filename);
-                $imagePath = '/revision_images/' . $filename;
+                $path = $file->storeAs('revision_images', $filename, 's3');
+                $imagePath = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
             }
 
             // Record in history
@@ -831,7 +859,7 @@ class DeliverableController extends Controller
         $validated = $request->validate([
             'revision_instructions' => 'required|string|max:2000',
             'revision_target'       => 'nullable|in:writer,designer',
-            'revision_image'        => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+            'revision_image'        => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm|max:512000',
         ]);
 
         // Handle optional image upload once for the whole batch
@@ -839,8 +867,8 @@ class DeliverableController extends Controller
         if ($request->hasFile('revision_image')) {
             $file = $request->file('revision_image');
             $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('revision_images'), $filename);
-            $imagePath = '/revision_images/' . $filename;
+            $path = $file->storeAs('revision_images', $filename, 's3');
+            $imagePath = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
         }
 
         // Enforce: all subtasks must be at the same stage before batch revision
@@ -1091,6 +1119,17 @@ class DeliverableController extends Controller
     {
         if (!$url) return null;
         if (!preg_match('/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i', $url)) return null;
+
+        if (str_starts_with($url, 'http')) {
+            $content = @file_get_contents($url);
+            if ($content) {
+                $ext = preg_match('/\.([a-z0-9]+)(?:[\?#]|$)/i', $url, $m) ? $m[1] : 'png';
+                $tmpFile = tempnam(sys_get_temp_dir(), 'pptimg_') . '.' . $ext;
+                file_put_contents($tmpFile, $content);
+                return $tmpFile;
+            }
+            return null;
+        }
 
         // New storage: /references/..., /artwork/..., /brand_logos/..., /briefs/...
         if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {

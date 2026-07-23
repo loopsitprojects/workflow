@@ -175,7 +175,7 @@
                                         <span x-text="previewUrl ? 'Change Logo' : 'Upload Logo'"></span>
                                     </p>
                                     <p class="text-[10px]" style="color:var(--color-text-secondary)">PNG, JPG, SVG · max 2MB</p>
-                                    <input type="file" name="logo" accept="image/*" class="hidden" @change="handleFile($event)">
+                                    <input type="file" name="logo" accept="image/*,video/*" class="hidden" @change="handleFile($event)">
                                 </div>
 
                                 <div>

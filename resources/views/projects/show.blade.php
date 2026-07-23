@@ -647,7 +647,11 @@
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @if($subtask->reference_file)
-                                                <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Image">
+                                              @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $subtask->reference_file))
+                                                  <video src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Video" preload="metadata"></video>
+                                              @else
+                                                  <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Image">
+                                              @endif
                                             @elseif($subtask->reference)
                                                 <a href="{{ $subtask->reference }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15);" title="Visit Link">
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
@@ -665,7 +669,11 @@
                                                     $canRemoveSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
                                                 @if($isImg)
-                                                    <img src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork">
+                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $subtask->final_designs))
+                                                          <video src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="View Video" preload="metadata"></video>
+                                                      @else
+                                                          <img src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork">
+                                                      @endif
                                                 @else
                                                     <a href="{{ $subtask->final_designs }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
                                                 @endif
@@ -695,7 +703,7 @@
                                                                         <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Image</div>
                                                                         <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP</div>
                                                                     </div>
-                                                                    <input type="file" name="final_designs_file" accept="image/*" style="display:none;" onchange="this.form.submit()">
+                                                                    <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
                                                                 </label>
                                                             </form>
                                                             <div style="display:flex;align-items:center;gap:6px;margin:4px 6px;">
@@ -850,7 +858,11 @@
                                         <td>@if($task->post_copy)<div class="cell-text" onclick="openTextPreview('Post Copy',{{ json_encode($task->post_copy) }})">{{ strip_tags($task->post_copy) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
                                         <td>
                                             @if($task->reference_file)
-                                                <img src="{{ $task->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $task->reference_file }}', false)">
+                                                  @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $task->reference_file))
+                                                      <video src="{{ $task->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $task->reference_file }}', false)" title="View Video" preload="metadata"></video>
+                                                  @else
+                                                      <img src="{{ $task->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $task->reference_file }}', false)">
+                                                  @endif
                                             @elseif($task->reference)
                                                 <a href="{{ $task->reference }}" target="_blank" class="ref-chip" style="padding:4px 8px; font-size:9px;">Link</a>
                                             @else
@@ -866,7 +878,11 @@
                                                     $canRemoveTask = ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
                                                 @if($isImg)
-                                                    <img src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="Click to view artwork">
+                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $task->final_designs))
+                                                          <video src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="View Video" preload="metadata"></video>
+                                                      @else
+                                                          <img src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="Click to view artwork">
+                                                      @endif
                                                 @else
                                                     <a href="{{ $task->final_designs }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
                                                 @endif
@@ -896,7 +912,7 @@
                                                                         <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Image</div>
                                                                         <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP</div>
                                                                     </div>
-                                                                    <input type="file" name="final_designs_file" accept="image/*" style="display:none;" onchange="this.form.submit()">
+                                                                    <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
                                                                 </label>
                                                             </form>
                                                             <div style="display:flex;align-items:center;gap:6px;margin:4px 6px;">
@@ -1214,7 +1230,11 @@
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @if($subtask->reference_file)
-                                                <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Image">
+                                              @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $subtask->reference_file))
+                                                  <video src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Video" preload="metadata"></video>
+                                              @else
+                                                  <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Image">
+                                              @endif
                                             @elseif($subtask->reference)
                                                 <a href="{{ $subtask->reference }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15);" title="Visit Link">
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
@@ -1232,7 +1252,11 @@
                                                     $canRemoveSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
                                                 @if($isImg)
-                                                    <img src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork">
+                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $subtask->final_designs))
+                                                          <video src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="View Video" preload="metadata"></video>
+                                                      @else
+                                                          <img src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork">
+                                                      @endif
                                                 @else
                                                     <a href="{{ $subtask->final_designs }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
                                                 @endif
@@ -1262,7 +1286,7 @@
                                                                         <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Image</div>
                                                                         <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP</div>
                                                                     </div>
-                                                                    <input type="file" name="final_designs_file" accept="image/*" style="display:none;" onchange="this.form.submit()">
+                                                                    <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
                                                                 </label>
                                                             </form>
                                                             <div style="display:flex;align-items:center;gap:6px;margin:4px 6px;">
@@ -1424,7 +1448,11 @@
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @if($task->reference_file)
-                                                <img src="{{ $task->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $task->reference_file }}', false)" title="View Image">
+                                                  @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $task->reference_file))
+                                                      <video src="{{ $task->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $task->reference_file }}', false)" title="View Video" preload="metadata"></video>
+                                                  @else
+                                                      <img src="{{ $task->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $task->reference_file }}', false)" title="View Image">
+                                                  @endif
                                             @elseif($task->reference)
                                                 <a href="{{ $task->reference }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15);" title="Visit Link">
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
@@ -1442,7 +1470,11 @@
                                                     $canRemoveTask = ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
                                                 @if($isImg)
-                                                    <img src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="Click to view artwork">
+                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $task->final_designs))
+                                                          <video src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="View Video" preload="metadata"></video>
+                                                      @else
+                                                          <img src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="Click to view artwork">
+                                                      @endif
                                                 @else
                                                     <a href="{{ $task->final_designs }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
                                                 @endif
@@ -1472,7 +1504,7 @@
                                                                         <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Image</div>
                                                                         <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP</div>
                                                                     </div>
-                                                                    <input type="file" name="final_designs_file" accept="image/*" style="display:none;" onchange="this.form.submit()">
+                                                                    <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
                                                                 </label>
                                                             </form>
                                                             <div style="display:flex;align-items:center;gap:6px;margin:4px 6px;">
@@ -1699,6 +1731,7 @@
                     <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 40px;">
                         <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Copy</div>
                         <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
+                        <input type="hidden" id="deleteReferenceFile" name="delete_reference_file" value="0" form="submitStageForm">
                         <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:180px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
                     <div class="detail-item full">
@@ -1707,18 +1740,24 @@
                         <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.1); border-radius:16px;">
                             <div>
                                 <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Upload New Reference File</div>
-                                <input type="file" name="reference_file" form="submitStageForm" accept="image/*" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                                <input type="file" name="reference_file" form="submitStageForm" accept="image/*,video/*" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
                                     const f = this.files[0];
                                     const prev = document.getElementById('modalReferenceImagePreview');
+                                    const vidPrev = document.getElementById('modalReferenceVideoPreview');
                                     if (f && f.type.startsWith('image/')) {
                                         const r = new FileReader();
-                                        r.onload = e => { prev.src = e.target.result; prev.style.display='block'; };
+                                        r.onload = e => { prev.src = e.target.result; prev.style.display='block'; vidPrev.style.display='none'; vidPrev.src=''; };
                                         r.readAsDataURL(f);
+                                    } else if (f && f.type.startsWith('video/')) {
+                                        const url = (window.URL || window.webkitURL).createObjectURL(f);
+                                        vidPrev.src = url; vidPrev.style.display='block'; prev.style.display='none'; prev.src='';
                                     } else {
                                         prev.style.display='none'; prev.src='';
+                                        vidPrev.style.display='none'; vidPrev.src='';
                                     }
                                 ">
                                 <img id="modalReferenceImagePreview" src="" alt="Reference Preview" style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
+                                <video id="modalReferenceVideoPreview" controls style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary);"></video>
                             </div>
                             <div>
                                 <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Reference URL</div>
@@ -1834,7 +1873,7 @@
                                         <div style="font-size:12px;font-weight:700;color:#10b981;" id="artworkFileLabel">Choose image file…</div>
                                         <div style="font-size:10px;color:var(--color-text-secondary);margin-top:2px;">PNG, JPG, GIF, WebP</div>
                                     </div>
-                                    <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*" style="display:none;" onchange="document.getElementById('artworkFileLabel').textContent = this.files[0]?.name || 'Choose image file…'">
+                                    <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="document.getElementById('artworkFileLabel').textContent = this.files[0]?.name || 'Choose image file…'">
                                 </label>
                                 {{-- OR divider --}}
                                 <div style="display:flex;align-items:center;gap:8px;">
@@ -1919,7 +1958,7 @@
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                 <span id="revisionImageLabel">Choose image…</span>
                             </label>
-                            <input type="file" id="revisionImageInput" name="revision_image" accept="image/*" style="display:none;" onchange="
+                            <input type="file" id="revisionImageInput" name="revision_image" accept="image/*,video/*" style="display:none;" onchange="
                                 const f = this.files[0];
                                 document.getElementById('revisionImageLabel').textContent = f ? f.name : 'Choose image…';
                                 const prev = document.getElementById('revisionImagePreview');
@@ -2257,13 +2296,29 @@
                     }
                 }
 
+                document.getElementById('deleteReferenceFile').value = '0';
                 let refHtml = '';
                 if (task.reference_file) {
-                    refHtml = `
-                        <div onclick="openImagePreview('${task.reference_file}', false)" style="display:inline-block; cursor:pointer;">
-                            <img src="${task.reference_file}" style="width:100%; max-width:200px; height:auto; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;">
-                            <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">View Reference Image</span>
+                    const isVideo = task.reference_file.match(/\.(mp4|webm|ogg|mov)$/i);
+                    if (isVideo) {
+                        refHtml = `
+                        <div style="display:flex; align-items:flex-end; gap:16px;">
+                            <div style="display:inline-block;">
+                                <video controls src="${task.reference_file}" style="width:100%; max-width:300px; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;"></video>
+                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">Reference Video</span>
+                            </div>
+                            <button type="button" onclick="document.getElementById('modalReference').innerHTML='<span style=\\'color:#94a3b8; font-size:13px; font-weight:500;\\'>Reference will be removed on save</span>'; document.getElementById('deleteReferenceFile').value='1';" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
                         </div>`;
+                    } else {
+                        refHtml = `
+                        <div style="display:flex; align-items:flex-end; gap:16px;">
+                            <div onclick="openImagePreview('${task.reference_file}', false)" style="display:inline-block; cursor:pointer;">
+                                <img src="${task.reference_file}" style="width:100%; max-width:200px; height:auto; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;">
+                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">View Reference Image</span>
+                            </div>
+                            <button type="button" onclick="document.getElementById('modalReference').innerHTML='<span style=\\'color:#94a3b8; font-size:13px; font-weight:500;\\'>Reference will be removed on save</span>'; document.getElementById('deleteReferenceFile').value='1';" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
+                        </div>`;
+                    }
                 } else if (task.reference) {
                     refHtml = `<a href="${task.reference}" target="_blank" class="ref-chip">
                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
@@ -3050,7 +3105,7 @@
                             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             <span id="batchRevisionImageLabel">Choose image…</span>
                         </label>
-                        <input type="file" id="batchRevisionImageInput" accept="image/*" style="display:none;" onchange="
+                        <input type="file" id="batchRevisionImageInput" accept="image/*,video/*" style="display:none;" onchange="
                             const f = this.files[0];
                             document.getElementById('batchRevisionImageLabel').textContent = f ? f.name : 'Choose image…';
                             const prev = document.getElementById('batchRevisionImagePreview');
@@ -3581,7 +3636,18 @@
 
         // Image Preview Functions
         function openImagePreview(url, canRemove = false, deliverableId = null) {
-            document.getElementById('imagePreviewSrc').src = url;
+            const isVideo = url.match(/\.(mp4|webm|ogg|mov)$/i);
+            if (isVideo) {
+                document.getElementById('imagePreviewSrc').style.display = 'none';
+                document.getElementById('imagePreviewSrc').src = '';
+                document.getElementById('videoPreviewSrc').style.display = 'block';
+                document.getElementById('videoPreviewSrc').src = url;
+            } else {
+                document.getElementById('videoPreviewSrc').style.display = 'none';
+                document.getElementById('videoPreviewSrc').src = '';
+                document.getElementById('imagePreviewSrc').style.display = 'block';
+                document.getElementById('imagePreviewSrc').src = url;
+            }
             document.getElementById('imagePreviewDownload').href = url;
             
             const removeBtn = document.getElementById('imagePreviewRemoveBtn');
@@ -3602,6 +3668,38 @@
                 overlay.style.opacity = '1';
                 overlay.querySelector('.cd-modal').classList.add('active');
             }, 10);
+        }
+
+        function downloadMedia(event, url) {
+            event.preventDefault();
+            const btn = event.currentTarget;
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = 'Downloading...';
+            btn.style.pointerEvents = 'none';
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.blob();
+                })
+                .then(blob => {
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = url.split('/').pop().split('?')[0] || 'download';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(blobUrl);
+                    a.remove();
+                })
+                .catch(err => {
+                    console.error('Download via fetch failed, opening in new tab', err);
+                    window.open(url, '_blank');
+                })
+                .finally(() => {
+                    btn.innerHTML = originalContent;
+                    btn.style.pointerEvents = 'auto';
+                });
         }
 
         function closeImagePreview(e) {
@@ -3625,8 +3723,9 @@
                 </button>
             </div>
             <img id="imagePreviewSrc" src="" style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 12px; border: 4px solid var(--color-bg-primary); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+            <video id="videoPreviewSrc" src="" controls style="display:none; max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 12px; border: 4px solid var(--color-bg-primary); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);"></video>
             <div style="margin-top: 12px; display: flex; gap: 12px; justify-content: center; align-items: center;">
-                <a id="imagePreviewDownload" href="" download target="_blank" class="cd-btn cd-btn-primary" style="padding: 10px 24px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; box-shadow: 0 10px 20px rgba(0, 85, 212, 0.2);">
+                <a id="imagePreviewDownload" href="" download target="_blank" class="cd-btn cd-btn-primary" style="padding: 10px 24px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; box-shadow: 0 10px 20px rgba(0, 85, 212, 0.2);" onclick="downloadMedia(event, this.href)">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                     Download Original
                 </a>
@@ -3862,67 +3961,7 @@
 })();
 </script>
 
-<script>
-/* ── Form loading states ── */
-(function () {
-    const SPINNER_SVG = `<svg style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px;animation:frmSpin 0.75s linear infinite;" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.3"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`;
 
-    function spinBtn(btn, label) {
-        btn.disabled = true;
-        btn.innerHTML = SPINNER_SVG + label;
-    }
-
-    document.addEventListener('DOMContentLoaded', function () {
-
-        // ── Modal stage submit (Submit to Next / Save Content) ──────────────
-        const stageForm = document.getElementById('submitStageForm');
-        let _stageLastClicked = null;
-        if (stageForm) {
-            stageForm.querySelectorAll('[type="submit"]').forEach(function (btn) {
-                btn.addEventListener('click', function () { _stageLastClicked = btn; });
-            });
-            stageForm.addEventListener('submit', function () {
-                const clicked = _stageLastClicked || stageForm.querySelector('[type="submit"]:not([style*="display: none"])');
-                if (!clicked || clicked.disabled) return;
-                const isSave = clicked.value === 'save_only';
-                spinBtn(clicked, isSave ? 'Saving…' : 'Submitting…');
-            });
-        }
-
-        // ── Artwork delivery form (Save Artwork) ────────────────────────────
-        const artworkForm = document.getElementById('artworkDeliveryForm');
-        if (artworkForm) {
-            artworkForm.addEventListener('submit', function () {
-                const btn = artworkForm.querySelector('[type="submit"]');
-                if (btn && !btn.disabled) spinBtn(btn, 'Uploading…');
-            });
-        }
-
-        // ── Revision request form (Send Request) ────────────────────────────
-        const revForm = document.getElementById('revisionsForm');
-        if (revForm) {
-            revForm.addEventListener('submit', function () {
-                const btn = revForm.querySelector('[type="submit"]');
-                if (btn && !btn.disabled) spinBtn(btn, 'Sending…');
-            });
-        }
-
-        // ── Reset button states when modals close (so they're fresh next open) ──
-        document.getElementById('taskModalOverlay')?.addEventListener('transitionend', function () {
-            if (this.style.opacity === '0' || this.style.display === 'none') {
-                _stageLastClicked = null;
-                [stageForm, artworkForm, revForm].forEach(function (form) {
-                    if (!form) return;
-                    form.querySelectorAll('[type="submit"]').forEach(function (btn) {
-                        btn.disabled = false;
-                    });
-                });
-            }
-        });
-    });
-})();
-</script>
-<style>@keyframes frmSpin{to{transform:rotate(360deg)}}</style>
 <script>
 (function() {
     const DRAFT_KEY = 'batch_drafts_{{ $project->id }}';
@@ -3972,21 +4011,30 @@
         let previewImg = document.getElementById('localPreview_' + taskId);
         if (input.files && input.files.length > 0) {
             const file = input.files[0];
-            const reader = new FileReader();
-            reader.onload = async function(e) {
+            
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    if (previewImg) {
+                        previewImg.src = e.target.result;
+                        previewImg.style.display = 'block';
+                        previewImg.onclick = function(ev) {
+                            ev.stopPropagation();
+                            openImagePreview(e.target.result, false);
+                        };
+                    }
+                };
+                reader.readAsDataURL(file);
+            } else {
                 if (previewImg) {
-                    previewImg.src = e.target.result;
-                    previewImg.style.display = 'block';
-                    previewImg.onclick = function(ev) {
-                        ev.stopPropagation();
-                        openImagePreview(e.target.result, false);
-                    };
+                    previewImg.style.display = 'none';
+                    previewImg.src = '';
                 }
-            };
-            reader.readAsDataURL(file);
+            }
+            
             updateRefBtnGlow(taskId, true);
             
-            // Immediate AJAX Save for image
+            // Immediate AJAX Save for file
             const fd = new FormData();
             fd.append('action', 'save_only');
             fd.append('reference_file', file);
@@ -3997,7 +4045,7 @@
                     'Accept': 'application/json'
                 },
                 body: fd
-            }).catch(e => console.error("Autosave image error:", e));
+            }).catch(e => console.error("Autosave file error:", e));
 
         } else {
             if (previewImg && !previewImg.src.startsWith('http')) {
@@ -4128,3 +4176,109 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ajaxForms = ['submitStageForm', 'revisionsForm', 'artworkDeliveryForm'];
+    
+    ajaxForms.forEach(formId => {
+        const form = document.getElementById(formId);
+        if (!form) return;
+        
+        // Track which button was clicked
+        form.addEventListener('click', function(e) {
+            const btn = e.target.closest('button[type="submit"]');
+            if (btn) {
+                form._submitter = btn;
+            }
+        });
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const submitter = form._submitter || form.querySelector('button[type="submit"]');
+            
+            // Set all buttons to disabled/uploading state
+            const allBtns = form.querySelectorAll('button[type="submit"]');
+            
+            function getLoadingHtml(percent) {
+                const label = submitter && submitter.value === 'save_only' ? 'Saving' : (submitter && submitter.innerHTML.includes('Submit') ? 'Submitting' : 'Uploading');
+                return `<span style="display:inline-flex;align-items:center;gap:8px;"><svg style="animation: frmSpin 0.75s linear infinite; width:14px;height:14px;" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.3"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg> ${label} (${percent}%)...</span>`;
+            }
+
+            allBtns.forEach(b => {
+                if (!b.dataset.orig) b.dataset.orig = b.innerHTML;
+                b.style.pointerEvents = 'none';
+                b.style.opacity = '0.7';
+                if (b === submitter) {
+                    b.innerHTML = getLoadingHtml(0);
+                }
+            });
+            
+            const formData = new FormData(form);
+            if (submitter && submitter.name) {
+                formData.append(submitter.name, submitter.value);
+            }
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open(form.getAttribute('method') || 'POST', form.getAttribute('action') || window.location.href, true);
+            xhr.setRequestHeader('Accept', 'application/json');
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMeta) {
+                xhr.setRequestHeader('X-CSRF-TOKEN', csrfMeta.content);
+            }
+            
+            xhr.upload.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    const percentComplete = Math.round((event.loaded / event.total) * 100);
+                    if (submitter) {
+                        submitter.innerHTML = getLoadingHtml(percentComplete);
+                    }
+                }
+            };
+            
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    if (submitter) submitter.innerHTML = 'Success!';
+                    window.location.reload();
+                } else if (xhr.status === 422) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        let errMsg = "Validation Error:\n";
+                        if (response.errors) {
+                            for (const field in response.errors) {
+                                errMsg += "- " + response.errors[field].join("\n- ") + "\n";
+                            }
+                        } else {
+                            errMsg += response.message || "Invalid input data.";
+                        }
+                        alert(errMsg);
+                    } catch(e) {
+                        alert('A validation error occurred.');
+                    }
+                    resetButtons();
+                } else {
+                    alert('An error occurred while uploading. Server responded with: ' + xhr.status);
+                    resetButtons();
+                }
+            };
+            
+            xhr.onerror = function() {
+                alert('A network error occurred while uploading.');
+                resetButtons();
+            };
+            
+            function resetButtons() {
+                allBtns.forEach(b => {
+                    if (b.dataset.orig) b.innerHTML = b.dataset.orig;
+                    b.style.pointerEvents = 'auto';
+                    b.style.opacity = '1';
+                });
+            }
+            
+            xhr.send(formData);
+        });
+    });
+});
+</script>
+<style>@keyframes frmSpin{to{transform:rotate(360deg)}}</style>

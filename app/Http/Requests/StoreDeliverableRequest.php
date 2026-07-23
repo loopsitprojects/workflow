@@ -44,7 +44,7 @@ class StoreDeliverableRequest extends FormRequest
             'subtasks.*.caption' => 'nullable|string',
             'subtasks.*.post_copy' => 'nullable|string',
             'subtasks.*.reference' => 'nullable|string',
-            'subtasks.*.reference_file' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:10240',
+            'subtasks.*.reference_file' => 'nullable|file|mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm|max:512000',
             'subtasks.*.deadline' => 'nullable|date',
             'subtasks.*.priority' => 'nullable|string',
             'subtasks.*.writer_id' => 'nullable|exists:users,id',

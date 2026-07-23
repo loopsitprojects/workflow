@@ -83,8 +83,8 @@ class ProjectController extends Controller
         if ($request->hasFile('brief_file')) {
             $file = $request->file('brief_file');
             $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('briefs'), $filename);
-            $validated['brief_file_path'] = '/briefs/' . $filename;
+            $path = $file->storeAs('briefs', $filename, 's3');
+            $validated['brief_file_path'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
         }
 
         if (empty($validated['brand_manager_id'])) {
@@ -356,8 +356,8 @@ class ProjectController extends Controller
         if ($request->hasFile('brief_file')) {
             $file = $request->file('brief_file');
             $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('briefs'), $filename);
-            $validated['brief_file_path'] = '/briefs/' . $filename;
+            $path = $file->storeAs('briefs', $filename, 's3');
+            $validated['brief_file_path'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
         } elseif ($request->input('remove_brief_file') == '1') {
             $validated['brief_file_path'] = null;
         }

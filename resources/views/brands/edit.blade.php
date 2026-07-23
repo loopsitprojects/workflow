@@ -99,7 +99,7 @@
                 <template x-if="previewUrl">
                     <span style="padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(16,185,129,0.1);color:#10b981;">&#10003; Set</span>
                 </template>
-                <input type="file" name="logo" id="logo" accept="image/*" class="hidden" @change="handleFile($event)">
+                <input type="file" name="logo" id="logo" accept="image/*,video/*" class="hidden" @change="handleFile($event)">
             </label>
             <div x-show="previewUrl" style="display:none;margin-top:6px;">
                 <button type="button" @click="clearLogo()" style="font-size:11px;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;">

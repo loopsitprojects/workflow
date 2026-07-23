@@ -52,8 +52,8 @@ class BrandController extends Controller
         if ($request->hasFile('logo')) {
             $file = $request->file('logo');
             $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('brand_logos'), $filename);
-            $brandData['logo_url'] = '/brand_logos/' . $filename;
+            $path = $file->storeAs('brand_logos', $filename, 's3');
+            $brandData['logo_url'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
         }
 
         $brand = Brand::create($brandData);
@@ -159,8 +159,8 @@ class BrandController extends Controller
         if ($request->hasFile('logo')) {
             $file = $request->file('logo');
             $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('brand_logos'), $filename);
-            $brandData['logo_url'] = '/brand_logos/' . $filename;
+            $path = $file->storeAs('brand_logos', $filename, 's3');
+            $brandData['logo_url'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
         }
 
         $brand->update($brandData);

@@ -322,7 +322,7 @@
                 '<input type="url" name="subtasks[' + idx + '][reference]" placeholder="https://..." class="styled-input">' +
                 '</div>' +
                 '<div id="ref-input-upload-' + idx + '" style="display:none;">' +
-                '<input type="file" name="subtasks[' + idx + '][reference_file]" accept="image/*" class="styled-input" style="padding:9px 14px;cursor:pointer;">' +
+                '<input type="file" name="subtasks[' + idx + '][reference_file]" accept="image/*,video/*" class="styled-input" style="padding:9px 14px;cursor:pointer;">' +
                 '</div>' +
                 '</div>' +
                 '</div>';
