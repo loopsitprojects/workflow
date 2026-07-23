@@ -1339,7 +1339,13 @@ class DeliverableController extends Controller
         $addSection('COPY',         $task->post_copy ?: ($task->subtask_copy ?? null));
         $addSection('NOTES',        $task->notes);
         $addSection('REFERENCE',    $task->reference);
+        if (preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->reference_file ?? '')) {
+            $addSection('REFERENCE VIDEO', $task->reference_file);
+        }
         $addSection('ARTWORK LINK', $task->final_designs_link);
+        if (preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->final_designs ?? '')) {
+            $addSection('ARTWORK VIDEO', $task->final_designs);
+        }
 
         // ── 7. Images (right column) ─────────────────────────────
         if ($hasImages) {
