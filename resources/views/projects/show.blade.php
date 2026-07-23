@@ -647,7 +647,7 @@
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @if($subtask->reference_file)
-                                              @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $subtask->reference_file))
+                                              @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $subtask->reference_file))
                                                   <video src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Video" preload="metadata"></video>
                                               @else
                                                   <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Image">
@@ -663,13 +663,13 @@
                                         <td>
                                             @if($subtask->final_designs)
                                                 @php
-                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $subtask->final_designs);
+                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $subtask->final_designs);
                                                     $isAssignedDesigner = $currentUserId == $subtask->designer_id;
                                                     $designerEditPermission = $isAssignedDesigner;
                                                     $canRemoveSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
                                                 @if($isImg)
-                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $subtask->final_designs))
+                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $subtask->final_designs))
                                                           <video src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="View Video" preload="metadata"></video>
                                                       @else
                                                           <img src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork">
@@ -700,8 +700,8 @@
                                                                         <svg width="13" height="13" fill="none" stroke="#0055D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                                                                     </div>
                                                                     <div>
-                                                                        <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Image</div>
-                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP</div>
+                                                                        <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Media</div>
+                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP, MP4, WebM</div>
                                                                     </div>
                                                                     <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
                                                                 </label>
@@ -858,7 +858,7 @@
                                         <td>@if($task->post_copy)<div class="cell-text" onclick="openTextPreview('Post Copy',{{ json_encode($task->post_copy) }})">{{ strip_tags($task->post_copy) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
                                         <td>
                                             @if($task->reference_file)
-                                                  @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $task->reference_file))
+                                                  @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->reference_file))
                                                       <video src="{{ $task->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $task->reference_file }}', false)" title="View Video" preload="metadata"></video>
                                                   @else
                                                       <img src="{{ $task->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $task->reference_file }}', false)">
@@ -872,13 +872,13 @@
                                         <td>
                                             @if($task->final_designs)
                                                 @php 
-                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $task->final_designs); 
+                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $task->final_designs); 
                                                     $isAssignedDesigner = $currentUserId == $task->designer_id;
                                                     $designerEditPermission = $isAssignedDesigner;
                                                     $canRemoveTask = ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
                                                 @if($isImg)
-                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $task->final_designs))
+                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->final_designs))
                                                           <video src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="View Video" preload="metadata"></video>
                                                       @else
                                                           <img src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="Click to view artwork">
@@ -909,8 +909,8 @@
                                                                         <svg width="13" height="13" fill="none" stroke="#0055D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                                                                     </div>
                                                                     <div>
-                                                                        <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Image</div>
-                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP</div>
+                                                                        <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Media</div>
+                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP, MP4, WebM</div>
                                                                     </div>
                                                                     <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
                                                                 </label>
@@ -1230,7 +1230,7 @@
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @if($subtask->reference_file)
-                                              @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $subtask->reference_file))
+                                              @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $subtask->reference_file))
                                                   <video src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Video" preload="metadata"></video>
                                               @else
                                                   <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Image">
@@ -1246,13 +1246,13 @@
                                         <td>
                                             @if($subtask->final_designs)
                                                 @php
-                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $subtask->final_designs);
+                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $subtask->final_designs);
                                                     $isAssignedDesigner = $currentUserId == $subtask->designer_id;
                                                     $designerEditPermission = $isAssignedDesigner || ($currentUserRole === 'designer' && !$subtask->designer_id);
                                                     $canRemoveSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
                                                 @if($isImg)
-                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $subtask->final_designs))
+                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $subtask->final_designs))
                                                           <video src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="View Video" preload="metadata"></video>
                                                       @else
                                                           <img src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork">
@@ -1283,8 +1283,8 @@
                                                                         <svg width="13" height="13" fill="none" stroke="#0055D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                                                                     </div>
                                                                     <div>
-                                                                        <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Image</div>
-                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP</div>
+                                                                        <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Media</div>
+                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP, MP4, WebM</div>
                                                                     </div>
                                                                     <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
                                                                 </label>
@@ -1448,7 +1448,7 @@
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @if($task->reference_file)
-                                                  @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $task->reference_file))
+                                                  @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->reference_file))
                                                       <video src="{{ $task->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $task->reference_file }}', false)" title="View Video" preload="metadata"></video>
                                                   @else
                                                       <img src="{{ $task->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $task->reference_file }}', false)" title="View Image">
@@ -1464,13 +1464,13 @@
                                         <td>
                                             @if($task->final_designs)
                                                 @php
-                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $task->final_designs);
+                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $task->final_designs);
                                                     $isAssignedDesigner = $currentUserId == $task->designer_id;
                                                     $designerEditPermission = $isAssignedDesigner;
                                                     $canRemoveTask = ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
                                                 @if($isImg)
-                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)$/i', $task->final_designs))
+                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->final_designs))
                                                           <video src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="View Video" preload="metadata"></video>
                                                       @else
                                                           <img src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="Click to view artwork">
@@ -1501,8 +1501,8 @@
                                                                         <svg width="13" height="13" fill="none" stroke="#0055D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                                                                     </div>
                                                                     <div>
-                                                                        <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Image</div>
-                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP</div>
+                                                                        <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Media</div>
+                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP, MP4, WebM</div>
                                                                     </div>
                                                                     <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
                                                                 </label>
@@ -1871,10 +1871,24 @@
                                     </div>
                                     <div style="flex:1;min-width:0;">
                                         <div style="font-size:12px;font-weight:700;color:#10b981;" id="artworkFileLabel">Choose image file…</div>
-                                        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:2px;">PNG, JPG, GIF, WebP</div>
+                                        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:2px;">PNG, JPG, GIF, WebP, MP4, WebM</div>
                                     </div>
-                                    <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="document.getElementById('artworkFileLabel').textContent = this.files[0]?.name || 'Choose image file…'">
+                                    <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="
+                                        const f = this.files[0];
+                                        document.getElementById('artworkFileLabel').textContent = f?.name || 'Choose image file…';
+                                        const imgP = document.getElementById('modalArtworkPreview');
+                                        const vidP = document.getElementById('modalArtworkVideoPreview');
+                                        if(imgP) imgP.style.display = 'none';
+                                        if(vidP) vidP.style.display = 'none';
+                                        if (f && f.type.startsWith('image/')) {
+                                            if(imgP) { imgP.src = URL.createObjectURL(f); imgP.style.display = 'block'; }
+                                        } else if (f && f.type.startsWith('video/')) {
+                                            if(vidP) { vidP.src = URL.createObjectURL(f); vidP.style.display = 'block'; }
+                                        }
+                                    ">
                                 </label>
+                                <img id="modalArtworkPreview" src="" style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
+                                <video id="modalArtworkVideoPreview" controls style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary);"></video>
                                 {{-- OR divider --}}
                                 <div style="display:flex;align-items:center;gap:8px;">
                                     <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
@@ -2299,7 +2313,7 @@
                 document.getElementById('deleteReferenceFile').value = '0';
                 let refHtml = '';
                 if (task.reference_file) {
-                    const isVideo = task.reference_file.match(/\.(mp4|webm|ogg|mov)$/i);
+                    const isVideo = task.reference_file.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
                     if (isVideo) {
                         refHtml = `
                         <div style="display:flex; align-items:flex-end; gap:16px;">
@@ -2376,12 +2390,13 @@
                 
                 let finalHtml = '';
                 if (task.final_designs) {
-                    const isImage = /\.(jpg|jpeg|png|gif|webp|svg)/i.test(task.final_designs);
+                    const isImage = /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i.test(task.final_designs);
                     if (isImage) {
+                        const isVideo = /\.(mp4|webm|ogg|mov)(?:$|\?)/i.test(task.final_designs);
                         finalHtml += `
                             <div style="display:inline-block; margin-right:12px; vertical-align:top; text-align:center;">
                                 <div onclick="openImagePreview('${task.final_designs}', ${canDesignerEdit}, ${task.id})" style="text-decoration:none; cursor:pointer;">
-                                    <img src="${task.final_designs}" class="task-thumbnail" alt="Final Design">
+                                    ${isVideo ? `<video src="${task.final_designs}" class="task-thumbnail" preload="metadata"></video>` : `<img src="${task.final_designs}" class="task-thumbnail" alt="Final Design">`}
                                     <span style="display:block; font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; margin-top:6px; text-align:center;">Preview Artwork</span>
                                 </div>
                                 ${canDesignerEdit ? `
@@ -3636,7 +3651,7 @@
 
         // Image Preview Functions
         function openImagePreview(url, canRemove = false, deliverableId = null) {
-            const isVideo = url.match(/\.(mp4|webm|ogg|mov)$/i);
+            const isVideo = url.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
             if (isVideo) {
                 document.getElementById('imagePreviewSrc').style.display = 'none';
                 document.getElementById('imagePreviewSrc').src = '';
@@ -4004,7 +4019,7 @@
             if (input.files && input.files.length > 0) {
                 nameEl.textContent = '📎 ' + input.files[0].name;
             } else {
-                nameEl.textContent = 'Upload image';
+                nameEl.textContent = 'Upload Media';
             }
         }
         
@@ -4180,19 +4195,22 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const ajaxForms = ['submitStageForm', 'revisionsForm', 'artworkDeliveryForm'];
+    // Track which button was clicked globally to support buttons outside their forms
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('button[type="submit"]');
+        if (btn) {
+            let form = btn.form;
+            const formId = btn.getAttribute('form');
+            if (!form && formId) form = document.getElementById(formId);
+            if (form) form._submitter = btn;
+        }
+    });
     
     ajaxForms.forEach(formId => {
         const form = document.getElementById(formId);
         if (!form) return;
         
-        // Track which button was clicked
-        form.addEventListener('click', function(e) {
-            const btn = e.target.closest('button[type="submit"]');
-            if (btn) {
-                form._submitter = btn;
-            }
-        });
-        
+
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -4282,3 +4300,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <style>@keyframes frmSpin{to{transform:rotate(360deg)}}</style>
+
+
+
+

@@ -197,7 +197,7 @@
         $stageClass = $stage === 'Closed' ? 'stage-done' : ($post->revisions > 0 && in_array($stage, ['Writer','Assignee']) ? 'stage-rev' : 'stage-open');
         $revs      = $post->getRelation('revisionsHistory') ?? collect();
         $approvals = $post->getRelation('approvalsHistory') ?? collect();
-        $isImg     = $post->final_designs && preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $post->final_designs);
+        $isImg     = $post->final_designs && preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $post->final_designs);
 
         $canApprove = $isAdmin || (
             (in_array($stage, ['Writer','Assignee','Writer Review']) && in_array($authRole, ['writer','assignee']) && (!$post->writer_id || $post->writer_id == $authId)) ||
@@ -279,9 +279,14 @@
             <div class="pc-field">
                 <div class="pc-label">Reference</div>
                 @if($post->reference_file)
-                    @php $isRefImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg)/i', $post->reference_file); @endphp
+                    @php $isRefImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $post->reference_file); @endphp
                     @if($isRefImg)
-                        <img src="{{ $post->reference_file }}" class="artwork-thumb" onclick="openImg('{{ $post->reference_file }}')" alt="Reference">
+                        @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $post->reference_file))
+                            <video src="{{ $post->reference_file }}" class="artwork-thumb" onclick="openImg('{{ $post->reference_file }}')" preload="metadata"></video>
+                        @else
+                            <img src="{{ $post->reference_file }}" class="artwork-thumb" onclick="openImg('{{ $post->reference_file }}')" alt="Reference">
+                        @endif
+
                     @else
                         <a href="{{ $post->reference_file }}" target="_blank" class="ref-link">
                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -300,7 +305,11 @@
                 <div class="pc-label">Final Artwork</div>
                 @if($post->final_designs)
                     @if($isImg)
-                        <img src="{{ $post->final_designs }}" class="artwork-thumb" onclick="openImg('{{ $post->final_designs }}')" alt="Artwork">
+                        @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $post->final_designs))
+                            <video src="{{ $post->final_designs }}" class="artwork-thumb" onclick="openImg('{{ $post->final_designs }}')" preload="metadata"></video>
+                        @else
+                            <img src="{{ $post->final_designs }}" class="artwork-thumb" onclick="openImg('{{ $post->final_designs }}')" alt="Artwork">
+                        @endif
                     @else
                         <a href="{{ $post->final_designs }}" target="_blank" class="ref-link" style="color:#10b981;background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.2);">Download</a>
                     @endif
@@ -413,13 +422,26 @@
 {{-- Lightbox --}}
 <div id="bvLightbox" class="bv-lightbox" onclick="closeLightbox()">
     <img id="bvLightboxImg" src="" style="max-width:90vw;max-height:90vh;border-radius:10px;box-shadow:0 30px 80px rgba(0,0,0,0.5);">
+    <video id="bvLightboxVid" controls style="display:none; max-width:90vw;max-height:90vh;border-radius:10px;box-shadow:0 30px 80px rgba(0,0,0,0.5);"></video>
 </div>
 
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 
 function openImg(src) {
-    document.getElementById('bvLightboxImg').src = src;
+    const isVid = src.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
+    const img = document.getElementById('bvLightboxImg');
+    const vid = document.getElementById('bvLightboxVid');
+    if(isVid) {
+        img.style.display = 'none';
+        vid.src = src;
+        vid.style.display = 'block';
+    } else {
+        vid.style.display = 'none';
+        vid.src = '';
+        img.src = src;
+        img.style.display = 'block';
+    }
     document.getElementById('bvLightbox').classList.add('open');
 }
 function closeLightbox() {
@@ -463,3 +485,4 @@ document.addEventListener('keydown', e => {
 });
 </script>
 </x-layout>
+

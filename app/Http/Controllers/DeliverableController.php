@@ -309,7 +309,7 @@ class DeliverableController extends Controller
             
             if ($deliverable->final_designs) {
                 $path = $deliverable->final_designs;
-                if (preg_match('#/(artwork|references|briefs|brand_logos|revision_images)/([^/]+)$#', $path, $m)) {
+                if (preg_match('#/(artwork|references|briefs|brand_logos|revision_images)/([^/?]+)(?:\?.*)?$#', $path, $m)) {
                     \Illuminate\Support\Facades\Storage::disk('s3')->delete($m[1] . '/' . $m[2]);
                 } else if (str_starts_with($path, '/artwork/')) {
                     $fullPath = public_path(ltrim($path, '/'));
@@ -393,7 +393,7 @@ class DeliverableController extends Controller
             if ($request->boolean('delete_reference_file')) {
                 if ($deliverable->reference_file) {
                     $path = $deliverable->reference_file;
-                    if (preg_match('#/(artwork|references|briefs|brand_logos|revision_images)/([^/]+)$#', $path, $m)) {
+                    if (preg_match('#/(artwork|references|briefs|brand_logos|revision_images)/([^/?]+)(?:\?.*)?$#', $path, $m)) {
                         \Illuminate\Support\Facades\Storage::disk('s3')->delete($m[1] . '/' . $m[2]);
                     } else if (str_starts_with($path, '/references/')) {
                         $fullPath = public_path(ltrim($path, '/'));
@@ -1397,4 +1397,5 @@ class DeliverableController extends Controller
         $fr->getFont()->setSize(7)->setColor($color('FF94A3B8'));
     }
 }
+
 
