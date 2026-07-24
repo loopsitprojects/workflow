@@ -1740,24 +1740,38 @@
                         <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.1); border-radius:16px;">
                             <div>
                                 <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Upload New Reference File</div>
-                                <input type="file" name="reference_file" form="submitStageForm" accept="image/*,video/*" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                                <input type="file" id="modalReferenceFileInput" name="reference_file" form="submitStageForm" accept="image/*,video/*" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
                                     const f = this.files[0];
                                     const prev = document.getElementById('modalReferenceImagePreview');
                                     const vidPrev = document.getElementById('modalReferenceVideoPreview');
+                                    const clearBtn = document.getElementById('modalReferenceClearBtn');
                                     if (f && f.type.startsWith('image/')) {
                                         const r = new FileReader();
                                         r.onload = e => { prev.src = e.target.result; prev.style.display='block'; vidPrev.style.display='none'; vidPrev.src=''; };
                                         r.readAsDataURL(f);
+                                        if (clearBtn) clearBtn.style.display = 'flex';
                                     } else if (f && f.type.startsWith('video/')) {
                                         const url = (window.URL || window.webkitURL).createObjectURL(f);
                                         vidPrev.src = url; vidPrev.style.display='block'; prev.style.display='none'; prev.src='';
+                                        if (clearBtn) clearBtn.style.display = 'flex';
                                     } else {
                                         prev.style.display='none'; prev.src='';
                                         vidPrev.style.display='none'; vidPrev.src='';
+                                        if (clearBtn) clearBtn.style.display = 'none';
                                     }
                                 ">
-                                <img id="modalReferenceImagePreview" src="" alt="Reference Preview" style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
-                                <video id="modalReferenceVideoPreview" controls style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary);"></video>
+                                <div style="position:relative; display:inline-block; margin-top:10px;">
+                                    <img id="modalReferenceImagePreview" src="" alt="Reference Preview" style="display:none; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
+                                    <video id="modalReferenceVideoPreview" controls style="display:none; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary);"></video>
+                                    <button type="button" id="modalReferenceClearBtn" onclick="
+                                        document.getElementById('modalReferenceFileInput').value='';
+                                        document.getElementById('modalReferenceImagePreview').style.display='none';
+                                        document.getElementById('modalReferenceImagePreview').src='';
+                                        document.getElementById('modalReferenceVideoPreview').style.display='none';
+                                        document.getElementById('modalReferenceVideoPreview').src='';
+                                        this.style.display='none';
+                                    " style="display:none; position:absolute; top:-10px; right:-10px; background:#ef4444; color:#fff; border:none; border-radius:50%; width:24px; height:24px; font-weight:bold; cursor:pointer; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.2); z-index:10; font-size: 12px;">✕</button>
+                                </div>
                             </div>
                             <div>
                                 <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Reference URL</div>
