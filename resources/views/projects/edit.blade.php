@@ -168,6 +168,9 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
                     </script>
                 @endif
                 <input type="file" name="brief_file" class="f-input" style="padding:7px 12px;cursor:pointer;">
+                @error('brief_file')
+                    <p style="color:#ef4444;font-size:11px;margin-top:6px;font-weight:600;">{{ $message }}</p>
+                @enderror
             </div>
         </div>
 

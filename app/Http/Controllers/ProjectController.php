@@ -350,7 +350,7 @@ class ProjectController extends Controller
             'designer_id' => 'nullable|exists:users,id',
             'sub_type' => 'nullable|string',
             'lead_id' => 'nullable|exists:users,id',
-            'brief_file' => 'nullable|file|mimes:pdf,doc,docx,txt,jpg,png|max:10240',
+            'brief_file' => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx,txt,jpg,jpeg,png|max:10240',
         ]);
 
         if ($request->hasFile('brief_file')) {
