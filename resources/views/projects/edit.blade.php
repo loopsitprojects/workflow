@@ -72,7 +72,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
     </div>
     @endif
 
-    <form action="{{ route('projects.update', $project) }}" method="POST" enctype="multipart/form-data">
+    <form id="editProjectForm" action="{{ route('projects.update', $project) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
         <input type="hidden" name="brand_id" value="{{ $project->brand_id }}">
@@ -179,7 +179,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
             @endif
             <div style="display:flex;gap:8px;">
                 <a href="{{ url()->previous() }}" class="btn-c">Cancel</a>
-                <button type="submit" class="btn-s">Save Changes</button>
+                <button type="submit" id="saveProjectBtn" class="btn-s">Save Changes</button>
             </div>
         </div>
     </form>
@@ -191,6 +191,12 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
     @endif
 </div>
 
+{{-- Full-page loading overlay --}}
+<div id="pageLoadingOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+    <div style="width:52px;height:52px;border-radius:50%;border:3px solid rgba(255,255,255,0.15);border-top-color:#fff;animation:loopSpin 0.75s linear infinite;"></div>
+    <span id="pageLoadingText" style="color:#fff;font-size:13px;font-weight:700;letter-spacing:0.04em;">Saving changes…</span>
+</div>
+
 <script>
 function setWorkflow(type) {
     document.getElementById('workflow_type').value = type;
@@ -198,5 +204,16 @@ function setWorkflow(type) {
         document.getElementById('option-'+t).classList.toggle('active', t === type)
     );
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('editProjectForm').addEventListener('submit', function(e) {
+        const btn = document.getElementById('saveProjectBtn');
+        const overlay = document.getElementById('pageLoadingOverlay');
+        setTimeout(() => { btn.disabled = true; }, 10);
+        btn.style.pointerEvents = 'none';
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:loopSpin 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>Saving…';
+        overlay.style.display = 'flex';
+    });
+});
 </script>
 </x-layout>
