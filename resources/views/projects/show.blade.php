@@ -4235,70 +4235,168 @@ document.addEventListener('DOMContentLoaded', function() {
             
             function getLoadingHtml(percent) {
                 const label = submitter && submitter.value === 'save_only' ? 'Saving' : (submitter && submitter.innerHTML.includes('Submit') ? 'Submitting' : 'Uploading');
-                return `<span style="display:inline-flex;align-items:center;gap:8px;"><svg style="animation: frmSpin 0.75s linear infinite; width:14px;height:14px;" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.3"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg> ${label} (${percent}%)...</span>`;
+                return `<div style="position:absolute; left:0; top:0; bottom:0; width:${percent}%; background:rgba(255,255,255,0.25); transition:width 0.2s ease-out; z-index:1;"></div>
+                <span style="position:relative; z-index:2; display:inline-flex; align-items:center; gap:8px;">
+                    <svg style="animation: frmSpin 0.75s linear infinite; width:14px;height:14px;" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.3"/><path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg> 
+                    ${label} (${percent}%)...
+                </span>`;
             }
 
             allBtns.forEach(b => {
                 if (!b.dataset.orig) b.dataset.orig = b.innerHTML;
                 b.style.pointerEvents = 'none';
-                b.style.opacity = '0.7';
+                b.style.opacity = '0.9';
+                b.style.position = 'relative';
+                b.style.overflow = 'hidden';
                 if (b === submitter) {
                     b.innerHTML = getLoadingHtml(0);
                 }
             });
             
             const formData = new FormData(form);
+            // Append elements outside the form that have the form attribute
+            document.querySelectorAll(`[form="${form.id}"]`).forEach(el => {
+                if (el.name && !form.contains(el)) {
+                    if (el.type === 'file') {
+                        for (let i = 0; i < el.files.length; i++) {
+                            formData.append(el.name, el.files[i]);
+                        }
+                    } else if (el.type === 'radio' || el.type === 'checkbox') {
+                        if (el.checked) formData.append(el.name, el.value);
+                    } else {
+                        formData.append(el.name, el.value);
+                    }
+                }
+            });
+
             if (submitter && submitter.name) {
                 formData.append(submitter.name, submitter.value);
             }
             
-            const xhr = new XMLHttpRequest();
-            xhr.open(form.getAttribute('method') || 'POST', form.getAttribute('action') || window.location.href, true);
-            xhr.setRequestHeader('Accept', 'application/json');
             const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-            if (csrfMeta) {
-                xhr.setRequestHeader('X-CSRF-TOKEN', csrfMeta.content);
+            const csrfToken = csrfMeta ? csrfMeta.content : '';
+
+            // Find all files in formData
+            const filesToUpload = [];
+            for (let [key, value] of formData.entries()) {
+                if (value instanceof File && value.name && value.size > 0) {
+                    filesToUpload.push({ key, file: value });
+                }
+            }
+
+            async function processUploads() {
+                try {
+                    let totalSize = filesToUpload.reduce((acc, f) => acc + f.file.size, 0);
+                    let uploadedSize = 0;
+
+                    for (let item of filesToUpload) {
+                        let folder = 'artwork';
+                        if (item.key.includes('reference')) folder = 'references';
+                        else if (item.key.includes('brief')) folder = 'briefs';
+                        else if (item.key.includes('logo')) folder = 'brand_logos';
+                        else if (item.key.includes('revision')) folder = 'revision_images';
+                        
+                        const presignedResp = await fetch('/presigned-url', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                filename: item.file.name,
+                                folder: folder,
+                                content_type: item.file.type || 'application/octet-stream'
+                            })
+                        });
+                        
+                        if (!presignedResp.ok) {
+                            throw new Error('Failed to get upload URL');
+                        }
+                        
+                        const presignedData = await presignedResp.json();
+                        
+                        await new Promise((resolve, reject) => {
+                            const s3Xhr = new XMLHttpRequest();
+                            s3Xhr.open('PUT', presignedData.url, true);
+                            s3Xhr.setRequestHeader('Content-Type', item.file.type || 'application/octet-stream');
+                            
+                            s3Xhr.upload.addEventListener('progress', function(event) {
+                                if (event.lengthComputable) {
+                                    let currentUploaded = uploadedSize + event.loaded;
+                                    let percent = Math.round((currentUploaded / totalSize) * 100);
+                                    if (submitter) submitter.innerHTML = getLoadingHtml(percent);
+                                }
+                            });
+                            
+                            s3Xhr.onload = function() {
+                                if (s3Xhr.status >= 200 && s3Xhr.status < 300) {
+                                    uploadedSize += item.file.size;
+                                    resolve();
+                                } else {
+                                    reject(new Error('S3 Upload failed. Server returned: ' + s3Xhr.status));
+                                }
+                            };
+                            
+                            s3Xhr.onerror = () => reject(new Error('Network error during S3 upload'));
+                            
+                            s3Xhr.send(item.file);
+                        });
+                        
+                        // Replace file with S3 path/url in formData
+                        formData.set(item.key, '/' + presignedData.path);
+                    }
+                    
+                    if (filesToUpload.length === 0 && submitter) {
+                        submitter.innerHTML = getLoadingHtml(100);
+                    }
+                    
+                    // Submit main form to backend
+                    const xhr = new XMLHttpRequest();
+                    xhr.open(form.getAttribute('method') || 'POST', form.getAttribute('action') || window.location.href, true);
+                    xhr.setRequestHeader('Accept', 'application/json');
+                    if (csrfToken) xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+                    
+                    xhr.onload = function() {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            if (submitter) submitter.innerHTML = 'Success!';
+                            window.location.reload();
+                        } else if (xhr.status === 422) {
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                let errMsg = "Validation Error:\n";
+                                if (response.errors) {
+                                    for (const field in response.errors) {
+                                        errMsg += "- " + response.errors[field].join("\n- ") + "\n";
+                                    }
+                                } else {
+                                    errMsg += response.message || "Invalid input data.";
+                                }
+                                alert(errMsg);
+                            } catch(e) {
+                                alert('A validation error occurred.');
+                            }
+                            resetButtons();
+                        } else {
+                            alert('An error occurred while saving. Server responded with: ' + xhr.status);
+                            resetButtons();
+                        }
+                    };
+                    
+                    xhr.onerror = function() {
+                        alert('A network error occurred while saving.');
+                        resetButtons();
+                    };
+                    
+                    xhr.send(formData);
+                    
+                } catch (error) {
+                    alert(error.message);
+                    resetButtons();
+                }
             }
             
-            xhr.upload.onprogress = function(event) {
-                if (event.lengthComputable) {
-                    const percentComplete = Math.round((event.loaded / event.total) * 100);
-                    if (submitter) {
-                        submitter.innerHTML = getLoadingHtml(percentComplete);
-                    }
-                }
-            };
-            
-            xhr.onload = function() {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    if (submitter) submitter.innerHTML = 'Success!';
-                    window.location.reload();
-                } else if (xhr.status === 422) {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        let errMsg = "Validation Error:\n";
-                        if (response.errors) {
-                            for (const field in response.errors) {
-                                errMsg += "- " + response.errors[field].join("\n- ") + "\n";
-                            }
-                        } else {
-                            errMsg += response.message || "Invalid input data.";
-                        }
-                        alert(errMsg);
-                    } catch(e) {
-                        alert('A validation error occurred.');
-                    }
-                    resetButtons();
-                } else {
-                    alert('An error occurred while uploading. Server responded with: ' + xhr.status);
-                    resetButtons();
-                }
-            };
-            
-            xhr.onerror = function() {
-                alert('A network error occurred while uploading.');
-                resetButtons();
-            };
+            processUploads();
             
             function resetButtons() {
                 allBtns.forEach(b => {
@@ -4307,8 +4405,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     b.style.opacity = '1';
                 });
             }
-            
-            xhr.send(formData);
         });
     });
 });

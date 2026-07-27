@@ -22,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('deliverables', DeliverableController::class)->except(['index', 'show']);
 
     // Deliverable workflow transitions
+    Route::post('presigned-url', [DeliverableController::class, 'generatePresignedUrl'])->name('deliverables.presigned-url');
     Route::post('deliverables/{deliverable}/submit', [DeliverableController::class, 'submitStage'])->name('deliverables.submit');
     Route::post('deliverables/{deliverable}/batch-revisions', [DeliverableController::class, 'batchRevisions'])->name('deliverables.batchRevisions');
     Route::post('deliverables/{deliverable}/revisions', [DeliverableController::class, 'requestRevisions'])->name('deliverables.revisions');

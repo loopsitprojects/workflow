@@ -293,6 +293,40 @@ class DeliverableController extends Controller
     }
 
     /**
+     * Generate a presigned URL for direct S3 upload.
+     */
+    public function generatePresignedUrl(Request $request)
+    {
+        $request->validate([
+            'filename' => 'required|string',
+            'folder' => 'required|string|in:artwork,references,briefs,brand_logos,revision_images'
+        ]);
+
+        $originalName = pathinfo($request->filename, PATHINFO_FILENAME);
+        $safeName = \Illuminate\Support\Str::slug($originalName);
+        $extension = pathinfo($request->filename, PATHINFO_EXTENSION);
+        $filename = date('Y-m-d') . '_' . $safeName . '.' . $extension;
+        
+        $path = $request->folder . '/' . $filename;
+        
+        $client = \Illuminate\Support\Facades\Storage::disk('s3')->getClient();
+        
+        $command = $client->getCommand('PutObject', [
+            'Bucket' => config('filesystems.disks.s3.bucket'),
+            'Key'    => $path,
+            'ContentType' => $request->content_type ?? 'application/octet-stream',
+        ]);
+        
+        $presignedRequest = $client->createPresignedRequest($command, '+60 minutes');
+        
+        return response()->json([
+            'url' => (string) $presignedRequest->getUri(),
+            'path' => $path,
+            'full_url' => \Illuminate\Support\Facades\Storage::disk('s3')->url($path)
+        ]);
+    }
+
+    /**
      * Advance the deliverable to the next workflow stage.
      */
     public function submitStage(Request $request, Deliverable $deliverable)
@@ -401,11 +435,15 @@ class DeliverableController extends Controller
                     }
                 }
                 $deliverable->reference_file = null;
+            } elseif ($request->has('reference_file') && is_string($request->reference_file)) {
+                $deliverable->reference_file = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($request->reference_file, '/'));
             } elseif ($request->hasFile('reference_file')) {
                 $deliverable->reference_file = $this->moveUploadedFile($request->file('reference_file'), 'references');
             }
             
-            if ($request->hasFile('final_designs_file')) {
+            if ($request->has('final_designs_file') && is_string($request->final_designs_file)) {
+                $deliverable->final_designs = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($request->final_designs_file, '/'));
+            } elseif ($request->hasFile('final_designs_file')) {
                 $deliverable->final_designs = $this->moveUploadedFile($request->file('final_designs_file'), 'artwork');
             }
             
@@ -747,8 +785,12 @@ class DeliverableController extends Controller
             if (isset($data['final_designs_link'])) $deliverable->final_designs_link = $data['final_designs_link'];
             
             // Handle file upload if present in the data array
-            if (isset($data['final_designs_file']) && $data['final_designs_file'] instanceof \Illuminate\Http\UploadedFile) {
-                $deliverable->final_designs = $this->moveUploadedFile($data['final_designs_file'], 'artwork');
+            if (isset($data['final_designs_file'])) {
+                if (is_string($data['final_designs_file'])) {
+                    $deliverable->final_designs = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($data['final_designs_file'], '/'));
+                } elseif ($data['final_designs_file'] instanceof \Illuminate\Http\UploadedFile) {
+                    $deliverable->final_designs = $this->moveUploadedFile($data['final_designs_file'], 'artwork');
+                }
             }
         }
 
@@ -786,7 +828,7 @@ class DeliverableController extends Controller
             $validated = $request->validate([
                 'revision_instructions' => 'required|string|max:1000',
                 'revision_target'       => 'nullable|in:writer,designer',
-                'revision_image'        => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm|max:512000',
+                'revision_image'        => 'nullable', // allow string or file
             ]);
 
             $oldStage = $deliverable->approval_stage;
@@ -818,7 +860,9 @@ class DeliverableController extends Controller
 
             // Handle optional image upload
             $imagePath = null;
-            if ($request->hasFile('revision_image')) {
+            if ($request->has('revision_image') && is_string($request->revision_image)) {
+                $imagePath = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($request->revision_image, '/'));
+            } elseif ($request->hasFile('revision_image')) {
                 $file = $request->file('revision_image');
                 $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
                 $path = $file->storeAs('revision_images', $filename, 's3');
