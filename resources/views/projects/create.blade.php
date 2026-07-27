@@ -121,10 +121,9 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
             </select>
         </div>
 
-        {{-- Brief --}}
         <div class="f-section">
             <label class="f-label">Project Brief</label>
-            <div x-data="quillEditor(`{!! old('description') !!}`)" style="margin-bottom: 12px;">
+            <div x-data="quillEditor({{ json_encode(old('description')) }})" style="margin-bottom: 12px;">
                 <textarea name="description" x-model="content" style="display:none;"></textarea>
                 <div x-ref="editor" class="f-input" style="min-height: 120px; border-top-left-radius: 0; border-top-right-radius: 0; padding: 0;"></div>
             </div>

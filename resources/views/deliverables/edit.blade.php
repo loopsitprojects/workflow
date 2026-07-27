@@ -207,9 +207,9 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
         </div>
 
         {{-- Description --}}
-        <div class="f-section" style="border-bottom:none;">
-            <label class="f-label">Brief & Objectives</label>
-            <div x-data="quillEditor(`{!! old('description', $deliverable->description) !!}`)" style="margin-bottom: 12px;">
+        <div class="f-section">
+            <label class="f-label">Deliverable Brief</label>
+            <div x-data="quillEditor({{ json_encode(old('description', $deliverable->description)) }})" style="margin-bottom: 12px;">
                 <textarea name="description" x-model="content" style="display:none;"></textarea>
                 <div x-ref="editor" class="f-input" style="min-height: 120px; border-top-left-radius: 0; border-top-right-radius: 0; padding: 0;"></div>
             </div>
