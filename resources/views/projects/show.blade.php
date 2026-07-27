@@ -685,7 +685,7 @@
                                                     $designerEditPermission = $isAssignedDesigner;
                                                     $canUploadSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
-                                                @if($canUploadSubtask)
+                                                @if(false)
                                                     <div style="position:relative;display:inline-block;" onclick="event.stopPropagation()">
                                                         <button type="button" onclick="toggleArtworkPicker('awp-{{ $subtask->id }}',this)" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:9px;font-weight:700;color:#0055D4;background:rgba(0,85,212,0.1);border:1px solid rgba(0,85,212,0.2);border-radius:6px;cursor:pointer;">
                                                             <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
@@ -894,7 +894,7 @@
                                                     $designerEditPermission = $isAssignedDesigner;
                                                     $canUploadTask = ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
-                                                @if($canUploadTask)
+                                                @if(false)
                                                     <div style="position:relative;display:inline-block;" onclick="event.stopPropagation()">
                                                         <button type="button" onclick="toggleArtworkPicker('awp-{{ $task->id }}',this)" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:9px;font-weight:700;color:#0055D4;background:rgba(0,85,212,0.1);border:1px solid rgba(0,85,212,0.2);border-radius:6px;cursor:pointer;">
                                                             <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
@@ -1268,7 +1268,7 @@
                                                     $designerEditPermission = $isAssignedDesigner || ($currentUserRole === 'designer' && !$subtask->designer_id);
                                                     $canUploadSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
-                                                @if($canUploadSubtask)
+                                                @if(false)
                                                     <div style="position:relative;display:inline-block;" onclick="event.stopPropagation()">
                                                         <button type="button" onclick="toggleArtworkPicker('awp-{{ $subtask->id }}',this)" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:9px;font-weight:700;color:#0055D4;background:rgba(0,85,212,0.1);border:1px solid rgba(0,85,212,0.2);border-radius:6px;cursor:pointer;">
                                                             <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
@@ -1486,7 +1486,7 @@
                                                     $designerEditPermission = $isAssignedDesigner;
                                                     $canUploadTask = ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
-                                                @if($canUploadTask)
+                                                @if(false)
                                                     <div style="position:relative;display:inline-block;" onclick="event.stopPropagation()">
                                                         <button type="button" onclick="toggleArtworkPicker('awp-{{ $task->id }}',this)" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:9px;font-weight:700;color:#0055D4;background:rgba(0,85,212,0.1);border:1px solid rgba(0,85,212,0.2);border-radius:6px;cursor:pointer;">
                                                             <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
