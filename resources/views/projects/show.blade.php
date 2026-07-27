@@ -420,17 +420,11 @@
                 
                 <div x-show="expanded" style="display: none; padding-left: 26px; padding-top: 4px;">
                     @if($project->description)
-                        <style>
-                            .project-brief-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
-                            .project-brief-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
-                            .project-brief-content li { margin-bottom: 0.25rem; }
-                            .project-brief-content p { margin-bottom: 1rem; }
-                            .project-brief-content h1, .project-brief-content h2, .project-brief-content h3, .project-brief-content h4 { font-weight: bold; margin-top: 1.5rem; margin-bottom: 0.75rem; }
-                            .project-brief-content h1 { font-size: 1.5em; }
-                            .project-brief-content h2 { font-size: 1.25em; }
-                            .project-brief-content h3 { font-size: 1.1em; }
-                        </style>
-                        <div class="project-brief-content" style="font-size:13px; color:var(--color-text-primary); line-height:1.6; font-weight:500;">{!! $project->description !!}</div>
+                        <div class="ql-snow">
+                            <div class="ql-editor" style="font-size:13px; color:var(--color-text-primary); line-height:1.6; font-weight:500; padding:0;">
+                                {!! $project->description !!}
+                            </div>
+                        </div>
                     @endif
                     @if($project->brief_file_path)
                         <a href="{{ $project->brief_file_path }}" target="_blank"
