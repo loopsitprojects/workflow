@@ -1279,7 +1279,7 @@
                                                             Upload
                                                         </button>
                                                         <div id="awp-{{ $subtask->id }}" class="aw-picker" style="display:none;position:fixed;z-index:9999;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.18);padding:10px;width:210px;" onclick="event.stopPropagation()">
-                                                            <form action="{{ route('deliverables.submit', $subtask) }}" method="POST" enctype="multipart/form-data">
+                                                            <form action="{{ route('deliverables.submit', $subtask) }}" method="POST" enctype="multipart/form-data" class="ajax-form">
                                                                 @csrf
                                                                 <input type="hidden" name="action" value="save_only">
                                                                 <label style="display:flex;align-items:center;gap:9px;padding:8px;border-radius:7px;cursor:pointer;transition:background 0.12s;" onmouseenter="this.style.background='var(--color-bg-secondary)'" onmouseleave="this.style.background='transparent'">
@@ -1290,7 +1290,7 @@
                                                                         <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Media</div>
                                                                         <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP, MP4, WebM</div>
                                                                     </div>
-                                                                    <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
+                                                                    <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))">
                                                                 </label>
                                                             </form>
                                                             <div style="display:flex;align-items:center;gap:6px;margin:4px 6px;">
@@ -1298,7 +1298,7 @@
                                                                 <span style="font-size:9px;color:var(--color-text-secondary);">or</span>
                                                                 <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
                                                             </div>
-                                                            <form action="{{ route('deliverables.submit', $subtask) }}" method="POST" style="padding:2px 4px 4px;">
+                                                            <form action="{{ route('deliverables.submit', $subtask) }}" method="POST" style="padding:2px 4px 4px;" class="ajax-form">
                                                                 @csrf
                                                                 <input type="hidden" name="action" value="save_only">
                                                                 <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;">
@@ -4224,8 +4224,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    ajaxForms.forEach(formId => {
-        const form = document.getElementById(formId);
+    const forms = document.querySelectorAll('#submitStageForm, #revisionsForm, #artworkDeliveryForm, .ajax-form');
+    forms.forEach(form => {
         if (!form) return;
         
 
@@ -4261,6 +4261,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Append elements outside the form that have the form attribute
             document.querySelectorAll(`[form="${form.id}"]`).forEach(el => {
                 if (el.name && !form.contains(el)) {
+                    // Skip submit buttons unless they are the active submitter
+                    if (el.type === 'submit' || el.type === 'button') return;
+                    
                     if (el.type === 'file') {
                         for (let i = 0; i < el.files.length; i++) {
                             formData.append(el.name, el.files[i]);
