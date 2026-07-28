@@ -1202,7 +1202,10 @@ class DeliverableController extends Controller
 
         $refPath   = $this->pptLocalImagePath($task->reference_file);
         $artPath   = $this->pptLocalImagePath($task->final_designs);
-        $hasImages = $refPath || $artPath;
+        
+        // For client presentation, prioritize final artwork. Fallback to reference if no artwork exists.
+        $primaryImgPath = $artPath ?: $refPath;
+        $hasImages = (bool) $primaryImgPath;
 
         // Slide canvas (px, 96dpi, default 4:3 = 960×720)
         $SW = 960; $SH = 720;
@@ -1210,11 +1213,12 @@ class DeliverableController extends Controller
         $contentY = $headerH + 16;
         $contentH = $SH - $headerH - $footerH - 24;
 
-        // Column widths
+        // Column widths - Text on left, Image on right
         $textX = 24;
-        $textW = $hasImages ? 480 : ($SW - 48);
-        $imgX  = 532;
-        $imgW  = $SW - $imgX - 24;
+        $textW = $hasImages ? 450 : ($SW - 48);
+
+        $imgX  = $hasImages ? ($textX + $textW + 32) : 0;
+        $imgW  = $hasImages ? ($SW - $imgX - 24) : 0;
 
         // ── 1. Slide canvas background ───────────────────────────
         $slideBg = $slide->createRichTextShape()
@@ -1269,29 +1273,64 @@ class DeliverableController extends Controller
 
         // ── 4. Header text (dark slate colors) ───────────────────
         $hdr = $slide->createRichTextShape()
-            ->setHeight($headerH - 8)->setWidth($SW - 200)->setOffsetX(24)->setOffsetY(6);
+            ->setHeight($headerH - 8)->setWidth($SW - 200)->setOffsetX(24)->setOffsetY(20);
         $hdr->getBorder()->setLineStyle($Border::LINE_NONE);
 
-        $run = $hdr->createTextRun('[' . ($task->subtask_type ?? 'Standard') . ']  ');
-        $run->getFont()->setSize(8)->setColor($color('FF2563EB'));
-
-        $hdr->createBreak();
         $run = $hdr->createTextRun($task->title);
-        $run->getFont()->setBold(true)->setSize(16)->setColor($color('FF0F172A'));
-
-        // Stage indicator removed for client presentation
+        $run->getFont()->setName('Poppins')->setBold(true)->setSize(24)->setColor($color('FF0F172A'));
 
         // ── 5. Column divider ────────────────────────────────────
         if ($hasImages) {
             $div = $slide->createRichTextShape()
-                ->setHeight($contentH)->setWidth(1)->setOffsetX($imgX - 16)->setOffsetY($contentY);
+                ->setHeight($contentH)->setWidth(1)->setOffsetX($textX + $textW + 16)->setOffsetY($contentY);
             $div->getFill()->setFillType($Fill::FILL_SOLID)
                 ->setStartColor($color('FFE2E8F0'));
             $div->getBorder()->setLineStyle($Border::LINE_NONE);
             $div->createTextRun('')->getFont()->setSize(1)->setColor($color('FFE2E8F0'));
         }
 
-        // ── 6. Text sections (left column) with clean cards ──────
+        // ── 6. Image Section (Right Column) ─────────────────────────────
+        if ($hasImages) {
+            $imgLabelText = $artPath ? 'FINAL ARTWORK' : 'REFERENCE IMAGE';
+            
+            $imgLabelY = $contentY;
+            $lbl = $slide->createRichTextShape()
+                ->setHeight(18)->setWidth($imgW)->setOffsetX($imgX)->setOffsetY($imgLabelY);
+            $lbl->getBorder()->setLineStyle($Border::LINE_NONE);
+            $lr = $lbl->createTextRun($imgLabelText);
+            $lr->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF94A3B8'));
+            
+            $imgOffsetYOffset = 22;
+            // Scale image to fit slot while preserving aspect ratio, centered in its box
+            $maxH = $contentH - $imgOffsetYOffset;
+            $maxW = $imgW;
+            [$origW, $origH] = @getimagesize($primaryImgPath) ?: [1, 1];
+            if ($origW > 0 && $origH > 0) {
+                $ratio   = $origW / $origH;
+                if (($maxW / $ratio) <= $maxH) {
+                    $fitW = $maxW;
+                    $fitH = (int)($maxW / $ratio);
+                } else {
+                    $fitH = $maxH;
+                    $fitW = (int)($fitH * $ratio);
+                }
+            } else {
+                $fitW = $maxW;
+                $fitH = $maxH;
+            }
+
+            // Center image in the right column, below the label
+            $imgOffsetX = $imgX + (int)(($maxW - $fitW) / 2);
+            $imgOffsetY = $contentY + $imgOffsetYOffset + (int)(($maxH - $fitH) / 2);
+
+            $drawing = new \PhpOffice\PhpPresentation\Shape\Drawing\File();
+            $drawing->setName('Artwork')->setPath($primaryImgPath)
+                    ->setWidth($fitW)->setHeight($fitH)
+                    ->setOffsetX($imgOffsetX)->setOffsetY($imgOffsetY);
+            $slide->addShape($drawing);
+        }
+
+        // ── 7. Text sections (Left column) with clean cards ──────
         $offsetY = $contentY;
         $maxBottom = $SH - $footerH - 12;
 
@@ -1301,16 +1340,13 @@ class DeliverableController extends Controller
             if (!$content || trim($content) === '') return;
             if ($offsetY >= $maxBottom) return;
 
-            $isRevision = $label === 'REVISION REQUESTED';
-
             // Section label
             $lbl = $slide->createRichTextShape()
-                ->setHeight(14)->setWidth($textW)->setOffsetX($textX)->setOffsetY($offsetY);
+                ->setHeight(18)->setWidth($textW)->setOffsetX($textX)->setOffsetY($offsetY);
             $lbl->getBorder()->setLineStyle($Border::LINE_NONE);
             $lr = $lbl->createTextRun($label);
-            $lr->getFont()->setBold(true)->setSize(7)
-               ->setColor($color($isRevision ? 'FFEF4444' : 'FF94A3B8'));
-            $offsetY += 16;
+            $lr->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF94A3B8'));
+            $offsetY += 22;
 
             // Content card block
             // Clean up HTML before displaying
@@ -1344,20 +1380,20 @@ class DeliverableController extends Controller
             
             // Calculate lines based on explicit newlines plus word wrap estimate
             $explicitLines = substr_count($excerpt, "\n") + 1;
-            $wordWrapLines = (int) ceil(mb_strlen(str_replace("\n", "", $excerpt)) / 75);
+            $wordWrapLines = (int) ceil(mb_strlen(str_replace("\n", "", $excerpt)) / 70);
             $lines = max($explicitLines, $wordWrapLines);
 
             // Allow the block to grow to fit the text, up to the remaining slide height
-            $blockH   = (int)($lines * 14) + 20;
+            $blockH   = (int)($lines * 16) + 24;
             $blockH   = min($blockH, $maxBottom - $offsetY);
-            if ($blockH < 14) return;
+            if ($blockH < 16) return;
 
             $blk = $slide->createRichTextShape()
                 ->setHeight($blockH)->setWidth($textW)->setOffsetX($textX)->setOffsetY($offsetY);
             
             // Styled card container
-            $blk->getFill()->setFillType($Fill::FILL_SOLID)->setStartColor($color($isRevision ? 'FFFFF5F5' : 'FFFFFFFF'));
-            $blk->getBorder()->setLineStyle($Border::LINE_SINGLE)->setColor($color($isRevision ? 'FFFEE2E2' : 'FFE2E8F0'));
+            $blk->getFill()->setFillType($Fill::FILL_NONE);
+            $blk->getBorder()->setLineStyle($Border::LINE_NONE);
 
             $parts = explode("\n", $excerpt);
             foreach ($parts as $idx => $part) {
@@ -1366,70 +1402,21 @@ class DeliverableController extends Controller
                 }
                 if ($part !== '') {
                     $run = $blk->createTextRun($part);
-                    $run->getFont()->setSize(9)->setColor($color($isRevision ? 'FF991B1B' : 'FF334155'));
+                    // Increased font size for better client presentation readability
+                    $run->getFont()->setName('Poppins')->setSize(11)->setColor($color('FF334155'));
                 }
             }
             
-            $blk->getActiveParagraph()->getAlignment()->setMarginLeft(10)->setMarginTop(6)->setMarginRight(10);
+            $blk->getActiveParagraph()->getAlignment()->setMarginLeft(0)->setMarginTop(0)->setMarginRight(0);
 
-            $offsetY += $blockH + 12;
+            $offsetY += $blockH + 16;
         };
 
-        // Stage section excluded for client presentation
-        $addSection('POST TYPE',    $task->post_type ?? $task->subtask_type ?? null);
-        // Revision instructions are excluded from PPT slide layout as requested
+        // Client presentation layout fields
         $addSection('CONCEPT',      $task->concept);
         $addSection('CAPTION',      $task->caption);
         $addSection('COPY',         $task->post_copy ?: ($task->subtask_copy ?? null));
-        $addSection('NOTES',        $task->notes);
-        $addSection('REFERENCE',    $task->reference);
-        if (preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->reference_file ?? '')) {
-            $addSection('REFERENCE VIDEO', $task->reference_file);
-        }
-        $addSection('ARTWORK LINK', $task->final_designs_link);
-        if (preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->final_designs ?? '')) {
-            $addSection('ARTWORK VIDEO', $task->final_designs);
-        }
-
-        // ── 7. Images (right column) ─────────────────────────────
-        if ($hasImages) {
-            $imgPairs  = array_filter([['REFERENCE IMAGE', $refPath], ['FINAL ARTWORK', $artPath]],
-                                      fn($p) => (bool) $p[1]);
-            $totalImgs = count($imgPairs);
-            $imgY      = $contentY;
-            $slotH     = (int) ($contentH / $totalImgs);
-
-            foreach ($imgPairs as [$label, $path]) {
-                // Label
-                $lbl = $slide->createRichTextShape()
-                    ->setHeight(14)->setWidth($imgW)->setOffsetX($imgX)->setOffsetY($imgY);
-                $lbl->getBorder()->setLineStyle($Border::LINE_NONE);
-                $lr = $lbl->createTextRun($label);
-                $lr->getFont()->setBold(true)->setSize(7)->setColor($color('FF94A3B8'));
-                $imgY += 16;
-
-                // Scale image to fit slot while preserving aspect ratio
-                $maxH = $slotH - 26;
-                $maxW = $imgW;
-                [$origW, $origH] = @getimagesize($path) ?: [1, 1];
-                if ($origW > 0 && $origH > 0) {
-                    $ratio   = $origW / $origH;
-                    $fitH    = min($maxH, (int)($maxW / $ratio));
-                    $fitW    = min($maxW, (int)($fitH * $ratio));
-                } else {
-                    $fitW = $maxW;
-                    $fitH = $maxH;
-                }
-
-                $drawing = new \PhpOffice\PhpPresentation\Shape\Drawing\File();
-                $drawing->setName($label)->setPath($path)
-                        ->setWidth($fitW)->setHeight($fitH)
-                        ->setOffsetX($imgX)->setOffsetY($imgY);
-                $slide->addShape($drawing);
-
-                $imgY += $slotH;
-            }
-        }
+        $addSection('REFERENCE LINK', $task->reference);
 
         // ── 8. Footer bar ────────────────────────────────────────
         $ftrBg = $slide->createRichTextShape()
@@ -1437,14 +1424,6 @@ class DeliverableController extends Controller
         $ftrBg->getFill()->setFillType($Fill::FILL_SOLID)->setStartColor($color('FFFFFFFF'));
         $ftrBg->getBorder()->setLineStyle($Border::LINE_NONE);
         $ftrBg->createTextRun('')->getFont()->setSize(1)->setColor($color('FFFFFFFF'));
-
-        $brand   = $task->project->brand->name ?? '';
-        $project = $task->project->name ?? '';
-        $ftr = $slide->createRichTextShape()
-            ->setHeight($footerH)->setWidth($SW - 48)->setOffsetX(24)->setOffsetY($SH - $footerH + 4);
-        $ftr->getBorder()->setLineStyle($Border::LINE_NONE);
-        $fr = $ftr->createTextRun(implode('  ·  ', array_filter(['Loops Work', $brand, $project])));
-        $fr->getFont()->setSize(7)->setColor($color('FF94A3B8'));
     }
 }
 
