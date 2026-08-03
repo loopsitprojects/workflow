@@ -1936,6 +1936,12 @@
                         </select>
                         <p style="font-size:11px; color:#0055D4; margin-top:8px; font-weight:600;">Selection required to advance to Designer stage.</p>
                     </div>
+
+                    <div id="submitNotesArea" class="detail-item full" style="margin-top:10px; padding:20px; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.05); border-radius:16px;">
+                        <label class="detail-label" style="margin-bottom:12px;">Submission Comment (Optional)</label>
+                        <textarea name="submit_notes" form="submitStageForm" placeholder="Add an optional comment when submitting..." style="width:100%; height:80px; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); resize:vertical; outline:none; transition:border-color 0.15s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='var(--color-border-primary)'"></textarea>
+                    </div>
+
                     <div class="detail-item">
                         <label class="detail-label">Final Designs</label>
                         <div id="modalFinal" class="detail-val"></div>

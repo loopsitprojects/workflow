@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Loops</title>
+    <link rel="icon" type="image/png" href="{{ asset('desktop.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
@@ -107,7 +108,7 @@
             <div class="mt-8 pt-8 border-t border-gray-50 dark:border-slate-800 text-center">
                 <p class="text-sm text-gray-500 dark:text-slate-400 font-medium">
                     Don't have an account? 
-                    <a href="#" class="text-blue-500 font-bold hover:text-blue-700 transition-colors">Contact Admin</a>
+                    <span class="text-blue-500 font-bold">Contact Admin</span>
                 </p>
             </div>
         </div>

@@ -1418,6 +1418,20 @@ class DeliverableController extends Controller
         $addSection('COPY',         $task->post_copy ?: ($task->subtask_copy ?? null));
         $addSection('REFERENCE LINK', $task->reference);
 
+        if ($task->reference_file) {
+            $url = str_starts_with($task->reference_file, 'http') ? $task->reference_file : asset(ltrim($task->reference_file, '/'));
+            $addSection('REFERENCE FILE', $url);
+        }
+
+        if ($task->final_designs) {
+            $url = str_starts_with($task->final_designs, 'http') ? $task->final_designs : asset(ltrim($task->final_designs, '/'));
+            $addSection('FINAL ARTWORK FILE', $url);
+        }
+
+        if ($task->final_designs_link) {
+            $addSection('FINAL DESIGNS LINK', $task->final_designs_link);
+        }
+
         // ── 8. Footer bar ────────────────────────────────────────
         $ftrBg = $slide->createRichTextShape()
             ->setHeight($footerH)->setWidth($SW)->setOffsetX(0)->setOffsetY($SH - $footerH);
