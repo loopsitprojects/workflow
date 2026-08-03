@@ -2468,13 +2468,22 @@
                     task.approvals_history.forEach(app => {
                         const dateStr = new Date(app.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
                         const row = document.createElement('div');
-                        row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(16, 185, 129, 0.05); padding:10px 14px; border-radius:10px; border:1px solid rgba(16, 185, 129, 0.1);';
+                        row.style.cssText = 'display:flex; flex-direction:column; gap:8px; background:rgba(16, 185, 129, 0.05); padding:10px 14px; border-radius:10px; border:1px solid rgba(16, 185, 129, 0.1);';
+                        
+                        let notesHtml = '';
+                        if (app.notes) {
+                            notesHtml = `<div style="margin-top:4px; font-size:13px; color:var(--color-text-primary); font-weight:500; background:rgba(16, 185, 129, 0.05); padding:10px 12px; border-radius:8px; border:1px solid rgba(16, 185, 129, 0.15); font-style:italic;">"${app.notes}"</div>`;
+                        }
+
                         row.innerHTML = `
-                            <div style="font-size:12px; font-weight:700; color:var(--color-text-primary);">${app.user ? app.user.name : 'Unknown'}</div>
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <span style="font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; letter-spacing:0.05em; background:rgba(16, 185, 129, 0.1); padding:2px 8px; border-radius:6px;">${app.stage} Submitted</span>
-                                <span style="font-size:11px; color:#10b981; opacity:0.8; font-weight:600;">${dateStr}</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div style="font-size:12px; font-weight:700; color:var(--color-text-primary);">${app.user ? app.user.name : 'Unknown'}</div>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; letter-spacing:0.05em; background:rgba(16, 185, 129, 0.1); padding:2px 8px; border-radius:6px;">${app.stage} Submitted</span>
+                                    <span style="font-size:11px; color:#10b981; opacity:0.8; font-weight:600;">${dateStr}</span>
+                                </div>
                             </div>
+                            ${notesHtml}
                         `;
                         appHistory.appendChild(row);
                     });
@@ -3169,6 +3178,10 @@
                         </div>
                     </div>
                 </div>
+                <div id="batchSubmitNotesGroup" style="display:none; margin-bottom:20px; padding:16px; border-radius:12px; border:1.5px solid rgba(0,0,0,0.1); background:rgba(0,0,0,0.02);">
+                    <label class="detail-label" style="margin-bottom:6px;">Submission Comment (Optional)</label>
+                    <textarea id="batchSubmitNotes" placeholder="Add an optional comment for the next stage..." style="width:100%; height:80px; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); resize:vertical; outline:none; transition:border-color 0.15s;"></textarea>
+                </div>
                 <div id="batchGenericConfirm" style="font-size:13px; font-weight:600; color:var(--color-text-secondary); line-height:1.6;">
                     Are you sure you want to advance this entire batch?
                 </div>
@@ -3252,6 +3265,14 @@
                 subtitle.textContent = isIndividual ? `Submitting this task to the ${displayStage} stage.` : `Preparing to submit ${count} tasks to ${displayStage} stage.`;
                 stakeholderGroup.style.display = 'none';
                 revisionGroup.style.display = 'none';
+                
+                const submitNotesGroup = document.getElementById('batchSubmitNotesGroup');
+                if (submitNotesGroup) {
+                    submitNotesGroup.style.display = type === 'submit' ? 'block' : 'none';
+                    const submitNotesInput = document.getElementById('batchSubmitNotes');
+                    if(submitNotesInput) submitNotesInput.value = '';
+                }
+                
                 genericConfirm.style.display = 'block';
                 if (nextStage === 'Writer Review' && stakeholders.writerName) {
                     genericConfirm.innerHTML = isIndividual ? `Are you sure you want to submit this task to <b>${stakeholders.writerName}</b> for review?` : `Are you sure you want to submit this entire batch to <b>${stakeholders.writerName}</b> for review?`;
@@ -3546,6 +3567,10 @@
             const payload = {
                 batch_data: batchData
             };
+            const submitNotes = document.getElementById('batchSubmitNotes')?.value;
+            if (submitNotes) {
+                payload.submit_notes = submitNotes;
+            }
             if (roleField && assigneeId && assigneeId !== 'individual') {
                 payload[roleField] = assigneeId;
             }
