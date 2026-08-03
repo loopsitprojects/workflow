@@ -1695,6 +1695,19 @@
                     @endforeach
                 </div>
 
+                <!-- Latest Comment Banner -->
+                <div id="modalLatestCommentAlert" style="display:none; padding:16px; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.2); border-radius:16px; margin-bottom:24px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <svg width="20" height="20" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                            <span style="color:#10b981; font-weight:900; font-size:14px; text-transform:uppercase; letter-spacing:0.05em;" id="modalLatestCommentTitle">Latest Comment</span>
+                        </div>
+                        <span id="modalLatestCommentDate" style="font-size:11px; color:#10b981; font-weight:600; opacity:0.8;"></span>
+                    </div>
+                    <div id="modalLatestCommentText" style="color:var(--color-text-primary); font-size:13px; font-weight:500; font-style:italic; line-height:1.5; background:var(--color-bg-primary); padding:12px; border-radius:10px; border:1px solid rgba(16, 185, 129, 0.15); margin-top:8px;"></div>
+                </div>
+
+
                 <div style="display:flex; gap:16px; margin-bottom:24px;">
                     <div class="detail-item" id="modalDeliverableDeadlineBox" style="flex:1;">
                         <label class="detail-label" style="color:#3b82f6;">Deliverable Deadline</label>
@@ -2491,7 +2504,26 @@
                     document.getElementById('modalApprovalsCount').textContent = task.approvals_history.length;
                     appHistory.style.display = 'none';
                     appBox.querySelector('.hist-toggle').classList.remove('open');
-                } else appBox.style.display = 'none';
+                    
+                    const commentsArr = task.approvals_history.filter(app => app.notes && app.notes.trim() !== '');
+                    const latestCommentAlert = document.getElementById('modalLatestCommentAlert');
+                    if (latestCommentAlert) {
+                        if (commentsArr.length > 0) {
+                            const latestApp = commentsArr[commentsArr.length - 1]; // Assume last is newest
+                            const cDateStr = new Date(latestApp.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+                            document.getElementById('modalLatestCommentTitle').textContent = `${latestApp.stage} submission comment by ${latestApp.user ? latestApp.user.name : 'Unknown'}`;
+                            document.getElementById('modalLatestCommentDate').textContent = cDateStr;
+                            document.getElementById('modalLatestCommentText').textContent = `"${latestApp.notes}"`;
+                            latestCommentAlert.style.display = 'block';
+                        } else {
+                            latestCommentAlert.style.display = 'none';
+                        }
+                    }
+                } else {
+                    appBox.style.display = 'none';
+                    const latestCommentAlert = document.getElementById('modalLatestCommentAlert');
+                    if (latestCommentAlert) latestCommentAlert.style.display = 'none';
+                }
 
                 // Revision History
                 const revBox = document.getElementById('modalHistoryBox');
