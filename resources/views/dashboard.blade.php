@@ -159,14 +159,14 @@
                                         <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
                                     </svg>
                                     <div class="min-w-0">
-                                        <h3 class="text-[13px] font-bold text-gray-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                        <h3 class="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                             {{ $mainTitle }}
                                         </h3>
                                         <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                             <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ $project->brand->name ?? '' }}</span>
                                             @if($project)
                                                 <span class="text-gray-200 dark:text-slate-700">·</span>
-                                                <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500 truncate">{{ $project->name }}</span>
+                                                <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ $project->name }}</span>
                                             @endif
                                             @if($clientStatus)
                                                 <span class="text-gray-200 dark:text-slate-700">·</span>
@@ -197,7 +197,7 @@
                                 <div class="mt-3 ml-6 pl-3 border-l-2 border-amber-100 dark:border-amber-900/30 flex flex-col gap-2">
                                     @foreach($subtasks as $t)
                                         <div class="flex items-center justify-between">
-                                            <span class="text-[11px] font-semibold text-blue-500 dark:text-blue-400 truncate pr-2">{{ $t->title }}</span>
+                                            <span class="text-[11px] font-semibold text-blue-500 dark:text-blue-400 pr-2">{{ $t->title }}</span>
                                             @if($t->client_status)
                                                 <span class="text-[9px] font-bold text-amber-500 uppercase tracking-wider flex-shrink-0">{{ $t->client_status }}</span>
                                             @endif
@@ -234,14 +234,14 @@
                                     <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
                                 </svg>
                                 <div class="min-w-0">
-                                    <h3 class="text-[13px] font-bold text-gray-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                    <h3 class="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                         {{ $mainTitle }}
                                     </h3>
                                     <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                         <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ $project->brand->name ?? '' }}</span>
                                         @if($project)
                                             <span class="text-gray-200 dark:text-slate-700">·</span>
-                                            <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500 truncate">{{ $project->name }}</span>
+                                            <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ $project->name }}</span>
                                         @endif
                                         @if(!$isBatch && $subtasks[0]->approval_stage)
                                             <span class="text-gray-200 dark:text-slate-700">·</span>
@@ -272,7 +272,7 @@
                             <div class="mt-3 ml-6 pl-3 border-l-2 border-gray-100 dark:border-slate-800 flex flex-col gap-2">
                                 @foreach($subtasks as $t)
                                     <div class="flex items-center justify-between">
-                                        <span class="text-[11px] font-semibold text-blue-500 dark:text-blue-400 truncate pr-2">{{ $t->title }}</span>
+                                        <span class="text-[11px] font-semibold text-blue-500 dark:text-blue-400 pr-2">{{ $t->title }}</span>
                                         @if($t->approval_stage)
                                             <span class="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider flex-shrink-0">{{ $t->approval_stage }}</span>
                                         @endif
@@ -323,12 +323,12 @@
                                     <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
                                 </svg>
                                 <div class="min-w-0">
-                                    <h3 class="text-[13px] font-bold text-gray-500 dark:text-slate-400 line-through truncate">{{ $mainTitle }}</h3>
+                                    <h3 class="text-[13px] font-bold text-gray-500 dark:text-slate-400 line-through">{{ $mainTitle }}</h3>
                                     <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                         <span class="text-[10px] text-gray-400 dark:text-slate-600">{{ $project->brand->name ?? '' }}</span>
                                         @if($project)
                                             <span class="text-gray-200 dark:text-slate-700">·</span>
-                                            <span class="text-[10px] text-gray-400 dark:text-slate-600 truncate">{{ $project->name }}</span>
+                                            <span class="text-[10px] text-gray-400 dark:text-slate-600">{{ $project->name }}</span>
                                         @endif
                                     </div>
                                 </div>
@@ -338,7 +338,7 @@
                         @if($isBatch)
                             <div class="mt-2 ml-6 pl-3 border-l-2 border-gray-100 dark:border-slate-800 flex flex-col gap-1.5">
                                 @foreach($subtasks as $t)
-                                    <span class="text-[11px] font-semibold text-gray-400 dark:text-slate-500 line-through truncate">{{ $t->title }}</span>
+                                    <span class="text-[11px] font-semibold text-gray-400 dark:text-slate-500 line-through">{{ $t->title }}</span>
                                 @endforeach
                             </div>
                         @endif
@@ -378,7 +378,7 @@
                                 {{ \Carbon\Carbon::parse($deadline)->format('d') }}
                             </div>
                             <div class="min-w-0 flex-1">
-                                <p class="text-[12px] font-bold text-gray-800 dark:text-slate-200 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ $mainTitle }}</p>
+                                <p class="text-[12px] font-bold text-gray-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ $mainTitle }}</p>
                                 <p class="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5">
                                     {{ \Carbon\Carbon::parse($deadline)->format('M j') }}
                                     @if($daysLeft < 0)
@@ -395,7 +395,7 @@
                             <div class="ml-11 pl-2 border-l-2 border-gray-100 dark:border-slate-800 flex flex-col gap-1">
                                 @foreach($group['subtasks'] as $t)
                                     <div class="flex items-center justify-between">
-                                        <span class="text-[10px] font-semibold text-gray-500 dark:text-slate-400 truncate">{{ $t->title }}</span>
+                                        <span class="text-[10px] font-semibold text-gray-500 dark:text-slate-400">{{ $t->title }}</span>
                                     </div>
                                 @endforeach
                             </div>

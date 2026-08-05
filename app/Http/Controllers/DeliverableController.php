@@ -837,6 +837,11 @@ class DeliverableController extends Controller
             }
         }
 
+        // Reset client_status when advancing past the first Brand Manager stage
+        if (in_array($oldStage, ['Brand Manager', 'AM/BD']) && !in_array($nextStage, ['Brand Manager', 'AM/BD', 'Further Approver'])) {
+            $deliverable->client_status = null;
+        }
+
         $deliverable->approval_stage = $nextStage;
         $deliverable->progress_percent = $deliverable->getStageProgress();
         $deliverable->revision_instructions = null;

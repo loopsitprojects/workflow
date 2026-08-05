@@ -24,7 +24,7 @@
         .cd-table tbody tr { border-bottom:1px solid var(--color-border-primary); transition:background 0.12s; }
         .cd-table tbody tr:last-child { border-bottom:none; }
         .cd-table tbody tr:hover { background:rgba(59,130,246,0.03); }
-        .cd-table td { padding:14px 10px; vertical-align:middle; font-size:12px; color:var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; }
+        .cd-table td { padding:14px 10px; vertical-align:middle; font-size:12px; color:var(--color-text-primary); }
         .subtask-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:8px; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:0.15em; border:1px solid; }
         .subtask-copy-box { background:var(--color-bg-secondary); border-radius:12px; padding:10px 14px; font-size:12px; color:var(--color-text-secondary); font-weight:500; line-height:1.5; border:1px solid var(--color-border-primary); max-height:70px; overflow:hidden; }
         .ref-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:rgba(37,99,235,0.1); border:1px solid rgba(37,99,235,0.2); border-radius:10px; font-size:11px; font-weight:700; color:#2563eb; text-decoration:none; transition:all 0.15s; }
@@ -778,9 +778,19 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <div style="font-size:10px; font-weight:700; color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
-                                                {{ $subtask->client_status ?: 'Not Sent' }}
-                                            </div>
+                                            @if($isAdmin || $userRole === 'brandmanager')
+                                                <select onchange="updateClientStatusInline(this, {{ $subtask->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
+                                                    <option value="Not Sent" {{ !$subtask->client_status || $subtask->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
+                                                    <option value="Sent to Client" {{ $subtask->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
+                                                    <option value="Waiting for Feedback" {{ $subtask->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
+                                                    <option value="Client Approved" {{ $subtask->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
+                                                    <option value="Client Revisions" {{ $subtask->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
+                                                </select>
+                                            @else
+                                                <div style="font-size:10px; font-weight:700; color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                                    {{ $subtask->client_status ?: 'Not Sent' }}
+                                                </div>
+                                            @endif
                                         </td>
                                         <td style="text-align:center; padding: 12px 8px;">
                                             <div class="quick-actions-grid">
@@ -1001,9 +1011,19 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
-                                                {{ $task->client_status ?: 'Not Sent' }}
-                                            </div>
+                                            @if($isAdmin || $userRole === 'brandmanager')
+                                                <select onchange="updateClientStatusInline(this, {{ $task->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
+                                                    <option value="Not Sent" {{ !$task->client_status || $task->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
+                                                    <option value="Sent to Client" {{ $task->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
+                                                    <option value="Waiting for Feedback" {{ $task->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
+                                                    <option value="Client Approved" {{ $task->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
+                                                    <option value="Client Revisions" {{ $task->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
+                                                </select>
+                                            @else
+                                                <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                                    {{ $task->client_status ?: 'Not Sent' }}
+                                                </div>
+                                            @endif
                                         </td>
                                         <td style="text-align:center;">
                                             <div class="quick-actions-grid">
@@ -1379,9 +1399,19 @@
                                             <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $subtask->approval_stage }}</div>
                                         </td>
                                         <td>
-                                            <div style="font-size:10px; font-weight:700; color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
-                                                {{ $subtask->client_status ?: 'Not Sent' }}
-                                            </div>
+                                            @if($isAdmin || $userRole === 'brandmanager')
+                                                <select onchange="updateClientStatusInline(this, {{ $subtask->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
+                                                    <option value="Not Sent" {{ !$subtask->client_status || $subtask->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
+                                                    <option value="Sent to Client" {{ $subtask->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
+                                                    <option value="Waiting for Feedback" {{ $subtask->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
+                                                    <option value="Client Approved" {{ $subtask->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
+                                                    <option value="Client Revisions" {{ $subtask->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
+                                                </select>
+                                            @else
+                                                <div style="font-size:10px; font-weight:700; color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                                    {{ $subtask->client_status ?: 'Not Sent' }}
+                                                </div>
+                                            @endif
                                         </td>
                                         <td style="text-align:center;">
                                             <div class="quick-actions-grid">
@@ -1602,9 +1632,19 @@
                                             <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->approval_stage }}</div>
                                         </td>
                                         <td>
-                                            <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
-                                                {{ $task->client_status ?: 'Not Sent' }}
-                                            </div>
+                                            @if($isAdmin || $userRole === 'brandmanager')
+                                                <select onchange="updateClientStatusInline(this, {{ $task->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
+                                                    <option value="Not Sent" {{ !$task->client_status || $task->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
+                                                    <option value="Sent to Client" {{ $task->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
+                                                    <option value="Waiting for Feedback" {{ $task->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
+                                                    <option value="Client Approved" {{ $task->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
+                                                    <option value="Client Revisions" {{ $task->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
+                                                </select>
+                                            @else
+                                                <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                                    {{ $task->client_status ?: 'Not Sent' }}
+                                                </div>
+                                            @endif
                                         </td>
                                         <td style="text-align:center; padding: 12px 8px;">
                                             <div class="quick-actions-grid">
@@ -4720,6 +4760,44 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+async function updateClientStatusInline(selectEl, taskId) {
+    const originalValue = selectEl.getAttribute('data-original') || selectEl.value;
+    const newValue = selectEl.value;
+    selectEl.disabled = true;
+
+    try {
+        const response = await fetch(`/deliverables/${taskId}/client-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ client_status: newValue })
+        });
+        
+        const result = await response.json();
+        if (response.ok && result.success) {
+            selectEl.setAttribute('data-original', newValue);
+            selectEl.disabled = false;
+            // update color dynamically
+            if (newValue === 'Client Approved') {
+                selectEl.style.color = '#10b981';
+            } else {
+                selectEl.style.color = 'var(--color-text-secondary)';
+            }
+        } else {
+            alert(result.message || 'Error updating client status');
+            selectEl.value = originalValue;
+            selectEl.disabled = false;
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Network error');
+        selectEl.value = originalValue;
+        selectEl.disabled = false;
+    }
+}
 </script>
 <style>@keyframes frmSpin{to{transform:rotate(360deg)}}</style>
 
