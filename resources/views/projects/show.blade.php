@@ -2430,8 +2430,6 @@
                 if (document.getElementById('prioritySelect')) document.getElementById('prioritySelect').value = task.priority || 'Medium';
                 
                 if (document.getElementById('modalPriorityEdit')) document.getElementById('modalPriorityEdit').style.display = 'none';
-                let editBtn = document.querySelector('#modalPriorityDisplay').nextElementSibling;
-                if(editBtn && editBtn.tagName === 'BUTTON') editBtn.style.display = 'inline-block';
                 
                 if (document.getElementById('modalClientStatusDisplay')) {
                     document.getElementById('modalClientStatusDisplay').textContent = task.client_status || 'Not Sent';
@@ -2440,8 +2438,6 @@
                 if (document.getElementById('clientStatusSelect')) document.getElementById('clientStatusSelect').value = task.client_status || 'Not Sent';
                 
                 if (document.getElementById('modalClientStatusEdit')) document.getElementById('modalClientStatusEdit').style.display = 'none';
-                let clientEditBtn = document.querySelector('#modalClientStatusDisplay').nextElementSibling;
-                if(clientEditBtn && clientEditBtn.tagName === 'BUTTON') clientEditBtn.style.display = 'inline-block';
 
                 // Populate top deadlines list
                 const topDeadlinesEl = document.getElementById('modalTopDeadlines');
