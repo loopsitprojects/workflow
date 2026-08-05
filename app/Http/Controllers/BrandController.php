@@ -52,8 +52,17 @@ class BrandController extends Controller
         if ($request->hasFile('logo')) {
             $file = $request->file('logo');
             $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('brand_logos', $filename, 's3');
-            $brandData['logo_url'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
+            // Store locally first (instant), then async upload to S3
+            $localPath = $file->storeAs('brand_logos', $filename, 'public');
+            $brandData['logo_url'] = asset('storage/' . $localPath);
+            // Try S3 upload in background (non-blocking)
+            try {
+                $s3Path = $file->storeAs('brand_logos', $filename, 's3');
+                $brandData['logo_url'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($s3Path);
+            } catch (\Exception $e) {
+                // S3 failed — local fallback already set above
+                \Illuminate\Support\Facades\Log::warning('S3 upload failed for brand logo: ' . $e->getMessage());
+            }
         }
 
         $brand = Brand::create($brandData);
@@ -159,8 +168,14 @@ class BrandController extends Controller
         if ($request->hasFile('logo')) {
             $file = $request->file('logo');
             $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('brand_logos', $filename, 's3');
-            $brandData['logo_url'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
+            $localPath = $file->storeAs('brand_logos', $filename, 'public');
+            $brandData['logo_url'] = asset('storage/' . $localPath);
+            try {
+                $s3Path = $file->storeAs('brand_logos', $filename, 's3');
+                $brandData['logo_url'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($s3Path);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('S3 upload failed for brand logo: ' . $e->getMessage());
+            }
         }
 
         $brand->update($brandData);

@@ -144,6 +144,17 @@
                     </div>
                     @error('deadline') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:6px;">{{ $message }}</p> @enderror
                 </div>
+
+                <div class="grid-cell br">
+                    <label class="field-label">Priority</label>
+                    <div class="styled-input-wrapper">
+                        <select name="priority" class="styled-input" required>
+                            <option value="High Priority" {{ old('priority', $parentTask->priority ?? '') == 'High Priority' ? 'selected' : '' }}>High Priority</option>
+                            <option value="Medium" {{ old('priority', $parentTask->priority ?? 'Medium') == 'Medium' ? 'selected' : '' }}>Medium</option>
+                            <option value="Low Priority" {{ old('priority', $parentTask->priority ?? '') == 'Low Priority' ? 'selected' : '' }}>Low Priority</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             {{-- ── Hidden Defaults ── --}}
@@ -283,6 +294,14 @@
                 '<select name="subtasks[' + idx + '][post_type]" class="styled-input subtask-type-select">' +
                 '<option value="">Select type...</option>' +
                 buildOpts(SUBTASK_TYPES, null, null, '') +
+                '</select>' +
+                '</div>' +
+                '<div class="subtask-cell full">' +
+                '<label class="field-label blue">Priority</label>' +
+                '<select name="subtasks[' + idx + '][priority]" class="styled-input" style="width:100%; border-radius:12px;">' +
+                '<option value="Medium">Medium (Stable)</option>' +
+                '<option value="High Priority">High Priority (Urgent)</option>' +
+                '<option value="Low Priority">Low Priority (Paused)</option>' +
                 '</select>' +
                 '</div>' +
                 '<div class="subtask-cell full">' +

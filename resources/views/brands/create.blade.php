@@ -11,7 +11,7 @@
 .f-footer{background:var(--color-bg-secondary);padding:14px 24px;display:flex;justify-content:flex-end;gap:8px;align-items:center;border-top:1px solid var(--color-border-primary);}
 .btn-c{padding:8px 18px;border-radius:8px;font-size:12px;font-weight:600;color:var(--color-text-secondary);background:transparent;border:1.5px solid var(--color-border-primary);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;transition:all 0.12s;}
 .btn-c:hover{background:var(--color-bg-secondary);color:var(--color-text-primary);}
-.btn-s{padding:8px 22px;border-radius:8px;font-size:12px;font-weight:700;color:#fff;background:#0055D4;border:none;cursor:pointer;box-shadow:0 3px 10px rgba(0,85,212,0.25);transition:all 0.12s;}
+.btn-s{padding:8px 22px;border-radius:8px;font-size:12px;font-weight:700;color:#fff;background:#0055D4;border:none;cursor:pointer;box-shadow:0 3px 10px rgba(0,85,212,0.25);transition:all 0.12s;display:inline-flex;align-items:center;gap:7px;}
 .btn-s:hover{background:#0044aa;}
 .mp-wrap{border:1.5px solid var(--color-border-primary);border-radius:8px;overflow:hidden;}
 .mp-search{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--color-border-primary);background:var(--color-bg-secondary);}
@@ -27,6 +27,7 @@
 .mp-check{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--color-border-primary);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-left:auto;transition:all 0.12s;}
 .mp-row.selected .mp-check{background:#3b82f6;border-color:#3b82f6;}
 .mp-footer{border-top:1px solid var(--color-border-primary);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;background:var(--color-bg-secondary);}
+@keyframes brandSpin{to{transform:rotate(360deg);}}
 </style>
 
 <nav style="max-width:640px;margin:0 auto 12px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--color-text-secondary);">
@@ -36,7 +37,7 @@
 </nav>
 
 <div class="f-wrap">
-    <form action="{{ route('brands.store') }}" method="POST" enctype="multipart/form-data">
+    <form id="brandCreateForm" action="{{ route('brands.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
 
         {{-- Brand Name --}}
@@ -137,8 +138,24 @@
 
         <div class="f-footer">
             <a href="{{ route('brands.index') }}" class="btn-c">Cancel</a>
-            <button type="submit" class="btn-s">Create Brand</button>
+            <button type="submit" id="brandCreateBtn" class="btn-s" style="display:inline-flex;align-items:center;gap:7px;">Create Brand</button>
         </div>
     </form>
 </div>
+{{-- Full-page loading overlay --}}
+<div id="brandLoadingOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+    <div style="width:52px;height:52px;border-radius:50%;border:3px solid rgba(255,255,255,0.15);border-top-color:#fff;animation:brandSpin 0.75s linear infinite;"></div>
+    <span style="color:#fff;font-size:13px;font-weight:700;letter-spacing:0.04em;">Creating brand…</span>
+</div>
+
+<script>
+document.getElementById('brandCreateForm').addEventListener('submit', function() {
+    const btn = document.getElementById('brandCreateBtn');
+    const overlay = document.getElementById('brandLoadingOverlay');
+    btn.disabled = true;
+    btn.style.pointerEvents = 'none';
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:brandSpin 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>Creating…';
+    overlay.style.display = 'flex';
+});
+</script>
 </x-layout>

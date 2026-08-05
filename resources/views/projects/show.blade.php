@@ -483,6 +483,7 @@
                                 <th style="width:55px;">Hrs</th>
                                 <th style="width:70px;">Rev</th>
                                 <th style="width:80px;">Stage</th>
+                                <th style="width:110px;">Client</th>
                                 <th style="width:130px; text-align:center;">Action</th>
                             </tr>
                         </thead>
@@ -498,7 +499,7 @@
                                                 <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary); background:var(--color-bg-primary); border:1px solid var(--color-border-primary); padding:2px 7px; border-radius:6px;">{{ $task->subtasks->count() }} posts</span>
                                             </div>
                                         </td>
-                                        <td colspan="7" style="padding-right:15px;" onclick="event.stopPropagation()">
+                                        <td colspan="8" style="padding-right:15px;" onclick="event.stopPropagation()">
                                             @php
                                                 $userRole = strtolower(str_replace(' ', '', auth()->user()->role));
                                                 $isAdmin = $userRole === 'admin';
@@ -614,6 +615,15 @@
                                     <tr class="subtask-row rtb-subtask-row subtask-of-{{ $task->id }} {{ $subIndex === $task->subtasks->count() - 1 ? 'last-subtask' : '' }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                         <td>
                                             <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
+                                                @php
+                                                    $subPrio = $subtask->priority ?? 'Medium';
+                                                    $subPrioColor = $subPrio === 'High Priority' ? '#ef4444' : ($subPrio === 'Low Priority' ? '#f59e0b' : '#10b981');
+                                                @endphp
+                                                <span onclick="openPriorityInlineEditor(event, {{ $subtask->id }}, '{{ $subPrio }}')" style="cursor:pointer; display:inline-flex;">
+                                                    <svg width="14" height="14" fill="{{ $subPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0; margin-right:4px;" title="{{ $subPrio }} (Click to edit)">
+                                                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
+                                                    </svg>
+                                                </span>
                                                 <span style="font-weight:700; color:var(--color-text-primary); font-size:13px;">{{ $subtask->title }}</span>
                                             </div>
                                         </td>
@@ -767,6 +777,11 @@
                                                 {{ $subtask->approval_stage ?: 'Writer' }}
                                             </div>
                                         </td>
+                                        <td>
+                                            <div style="font-size:10px; font-weight:700; color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                                {{ $subtask->client_status ?: 'Not Sent' }}
+                                            </div>
+                                        </td>
                                         <td style="text-align:center; padding: 12px 8px;">
                                             <div class="quick-actions-grid">
                                                 @php
@@ -842,6 +857,15 @@
                                     <tr class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                         <td>
                                             <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
+                                                @php
+                                                    $taskPrio = $task->priority ?? 'Medium';
+                                                    $taskPrioColor = $taskPrio === 'High Priority' ? '#ef4444' : ($taskPrio === 'Low Priority' ? '#f59e0b' : '#10b981');
+                                                @endphp
+                                                <span onclick="openPriorityInlineEditor(event, {{ $task->id }}, '{{ $taskPrio }}')" style="cursor:pointer; display:inline-flex;">
+                                                    <svg width="14" height="14" fill="{{ $taskPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0; margin-right:4px;" title="{{ $taskPrio }} (Click to edit)">
+                                                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
+                                                    </svg>
+                                                </span>
                                                 <span style="font-weight:900; color:#0055D4; font-size:13px;">{{ $task->title }}</span>
                                             </div>
                                         </td>
@@ -976,6 +1000,11 @@
                                                 {{ $task->approval_stage ?: 'Writer' }}
                                             </div>
                                         </td>
+                                        <td>
+                                            <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                                {{ $task->client_status ?: 'Not Sent' }}
+                                            </div>
+                                        </td>
                                         <td style="text-align:center;">
                                             <div class="quick-actions-grid">
                                                 @php
@@ -1073,6 +1102,7 @@
                                 <th style="width:55px;">Hrs</th>
                                 <th style="width:70px;">Rev</th>
                                 <th style="width:80px;">Stage</th>
+                                <th style="width:110px;">Client</th>
                                 <th style="width:130px; text-align:center;">Action</th>
                             </tr>
                         </thead>
@@ -1081,7 +1111,7 @@
                                 @if($task->subtasks->count() > 0)
                                     <!-- Heading Row for Deliverable with Subtasks -->
                                     <tr class="rtb-heading-row" style="background:rgba(255,255,255,0.03); border-left:4px solid #0055D4; cursor:pointer;" onclick="toggleSubtasks(event, {{ $task->id }})">
-                                        <td colspan="8">
+                                        <td colspan="9">
                                             <div class="deliverable-name-cell" style="padding: 10px 0; display:flex; align-items:center; gap:12px;">
                                                 <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle active" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:6px; outline:none;"></button>
                                                 <span style="font-weight:900; color:#0055D4; font-size:15px; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->title }}</span>
@@ -1348,6 +1378,11 @@
                                         <td>
                                             <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $subtask->approval_stage }}</div>
                                         </td>
+                                        <td>
+                                            <div style="font-size:10px; font-weight:700; color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                                {{ $subtask->client_status ?: 'Not Sent' }}
+                                            </div>
+                                        </td>
                                         <td style="text-align:center;">
                                             <div class="quick-actions-grid">
                                                 @php
@@ -1566,6 +1601,11 @@
                                         <td>
                                             <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->approval_stage }}</div>
                                         </td>
+                                        <td>
+                                            <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                                {{ $task->client_status ?: 'Not Sent' }}
+                                            </div>
+                                        </td>
                                         <td style="text-align:center; padding: 12px 8px;">
                                             <div class="quick-actions-grid">
                                                 @php
@@ -1666,13 +1706,11 @@
     <!-- Detail Modal -->
     <div id="taskModalOverlay" class="cd-modal-overlay" onclick="closeTaskModal(event)">
         <div class="cd-modal" onclick="event.stopPropagation()">
-            <div class="cd-modal-header">
-                <div>
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                        <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:0;"></div>
-                        <div id="modalTopDeadlines" style="display:flex; align-items:center; gap:8px;"></div>
-                    </div>
-                    <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" style="font-size:24px; font-weight:900; color:var(--color-text-primary); margin:0; border:1px solid transparent; background:transparent; width:100%; outline:none; border-radius:8px; padding:4px 8px; margin-left:-8px; transition:all 0.2s;" readonly onfocus="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-secondary)'" onblur="this.style.borderColor='transparent'; this.style.background='transparent'">
+            <div class="cd-modal-header" style="padding: 20px 32px; align-items: center;">
+                <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
+                    <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" style="font-size:20px; font-weight:900; color:var(--color-text-primary); margin:0; border:1px solid transparent; background:transparent; width:auto; flex:1; min-width:0; outline:none; border-radius:8px; padding:4px 8px; margin-left:-8px; transition:all 0.2s;" readonly onfocus="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-secondary)'" onblur="this.style.borderColor='transparent'; this.style.background='transparent'">
+                    <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:0; flex-shrink:0;"></div>
+                    <div id="modalTopDeadlines" style="display:flex; align-items:center; gap:8px; flex-shrink:0;"></div>
                 </div>
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="display:flex; gap:8px; margin-right:12px; border-right:1px solid var(--color-border-primary); padding-right:12px;">
@@ -1685,6 +1723,56 @@
                 </div>
             </div>
             <div class="cd-modal-body">
+                <div style="display:flex; gap:16px; margin-bottom:24px; background:var(--color-bg-secondary); padding:16px; border-radius:12px; border:1px solid var(--color-border-primary);">
+                    <div class="detail-item" style="flex:1; margin:0;">
+                        <label class="detail-label">Current Stage</label>
+                        <div id="modalStage" class="detail-val" style="font-weight:900; color:#0055D4;">-</div>
+                    </div>
+                    <div class="detail-item" style="flex:1; margin:0;">
+                        <label class="detail-label">Priority</label>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div id="modalPriorityDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);"></div>
+                            @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
+                                <button type="button" onclick="document.getElementById('modalPriorityEdit').style.display = 'block'; this.style.display = 'none';" class="cd-btn cd-btn-outline" style="padding:2px 6px; font-size:10px;">Edit</button>
+                            @endif
+                        </div>
+                        <div id="modalPriorityEdit" style="display:none; margin-top:8px;">
+                            <form id="priorityUpdateForm" onsubmit="updatePriority(event)" style="display:flex; gap:8px; align-items:center;">
+                                <input type="hidden" id="modalPriorityTaskId" name="task_id" value="">
+                                <select id="prioritySelect" name="priority" style="padding:6px; border-radius:6px; border:1px solid var(--color-border-primary); font-size:11px; background:var(--color-bg-primary); color:var(--color-text-primary);">
+                                    <option value="High Priority">High Priority (Urgent)</option>
+                                    <option value="Medium">Medium (Stable)</option>
+                                    <option value="Low Priority">Low Priority (Paused)</option>
+                                </select>
+                                <button type="submit" class="cd-btn cd-btn-primary" style="padding:4px 10px; font-size:11px;">Save</button>
+                                <button type="button" class="cd-btn cd-btn-outline" style="padding:4px 10px; font-size:11px;" onclick="document.getElementById('modalPriorityEdit').style.display='none'; this.parentElement.parentElement.previousElementSibling.querySelector('button').style.display='inline-block';">Cancel</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="detail-item" style="flex:1; margin:0;">
+                        <label class="detail-label">Client Status</label>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div id="modalClientStatusDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);">Not Sent</div>
+                            @if($isAdmin || $userRole === 'brandmanager')
+                                <button type="button" onclick="document.getElementById('modalClientStatusEdit').style.display = 'block'; this.style.display = 'none';" class="cd-btn cd-btn-outline" style="padding:2px 6px; font-size:10px;">Edit</button>
+                            @endif
+                        </div>
+                        <div id="modalClientStatusEdit" style="display:none; margin-top:8px;">
+                            <form id="clientStatusUpdateForm" onsubmit="updateClientStatus(event)" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <input type="hidden" id="modalClientStatusTaskId" name="task_id" value="">
+                                <select id="clientStatusSelect" name="client_status" style="padding:6px; border-radius:6px; border:1px solid var(--color-border-primary); font-size:11px; background:var(--color-bg-primary); color:var(--color-text-primary);">
+                                    <option value="Not Sent">Not Sent</option>
+                                    <option value="Sent to Client">Sent to Client</option>
+                                    <option value="Waiting for Feedback">Waiting for Feedback</option>
+                                    <option value="Client Approved">Client Approved</option>
+                                    <option value="Client Revisions">Client Revisions</option>
+                                </select>
+                                <button type="submit" class="cd-btn cd-btn-primary" style="padding:4px 10px; font-size:11px;">Save</button>
+                                <button type="button" class="cd-btn cd-btn-outline" style="padding:4px 10px; font-size:11px;" onclick="document.getElementById('modalClientStatusEdit').style.display='none'; this.parentElement.parentElement.previousElementSibling.querySelector('button').style.display='inline-block';">Cancel</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
                 <!-- Workflow Tracker -->
                 <div class="workflow-steps" id="modalWorkflowSteps">
                     @foreach($stages as $index => $stage)
@@ -1796,10 +1884,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="detail-item">
-                        <label class="detail-label">Current Stage</label>
-                        <div id="modalStage" class="detail-val" style="font-weight:900; color:#0055D4;">-</div>
-                    </div>
+
 
                     <div class="detail-item full" style="border-top:1px solid var(--color-border-primary); padding-top:20px; margin-top:10px;">
                         <label class="detail-label" style="margin-bottom:16px; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em; font-size:11px;">Deliverable Team</label>
@@ -2068,8 +2153,65 @@
             <button onclick="hideErrorModal()" style="background:#0f172a; color:#fff; border:none; width:100%; padding:14px; border-radius:14px; font-weight:800; font-size:14px; cursor:pointer; box-shadow:0 10px 20px rgba(15,23,42,0.2);">Got it</button>
         </div>
     </div>
+    <div id="priorityInlineOverlay" style="display:none; position:fixed; inset:0; z-index:9998;" onclick="this.style.display='none'">
+        <div id="priorityInlinePopup" style="position:absolute; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1); padding:10px; z-index:9999; display:flex; flex-direction:column; gap:6px;" onclick="event.stopPropagation()">
+            <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase;">Change Priority</div>
+            <select id="priorityInlineSelect" style="padding:6px; border-radius:6px; border:1px solid var(--color-border-primary); font-size:12px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;" onchange="submitInlinePriority()">
+                <option value="High Priority">High Priority (Urgent)</option>
+                <option value="Medium">Medium (Stable)</option>
+                <option value="Low Priority">Low Priority (Paused)</option>
+            </select>
+            <input type="hidden" id="priorityInlineTaskId">
+        </div>
+    </div>
 
     <script>
+        function openPriorityInlineEditor(e, taskId, currentPrio) {
+            e.stopPropagation();
+            @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
+                const overlay = document.getElementById('priorityInlineOverlay');
+                const popup = document.getElementById('priorityInlinePopup');
+                document.getElementById('priorityInlineTaskId').value = taskId;
+                document.getElementById('priorityInlineSelect').value = currentPrio || 'Medium';
+                
+                const rect = e.currentTarget.getBoundingClientRect();
+                popup.style.top = (rect.bottom + 6) + 'px';
+                popup.style.left = rect.left + 'px';
+                
+                overlay.style.display = 'block';
+            @endif
+        }
+
+        async function submitInlinePriority() {
+            const taskId = document.getElementById('priorityInlineTaskId').value;
+            const priority = document.getElementById('priorityInlineSelect').value;
+            const selectEl = document.getElementById('priorityInlineSelect');
+            selectEl.disabled = true;
+            
+            try {
+                const response = await fetch(`/deliverables/${taskId}/priority`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ priority: priority })
+                });
+                
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    window.location.reload();
+                } else {
+                    showErrorModal(result.message || 'Error updating priority');
+                    selectEl.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                showErrorModal('Network error');
+                selectEl.disabled = false;
+            }
+        }
         let quillConcept, quillCaption, quillCopy;
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -2270,7 +2412,31 @@
                 
                 document.getElementById('modalSubtaskCopy').value = task.subtask_copy || task.post_copy || '';
                 quillCopy.clipboard.dangerouslyPasteHTML(task.subtask_copy || task.post_copy || '');
-                document.getElementById('modalStage').textContent = task.approval_stage || 'Unknown';
+                if (document.getElementById('modalStage')) document.getElementById('modalStage').textContent = task.approval_stage || 'Writer';
+                
+                if (document.getElementById('modalPriorityDisplay')) {
+                    let displayPrio = task.priority || 'Medium';
+                    if (displayPrio === 'High Priority') displayPrio = 'High Priority (Urgent)';
+                    if (displayPrio === 'Medium') displayPrio = 'Medium (Stable)';
+                    if (displayPrio === 'Low Priority') displayPrio = 'Low Priority (Paused)';
+                    document.getElementById('modalPriorityDisplay').textContent = displayPrio;
+                }
+                if (document.getElementById('modalPriorityTaskId')) document.getElementById('modalPriorityTaskId').value = task.id;
+                if (document.getElementById('prioritySelect')) document.getElementById('prioritySelect').value = task.priority || 'Medium';
+                
+                if (document.getElementById('modalPriorityEdit')) document.getElementById('modalPriorityEdit').style.display = 'none';
+                let editBtn = document.querySelector('#modalPriorityDisplay').nextElementSibling;
+                if(editBtn && editBtn.tagName === 'BUTTON') editBtn.style.display = 'inline-block';
+                
+                if (document.getElementById('modalClientStatusDisplay')) {
+                    document.getElementById('modalClientStatusDisplay').textContent = task.client_status || 'Not Sent';
+                }
+                if (document.getElementById('modalClientStatusTaskId')) document.getElementById('modalClientStatusTaskId').value = task.id;
+                if (document.getElementById('clientStatusSelect')) document.getElementById('clientStatusSelect').value = task.client_status || 'Not Sent';
+                
+                if (document.getElementById('modalClientStatusEdit')) document.getElementById('modalClientStatusEdit').style.display = 'none';
+                let clientEditBtn = document.querySelector('#modalClientStatusDisplay').nextElementSibling;
+                if(clientEditBtn && clientEditBtn.tagName === 'BUTTON') clientEditBtn.style.display = 'inline-block';
 
                 // Populate top deadlines list
                 const topDeadlinesEl = document.getElementById('modalTopDeadlines');
@@ -3696,6 +3862,82 @@
 
     <script>
         let activeTextarea = null;
+
+        async function updatePriority(e) {
+            e.preventDefault();
+            const form = e.target;
+            const btn = form.querySelector('button[type="submit"]');
+            const taskId = document.getElementById('modalPriorityTaskId').value;
+            const priority = document.getElementById('prioritySelect').value;
+            
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Saving...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`/deliverables/${taskId}/priority`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ priority: priority })
+                });
+                
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    window.location.reload();
+                } else {
+                    showErrorModal(result.message || 'Error updating priority');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                showErrorModal('Network error');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function updateClientStatus(e) {
+            e.preventDefault();
+            const form = e.target;
+            const btn = form.querySelector('button[type="submit"]');
+            const taskId = document.getElementById('modalClientStatusTaskId').value;
+            const clientStatus = document.getElementById('clientStatusSelect').value;
+            
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Saving...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`/deliverables/${taskId}/client-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ client_status: clientStatus })
+                });
+                
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    window.location.reload();
+                } else {
+                    showErrorModal(result.message || 'Error updating client status');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                showErrorModal('Network error');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
 
         function openCellEditor(e) {
             e.stopPropagation();

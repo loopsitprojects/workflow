@@ -292,6 +292,41 @@ class DeliverableController extends Controller
         return redirect()->back()->with('success', 'Deliverable updated successfully.');
     }
 
+    public function updatePriority(Request $request, Deliverable $deliverable)
+    {
+        $user = auth()->user();
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
+
+        $validated = $request->validate([
+            'priority' => 'required|string|in:High Priority,Medium,Low Priority'
+        ]);
+
+        $deliverable->update($validated);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Priority updated successfully.']);
+        }
+        return back()->with('success', 'Priority updated.');
+    }
+
+    public function updateClientStatus(Request $request, Deliverable $deliverable)
+    {
+        $user = auth()->user();
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
+
+        $validated = $request->validate([
+            'client_status' => 'nullable|string|in:Not Sent,Sent to Client,Waiting for Feedback,Client Approved,Client Revisions'
+        ]);
+
+        $deliverable->update(['client_status' => $validated['client_status'] === 'Not Sent' ? null : $validated['client_status']]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Client status updated successfully.']);
+        }
+
+        return redirect()->back()->with('success', 'Priority updated.');
+    }
+
     /**
      * Generate a presigned URL for direct S3 upload.
      */

@@ -110,6 +110,16 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
                     </select>
                 </div>
                 <div>
+                    <label class="f-label">Priority</label>
+                    <select name="priority" class="f-input">
+                        <option value="High Priority" {{ old('priority', $deliverable->priority) == 'High Priority' ? 'selected' : '' }}>High Priority</option>
+                        <option value="Medium" {{ old('priority', $deliverable->priority) == 'Medium' ? 'selected' : '' }}>Medium</option>
+                        <option value="Low Priority" {{ old('priority', $deliverable->priority) == 'Low Priority' ? 'selected' : '' }}>Low Priority</option>
+                    </select>
+                </div>
+            </div>
+            <div class="f-grid" style="margin-top:16px;">
+                <div>
                     <label class="f-label">Approval Stage</label>
                     <select name="approval_stage" class="f-input">
                         @foreach(\App\Models\Deliverable::STAGES as $stage)
