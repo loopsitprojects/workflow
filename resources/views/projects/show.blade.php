@@ -1752,11 +1752,11 @@
                         <label class="detail-label">Priority</label>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <input type="hidden" id="modalPriorityTaskId" value="">
-                            @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
+                            @if($isAdmin || in_array($userRole, ['brandmanager', 'writer', 'approver', 'approvercoordinator', 'coordinator']))
                                 <select id="prioritySelect" onchange="updatePriorityInlineModal(this, document.getElementById('modalPriorityTaskId').value)" class="cd-btn cd-btn-outline" style="padding:4px 8px; border-radius:6px; font-size:13px; font-weight:900; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
-                                    <option value="High Priority">High Priority (Urgent)</option>
-                                    <option value="Medium">Medium (Stable)</option>
-                                    <option value="Low Priority">Low Priority (Paused)</option>
+                                    <option value="High Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">High Priority (Urgent)</option>
+                                    <option value="Medium" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Medium (Stable)</option>
+                                    <option value="Low Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Low Priority (Paused)</option>
                                 </select>
                             @else
                                 <div id="modalPriorityDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);"></div>
@@ -1769,8 +1769,8 @@
                             <input type="hidden" id="modalClientStatusTaskId" value="">
                             @if($isAdmin || $userRole === 'brandmanager')
                                 <select id="clientStatusSelect" onchange="updateClientStatusInlineModal(this, document.getElementById('modalClientStatusTaskId').value)" class="cd-btn cd-btn-outline" style="padding:4px 8px; border-radius:6px; font-size:13px; font-weight:900; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
-                                    <option value="Not Sent">Not Sent</option>
-                                    <option value="Sent">Sent</option>
+                                    <option value="Not Sent" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Not Sent</option>
+                                    <option value="Sent" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Sent</option>
                                 </select>
                             @else
                                 <div id="modalClientStatusDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);">Not Sent</div>
@@ -2435,7 +2435,23 @@
                     document.getElementById('modalClientStatusDisplay').textContent = task.client_status || 'Not Sent';
                 }
                 if (document.getElementById('modalClientStatusTaskId')) document.getElementById('modalClientStatusTaskId').value = task.id;
-                if (document.getElementById('clientStatusSelect')) document.getElementById('clientStatusSelect').value = task.client_status || 'Not Sent';
+                if (document.getElementById('clientStatusSelect')) {
+                    const clientSelect = document.getElementById('clientStatusSelect');
+                    clientSelect.value = task.client_status || 'Not Sent';
+                    
+                    const bmStages = ['Brand Manager', 'Final Approval', 'AM/BD'];
+                    if (!bmStages.includes(task.approval_stage)) {
+                        clientSelect.disabled = true;
+                        clientSelect.style.opacity = '0.5';
+                        clientSelect.style.cursor = 'not-allowed';
+                        clientSelect.title = 'Client status can only be changed on Brand Manager stages.';
+                    } else {
+                        clientSelect.disabled = false;
+                        clientSelect.style.opacity = '1';
+                        clientSelect.style.cursor = 'pointer';
+                        clientSelect.title = '';
+                    }
+                }
                 
                 if (document.getElementById('modalClientStatusEdit')) document.getElementById('modalClientStatusEdit').style.display = 'none';
 

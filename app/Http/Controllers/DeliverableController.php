@@ -303,7 +303,7 @@ class DeliverableController extends Controller
     public function updatePriority(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Writer', 'Approver', 'Approver Coordinator', 'Coordinator'])) abort(403);
 
         $validated = $request->validate([
             'priority' => 'required|string|in:High Priority,Medium,Low Priority'
