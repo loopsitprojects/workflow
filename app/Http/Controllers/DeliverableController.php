@@ -8,6 +8,7 @@ use App\Models\Project;
 use Illuminate\Http\Request;
 
 use App\Models\User;
+use App\Models\DeliverableReassignment;
 use App\Notifications\DeliverableUpdated;
 use Illuminate\Support\Str;
 use App\Http\Requests\StoreDeliverableRequest;
@@ -333,6 +334,63 @@ class DeliverableController extends Controller
         }
 
         return redirect()->back()->with('success', 'Priority updated.');
+    }
+
+    public function reassignDesigner(Request $request, Deliverable $deliverable)
+    {
+        $user = auth()->user();
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver Coordinator'])) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'designer_id' => 'required|exists:users,id',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $oldDesignerId = $deliverable->designer_id;
+        $newDesignerId = $validated['designer_id'];
+
+        if ($oldDesignerId == $newDesignerId) {
+            return response()->json(['success' => false, 'message' => 'Same designer selected.'], 422);
+        }
+
+        // Log the reassignment
+        DeliverableReassignment::create([
+            'deliverable_id' => $deliverable->id,
+            'role' => 'designer',
+            'from_user_id' => $oldDesignerId,
+            'to_user_id' => $newDesignerId,
+            'reassigned_by_user_id' => $user->id,
+            'reason' => $validated['reason'] ?? null,
+        ]);
+
+        // Update the deliverable
+        $deliverable->update(['designer_id' => $newDesignerId]);
+
+        // Notify the new designer
+        $newDesigner = User::find($newDesignerId);
+        if ($newDesigner) {
+            $newDesigner->notify(new DeliverableUpdated(
+                $deliverable,
+                "reassigned the deliverable to you (Designer)",
+                'reassignment',
+                $user
+            ));
+        }
+
+        $fromName = $oldDesignerId ? User::find($oldDesignerId)?->name : 'Unassigned';
+        $toName = $newDesigner?->name ?? 'Unknown';
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Designer reassigned from {$fromName} to {$toName}.",
+                'new_designer_name' => $toName,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Designer reassigned successfully.');
     }
 
     /**

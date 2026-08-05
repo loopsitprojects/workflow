@@ -201,6 +201,16 @@ class Deliverable extends Model
         return $this->hasMany(DeliverableApproval::class)->latest();
     }
 
+    public function reassignments()
+    {
+        return $this->hasMany(DeliverableReassignment::class)->latest();
+    }
+
+    public function getReassignmentsHistoryAttribute()
+    {
+        return $this->reassignments()->with('fromUser', 'toUser', 'reassignedBy')->get();
+    }
+
     public function getSubtaskTypeAttribute()
     {
         return $this->post_type;

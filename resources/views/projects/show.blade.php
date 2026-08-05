@@ -833,7 +833,7 @@
                                                     </button>
                                                 @endif
 
-                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $subtask->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
+                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $subtask->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
                                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                                     View
                                                 </button>
@@ -1063,7 +1063,7 @@
                                                     </button>
                                                 @endif
 
-                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $task->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
+                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $task->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
                                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                                     View
                                                 </button>
@@ -1444,7 +1444,7 @@
                                                     </button>
                                                 @endif
 
-                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $subtask->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
+                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $subtask->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
                                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                                     View
                                                 </button>
@@ -1677,7 +1677,7 @@
                                                     </button>
                                                 @endif
 
-                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $task->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
+                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $task->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
                                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                                     View
                                                 </button>
@@ -1787,6 +1787,33 @@
                         </div>
                     @endforeach
                 </div>
+
+                <!-- Reassign Designer Area -->
+                @if($isAdmin || in_array($userRole, ['brandmanager', 'coordinator', 'approvercoordinator']))
+                <div id="reassignDesignerArea" style="display:none; margin-bottom:24px; padding:16px; background:rgba(236,72,153,0.05); border:1px solid rgba(236,72,153,0.15); border-radius:12px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                        <svg width="18" height="18" fill="none" stroke="#ec4899" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        <span style="font-size:12px; font-weight:900; color:#ec4899; text-transform:uppercase; letter-spacing:0.05em;">Reassign Designer</span>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:flex-end;">
+                        <div style="flex:1;">
+                            <label style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px;">New Designer</label>
+                            <select id="reassignDesignerSelect" style="width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none;">
+                                <option value="" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Select Designer...</option>
+                                @foreach($designers as $designer)
+                                    <option value="{{ $designer->id }}" style="background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $designer->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px;">Reason (Optional)</label>
+                            <input type="text" id="reassignDesignerReason" placeholder="e.g. Designer unavailable" style="width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
+                        </div>
+                        <button type="button" onclick="reassignDesigner()" style="padding:8px 16px; background:#ec4899; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0;">Reassign</button>
+                    </div>
+                    <div id="reassignDesignerCurrentName" style="margin-top:8px; font-size:11px; color:var(--color-text-secondary); font-weight:600;"></div>
+                </div>
+                @endif
 
                 <!-- Latest Comment Banner -->
                 <div id="modalLatestCommentAlert" style="display:none; padding:16px; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.2); border-radius:16px; margin-bottom:24px;">
@@ -2060,6 +2087,19 @@
                             <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                         <div id="modalRevisionHistory" class="hist-body" style="display:none; flex-direction:column; gap:12px;"></div>
+                    </div>
+
+                    <!-- Reassignment History -->
+                    <div class="detail-item full hist-box" id="modalReassignmentHistoryBox" style="display:none; border-top:1px solid var(--color-border-primary); margin-top:10px;">
+                        <button class="hist-toggle" onclick="toggleHistory('modalReassignmentHistory', this)">
+                            <span style="display:flex; align-items:center; gap:8px; flex:1;">
+                                <span style="width:7px;height:7px;border-radius:50%;background:#ec4899;flex-shrink:0;"></span>
+                                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#ec4899;">Reassignment History</span>
+                                <span id="modalReassignmentsCount" class="hist-count" style="background:rgba(236,72,153,0.1); color:#ec4899; border:1px solid rgba(236,72,153,0.2);"></span>
+                            </span>
+                            <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div id="modalReassignmentHistory" class="hist-body" style="display:none; flex-direction:column; gap:12px;"></div>
                     </div>
                 </div>
 
@@ -2417,7 +2457,24 @@
                 
                 document.getElementById('modalSubtaskCopy').value = task.subtask_copy || task.post_copy || '';
                 quillCopy.clipboard.dangerouslyPasteHTML(task.subtask_copy || task.post_copy || '');
-                if (document.getElementById('modalStage')) document.getElementById('modalStage').textContent = task.approval_stage || 'Writer';
+                if (document.getElementById('modalStage')) {
+                    const stage = task.approval_stage || 'Writer';
+                    let stageText = stage;
+                    
+                    let assignedUser = null;
+                    if (stage === 'Writer' || stage === 'Writer Review') assignedUser = task.writer?.name;
+                    else if (stage === 'Designer') assignedUser = task.designer?.name;
+                    else if (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval') assignedUser = task.brandManager?.name;
+                    else if (stage === 'Coordinator') assignedUser = task.coordinator?.name;
+                    else if (stage === 'Approver' || stage === 'Approver Review') assignedUser = task.approver?.name;
+                    else if (stage === 'Further Approver') assignedUser = task.furtherApprover?.name;
+                    
+                    if (assignedUser) {
+                        stageText += ` (${assignedUser})`;
+                    }
+                    
+                    document.getElementById('modalStage').textContent = stageText;
+                }
                 
                 if (document.getElementById('modalPriorityDisplay')) {
                     let displayPrio = task.priority || 'Medium';
@@ -2454,6 +2511,54 @@
                 }
                 
                 if (document.getElementById('modalClientStatusEdit')) document.getElementById('modalClientStatusEdit').style.display = 'none';
+
+                // Reassign Designer Area visibility
+                const reassignArea = document.getElementById('reassignDesignerArea');
+                if (reassignArea) {
+                    if (task.approval_stage === 'Designer') {
+                        reassignArea.style.display = 'block';
+                        const currentDesignerName = task.designer?.name || 'Unassigned';
+                        document.getElementById('reassignDesignerCurrentName').textContent = `Current designer: ${currentDesignerName}`;
+                        document.getElementById('reassignDesignerSelect').value = '';
+                        document.getElementById('reassignDesignerReason').value = '';
+                        reassignArea.setAttribute('data-task-id', task.id);
+                    } else {
+                        reassignArea.style.display = 'none';
+                    }
+                }
+
+                // Reassignment History
+                const reassignHistoryBox = document.getElementById('modalReassignmentHistoryBox');
+                const reassignHistoryEl = document.getElementById('modalReassignmentHistory');
+                const reassignCountEl = document.getElementById('modalReassignmentsCount');
+                if (reassignHistoryBox && reassignHistoryEl) {
+                    const reassignments = task.reassignments_history || [];
+                    if (reassignments.length > 0) {
+                        reassignHistoryBox.style.display = 'block';
+                        reassignCountEl.textContent = reassignments.length;
+                        reassignHistoryEl.innerHTML = '';
+                        reassignments.forEach(r => {
+                            const date = new Date(r.created_at);
+                            const dateStr = date.toLocaleString(undefined, {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'});
+                            const fromName = r.from_user?.name || 'Unassigned';
+                            const toName = r.to_user?.name || 'Unknown';
+                            const byName = r.reassigned_by?.name || 'Unknown';
+                            const reasonHtml = r.reason ? `<div style="font-size:11px; color:var(--color-text-secondary); margin-top:4px; font-style:italic;">Reason: ${r.reason}</div>` : '';
+                            reassignHistoryEl.innerHTML += `
+                                <div style="padding:10px 14px; background:rgba(236,72,153,0.04); border:1px solid rgba(236,72,153,0.1); border-radius:10px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span style="font-size:12px; font-weight:700; color:#ec4899;">${fromName} → ${toName}</span>
+                                        <span style="font-size:10px; color:var(--color-text-secondary); font-weight:600;">${dateStr}</span>
+                                    </div>
+                                    <div style="font-size:11px; color:var(--color-text-secondary);">Reassigned by <strong>${byName}</strong></div>
+                                    ${reasonHtml}
+                                </div>
+                            `;
+                        });
+                    } else {
+                        reassignHistoryBox.style.display = 'none';
+                    }
+                }
 
                 // Populate top deadlines list
                 const topDeadlinesEl = document.getElementById('modalTopDeadlines');
@@ -4802,6 +4907,43 @@ async function updatePriorityInlineModal(selectEl, taskId) {
         alert('Network error');
         selectEl.value = originalValue;
         selectEl.disabled = false;
+    }
+}
+
+async function reassignDesigner() {
+    const area = document.getElementById('reassignDesignerArea');
+    const taskId = area?.getAttribute('data-task-id');
+    const designerId = document.getElementById('reassignDesignerSelect').value;
+    const reason = document.getElementById('reassignDesignerReason').value;
+
+    if (!designerId) {
+        alert('Please select a designer.');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to reassign this deliverable to a different designer?')) return;
+
+    try {
+        const response = await fetch(`/deliverables/${taskId}/reassign-designer`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ designer_id: designerId, reason: reason })
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+            alert(result.message || 'Designer reassigned successfully.');
+            window.location.reload();
+        } else {
+            alert(result.message || 'Error reassigning designer.');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Network error while reassigning designer.');
     }
 }
 </script>
