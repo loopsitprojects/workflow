@@ -158,6 +158,14 @@ class DeliverableController extends Controller
         $deliverable->load([
             'project.brand',
             'writer', 'approver', 'brandManager', 'coordinator', 'designer',
+            'subtasks' => function ($query) {
+                $query->orderByRaw("CASE
+                    WHEN priority = 'High Priority' THEN 1
+                    WHEN priority = 'Medium' THEN 2
+                    WHEN priority = 'Low Priority' THEN 3
+                    ELSE 4 END")
+                ->orderBy('deadline', 'asc');
+            },
             'subtasks.writer', 'subtasks.approver', 'subtasks.brandManager',
             'subtasks.coordinator', 'subtasks.designer',
             'subtasks.revisionsHistory.user',
