@@ -778,19 +778,9 @@
                                             </div>
                                         </td>
                                         <td>
-                                            @if($isAdmin || $userRole === 'brandmanager')
-                                                <select onchange="updateClientStatusInline(this, {{ $subtask->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
-                                                    <option value="Not Sent" {{ !$subtask->client_status || $subtask->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
-                                                    <option value="Sent to Client" {{ $subtask->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
-                                                    <option value="Waiting for Feedback" {{ $subtask->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
-                                                    <option value="Client Approved" {{ $subtask->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
-                                                    <option value="Client Revisions" {{ $subtask->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
-                                                </select>
-                                            @else
-                                                <div style="font-size:10px; font-weight:700; color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
-                                                    {{ $subtask->client_status ?: 'Not Sent' }}
-                                                </div>
-                                            @endif
+                                            <div style="font-size:10px; font-weight:700; color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                                {{ $subtask->client_status ?: 'Not Sent' }}
+                                            </div>
                                         </td>
                                         <td style="text-align:center; padding: 12px 8px;">
                                             <div class="quick-actions-grid">
@@ -1399,19 +1389,9 @@
                                             <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $subtask->approval_stage }}</div>
                                         </td>
                                         <td>
-                                            @if($isAdmin || $userRole === 'brandmanager')
-                                                <select onchange="updateClientStatusInline(this, {{ $subtask->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
-                                                    <option value="Not Sent" {{ !$subtask->client_status || $subtask->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
-                                                    <option value="Sent to Client" {{ $subtask->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
-                                                    <option value="Waiting for Feedback" {{ $subtask->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
-                                                    <option value="Client Approved" {{ $subtask->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
-                                                    <option value="Client Revisions" {{ $subtask->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
-                                                </select>
-                                            @else
-                                                <div style="font-size:10px; font-weight:700; color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
-                                                    {{ $subtask->client_status ?: 'Not Sent' }}
-                                                </div>
-                                            @endif
+                                            <div style="font-size:10px; font-weight:700; color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                                {{ $subtask->client_status ?: 'Not Sent' }}
+                                            </div>
                                         </td>
                                         <td style="text-align:center;">
                                             <div class="quick-actions-grid">
@@ -1771,45 +1751,30 @@
                     <div class="detail-item" style="flex:1; margin:0;">
                         <label class="detail-label">Priority</label>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <div id="modalPriorityDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);"></div>
+                            <input type="hidden" id="modalPriorityTaskId" value="">
                             @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
-                                <button type="button" onclick="document.getElementById('modalPriorityEdit').style.display = 'block'; this.style.display = 'none';" class="cd-btn cd-btn-outline" style="padding:2px 6px; font-size:10px;">Edit</button>
-                            @endif
-                        </div>
-                        <div id="modalPriorityEdit" style="display:none; margin-top:8px;">
-                            <form id="priorityUpdateForm" onsubmit="updatePriority(event)" style="display:flex; gap:8px; align-items:center;">
-                                <input type="hidden" id="modalPriorityTaskId" name="task_id" value="">
-                                <select id="prioritySelect" name="priority" style="padding:6px; border-radius:6px; border:1px solid var(--color-border-primary); font-size:11px; background:var(--color-bg-primary); color:var(--color-text-primary);">
+                                <select id="prioritySelect" onchange="updatePriorityInlineModal(this, document.getElementById('modalPriorityTaskId').value)" class="cd-btn cd-btn-outline" style="padding:4px 8px; border-radius:6px; font-size:13px; font-weight:900; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
                                     <option value="High Priority">High Priority (Urgent)</option>
                                     <option value="Medium">Medium (Stable)</option>
                                     <option value="Low Priority">Low Priority (Paused)</option>
                                 </select>
-                                <button type="submit" class="cd-btn cd-btn-primary" style="padding:4px 10px; font-size:11px;">Save</button>
-                                <button type="button" class="cd-btn cd-btn-outline" style="padding:4px 10px; font-size:11px;" onclick="document.getElementById('modalPriorityEdit').style.display='none'; this.parentElement.parentElement.previousElementSibling.querySelector('button').style.display='inline-block';">Cancel</button>
-                            </form>
+                            @else
+                                <div id="modalPriorityDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);"></div>
+                            @endif
                         </div>
                     </div>
                     <div class="detail-item" style="flex:1; margin:0;">
                         <label class="detail-label">Client Status</label>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <div id="modalClientStatusDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);">Not Sent</div>
+                            <input type="hidden" id="modalClientStatusTaskId" value="">
                             @if($isAdmin || $userRole === 'brandmanager')
-                                <button type="button" onclick="document.getElementById('modalClientStatusEdit').style.display = 'block'; this.style.display = 'none';" class="cd-btn cd-btn-outline" style="padding:2px 6px; font-size:10px;">Edit</button>
-                            @endif
-                        </div>
-                        <div id="modalClientStatusEdit" style="display:none; margin-top:8px;">
-                            <form id="clientStatusUpdateForm" onsubmit="updateClientStatus(event)" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                <input type="hidden" id="modalClientStatusTaskId" name="task_id" value="">
-                                <select id="clientStatusSelect" name="client_status" style="padding:6px; border-radius:6px; border:1px solid var(--color-border-primary); font-size:11px; background:var(--color-bg-primary); color:var(--color-text-primary);">
+                                <select id="clientStatusSelect" onchange="updateClientStatusInlineModal(this, document.getElementById('modalClientStatusTaskId').value)" class="cd-btn cd-btn-outline" style="padding:4px 8px; border-radius:6px; font-size:13px; font-weight:900; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
                                     <option value="Not Sent">Not Sent</option>
-                                    <option value="Sent to Client">Sent to Client</option>
-                                    <option value="Waiting for Feedback">Waiting for Feedback</option>
-                                    <option value="Client Approved">Client Approved</option>
-                                    <option value="Client Revisions">Client Revisions</option>
+                                    <option value="Sent">Sent</option>
                                 </select>
-                                <button type="submit" class="cd-btn cd-btn-primary" style="padding:4px 10px; font-size:11px;">Save</button>
-                                <button type="button" class="cd-btn cd-btn-outline" style="padding:4px 10px; font-size:11px;" onclick="document.getElementById('modalClientStatusEdit').style.display='none'; this.parentElement.parentElement.previousElementSibling.querySelector('button').style.display='inline-block';">Cancel</button>
-                            </form>
+                            @else
+                                <div id="modalClientStatusDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);">Not Sent</div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -4760,7 +4725,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-async function updateClientStatusInline(selectEl, taskId) {
+async function updateClientStatusInlineModal(selectEl, taskId) {
     const originalValue = selectEl.getAttribute('data-original') || selectEl.value;
     const newValue = selectEl.value;
     selectEl.disabled = true;
@@ -4780,14 +4745,43 @@ async function updateClientStatusInline(selectEl, taskId) {
         if (response.ok && result.success) {
             selectEl.setAttribute('data-original', newValue);
             selectEl.disabled = false;
-            // update color dynamically
-            if (newValue === 'Client Approved') {
-                selectEl.style.color = '#10b981';
-            } else {
-                selectEl.style.color = 'var(--color-text-secondary)';
-            }
+            window.location.reload(); // Reload to reflect changes in the UI
         } else {
             alert(result.message || 'Error updating client status');
+            selectEl.value = originalValue;
+            selectEl.disabled = false;
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Network error');
+        selectEl.value = originalValue;
+        selectEl.disabled = false;
+    }
+}
+
+async function updatePriorityInlineModal(selectEl, taskId) {
+    const originalValue = selectEl.getAttribute('data-original') || selectEl.value;
+    const newValue = selectEl.value;
+    selectEl.disabled = true;
+
+    try {
+        const response = await fetch(`/deliverables/${taskId}/priority`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ priority: newValue })
+        });
+        
+        const result = await response.json();
+        if (response.ok && result.success) {
+            selectEl.setAttribute('data-original', newValue);
+            selectEl.disabled = false;
+            window.location.reload();
+        } else {
+            alert(result.message || 'Error updating priority');
             selectEl.value = originalValue;
             selectEl.disabled = false;
         }

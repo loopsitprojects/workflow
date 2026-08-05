@@ -323,7 +323,7 @@ class DeliverableController extends Controller
         if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
 
         $validated = $request->validate([
-            'client_status' => 'nullable|string|in:Not Sent,Sent to Client,Waiting for Feedback,Client Approved,Client Revisions'
+            'client_status' => 'nullable|string|in:Not Sent,Sent,Sent to Client,Waiting for Feedback,Client Approved,Client Revisions'
         ]);
 
         $deliverable->update(['client_status' => $validated['client_status'] === 'Not Sent' ? null : $validated['client_status']]);
