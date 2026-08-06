@@ -9,36 +9,43 @@ use Illuminate\Support\Facades\Auth;
 
 class RegisterController extends Controller
 {
-    public function show(Request $request)
+    public function show(Request $request, $token)
     {
-        if (!$request->hasValidSignature()) {
+        $invitation = \App\Models\Invitation::where('token', $token)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$invitation) {
             abort(403, 'Invalid or expired invitation link.');
         }
 
-        $role = $request->query('role');
+        $role = $invitation->role;
         
-        return view('auth.register', compact('role'));
+        return view('auth.register', compact('role', 'token'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, $token)
     {
-        if (!$request->hasValidSignature()) {
+        $invitation = \App\Models\Invitation::where('token', $token)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (!$invitation) {
             abort(403, 'Invalid or expired invitation link.');
         }
 
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'unique:users', 'regex:/^[a-zA-Z0-9_-]+$/'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $role = $request->query('role');
+        $role = $invitation->role;
 
         $user = User::create([
-            'name' => $request->name,
-            'username' => $request->username,
-            'email' => $request->email,
+            'name' => strtolower($request->username),
+            'username' => strtolower($request->username),
+            'email' => strtolower($request->email),
             'password' => Hash::make($request->password),
             'role' => $role,
         ]);
@@ -49,6 +56,8 @@ class RegisterController extends Controller
                 $brand->team()->attach($user->id, ['role' => 'Operations Manager']);
             }
         }
+
+        $invitation->delete();
 
         Auth::login($user);
 

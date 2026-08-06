@@ -115,11 +115,17 @@ class UserController extends Controller
     public function invite(Request $request)
     {
         $request->validate(['role' => 'required|string']);
-        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-            'register',
-            now()->addDays(7),
-            ['role' => $request->role]
-        );
+        
+        $token = \Illuminate\Support\Str::random(10);
+        
+        \App\Models\Invitation::create([
+            'token' => $token,
+            'role' => $request->role,
+            'expires_at' => now()->addDays(7),
+        ]);
+        
+        $url = url('/invite/' . $token);
+        
         return response()->json(['url' => $url]);
     }
 

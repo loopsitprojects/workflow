@@ -8,8 +8,8 @@ use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 
-Route::get('/register', [\App\Http\Controllers\RegisterController::class, 'show'])->name('register');
-Route::post('/register', [\App\Http\Controllers\RegisterController::class, 'store']);
+Route::get('/invite/{token}', [\App\Http\Controllers\RegisterController::class, 'show'])->name('register');
+Route::post('/invite/{token}', [\App\Http\Controllers\RegisterController::class, 'store']);
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);

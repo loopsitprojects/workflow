@@ -14,7 +14,7 @@
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">You've been invited to join as a <span class="font-semibold text-blue-600 dark:text-blue-400">{{ $role }}</span>.</p>
             </div>
 
-            <form method="POST" action="/register?signature={{ request()->query('signature') }}&expires={{ request()->query('expires') }}&role={{ urlencode($role) }}">
+            <form method="POST" action="/invite/{{ $token }}">
                 @csrf
 
                 <!-- Name -->
