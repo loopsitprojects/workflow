@@ -22,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('deliverables', DeliverableController::class)->except(['index', 'show']);
 
     // Deliverable workflow transitions
+    Route::get('deliverables/{deliverable}', [DeliverableController::class, 'show'])->name('deliverables.show');
     Route::post('presigned-url', [DeliverableController::class, 'generatePresignedUrl'])->name('deliverables.presigned-url');
     Route::post('deliverables/{deliverable}/submit', [DeliverableController::class, 'submitStage'])->name('deliverables.submit');
     Route::post('deliverables/{deliverable}/priority', [DeliverableController::class, 'updatePriority'])->name('deliverables.update-priority');

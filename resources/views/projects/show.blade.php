@@ -833,10 +833,10 @@
                                                     </button>
                                                 @endif
 
-                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $subtask->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
-                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                                    View
-                                                </button>
+                                                <a href="{{ route('deliverables.show', $subtask->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+    View
+</a>
 
 
                                                 @if($isAdmin || $userRole === 'brandmanager')
@@ -1063,10 +1063,10 @@
                                                     </button>
                                                 @endif
 
-                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $task->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
-                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                                    View
-                                                </button>
+                                                <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+    View
+</a>
 
 
                                                 @if($isAdmin || $userRole === 'brandmanager')
@@ -1444,10 +1444,10 @@
                                                     </button>
                                                 @endif
 
-                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $subtask->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
-                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                                    View
-                                                </button>
+                                                <a href="{{ route('deliverables.show', $subtask->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+    View
+</a>
                                                 @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
                                                 <form action="{{ route('deliverables.destroy', $subtask) }}" method="POST" onsubmit="return confirm('CRITICAL ACTION: Are you sure you want to permanently delete this subtask?')" style="display:contents;" onclick="event.stopPropagation()">
                                                     @csrf @method('DELETE')
@@ -1677,10 +1677,10 @@
                                                     </button>
                                                 @endif
 
-                                                <button type="button" onclick="event.stopPropagation(); openTaskModal({{ $task->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history'])->toJson() }})" class="quick-action-btn btn-view-quick">
-                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                                    View
-                                                </button>
+                                                <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">
+    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+    View
+</a>
                                                 <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'parent_id' => $task->id]) }}" onclick="event.stopPropagation()" class="quick-action-btn btn-edit-quick" style="text-decoration:none;">
                                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                                                     Sub

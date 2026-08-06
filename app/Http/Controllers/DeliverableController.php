@@ -17,6 +17,38 @@ class DeliverableController extends Controller
 {
 
 
+    public function show(Deliverable $deliverable)
+    {
+        $deliverable->load([
+            'project.brand', 'parent', 'writer', 'approver', 'brandManager', 
+            'coordinator', 'designer', 'revisionsHistory.user', 
+            'approvalsHistory.user', 'reassignments.fromUser', 
+            'reassignments.toUser', 'reassignments.reassignedBy'
+        ]);
+
+        $userRole = str_replace(' ', '', strtolower(auth()->user()->role));
+        $isAdmin = $userRole === 'admin';
+        
+        $brand = $deliverable->project->brand()->with('members')->first();
+        $users = $brand ? $brand->members : collect();
+        
+        $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator']);
+        $brandManagers = $users->where('role', 'Brand Manager');
+        $coordinators = $users->whereIn('role', ['Coordinator', 'Approver Coordinator']);
+        $designers = User::whereIn('role', ['Designer', 'Admin'])->get();
+        
+        $stages = ['Writer', 'Writer Review', 'Approver', 'Approver Review', 'Further Approver', 'Brand Manager', 'Coordinator', 'Designer', 'AM/BD', 'Final Approval'];
+
+        // Get subtasks if it's a parent task
+        if ($deliverable->task_type === 'Retainer' && $deliverable->post_type === 'Parent') {
+            $deliverable->load('subtasks');
+        }
+
+        $deliverable->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history']);
+
+        return view('deliverables.show', compact('deliverable', 'userRole', 'isAdmin', 'approvers', 'brandManagers', 'coordinators', 'designers', 'stages'));
+    }
+
     /**
      * Show the form for creating a new resource.
      */
