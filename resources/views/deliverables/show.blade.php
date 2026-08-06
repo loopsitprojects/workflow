@@ -2076,8 +2076,74 @@
         // deleteTaskFromModal uses currentTaskData.id and is defined above
     </script>
     <script>
+        async function updateClientStatusInlineModal(selectEl, taskId) {
+            const originalValue = selectEl.getAttribute('data-original') || selectEl.value;
+            const newValue = selectEl.value;
+            selectEl.disabled = true;
 
-        
+            try {
+                const response = await fetch(`/deliverables/${taskId}/client-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ client_status: newValue })
+                });
+                
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    selectEl.setAttribute('data-original', newValue);
+                    selectEl.disabled = false;
+                    window.location.reload();
+                } else {
+                    alert(result.message || 'Error updating client status');
+                    selectEl.value = originalValue;
+                    selectEl.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Network error');
+                selectEl.value = originalValue;
+                selectEl.disabled = false;
+            }
+        }
+
+        async function updatePriorityInlineModal(selectEl, taskId) {
+            const originalValue = selectEl.getAttribute('data-original') || selectEl.value;
+            const newValue = selectEl.value;
+            selectEl.disabled = true;
+
+            try {
+                const response = await fetch(`/deliverables/${taskId}/priority`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ priority: newValue })
+                });
+                
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    selectEl.setAttribute('data-original', newValue);
+                    selectEl.disabled = false;
+                    window.location.reload();
+                } else {
+                    alert(result.message || 'Error updating priority');
+                    selectEl.value = originalValue;
+                    selectEl.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Network error');
+                selectEl.value = originalValue;
+                selectEl.disabled = false;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const task = @json($deliverable);
             openTaskModal(task);
