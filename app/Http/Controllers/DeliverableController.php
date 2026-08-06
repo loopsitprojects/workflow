@@ -211,7 +211,7 @@ class DeliverableController extends Controller
     public function addToBatch(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && !in_array($user->role, ['Brand Manager', 'Writer'])) abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Writer'])) abort(403);
         if ($deliverable->parent_deliverable_id) abort(403); // must be a parent
 
         $project = $deliverable->project;
@@ -259,7 +259,7 @@ class DeliverableController extends Controller
     public function edit(Deliverable $deliverable)
     {
         $user = auth()->user();
-        if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
         $projects = Project::all();
         $users = \App\Models\User::where('role', 'Writer')->get();
         $approvers = \App\Models\User::whereIn('role', ['Approver', 'Approver Coordinator', 'Admin'])->get();
@@ -270,7 +270,7 @@ class DeliverableController extends Controller
     public function update(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
         if ($request->has('toggle_status')) {
             // Manual toggle disabled as per new workflow-locked requirement
             return response()->json(['success' => false, 'message' => 'Manual completion disabled. Use the workflow stages instead.']);
@@ -336,7 +336,7 @@ class DeliverableController extends Controller
     public function updatePriority(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && !in_array($user->role, ['Brand Manager', 'Writer', 'Approver', 'Approver Coordinator', 'Coordinator'])) abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Writer', 'Approver', 'Approver Coordinator', 'Coordinator'])) abort(403);
 
         $validated = $request->validate([
             'priority' => 'required|string|in:High Priority,Medium,Low Priority'
@@ -353,7 +353,7 @@ class DeliverableController extends Controller
     public function updateClientStatus(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && $user->role !== 'Brand Manager') abort(403);
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
 
         $validated = $request->validate([
             'client_status' => 'nullable|string|in:Not Sent,Sent,Sent to Client,Waiting for Feedback,Client Approved,Client Revisions'
@@ -371,7 +371,7 @@ class DeliverableController extends Controller
     public function reassignDesigner(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver Coordinator'])) {
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver Coordinator'])) {
             abort(403);
         }
 
@@ -470,7 +470,7 @@ class DeliverableController extends Controller
             $isAssignedDesigner = $user->id == $deliverable->designer_id;
             $designerEditPermission = $isAssignedDesigner || ($userRole === 'designer' && !$deliverable->designer_id);
             
-            if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && !($designerEditPermission && $deliverable->approval_stage === 'Designer')) {
+            if (!$user->isAdmin() && !($designerEditPermission && $deliverable->approval_stage === 'Designer')) {
                 abort(403, 'Unauthorized action.');
             }
             
@@ -497,7 +497,7 @@ class DeliverableController extends Controller
             $isAssignedDesigner = $user->id == $deliverable->designer_id;
             $designerEditPermission = $isAssignedDesigner || ($userRole === 'designer' && !$deliverable->designer_id);
             
-            if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && !($designerEditPermission && $deliverable->approval_stage === 'Designer')) {
+            if (!$user->isAdmin() && !($designerEditPermission && $deliverable->approval_stage === 'Designer')) {
                 abort(403, 'Unauthorized action.');
             }
             
@@ -518,7 +518,7 @@ class DeliverableController extends Controller
             $isAssignedWriter = ($deliverable->writer_id && $user->id == $deliverable->writer_id);
             $isUnassignedWriter = (!$deliverable->writer_id && $hasWriterRole);
             
-            $canEditContent = ($user->isAdmin() || $user->role === 'Operations Manager') || ($isWriterStage && ($isAssignedWriter || $isUnassignedWriter));
+            $canEditContent = $user->isAdmin() || ($isWriterStage && ($isAssignedWriter || $isUnassignedWriter));
 
             if ($canEditContent) {
                 if ($request->has('title')) $deliverable->title = $request->title;
@@ -537,7 +537,7 @@ class DeliverableController extends Controller
                     $isDesigner = $userRole === 'designer';
                     $isAssignedDesigner = ($deliverable->designer_id && $user->id == $deliverable->designer_id);
                     $isUnassignedDesigner = (!$deliverable->designer_id && $isDesigner);
-                    if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && !($isDesigner && ($isAssignedDesigner || $isUnassignedDesigner))) {
+                    if (!$user->isAdmin() && !($isDesigner && ($isAssignedDesigner || $isUnassignedDesigner))) {
                         abort(403, 'Unauthorized action: only the designer can edit work hours.');
                     }
                     $deliverable->work_hours = $newWorkHours;
@@ -549,7 +549,7 @@ class DeliverableController extends Controller
                 $oldDeadline = $deliverable->deadline ? \Carbon\Carbon::parse($deliverable->deadline)->format('Y-m-d') : null;
                 
                 if ($newDeadline !== $oldDeadline) {
-                    $isBrandManagerOrAdmin = ($user->isAdmin() || $user->role === 'Operations Manager') || $userRole === 'brandmanager';
+                    $isBrandManagerOrAdmin = $user->isAdmin() || $userRole === 'brandmanager';
                     if (!$isBrandManagerOrAdmin) {
                         abort(403, 'Unauthorized action: only Brand Managers or Admins can edit the deadline.');
                     }
@@ -808,7 +808,7 @@ class DeliverableController extends Controller
 
         // Enforce: only the assigned person for the current stage (or admin) may submit
         $user = auth()->user();
-        if ($user && (!$user->isAdmin() && $user->role !== 'Operations Manager')) {
+        if ($user && !$user->isAdmin()) {
             $stageFieldMap = [
                 'Writer'           => 'writer_id',
                 'Assignee'         => 'writer_id',
@@ -1137,7 +1137,7 @@ class DeliverableController extends Controller
         $user = auth()->user();
         $isCreatorWriter = $user->role === 'Writer' && $deliverable->writer_id === $user->id;
 
-        if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && $user->role !== 'Brand Manager' && !$isCreatorWriter) {
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && !$isCreatorWriter) {
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['message' => 'Only Admins, Brand Managers, and the assigned Writer can delete deliverables.'], 403);
             }
