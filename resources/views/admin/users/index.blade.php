@@ -26,6 +26,39 @@
     <div class="flex flex-col gap-10 pb-20"
          x-data="{
             search: '',
+            showInviteModal: false,
+            inviteRole: 'Designer',
+            generatedUrl: null,
+            inviteLoading: false,
+            async generateInvite() {
+                this.inviteLoading = true;
+                try {
+                    const response = await fetch('{{ route('admin.users.invite') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ role: this.inviteRole })
+                    });
+                    const data = await response.json();
+                    if (data.url) {
+                        this.generatedUrl = data.url;
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Failed to generate invite link');
+                } finally {
+                    this.inviteLoading = false;
+                }
+            },
+            async copyInvite() {
+                if (this.generatedUrl) {
+                    await navigator.clipboard.writeText(this.generatedUrl);
+                    alert('Copied to clipboard!');
+                }
+            },
             users: {{ \Illuminate\Support\Js::from($users->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'email' => $u->email ?? ''])) }},
             get filteredIds() {
                 if (!this.search.trim()) return null;
@@ -44,9 +77,9 @@
          }">
         <!-- Delete Confirmation Modal -->
         <div x-show="deleteTarget" x-cloak
-             class="fixed inset-0 z-50 flex items-center justify-center p-4"
+             class="fixed inset-0 z-[60] flex items-center justify-center p-4"
              style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
-            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-2xl p-6 w-full max-w-sm">
+            <div @click.away="deleteTarget = null" class="bg-white dark:bg-[#111827] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-2xl p-6 w-full max-w-sm">
                 <div class="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-xl flex items-center justify-center mb-4">
                     <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </div>
@@ -55,6 +88,45 @@
                 <div class="flex gap-2 justify-end">
                     <button @click="deleteTarget = null" class="px-4 py-2 rounded-lg text-[12px] font-semibold text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.10] transition-colors">Cancel</button>
                     <button @click="doDelete()" class="px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">Delete</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invite User Modal -->
+        <div x-show="showInviteModal" x-cloak
+             class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+             style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+            <div @click.away="showInviteModal = false" class="bg-white dark:bg-[#111827] rounded-2xl border border-gray-100 dark:border-white/[0.08] shadow-2xl p-6 w-full max-w-md">
+                <div class="w-12 h-12 bg-fuchsia-50 dark:bg-fuchsia-500/10 rounded-xl flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-fuchsia-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                </div>
+                <h3 class="text-[15px] font-bold text-gray-900 dark:text-white mb-1">Generate Invite Link</h3>
+                <p class="text-[13px] text-gray-500 dark:text-slate-400 mb-5">Create a secure, 7-day registration link for a new team member. They will set their own name and password.</p>
+                
+                <div class="mb-5">
+                    <label class="block text-[11px] font-bold text-gray-700 dark:text-slate-300 uppercase tracking-widest mb-2">Role</label>
+                    <select x-model="inviteRole" class="w-full rounded-xl border border-gray-200 dark:border-white/[0.1] bg-gray-50 dark:bg-[#1f2937] text-gray-900 dark:text-white text-sm px-4 py-3 outline-none focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 transition-all">
+                        @foreach(['Operations Manager', 'Writer', 'Designer', 'Coordinator', 'Approver', 'Approver Coordinator', 'Brand Manager', 'Admin'] as $r)
+                            <option value="{{ $r }}">{{ $r }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div x-show="generatedUrl" class="mb-5 p-4 rounded-xl bg-gray-50 dark:bg-black/[0.2] border border-gray-200 dark:border-white/[0.06]">
+                    <label class="block text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1.5">Share this link</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" readonly :value="generatedUrl" class="flex-1 bg-transparent border-none text-[12px] text-gray-800 dark:text-slate-200 p-0 focus:ring-0">
+                        <button @click="copyInvite()" class="p-1.5 rounded-lg bg-white dark:bg-white/[0.1] hover:bg-gray-100 dark:hover:bg-white/[0.2] text-gray-600 dark:text-slate-300 transition-colors shadow-sm border border-gray-200 dark:border-transparent">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 justify-end">
+                    <button @click="showInviteModal = false; generatedUrl = null" class="px-4 py-2 rounded-lg text-[12px] font-semibold text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.10] transition-colors">Close</button>
+                    <button @click="generateInvite()" :disabled="inviteLoading" class="px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-fuchsia-600 hover:bg-fuchsia-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                        <span x-text="inviteLoading ? 'Generating...' : 'Generate Link'"></span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -72,6 +144,10 @@
                            class="flex-1 bg-transparent border-none outline-none text-sm text-gray-700 dark:text-slate-300 placeholder-gray-400 dark:placeholder-slate-500">
                     <span x-show="search" @click="search=''" class="text-[10px] font-bold text-gray-400 cursor-pointer hover:text-gray-600 uppercase tracking-wide">Clear</span>
                 </div>
+                <button @click="showInviteModal = true" class="px-6 py-3 bg-fuchsia-600 text-white rounded-xl text-[10px] font-black hover:bg-fuchsia-700 transition-all shadow-lg shadow-fuchsia-500/20 uppercase tracking-widest flex items-center gap-2">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    Invite User
+                </button>
                 <a href="{{ route('users.create') }}" class="px-6 py-3 bg-[#0055D4] text-white rounded-xl text-[10px] font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 uppercase tracking-widest flex items-center gap-2">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"/></svg>
                     Add User

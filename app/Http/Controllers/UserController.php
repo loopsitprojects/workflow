@@ -112,8 +112,20 @@ class UserController extends Controller
     /**
      * Admin Settings Dashboard
      */
+    public function invite(Request $request)
+    {
+        $request->validate(['role' => 'required|string']);
+        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'register',
+            now()->addDays(7),
+            ['role' => $request->role]
+        );
+        return response()->json(['url' => $url]);
+    }
+
     public function settings()
     {
         return view('admin.settings');
     }
 }
+
