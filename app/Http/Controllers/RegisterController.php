@@ -28,6 +28,7 @@ class RegisterController extends Controller
 
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'unique:users', 'regex:/^[a-zA-Z0-9_-]+$/'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
@@ -36,6 +37,7 @@ class RegisterController extends Controller
 
         $user = User::create([
             'name' => $request->name,
+            'username' => $request->username,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $role,
@@ -49,6 +51,8 @@ class RegisterController extends Controller
         }
 
         Auth::login($user);
+
+        $request->session()->regenerate();
 
         return redirect()->route('dashboard')->with('success', 'Account created successfully!');
     }

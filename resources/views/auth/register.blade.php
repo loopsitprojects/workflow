@@ -27,6 +27,17 @@
                     @enderror
                 </div>
 
+                <!-- Username -->
+                <div class="mt-4">
+                    <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Username</label>
+                    <input id="username" type="text" name="username" value="{{ old('username') }}" required
+                        class="mt-1 block w-full rounded-lg border-gray-300 dark:border-white/[0.1] dark:bg-black/[0.2] dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-4 py-2.5 transition-colors">
+                    <p class="mt-1 text-[11px] text-gray-500">Letters, numbers, underscores, and hyphens only.</p>
+                    @error('username')
+                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <!-- Email Address -->
                 <div class="mt-4">
                     <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
