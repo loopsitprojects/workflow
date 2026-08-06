@@ -488,7 +488,7 @@
                             <label style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px;">Reason (Optional)</label>
                             <input type="text" id="reassignDesignerReason" placeholder="e.g. Designer unavailable" style="width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
                         </div>
-                        <button type="button" onclick="reassignDesigner()" style="padding:8px 16px; background:#ec4899; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0;">Reassign</button>
+                        <button type="button" onclick="reassignDesigner(this)" style="padding:8px 16px; background:#ec4899; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0;">Reassign</button>
                     </div>
                     <div id="reassignDesignerCurrentName" style="margin-top:8px; font-size:11px; color:var(--color-text-secondary); font-weight:600;"></div>
                 </div>
@@ -2076,7 +2076,7 @@
 
         // deleteTaskFromModal uses currentTaskData.id and is defined above
 
-async function reassignDesigner() {
+async function reassignDesigner(btn) {
     const area = document.getElementById('reassignDesignerArea');
     const taskId = area?.getAttribute('data-task-id');
     const designerId = document.getElementById('reassignDesignerSelect').value;
@@ -2088,6 +2088,11 @@ async function reassignDesigner() {
     }
 
     if (!confirm('Are you sure you want to reassign this deliverable to a different designer?')) return;
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = 'Reassigning...';
+    }
 
     try {
         const response = await fetch(`/deliverables/${taskId}/reassign-designer`, {
@@ -2106,10 +2111,18 @@ async function reassignDesigner() {
             window.location.reload();
         } else {
             alert(result.message || 'Error reassigning designer.');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'Reassign';
+            }
         }
     } catch (e) {
         console.error(e);
         alert('Network error.');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = 'Reassign';
+        }
     }
 }
     </script>
