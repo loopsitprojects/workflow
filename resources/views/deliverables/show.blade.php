@@ -1,6 +1,6 @@
 <x-layout title="{{ $deliverable->title }}">
     @php
-        $isAdmin = auth()->user()->isAdmin();
+        $isAdmin = auth()->user()->isAdmin() || auth()->user()->role === 'Operations Manager';
         $userRole = strtolower(str_replace(' ', '', auth()->user()->role));
         $currentUserId = auth()->id();
     @endphp
@@ -1065,7 +1065,7 @@
 
                 const rawRole = AUTH_USER_ROLE;
                 const userRole = rawRole.toLowerCase().replace(/\s+/g, '');
-                const isAdmin = userRole === 'admin';
+                const isAdmin = userRole === 'admin' || userRole === 'operationsmanager';
                 const stage = task.approval_stage;
                 const isAssignedWriter      = AUTH_USER_ID == task.writer_id;
                 const isAssignedApprover    = AUTH_USER_ID == task.approver_id;

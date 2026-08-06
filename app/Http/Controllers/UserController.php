@@ -35,16 +35,20 @@ class UserController extends Controller
             'username' => 'required|string|max:30|alpha_dash|unique:users',
             'email'    => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'role'     => ['required', Rule::in(['Admin', 'Writer', 'Approver', 'Approver Coordinator', 'Brand Manager', 'Designer', 'Coordinator'])],
+            'role'     => ['required', Rule::in(['Admin', 'Operations Manager', 'Writer', 'Approver', 'Approver Coordinator', 'Brand Manager', 'Designer', 'Coordinator'])],
         ]);
 
-        User::create([
+        $user = User::create([
             'name'     => strtolower($validated['username']),
             'username' => strtolower($validated['username']),
             'email'    => strtolower($validated['email']),
             'password' => Hash::make($validated['password']),
             'role'     => $validated['role'],
         ]);
+
+        if ($user->role === 'Operations Manager') {
+            $user->brands()->sync(\App\Models\Brand::pluck('id')->toArray());
+        }
 
         return redirect()->route('users.index')->with('success', 'User created successfully.');
     }
@@ -66,7 +70,7 @@ class UserController extends Controller
             'username' => ['required', 'string', 'max:30', 'alpha_dash', Rule::unique('users')->ignore($user->id)],
             'email'    => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:8|confirmed',
-            'role'     => ['required', Rule::in(['Admin', 'Writer', 'Approver', 'Approver Coordinator', 'Brand Manager', 'Designer', 'Coordinator'])],
+            'role'     => ['required', Rule::in(['Admin', 'Operations Manager', 'Writer', 'Approver', 'Approver Coordinator', 'Brand Manager', 'Designer', 'Coordinator'])],
         ]);
 
         $user->name     = strtolower($validated['username']);
@@ -79,6 +83,10 @@ class UserController extends Controller
         }
 
         $user->save();
+
+        if ($user->role === 'Operations Manager') {
+            $user->brands()->syncWithoutDetaching(\App\Models\Brand::pluck('id')->toArray());
+        }
 
         return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }

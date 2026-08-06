@@ -17,7 +17,7 @@ class BrandController extends Controller
     public function create()
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') {
+        if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && $user->role !== 'Brand Manager') {
             return redirect()->route('brands.index')->with('error', 'Access Denied: You do not have permission to create brands.');
         }
         $users = \App\Models\User::all();
@@ -27,7 +27,7 @@ class BrandController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') {
+        if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && $user->role !== 'Brand Manager') {
             return redirect()->route('brands.index')->with('error', 'Access Denied: You do not have permission to create brands.');
         }
         // Auto-generate slug from name if not provided
@@ -71,6 +71,8 @@ class BrandController extends Controller
         if (!in_array(auth()->id(), $members)) {
             $members[] = auth()->id();
         }
+        $opsManagers = \App\Models\User::where('role', 'Operations Manager')->pluck('id')->toArray();
+        $members = array_unique(array_merge($members, $opsManagers));
         $brand->members()->sync($members);
         $brand->update(['total_members' => count($members)]);
 
@@ -80,7 +82,7 @@ class BrandController extends Controller
     public function show(Brand $brand)
     {
         $user = auth()->user();
-        if (!$user->isAdmin()) {
+        if ((!$user->isAdmin() && $user->role !== 'Operations Manager')) {
             if ($user->role === 'Brand Manager' && $brand->created_by !== $user->id) {
                 return redirect()->route('brands.index')->with('error', 'Access Denied: Only the Brand Manager who created this brand can access it.');
             }
@@ -101,7 +103,7 @@ class BrandController extends Controller
     public function retainerBoard(Brand $brand)
     {
         $user = auth()->user();
-        if (!$user->isAdmin()) {
+        if ((!$user->isAdmin() && $user->role !== 'Operations Manager')) {
             if ($user->role === 'Brand Manager' && $brand->created_by !== $user->id) {
                 return redirect()->route('brands.index')->with('error', 'Access Denied: Only the Brand Manager who created this brand can access it.');
             }
@@ -124,7 +126,7 @@ class BrandController extends Controller
     public function edit(Brand $brand)
     {
         $user = auth()->user();
-        if (!$user->isAdmin()) {
+        if ((!$user->isAdmin() && $user->role !== 'Operations Manager')) {
             if ($user->role !== 'Brand Manager') {
                 return redirect()->route('brands.index')->with('error', 'Access Denied: Only Brand Managers can edit brands.');
             }
@@ -140,7 +142,7 @@ class BrandController extends Controller
     public function update(Request $request, Brand $brand)
     {
         $user = auth()->user();
-        if (!$user->isAdmin()) {
+        if ((!$user->isAdmin() && $user->role !== 'Operations Manager')) {
             if ($user->role !== 'Brand Manager') {
                 return redirect()->route('brands.index')->with('error', 'Access Denied: Only Brand Managers can edit brands.');
             }
@@ -181,12 +183,14 @@ class BrandController extends Controller
         $brand->update($brandData);
 
         if ($request->has('members')) {
-            $brand->members()->sync($request->members);
-            $brand->update(['total_members' => count($request->members)]);
+            $opsManagers = \App\Models\User::where('role', 'Operations Manager')->pluck('id')->toArray();
+            $members = array_unique(array_merge($request->members, $opsManagers));
+            $brand->members()->sync($members);
+            $brand->update(['total_members' => count($members)]);
             
             // Sync all projects under the brand
             foreach ($brand->projects as $project) {
-                $project->members()->sync($request->members);
+                $project->members()->sync($members);
             }
         }
 
@@ -196,7 +200,7 @@ class BrandController extends Controller
     public function destroy(Brand $brand)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $brand->created_by !== $user->id) {
+        if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && $brand->created_by !== $user->id) {
             return redirect()->route('brands.index')->with('error', 'Access Denied: You can only delete brands you created.');
         }
         $brand->delete();

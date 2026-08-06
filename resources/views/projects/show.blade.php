@@ -1,6 +1,6 @@
 <x-layout title="{{ $project->name }} Board">
     @php
-        $isAdmin = auth()->user()->isAdmin();
+        $isAdmin = auth()->user()->isAdmin() || auth()->user()->role === 'Operations Manager';
         $userRole = strtolower(str_replace(' ', '', auth()->user()->role));
         $currentUserId = auth()->id();
         $currentUserRole = $userRole;
@@ -506,7 +506,7 @@
                                         <td colspan="8" style="padding-right:15px;" onclick="event.stopPropagation()">
                                             @php
                                                 $userRole = strtolower(str_replace(' ', '', auth()->user()->role));
-                                                $isAdmin = $userRole === 'admin';
+                                                $isAdmin = $userRole === 'admin' || $userRole === 'operationsmanager';
                                                 $stage = $task->approval_stage;
                                                 
                                                 $canApproveBatch = $isAdmin || (
@@ -1141,7 +1141,7 @@
                                         <td style="text-align:right; padding-right:15px;">
                                             @php
                                                 $userRole = strtolower(str_replace(' ', '', auth()->user()->role));
-                                                $isAdmin = $userRole === 'admin';
+                                                $isAdmin = $userRole === 'admin' || $userRole === 'operationsmanager';
                                                 $stage = $task->approval_stage;
                                                 
                                                 $isReviewStage = in_array($stage, ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Coordinator', 'Designer']);
@@ -2428,7 +2428,7 @@
 
                 const rawRole = AUTH_USER_ROLE;
                 const userRole = rawRole.toLowerCase().replace(/\s+/g, '');
-                const isAdmin = userRole === 'admin';
+                const isAdmin = userRole === 'admin' || userRole === 'operationsmanager';
                 const stage = task.approval_stage;
                 const isAssignedWriter      = AUTH_USER_ID == task.writer_id;
                 const isAssignedApprover    = AUTH_USER_ID == task.approver_id;

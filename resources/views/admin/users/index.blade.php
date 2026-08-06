@@ -1,6 +1,6 @@
 <x-layout title="User Management">
     @php
-        $roleOrder = ['Admin', 'Brand Manager', 'Approver', 'Approver Coordinator', 'Coordinator', 'Designer', 'Writer'];
+        $roleOrder = ['Admin', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator', 'Coordinator', 'Designer', 'Writer'];
         $groupedUsers = $users->sortBy(function($user) use ($roleOrder) {
             $pos = array_search($user->role, $roleOrder);
             return $pos === false ? 999 : $pos;
@@ -8,6 +8,7 @@
 
         $roleColors = [
             'Admin' => ['bg' => 'bg-emerald-900', 'text' => 'text-emerald-50', 'accent' => 'border-emerald-500', 'dot' => 'bg-emerald-500'],
+            'Operations Manager' => ['bg' => 'bg-fuchsia-900', 'text' => 'text-fuchsia-50', 'accent' => 'border-fuchsia-500', 'dot' => 'bg-fuchsia-500'],
             'Brand Manager' => ['bg' => 'bg-blue-900', 'text' => 'text-blue-50', 'accent' => 'border-blue-500', 'dot' => 'bg-blue-500'],
             'Approver' => ['bg' => 'bg-amber-600', 'text' => 'text-amber-50', 'accent' => 'border-amber-400', 'dot' => 'bg-amber-400'],
             'Approver Coordinator' => ['bg' => 'bg-orange-600', 'text' => 'text-orange-50', 'accent' => 'border-orange-400', 'dot' => 'bg-orange-400'],

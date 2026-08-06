@@ -18,7 +18,7 @@ class ProjectController extends Controller
     public function create()
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Operations Manager', 'Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
 
         $brandId = request('brand_id');
         $brands = \App\Models\Brand::all();
@@ -31,7 +31,7 @@ class ProjectController extends Controller
         }
 
         $writers = $users->where('role', 'Writer');
-        $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator']);
+        $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator', 'Operations Manager']);
         $managers = $users->where('role', 'Brand Manager');
         $designers = $users->where('role', 'Designer');
         
@@ -44,7 +44,7 @@ class ProjectController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Operations Manager', 'Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
 
         $validated = $request->validate([
             'brand_id' => 'required|exists:brands,id',
@@ -293,7 +293,7 @@ class ProjectController extends Controller
         $designers = \App\Models\User::where('role', 'Designer')
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
             ->get();
-        $approvers = \App\Models\User::whereIn('role', ['Approver', 'Approver Coordinator'])
+        $approvers = \App\Models\User::whereIn('role', ['Approver', 'Approver Coordinator', 'Operations Manager'])
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
             ->get();
         $coordinators = \App\Models\User::whereIn('role', ['Coordinator', 'Approver Coordinator'])
@@ -313,13 +313,13 @@ class ProjectController extends Controller
     public function edit(Project $project)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Operations Manager', 'Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
         $brands = \App\Models\Brand::all();
         $brand = $project->brand()->with('members')->first();
         $users = $brand ? $brand->members : collect();
 
         $writers = $users->where('role', 'Writer');
-        $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator']);
+        $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator', 'Operations Manager']);
         $managers = $users->where('role', 'Brand Manager');
         $designers = $users->where('role', 'Designer');
         
@@ -331,7 +331,7 @@ class ProjectController extends Controller
     public function update(Request $request, Project $project)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Operations Manager', 'Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
         $validated = $request->validate([
             'brand_id' => 'required|exists:brands,id',
             'job_number' => 'nullable|string|max:255',
@@ -406,7 +406,7 @@ class ProjectController extends Controller
     public function destroy(Project $project)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager') abort(403);
+        if (!$user->isAdmin() && !in_array($user->role, ['Operations Manager', 'Brand Manager'])) abort(403);
         $project->delete();
         return redirect()->route('brands.show', $project->brand->slug)->with('success', 'Project deleted successfully.');
     }
