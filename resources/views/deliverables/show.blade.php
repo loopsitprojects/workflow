@@ -1074,7 +1074,8 @@
                 const isAssignedDesigner    = AUTH_USER_ID == task.designer_id;
                 const hasWriterRole = userRole === 'writer' || userRole === 'assignee';
                 const hasDesignerRole = userRole === 'designer';
-                const writerEditPermission = isAdmin || (hasWriterRole && (!task.writer_id || AUTH_USER_ID == task.writer_id));
+                const isWriterStage = ['Writer', 'Assignee', 'Writer Review'].includes(task.approval_stage || 'Writer');
+                const writerEditPermission = isAdmin || (hasWriterRole && (!task.writer_id || AUTH_USER_ID == task.writer_id) && isWriterStage);
                 // Allow any designer to upload when no designer is assigned (matches PHP logic)
                 const designerEditPermission = isAssignedDesigner || (hasDesignerRole && !task.designer_id);
                 const canDesignerEdit = (designerEditPermission && stage === 'Designer') || isAdmin;
