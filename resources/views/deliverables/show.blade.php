@@ -1634,9 +1634,9 @@
                     (stage === 'Writer'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
                     (stage === 'Assignee'        && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
                     (stage === 'Writer Review'   && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                    (stage === 'Approver'          && (userRole === 'approver' || userRole === 'approvercoordinator')   && (!task.approver_id       || isAssignedApprover)) ||
-                    (stage === 'Approver Review'   && (userRole === 'approver' || userRole === 'approvercoordinator')   && (!task.approver_id       || isAssignedApprover)) ||
-                    (stage === 'Further Approver'  && (userRole === 'approver' || userRole === 'approvercoordinator')   && (!task.approver_id       || isAssignedApprover)) ||
+                    (stage === 'Approver'          && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
+                    (stage === 'Approver Review'   && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
+                    (stage === 'Further Approver'  && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
                     (stage === 'Brand Manager'   && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                     (stage === 'AM/BD'           && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                     (stage === 'Final Approval'  && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
@@ -1703,10 +1703,10 @@
 
                 const isReviewStage = ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Writer Review', 'Approver Review'].includes(stage);
                 const isAuthorizedToReview = isAdmin ||
-                    (stage === 'Approver' && userRole === 'approver') ||
+                    (stage === 'Approver' && (userRole === 'approver' || userRole === 'operationsmanager')) ||
                     ((stage === 'Brand Manager' || stage === 'Final Approval') && userRole === 'brandmanager') ||
                     (stage === 'Writer Review' && (userRole === 'writer' || userRole === 'assignee')) ||
-                    (stage === 'Approver Review' && userRole === 'approver');
+                    (stage === 'Approver Review' && (userRole === 'approver' || userRole === 'operationsmanager'));
 
                 if (isReviewStage && isAuthorizedToReview && showRevisionBtn) {
                     showRevisionBtn.style.display = 'block';
