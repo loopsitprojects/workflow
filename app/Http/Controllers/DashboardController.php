@@ -15,7 +15,7 @@ class DashboardController extends Controller
         $query = Deliverable::doesntHave('subtasks')
             ->with(['project.brand', 'parent', 'writer', 'approver', 'brandManager', 'coordinator', 'designer']);
 
-        if (!$user->isAdmin() && $user->role !== 'Operations Manager') {
+        if (!$user->isAdmin()) {
             $query->where(function($q) use ($userId) {
                 // Done deliverables: user is associated in any role
                 $q->where(function($sub) use ($userId) {
