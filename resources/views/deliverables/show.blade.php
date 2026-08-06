@@ -2075,6 +2075,43 @@
         }
 
         // deleteTaskFromModal uses currentTaskData.id and is defined above
+
+async function reassignDesigner() {
+    const area = document.getElementById('reassignDesignerArea');
+    const taskId = area?.getAttribute('data-task-id');
+    const designerId = document.getElementById('reassignDesignerSelect').value;
+    const reason = document.getElementById('reassignDesignerReason').value;
+
+    if (!designerId) {
+        alert('Please select a designer.');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to reassign this deliverable to a different designer?')) return;
+
+    try {
+        const response = await fetch(`/deliverables/${taskId}/reassign-designer`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ designer_id: designerId, reason: reason })
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+            alert(result.message || 'Designer reassigned successfully.');
+            window.location.reload();
+        } else {
+            alert(result.message || 'Error reassigning designer.');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Network error.');
+    }
+}
     </script>
     <script>
         async function updateClientStatusInlineModal(selectEl, taskId) {

@@ -35,7 +35,7 @@ class DeliverableController extends Controller
         $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator']);
         $brandManagers = $users->where('role', 'Brand Manager');
         $coordinators = $users->whereIn('role', ['Coordinator', 'Approver Coordinator']);
-        $designers = User::whereIn('role', ['Designer', 'Admin'])->get();
+        $designers = User::where('role', 'Designer')->get();
         
         $stages = ['Writer', 'Writer Review', 'Approver', 'Approver Review', 'Further Approver', 'Brand Manager', 'Coordinator', 'Designer', 'AM/BD', 'Final Approval'];
 
