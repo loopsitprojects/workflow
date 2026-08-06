@@ -464,6 +464,10 @@
                     <h2>Content Deliverables</h2>
                 </div>
                 <div class="cd-header-right">
+                    <div style="position:relative;">
+                        <svg style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--color-text-secondary);" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <input type="text" id="deliverableSearchInput" placeholder="Search deliverables..." onkeyup="searchDeliverables(this.value)" style="padding:6px 12px 6px 30px; border-radius:8px; border:1px solid var(--color-border-primary); background:var(--color-bg-primary); color:var(--color-text-primary); font-size:12px; outline:none; transition:border-color 0.2s; width: 220px;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor='var(--color-border-primary)'">
+                    </div>
                 </div>
             </div>
 
@@ -1770,7 +1774,10 @@
                             @if($isAdmin || $userRole === 'brandmanager')
                                 <select id="clientStatusSelect" onchange="updateClientStatusInlineModal(this, document.getElementById('modalClientStatusTaskId').value)" class="cd-btn cd-btn-outline" style="padding:4px 8px; border-radius:6px; font-size:13px; font-weight:900; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
                                     <option value="Not Sent" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Not Sent</option>
-                                    <option value="Sent" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Sent</option>
+                                    <option value="Sent to Client" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Sent to Client</option>
+                                    <option value="Waiting for Feedback" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Waiting for Feedback</option>
+                                    <option value="Client Approved" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Client Approved</option>
+                                    <option value="Client Revisions" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Client Revisions</option>
                                 </select>
                             @else
                                 <div id="modalClientStatusDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);">Not Sent</div>
@@ -4842,6 +4849,40 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+async function updateClientStatusInline(selectEl, taskId) {
+    const originalValue = selectEl.getAttribute('data-original') || selectEl.value;
+    const newValue = selectEl.value;
+    selectEl.disabled = true;
+
+    try {
+        const response = await fetch(`/deliverables/${taskId}/client-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ client_status: newValue })
+        });
+        
+        const result = await response.json();
+        if (response.ok && result.success) {
+            selectEl.setAttribute('data-original', newValue);
+            selectEl.disabled = false;
+            window.location.reload();
+        } else {
+            alert(result.message || 'Error updating client status');
+            selectEl.value = originalValue;
+            selectEl.disabled = false;
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Network error');
+        selectEl.value = originalValue;
+        selectEl.disabled = false;
+    }
+}
+
 async function updateClientStatusInlineModal(selectEl, taskId) {
     const originalValue = selectEl.getAttribute('data-original') || selectEl.value;
     const newValue = selectEl.value;
@@ -4944,6 +4985,57 @@ async function reassignDesigner() {
     } catch (err) {
         console.error(err);
         alert('Network error while reassigning designer.');
+    }
+}
+
+function searchDeliverables(query) {
+    query = query.toLowerCase();
+    const rows = document.querySelectorAll('.cd-table tbody tr');
+    
+    // Pass 1: Tag each row with match status
+    rows.forEach(row => {
+        const titleEl = row.querySelector('.deliverable-name-cell');
+        const title = titleEl ? titleEl.textContent.toLowerCase() : '';
+        row.dataset.matches = title.includes(query) ? 'true' : 'false';
+        row.style.display = 'none'; // hide all initially
+    });
+
+    if (!query) {
+        rows.forEach(row => row.style.display = '');
+        return;
+    }
+
+    // Pass 2: Determine visibility including group headers
+    let currentHeading = null;
+    let anySubtaskMatches = false;
+
+    rows.forEach(row => {
+        if (row.classList.contains('rtb-heading-row')) {
+            if (currentHeading) {
+                if (currentHeading.dataset.matches === 'true' || anySubtaskMatches) {
+                    currentHeading.style.display = '';
+                }
+            }
+            currentHeading = row;
+            anySubtaskMatches = false;
+        } else if (row.classList.contains('subtask-row')) {
+            if (row.dataset.matches === 'true' || (currentHeading && currentHeading.dataset.matches === 'true')) {
+                row.style.display = '';
+                anySubtaskMatches = true;
+            }
+        } else {
+            // Standalone tasks
+            if (row.dataset.matches === 'true') {
+                row.style.display = '';
+            }
+        }
+    });
+
+    // Handle last group
+    if (currentHeading) {
+        if (currentHeading.dataset.matches === 'true' || anySubtaskMatches) {
+            currentHeading.style.display = '';
+        }
     }
 }
 </script>

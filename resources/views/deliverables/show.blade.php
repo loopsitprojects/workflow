@@ -433,7 +433,10 @@
                             @if($isAdmin || $userRole === 'brandmanager')
                                 <select id="clientStatusSelect" onchange="updateClientStatusInlineModal(this, document.getElementById('modalClientStatusTaskId').value)" class="cd-btn cd-btn-outline" style="padding:4px 8px; border-radius:6px; font-size:13px; font-weight:900; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
                                     <option value="Not Sent" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Not Sent</option>
-                                    <option value="Sent" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Sent</option>
+                                    <option value="Sent to Client" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Sent to Client</option>
+                                    <option value="Waiting for Feedback" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Waiting for Feedback</option>
+                                    <option value="Client Approved" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Client Approved</option>
+                                    <option value="Client Revisions" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Client Revisions</option>
                                 </select>
                             @else
                                 <div id="modalClientStatusDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);">Not Sent</div>
@@ -501,7 +504,7 @@
                             </div>
                             <span id="modalLatestCommentDate" style="font-size:10px; color:#10b981; font-weight:600; opacity:0.8;"></span>
                         </div>
-                        <div id="modalLatestCommentText" style="color:var(--color-text-primary); font-size:13px; font-weight:500; font-style:italic; line-height:1.5; background:var(--color-bg-primary); padding:10px 12px; border-radius:8px; border:1px solid rgba(16, 185, 129, 0.15);"></div>
+                        <div id="modalLatestCommentText" style="color:var(--color-text-primary); font-size:13px; font-weight:500; font-style:italic; line-height:1.5; background:var(--color-bg-primary); padding:10px 12px; border-radius:8px; border:1px solid rgba(16, 185, 129, 0.15); white-space:pre-wrap;"></div>
                     </div>
     
                     <!-- Revision Alert Banner -->
@@ -1422,7 +1425,7 @@
                         
                         let notesHtml = '';
                         if (app.notes) {
-                            notesHtml = `<div style="margin-top:4px; font-size:13px; color:var(--color-text-primary); font-weight:500; background:rgba(16, 185, 129, 0.05); padding:10px 12px; border-radius:8px; border:1px solid rgba(16, 185, 129, 0.15); font-style:italic;">"${app.notes}"</div>`;
+                            notesHtml = `<div style="margin-top:4px; font-size:13px; color:var(--color-text-primary); font-weight:500; background:rgba(16, 185, 129, 0.05); padding:10px 12px; border-radius:8px; border:1px solid rgba(16, 185, 129, 0.15); font-style:italic; white-space:pre-wrap;">"${app.notes}"</div>`;
                         }
 
                         row.innerHTML = `
@@ -1567,7 +1570,7 @@
                     flexContainer.style.cssText = 'display:flex; gap:16px; align-items:flex-start;';
                     
                     const textNode = document.createElement('div');
-                    textNode.style.cssText = 'flex:1; margin-top:2px;';
+                    textNode.style.cssText = 'flex:1; margin-top:2px; white-space:pre-wrap;';
                     textNode.textContent = task.revision_instructions;
                     flexContainer.appendChild(textNode);
                     
