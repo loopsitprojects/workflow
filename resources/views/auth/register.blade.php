@@ -1,5 +1,5 @@
 <x-layout>
-    <div class="flex flex-col sm:justify-center items-center pt-6 pb-20">
+    <div class="min-h-[calc(100vh-3.5rem)] w-full flex flex-col sm:justify-center items-center pt-6 pb-20 bg-gray-50 dark:bg-[#0b1120]">
         <div>
             <a href="/">
                 <img src="{{ asset('LoopsBlack.png') }}" alt="Loops" class="h-10 w-auto dark:hidden">
