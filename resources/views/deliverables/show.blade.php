@@ -2448,22 +2448,35 @@ function copyGeneratedLink() {
 }
 
 function copyToClipboard(text, btn) {
-    navigator.clipboard.writeText(text).then(() => {
-        const orig = btn.textContent;
-        btn.textContent = '✓ Copied!';
-        setTimeout(() => { btn.textContent = orig; }, 2000);
-    }).catch(() => {
-        // Fallback
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            const orig = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            setTimeout(() => { btn.textContent = orig; }, 2000);
+        }).catch(() => {
+            fallbackCopyToClipboard(text, btn);
+        });
+    } else {
+        fallbackCopyToClipboard(text, btn);
+    }
+}
+
+function fallbackCopyToClipboard(text, btn) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; // Avoid scrolling to bottom
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
         document.execCommand('copy');
-        document.body.removeChild(ta);
         const orig = btn.textContent;
         btn.textContent = '✓ Copied!';
         setTimeout(() => { btn.textContent = orig; }, 2000);
-    });
+    } catch (err) {
+        console.error('Fallback copy failed', err);
+    }
+    document.body.removeChild(ta);
 }
 
 // Close overlay when clicking outside box
