@@ -143,7 +143,6 @@
             position: relative;
             display: inline-block;
             border-radius: 16px;
-            overflow: hidden;
             box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
             max-width: 100%;
         }
