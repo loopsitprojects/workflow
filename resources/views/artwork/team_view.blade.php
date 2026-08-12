@@ -294,7 +294,8 @@ function copyReviewLink(url, btn) {
 // Team canvas drawing paths renderer
 // ──────────────────────────────────────────────────────────────────────────────
 let teamCanvas = null;
-const drawingsData = @json($allDrawings->map(function($d) {
+@php
+$drawingsMapped = $allDrawings->map(function($d) {
     return [
         'id' => $d->id,
         'content' => $d->content,
@@ -303,7 +304,9 @@ const drawingsData = @json($allDrawings->map(function($d) {
         'y_percent' => $d->y_percent,
         'is_resolved' => (bool)$d->is_resolved
     ];
-})->values());
+})->values();
+@endphp
+const drawingsData = @json($drawingsMapped);
 
 function initTeamCanvas() {
     const img = document.getElementById('teamArtworkImg');
