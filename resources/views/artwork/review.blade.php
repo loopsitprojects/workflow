@@ -155,12 +155,19 @@
             max-height: calc(100vh - 180px);
             object-fit: contain;
             border-radius: 16px;
+            /* Prevent the browser from allowing the image to be dragged */
+            user-select: none;
+            -webkit-user-drag: none;
+            pointer-events: none;      /* canvas sits on top; image should not capture events */
+            draggable: false;
         }
 
         #annotation-canvas {
             position: absolute;
             top: 0; left: 0;
             border-radius: 16px;
+            z-index: 2;               /* must be above the image */
+            cursor: crosshair;
         }
 
         /* ── Pins (DOM-based for text bubbles) ───────────────────────────── */
@@ -537,6 +544,8 @@
             <img id="artwork-img"
                  src="{{ $artworkUrl }}"
                  alt="Artwork"
+                 draggable="false"
+                 ondragstart="return false"
                  onload="initCanvas()"
                  crossorigin="anonymous">
         @else
@@ -642,53 +651,88 @@ const TOKEN       = @json($review->token);
 // ──────────────────────────────────────────────────────────────────────────────
 function initCanvas() {
     const img = document.getElementById('artwork-img');
-    const w   = img.offsetWidth;
-    const h   = img.offsetHeight;
 
-    const el = document.getElementById('annotation-canvas');
-    el.width  = w;
-    el.height = h;
-    el.style.width  = w + 'px';
-    el.style.height = h + 'px';
+    // Use requestAnimationFrame to ensure the browser has laid out the image
+    // before we read its dimensions — avoids 0×0 on fast-loading images.
+    requestAnimationFrame(() => {
+        const w = img.offsetWidth;
+        const h = img.offsetHeight;
 
-    canvas = new fabric.Canvas('annotation-canvas', {
-        isDrawingMode: false,
-        selection: false,
-    });
-
-    canvas.freeDrawingBrush.width = 3;
-    canvas.freeDrawingBrush.color = currentColor;
-
-    // Save each completed path as a drawing annotation
-    canvas.on('path:created', function(opt) {
-        const path = opt.path;
-        drawings.push({
-            id:       Date.now(),
-            type:     'drawing',
-            content:  JSON.stringify(path.toObject()),
-            color:    currentColor,
-            x_percent: (path.left / canvas.width)  * 100,
-            y_percent: (path.top  / canvas.height) * 100,
-        });
-        undoStack.push({ type: 'drawing', data: path });
-        updateSidePanel();
-    });
-
-    // Click on canvas for pin/text placement
-    canvas.on('mouse:down', function(opt) {
-        if (currentMode === 'pin') {
-            const p = opt.absolutePointer || opt.pointer;
-            const xPct = (p.x / canvas.width)  * 100;
-            const yPct = (p.y / canvas.height) * 100;
-            pendingPin = { xPct, yPct };
-            openModal('pinModal');
-        } else if (currentMode === 'text') {
-            const p = opt.absolutePointer || opt.pointer;
-            const xPct = (p.x / canvas.width)  * 100;
-            const yPct = (p.y / canvas.height) * 100;
-            pendingText = { xPct, yPct };
-            openModal('textModal');
+        if (!w || !h) {
+            // Retry if dimensions still aren't ready
+            setTimeout(initCanvas, 50);
+            return;
         }
+
+        // Size the wrapper to match the image so position:absolute children align
+        const wrapper = document.getElementById('artworkWrapper');
+        wrapper.style.width  = w + 'px';
+        wrapper.style.height = h + 'px';
+
+        const el = document.getElementById('annotation-canvas');
+        el.width  = w;
+        el.height = h;
+        el.style.width  = w + 'px';
+        el.style.height = h + 'px';
+
+        canvas = new fabric.Canvas('annotation-canvas', {
+            isDrawingMode: false,
+            selection: false,
+            width: w,
+            height: h,
+        });
+
+        // ── Fix Fabric's generated .canvas-container positioning ──────────────
+        // Fabric wraps our canvas in a new div.canvas-container with
+        // position:relative — this breaks the absolute overlay. Override it.
+        const fabricContainer = wrapper.querySelector('.canvas-container');
+        if (fabricContainer) {
+            fabricContainer.style.position = 'absolute';
+            fabricContainer.style.top      = '0';
+            fabricContainer.style.left     = '0';
+            fabricContainer.style.zIndex   = '2';
+        }
+
+        // Apply crosshair cursor to the Fabric upper-canvas (the interactive layer)
+        const upperCanvas = wrapper.querySelector('.upper-canvas');
+        if (upperCanvas) {
+            upperCanvas.style.cursor = 'crosshair';
+        }
+
+        canvas.freeDrawingBrush.width = 3;
+        canvas.freeDrawingBrush.color = currentColor;
+
+        // Save each completed path as a drawing annotation
+        canvas.on('path:created', function(opt) {
+            const path = opt.path;
+            drawings.push({
+                id:       Date.now(),
+                type:     'drawing',
+                content:  JSON.stringify(path.toObject()),
+                color:    currentColor,
+                x_percent: (path.left / canvas.width)  * 100,
+                y_percent: (path.top  / canvas.height) * 100,
+            });
+            undoStack.push({ type: 'drawing', data: path });
+            updateSidePanel();
+        });
+
+        // Click on canvas for pin/text placement
+        canvas.on('mouse:down', function(opt) {
+            if (currentMode === 'pin') {
+                const p = opt.absolutePointer || opt.pointer;
+                const xPct = (p.x / canvas.width)  * 100;
+                const yPct = (p.y / canvas.height) * 100;
+                pendingPin = { xPct, yPct };
+                openModal('pinModal');
+            } else if (currentMode === 'text') {
+                const p = opt.absolutePointer || opt.pointer;
+                const xPct = (p.x / canvas.width)  * 100;
+                const yPct = (p.y / canvas.height) * 100;
+                pendingText = { xPct, yPct };
+                openModal('textModal');
+            }
+        });
     });
 }
 
@@ -701,14 +745,30 @@ function setMode(mode) {
 
     if (mode === 'draw') {
         document.getElementById('btnDraw').classList.add('active');
-        if (canvas) { canvas.isDrawingMode = true; canvas.selection = false; }
+        if (canvas) {
+            canvas.isDrawingMode = true;
+            canvas.selection = false;
+            canvas.freeDrawingCursor = 'crosshair';
+        }
     } else if (mode === 'text') {
         document.getElementById('btnText').classList.add('active');
-        if (canvas) { canvas.isDrawingMode = false; canvas.selection = false; }
+        if (canvas) {
+            canvas.isDrawingMode = false;
+            canvas.selection = false;
+            canvas.defaultCursor = 'crosshair';
+        }
     } else {
         document.getElementById('btnPin').classList.add('active');
-        if (canvas) { canvas.isDrawingMode = false; canvas.selection = false; }
+        if (canvas) {
+            canvas.isDrawingMode = false;
+            canvas.selection = false;
+            canvas.defaultCursor = 'crosshair';
+        }
     }
+
+    // Re-apply crosshair to Fabric's interactive layer (it resets on mode change)
+    const upperCanvas = document.querySelector('#artworkWrapper .upper-canvas');
+    if (upperCanvas) upperCanvas.style.cursor = 'crosshair';
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
