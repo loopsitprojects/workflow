@@ -7,9 +7,14 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ArtworkReviewController;
 
 Route::get('/invite/{token}', [\App\Http\Controllers\RegisterController::class, 'show'])->name('register');
 Route::post('/invite/{token}', [\App\Http\Controllers\RegisterController::class, 'store']);
+
+// Public Artwork Review (no authentication required — client-facing)
+Route::get('/artwork-review/{token}', [ArtworkReviewController::class, 'show'])->name('artwork.review.show');
+Route::post('/artwork-review/{token}/annotate', [ArtworkReviewController::class, 'store'])->name('artwork.review.annotate')->middleware('throttle:30,1');
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
@@ -46,6 +51,13 @@ Route::middleware('auth')->group(function () {
     // Batch Deliverable Exports
     Route::get('deliverables/{deliverable}/export-batch/ppt', [DeliverableController::class, 'exportBatchPpt'])->name('deliverables.export-batch.ppt');
     Route::get('deliverables/{deliverable}/export-batch/pdf', [DeliverableController::class, 'exportBatchPdf'])->name('deliverables.export-batch.pdf');
+
+    // Artwork Client Review
+    Route::post('deliverables/{deliverable}/send-artwork', [ArtworkReviewController::class, 'create'])->name('artwork.create');
+    Route::get('deliverables/{deliverable}/artwork-review', [ArtworkReviewController::class, 'dashboard'])->name('artwork.dashboard');
+    Route::get('deliverables/{deliverable}/artwork-reviews-json', [ArtworkReviewController::class, 'reviewsJson'])->name('artwork.reviews-json');
+    Route::post('artwork-annotations/{annotation}/resolve', [ArtworkReviewController::class, 'resolve'])->name('artwork.annotation.resolve');
+    Route::delete('artwork-reviews/{review}', [ArtworkReviewController::class, 'destroy'])->name('artwork.review.destroy');
 
     // Admin Routes
     Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {

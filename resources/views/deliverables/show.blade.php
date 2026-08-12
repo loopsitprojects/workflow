@@ -743,6 +743,34 @@
                         <div id="modalFinal" class="detail-val"></div>
                     </div>
 
+                    {{-- ── Send Artwork to Client ────────────────────────────────────── --}}
+                    @if($isAdmin || in_array($userRole, ['brandmanager', 'coordinator']))
+                    <div class="detail-item full" id="sendToClientSection">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                            <label class="detail-label" style="margin:0;">Client Artwork Review</label>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <a id="viewAnnotationsLink" href="#" target="_blank"
+                                   style="display:none; align-items:center; gap:5px; padding:5px 12px; background:rgba(139,92,246,0.1); color:#8b5cf6; border:1px solid rgba(139,92,246,0.2); border-radius:8px; font-size:10px; font-weight:700; text-decoration:none; transition:all 0.15s;">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    View Annotations
+                                </a>
+                                <button onclick="openSendArtworkModal()" id="sendArtworkBtn"
+                                        style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.08)); color:#10b981; border:1px solid rgba(16,185,129,0.25); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;"
+                                        onmouseover="this.style.background='rgba(16,185,129,0.2)'"
+                                        onmouseout="this.style.background='linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.08))'">
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                                    Send to Client
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Existing review links summary --}}
+                        <div id="reviewLinksSummary" style="display:none; padding:10px 14px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.15); border-radius:12px; font-size:12px; color:var(--color-text-secondary);">
+                            <div id="reviewLinksContent"></div>
+                        </div>
+                    </div>
+                    @endif
+
                     <div class="detail-item full hist-box" id="modalHistoryBox" style="display:none; border-top:1px solid var(--color-border-primary); margin-top:10px;">
                         <button class="hist-toggle" onclick="toggleHistory('modalRevisionHistory', this)">
                             <span style="display:flex; align-items:center; gap:8px; flex:1;">
@@ -2200,4 +2228,243 @@ async function reassignDesigner(btn) {
             openTaskModal(task);
         });
     </script>
+
+{{-- ──────────────────────────────────────────────────────────────────────────
+     Send Artwork to Client Modal
+──────────────────────────────────────────────────────────────────────────── --}}
+<div id="sendArtworkModalOverlay"
+     style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.7); backdrop-filter:blur(8px); z-index:9999; justify-content:center; align-items:center; opacity:0; transition:opacity 0.25s;">
+    <div style="background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:24px; padding:32px; width:460px; max-width:94vw; box-shadow:0 30px 80px rgba(0,0,0,0.25); transform:scale(0.96); transition:transform 0.25s;" id="sendArtworkModalBox">
+
+        {{-- Header --}}
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+            <div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(16,185,129,0.15); display:flex; align-items:center; justify-content:center;">
+                        <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                    </div>
+                    <div>
+                        <div style="font-size:16px; font-weight:800; color:var(--color-text-primary);">Send Artwork to Client</div>
+                        <div style="font-size:11px; color:var(--color-text-secondary); margin-top:1px;">Generate a shareable link — no login required for client</div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="closeSendArtworkModal()"
+                    style="width:32px; height:32px; border-radius:9px; border:1px solid var(--color-border-primary); background:var(--color-bg-secondary); color:var(--color-text-secondary); cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; transition:all 0.15s;"
+                    onmouseover="this.style.background='var(--color-border-primary)'"
+                    onmouseout="this.style.background='var(--color-bg-secondary)'">✕</button>
+        </div>
+
+        {{-- Expiry setting --}}
+        <div style="margin-bottom:20px;">
+            <label style="display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--color-text-secondary); margin-bottom:8px;">Link Expiry</label>
+            <select id="artworkExpiryDays"
+                    style="width:100%; padding:10px 14px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; cursor:pointer;">
+                <option value="7">7 days</option>
+                <option value="14">14 days</option>
+                <option value="30" selected>30 days</option>
+                <option value="90">90 days</option>
+                <option value="365">1 year</option>
+            </select>
+        </div>
+
+        {{-- Generated link display --}}
+        <div id="generatedLinkArea" style="display:none; margin-bottom:20px; padding:14px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:12px;">
+            <div style="font-size:10px; font-weight:700; color:#10b981; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Review Link Generated ✓</div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <input type="text" id="generatedLinkInput" readonly
+                       style="flex:1; padding:9px 12px; border:1px solid rgba(16,185,129,0.2); border-radius:8px; font-size:11px; font-family:monospace; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none;">
+                <button id="copyLinkBtn" onclick="copyGeneratedLink()"
+                        style="padding:9px 16px; background:#10b981; color:#fff; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; transition:all 0.15s; flex-shrink:0;"
+                        onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                    📋 Copy
+                </button>
+            </div>
+            <p style="font-size:11px; color:var(--color-text-secondary); margin-top:8px; font-weight:500;">
+                Share this link via WhatsApp, Email, or any channel. The client doesn't need an account.
+            </p>
+        </div>
+
+        {{-- Existing reviews --}}
+        <div id="existingReviewsArea" style="margin-bottom:20px; display:none;">
+            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--color-text-secondary); margin-bottom:8px;">Existing Review Links</div>
+            <div id="existingReviewsList" style="display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+
+        {{-- Footer --}}
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <a id="viewAllAnnotationsBtn" href="{{ route('artwork.dashboard', $deliverable) }}"
+               style="display:inline-flex; align-items:center; gap:6px; padding:10px 16px; background:rgba(139,92,246,0.1); color:#8b5cf6; border:1px solid rgba(139,92,246,0.2); border-radius:10px; font-size:12px; font-weight:700; text-decoration:none; transition:all 0.15s;"
+               target="_blank">
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                View All Annotations
+            </a>
+            <button onclick="generateArtworkLink()" id="generateLinkBtn"
+                    style="display:inline-flex; align-items:center; gap:6px; padding:10px 20px; background:linear-gradient(135deg,#10b981,#059669); color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(16,185,129,0.3);"
+                    onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                Generate New Link
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Send Artwork Modal ────────────────────────────────────────────────────────
+
+let currentDeliverableIdForArtwork = null;
+
+function openSendArtworkModal() {
+    const overlay = document.getElementById('sendArtworkModalOverlay');
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        document.getElementById('sendArtworkModalBox').style.transform = 'scale(1)';
+    });
+
+    // Extract deliverable ID from the page data
+    const taskData = @json($deliverable);
+    currentDeliverableIdForArtwork = taskData.id;
+
+    // Load existing reviews
+    loadExistingReviews(currentDeliverableIdForArtwork);
+    // Reset generated link
+    document.getElementById('generatedLinkArea').style.display = 'none';
+    document.getElementById('generatedLinkInput').value = '';
+}
+
+function closeSendArtworkModal() {
+    const overlay = document.getElementById('sendArtworkModalOverlay');
+    overlay.style.opacity = '0';
+    document.getElementById('sendArtworkModalBox').style.transform = 'scale(0.96)';
+    setTimeout(() => { overlay.style.display = 'none'; }, 250);
+}
+
+async function generateArtworkLink() {
+    const btn = document.getElementById('generateLinkBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<span style="opacity:0.7">Generating…</span>`;
+
+    const days = document.getElementById('artworkExpiryDays').value;
+
+    try {
+        const resp = await fetch(`/deliverables/${currentDeliverableIdForArtwork}/send-artwork`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ expires_days: parseInt(days) }),
+        });
+
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+            document.getElementById('generatedLinkInput').value = data.url;
+            document.getElementById('generatedLinkArea').style.display = 'block';
+            // Refresh the existing reviews list
+            loadExistingReviews(currentDeliverableIdForArtwork);
+            // Update the summary in the deliverable modal
+            updateReviewSummary(currentDeliverableIdForArtwork);
+        } else {
+            alert(data.message || 'Failed to generate link.');
+        }
+    } catch(e) {
+        alert('Network error. Please try again.');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg> Generate New Link`;
+}
+
+async function loadExistingReviews(deliverableId) {
+    try {
+        const resp = await fetch(`/deliverables/${deliverableId}/artwork-reviews-json`, {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+        });
+        const reviews = await resp.json();
+
+        const area  = document.getElementById('existingReviewsArea');
+        const list  = document.getElementById('existingReviewsList');
+        if (reviews.length === 0) { area.style.display = 'none'; return; }
+
+        area.style.display = 'block';
+        list.innerHTML = '';
+
+        reviews.forEach(r => {
+            const statusColor = r.is_accessible ? '#10b981' : '#94a3b8';
+            const statusLabel = r.is_accessible ? 'Active' : 'Inactive';
+
+            const item = document.createElement('div');
+            item.style.cssText = 'display:flex; align-items:center; gap:10px; padding:9px 12px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:10px; font-size:11px;';
+            item.innerHTML = `
+                <span style="width:7px; height:7px; border-radius:50%; background:${statusColor}; flex-shrink:0;"></span>
+                <span style="flex:1; color:var(--color-text-secondary);">
+                    ${r.client_name || 'Link'} · <strong style="color:var(--color-text-primary);">${r.annotations_count} annotation(s)</strong> · ${r.created_at}
+                    ${r.expires_at ? `· Expires ${r.expires_at}` : ''}
+                </span>
+                <button onclick="copyToClipboard('${r.url}', this)"
+                        style="padding:3px 9px; background:rgba(59,130,246,0.1); color:#3b82f6; border:1px solid rgba(59,130,246,0.2); border-radius:6px; font-size:10px; font-weight:700; cursor:pointer; white-space:nowrap;">
+                    Copy
+                </button>
+            `;
+            list.appendChild(item);
+        });
+
+        // Update the summary badge in the deliverable modal
+        const summaryEl = document.getElementById('reviewLinksSummary');
+        const contentEl = document.getElementById('reviewLinksContent');
+        const viewLink  = document.getElementById('viewAnnotationsLink');
+        if (summaryEl && contentEl) {
+            const totalAnnot = reviews.reduce((s, r) => s + r.annotations_count, 0);
+            const openAnnot  = reviews.reduce((s, r) => s + r.unresolved_count, 0);
+            const activeCount = reviews.filter(r => r.is_accessible).length;
+            summaryEl.style.display = 'block';
+            contentEl.innerHTML = `
+                <div style="display:flex; gap:16px; align-items:center;">
+                    <span><strong style="color:#10b981;">${activeCount}</strong> active link(s)</span>
+                    <span><strong style="color:var(--color-text-primary);">${totalAnnot}</strong> total annotation(s)</span>
+                    ${openAnnot > 0 ? `<span style="color:#f59e0b;"><strong>${openAnnot}</strong> unresolved</span>` : ''}
+                </div>`;
+        }
+        if (viewLink && reviews.length > 0) {
+            viewLink.style.display = 'inline-flex';
+            viewLink.href = `/deliverables/${deliverableId}/artwork-review`;
+        }
+    } catch(e) { console.error(e); }
+}
+
+async function updateReviewSummary(deliverableId) {
+    loadExistingReviews(deliverableId); // re-uses the same logic
+}
+
+function copyGeneratedLink() {
+    const val = document.getElementById('generatedLinkInput').value;
+    copyToClipboard(val, document.getElementById('copyLinkBtn'));
+}
+
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => { btn.textContent = orig; }, 2000);
+    }).catch(() => {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => { btn.textContent = orig; }, 2000);
+    });
+}
+
+// Close overlay when clicking outside box
+document.getElementById('sendArtworkModalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeSendArtworkModal();
+});
+</script>
 </x-layout>
