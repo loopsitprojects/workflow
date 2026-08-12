@@ -499,7 +499,7 @@
                                         <td colspan="4">
                                             <div class="deliverable-name-cell" style="padding: 8px 0; display:flex; align-items:center; gap:10px;">
                                                 <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle active" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:6px; outline:none;"></button>
-                                                <span style="font-weight:800; color:var(--color-text-primary); font-size:13px; letter-spacing:-0.01em;">{{ $task->title }}</span>
+                                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:800; color:var(--color-text-primary); font-size:13px; letter-spacing:-0.01em;">{{ $task->title }}</span>
                                                 <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary); background:var(--color-bg-primary); border:1px solid var(--color-border-primary); padding:2px 7px; border-radius:6px;">{{ $task->subtasks->count() }} posts</span>
                                             </div>
                                         </td>
@@ -628,7 +628,7 @@
                                                         <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
                                                     </svg>
                                                 </span>
-                                                <span style="font-weight:700; color:var(--color-text-primary); font-size:13px;">{{ $subtask->title }}</span>
+                                                <span style="font-weight:700; color:var(--color-text-primary); font-size:13px;" class="dashboard-task-title-{{ $subtask->id }}">{{ $subtask->title }}</span>
                                             </div>
                                         </td>
                                         <td>
@@ -870,7 +870,7 @@
                                                         <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
                                                     </svg>
                                                 </span>
-                                                <span style="font-weight:900; color:#0055D4; font-size:13px;">{{ $task->title }}</span>
+                                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:#0055D4; font-size:13px;">{{ $task->title }}</span>
                                             </div>
                                         </td>
                                         <td>
@@ -1128,7 +1128,7 @@
                                         <td colspan="9">
                                             <div class="deliverable-name-cell" style="padding: 10px 0; display:flex; align-items:center; gap:12px;">
                                                 <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle active" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:6px; outline:none;"></button>
-                                                <span style="font-weight:900; color:#0055D4; font-size:15px; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->title }}</span>
+                                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:#0055D4; font-size:15px; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->title }}</span>
                                                 <span style="font-size:11px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:20px;">{{ $task->subtasks->count() }} Tasks</span>
                                             </div>
                                         </td>
@@ -1471,7 +1471,7 @@
                                     <tr class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                         <td>
                                             <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
-                                                <span style="font-weight:900; color:var(--color-text-primary);">{{ $task->title }}</span>
+                                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:var(--color-text-primary);">{{ $task->title }}</span>
                                             </div>
                                         </td>
                                         <td>
@@ -4628,6 +4628,13 @@
             saveDraft(taskId, fieldName, field.value);
             debounceSave(taskId, fieldName, field.value);
             if (fieldName === 'reference') updateRefBtnGlow(taskId, !!(field.value.trim()));
+            
+            // Instantly update dashboard title/name spans if title was updated
+            if (fieldName === 'title') {
+                document.querySelectorAll(`.dashboard-task-title-${taskId}`).forEach(span => {
+                    span.textContent = field.value;
+                });
+            }
         }
     });
 })();
