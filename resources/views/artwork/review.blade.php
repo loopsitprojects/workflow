@@ -650,25 +650,32 @@ const TOKEN       = @json($review->token);
 // ──────────────────────────────────────────────────────────────────────────────
 function initCanvas() {
     const img = document.getElementById('artwork-img');
+    if (!img) return;
 
-    // Use requestAnimationFrame to ensure the browser has laid out the image
-    // before we read its dimensions — avoids 0×0 on fast-loading images.
     requestAnimationFrame(() => {
         const w = img.offsetWidth;
         const h = img.offsetHeight;
 
         if (!w || !h) {
-            // Retry if dimensions still aren't ready
             setTimeout(initCanvas, 50);
             return;
         }
 
-        // Size the wrapper to match the image so position:absolute children align
+        // Set wrapper bounds matching the image layout
         const wrapper = document.getElementById('artworkWrapper');
         wrapper.style.width  = w + 'px';
         wrapper.style.height = h + 'px';
 
         const el = document.getElementById('annotation-canvas');
+
+        // If canvas is already initialized, just resize it
+        if (canvas) {
+            canvas.setWidth(w);
+            canvas.setHeight(h);
+            canvas.calcOffset();
+            return;
+        }
+
         el.width  = w;
         el.height = h;
         el.style.width  = w + 'px';
@@ -681,27 +688,27 @@ function initCanvas() {
             height: h,
         });
 
-        // ── Fix Fabric's generated .canvas-container positioning ──────────────
-        // Fabric wraps our canvas in a new div.canvas-container with
-        // position:relative — this breaks the absolute overlay. Override it.
+        // Position the generated container over the image correctly
         const fabricContainer = wrapper.querySelector('.canvas-container');
         if (fabricContainer) {
             fabricContainer.style.position = 'absolute';
             fabricContainer.style.top      = '0';
             fabricContainer.style.left     = '0';
-            fabricContainer.style.zIndex   = '2';
+            fabricContainer.style.zIndex   = '5';
+            fabricContainer.style.width    = w + 'px';
+            fabricContainer.style.height   = h + 'px';
         }
 
-        // Apply crosshair cursor to the Fabric upper-canvas (the interactive layer)
         const upperCanvas = wrapper.querySelector('.upper-canvas');
         if (upperCanvas) {
             upperCanvas.style.cursor = 'crosshair';
+            upperCanvas.style.zIndex = '6';
         }
 
         canvas.freeDrawingBrush.width = 3;
         canvas.freeDrawingBrush.color = currentColor;
 
-        // Save each completed path as a drawing annotation
+        // Save each completed path
         canvas.on('path:created', function(opt) {
             const path = opt.path;
             drawings.push({
@@ -716,18 +723,16 @@ function initCanvas() {
             updateSidePanel();
         });
 
-        // Click on canvas for pin/text placement
+        // Capture click event for pins and text
         canvas.on('mouse:down', function(opt) {
+            const p = opt.absolutePointer || opt.pointer || { x: 0, y: 0 };
+            const xPct = (p.x / canvas.width)  * 100;
+            const yPct = (p.y / canvas.height) * 100;
+
             if (currentMode === 'pin') {
-                const p = opt.absolutePointer || opt.pointer;
-                const xPct = (p.x / canvas.width)  * 100;
-                const yPct = (p.y / canvas.height) * 100;
                 pendingPin = { xPct, yPct };
                 openModal('pinModal');
             } else if (currentMode === 'text') {
-                const p = opt.absolutePointer || opt.pointer;
-                const xPct = (p.x / canvas.width)  * 100;
-                const yPct = (p.y / canvas.height) * 100;
                 pendingText = { xPct, yPct };
                 openModal('textModal');
             }
