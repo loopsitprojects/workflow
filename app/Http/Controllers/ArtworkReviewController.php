@@ -72,6 +72,22 @@ class ArtworkReviewController extends Controller
             ]);
         }
 
+        // Notify Brand Manager / Lead / link creator
+        $deliverable = $review->deliverable;
+        $manager = null;
+        if ($deliverable) {
+            $manager = $deliverable->brandManager ?? $deliverable->project?->lead;
+        }
+
+        // Fallback to link creator
+        if (!$manager) {
+            $manager = $review->creator;
+        }
+
+        if ($manager) {
+            $manager->notify(new \App\Notifications\ArtworkReviewSubmitted($review, $review->client_name ?? 'Client'));
+        }
+
         return response()->json(['success' => true, 'message' => 'Your feedback has been submitted successfully!']);
     }
 
