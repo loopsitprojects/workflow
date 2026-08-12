@@ -1764,6 +1764,11 @@
 
                 // Mark as ready button removed
 
+                // Load client review summary and annotations count when the modal opens
+                if (typeof updateReviewSummary === 'function') {
+                    updateReviewSummary(task.id);
+                }
+
                 overlay.style.display = 'flex';
                 setTimeout(() => { overlay.style.opacity = '1'; modal.classList.add('active'); }, 10);
             } catch (e) {
