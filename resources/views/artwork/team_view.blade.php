@@ -93,18 +93,21 @@
             @php
                 $latestReview = $reviews->first();
                 $artworkUrl   = $deliverable->final_designs ?? $deliverable->image_url ?? null;
-                $pins         = $latestReview->annotations->where('type', 'pin');
+                $pins         = $latestReview ? $latestReview->annotations->where('type', 'pin') : collect();
+                $allDrawings  = $latestReview ? $latestReview->annotations->where('type', 'drawing') : collect();
             @endphp
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
             <div>
                 <div class="artwork-viewer" style="padding:16px;">
                     @if($artworkUrl)
-                        <div style="position:relative; display:inline-block; width:100%;">
+                        <div id="artworkWrapper" style="position:relative; display:inline-block; width:100%;">
                             @if(preg_match('/\.(mp4|webm|ogg|mov)/i', $artworkUrl))
                                 <video src="{{ $artworkUrl }}" controls class="artwork-viewer-img"></video>
                             @else
-                                <img src="{{ $artworkUrl }}" alt="Artwork" class="artwork-viewer-img" id="teamArtworkImg">
+                                <img src="{{ $artworkUrl }}" alt="Artwork" class="artwork-viewer-img" id="teamArtworkImg" onload="initTeamCanvas()" crossorigin="anonymous">
                             @endif
-                            <div class="pin-overlay" id="teamPinOverlay">
+                            <canvas id="team-drawing-canvas" style="position:absolute; top:0; left:0; pointer-events:none; z-index:3;"></canvas>
+                            <div class="pin-overlay" id="teamPinOverlay" style="z-index: 10;">
                                 @foreach($pins as $pin)
                                     <div class="tv-pin"
                                          style="left:{{ $pin->x_percent }}%; top:{{ $pin->y_percent }}%;"
@@ -123,9 +126,9 @@
                     @endif
                 </div>
 
-                @if($latestReview->annotations->where('type','drawing')->count() > 0)
+                @if($allDrawings->count() > 0)
                     <p style="font-size:11px; color:var(--color-text-secondary); margin-top:8px; text-align:center;">
-                        ✏️ {{ $latestReview->annotations->where('type','drawing')->count() }} freehand drawing(s) also submitted — visible in client session.
+                        ✏️ {{ $allDrawings->count() }} freehand drawing(s) loaded.
                     </p>
                 @endif
             </div>
@@ -240,6 +243,13 @@ async function toggleResolve(annotId, btn) {
                 btn.textContent = '✓ Resolve';
                 btn.classList.remove('unresolve'); btn.classList.add('resolve');
             }
+
+            // Sync with local drawings data array and redraw
+            const localDrawing = drawingsData.find(d => d.id === annotId);
+            if (localDrawing) {
+                localDrawing.is_resolved = data.is_resolved;
+                initTeamCanvas();
+            }
         }
     } catch(e) { console.error(e); }
     btn.disabled = false;
@@ -279,5 +289,102 @@ function copyReviewLink(url, btn) {
         setTimeout(() => { btn.textContent = orig; btn.style.background = ''; btn.style.color = ''; }, 2000);
     });
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Team canvas drawing paths renderer
+// ──────────────────────────────────────────────────────────────────────────────
+let teamCanvas = null;
+const drawingsData = @json($allDrawings->map(fn($d) => [
+    'id' => $d->id,
+    'content' => $d->content,
+    'color' => $d->color,
+    'x_percent' => $d->x_percent,
+    'y_percent' => $d->y_percent,
+    'is_resolved' => (bool)$d->is_resolved
+])->values());
+
+function initTeamCanvas() {
+    const img = document.getElementById('teamArtworkImg');
+    if (!img) return;
+    
+    const w = img.offsetWidth;
+    const h = img.offsetHeight;
+    if (!w || !h) {
+        setTimeout(initTeamCanvas, 50);
+        return;
+    }
+
+    const wrapper = document.getElementById('artworkWrapper');
+    if (wrapper) {
+        wrapper.style.width  = w + 'px';
+        wrapper.style.height = h + 'px';
+    }
+
+    const el = document.getElementById('team-drawing-canvas');
+    if (!el) return;
+
+    el.width  = w;
+    el.height = h;
+    el.style.width  = w + 'px';
+    el.style.height = h + 'px';
+
+    if (teamCanvas) {
+        teamCanvas.setWidth(w);
+        teamCanvas.setHeight(h);
+        teamCanvas.clear();
+    } else {
+        teamCanvas = new fabric.StaticCanvas('team-drawing-canvas', {
+            width: w,
+            height: h
+        });
+    }
+
+    // Render each drawing
+    drawingsData.forEach(d => {
+        if (d.is_resolved) return;
+        try {
+            const pathObj = JSON.parse(d.content);
+            
+            // Reconstruct fabric Path
+            fabric.util.enlivenObjects([pathObj], function(objects) {
+                const path = objects[0];
+                if (!path) return;
+
+                path.set({
+                    selectable: false,
+                    evented: false,
+                    stroke: d.color || '#ef4444'
+                });
+
+                // Calculate scaling factors based on original drawing percentage coordinates
+                const xPos = (d.x_percent / 100) * w;
+                const yPos = (d.y_percent / 100) * h;
+                
+                // Adjust position
+                path.set({
+                    left: xPos,
+                    top: yPos
+                });
+
+                teamCanvas.add(path);
+            });
+        } catch (e) {
+            console.error('Failed to render drawing', e);
+        }
+    });
+
+    teamCanvas.renderAll();
+}
+
+// Re-init canvas on window resize
+window.addEventListener('resize', () => {
+    initTeamCanvas();
+});
+
+// Update resolve status dynamically on canvas
+window.addEventListener('load', () => {
+    setTimeout(initTeamCanvas, 200);
+});
+
 </script>
 </x-layout>
