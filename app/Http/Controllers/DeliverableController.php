@@ -3,20 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Deliverable;
-use App\Http\Controllers\Controller;
 use App\Models\Project;
-use Illuminate\Http\Request;
-
 use App\Models\User;
+use App\Models\SubtaskType;
 use App\Models\DeliverableReassignment;
 use App\Notifications\DeliverableUpdated;
-use Illuminate\Support\Str;
 use App\Http\Requests\StoreDeliverableRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Arr;
 
 class DeliverableController extends Controller
 {
-
-
     public function show(Deliverable $deliverable)
     {
         $deliverable->load([
@@ -425,6 +427,14 @@ class DeliverableController extends Controller
         return redirect()->back()->with('success', 'Designer reassigned successfully.');
     }
 
+    public function updateChecklist(Request $request, Deliverable $deliverable)
+    {
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Checklist updated successfully.']);
+        }
+        return redirect()->back()->with('success', 'Checklist updated successfully.');
+    }
+
     /**
      * Generate a presigned URL for direct S3 upload.
      */
@@ -526,8 +536,48 @@ class DeliverableController extends Controller
                 if ($request->has('notes')) $deliverable->notes = $request->notes;
                 if ($request->has('caption')) $deliverable->caption = $request->caption;
                 if ($request->has('post_copy')) $deliverable->post_copy = $request->post_copy;
-                if ($request->has('reference')) $deliverable->reference = $request->reference;
                 if ($request->has('final_designs_link')) $deliverable->final_designs_link = $request->final_designs_link;
+                
+                // Handle deletion of specific reference URLs
+                if ($request->has('delete_reference_url_indices')) {
+                    $delUrlIndices = (array)$request->input('delete_reference_url_indices');
+                    $existingUrls = $deliverable->getReferenceUrlsArray();
+                    foreach ($delUrlIndices as $idx) {
+                        unset($existingUrls[(int)$idx]);
+                    }
+                    $urlsList = array_values($existingUrls);
+                    $deliverable->reference = empty($urlsList) ? null : (count($urlsList) === 1 ? $urlsList[0] : json_encode($urlsList));
+                } else {
+                    // Combine reference URLs from single input or reference_urls[] array
+                    $urlsList = [];
+                    $rawUrls = array_merge(
+                        $request->has('reference') ? (array)$request->input('reference') : [],
+                        $request->has('reference_urls') ? (array)$request->input('reference_urls') : []
+                    );
+                    foreach ($rawUrls as $item) {
+                        if (empty($item)) continue;
+                        if (is_array($item)) {
+                            $urlsList = array_merge($urlsList, $item);
+                        } elseif (is_string($item)) {
+                            $trimmed = trim($item);
+                            if (str_starts_with($trimmed, '[')) {
+                                $jsonParsed = json_decode($trimmed, true);
+                                if (is_array($jsonParsed)) {
+                                    $urlsList = array_merge($urlsList, $jsonParsed);
+                                    continue;
+                                }
+                            }
+                            $parsed = preg_split('/[\r\n,]+/', $trimmed);
+                            $urlsList = array_merge($urlsList, $parsed);
+                        }
+                    }
+                    $urlsList = array_values(array_unique(array_filter(array_map('trim', $urlsList))));
+                    if (!empty($urlsList)) {
+                        $deliverable->reference = count($urlsList) === 1 ? $urlsList[0] : json_encode($urlsList);
+                    } elseif ($request->has('reference') || $request->has('reference_urls')) {
+                        $deliverable->reference = null;
+                    }
+                }
             }
             if ($request->has('work_hours')) {
                 $newWorkHours = $request->work_hours ?: null;
@@ -558,26 +608,124 @@ class DeliverableController extends Controller
             }
             
             if ($request->boolean('delete_reference_file')) {
-                if ($deliverable->reference_file) {
-                    $path = $deliverable->reference_file;
-                    if (preg_match('#/(artwork|references|briefs|brand_logos|revision_images)/([^/?]+)(?:\?.*)?$#', $path, $m)) {
-                        \Illuminate\Support\Facades\Storage::disk('s3')->delete($m[1] . '/' . $m[2]);
-                    } else if (str_starts_with($path, '/references/')) {
-                        $fullPath = public_path(ltrim($path, '/'));
-                        if (file_exists($fullPath)) @unlink($fullPath);
-                    }
+                foreach ($deliverable->getReferenceFilesArray() as $path) {
+                    $this->deletePhysicalFile($path);
                 }
                 $deliverable->reference_file = null;
-            } elseif ($request->has('reference_file') && is_string($request->reference_file)) {
-                $deliverable->reference_file = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($request->reference_file, '/'));
+            }
+
+            if ($request->has('delete_reference_file_indices') || $request->has('delete_reference_file_index')) {
+                $indices = $request->input('delete_reference_file_indices', [$request->input('delete_reference_file_index')]);
+                $existing = $deliverable->getReferenceFilesArray();
+                foreach ((array)$indices as $idx) {
+                    $idx = (int)$idx;
+                    if (isset($existing[$idx])) {
+                        $this->deletePhysicalFile($existing[$idx]);
+                        unset($existing[$idx]);
+                    }
+                }
+                $existing = array_values($existing);
+                $deliverable->reference_file = empty($existing) ? null : (count($existing) === 1 ? $existing[0] : json_encode($existing));
+            }
+
+            $newRefFiles = [];
+            $filesToCheck = [];
+            if ($request->hasFile('reference_files')) {
+                $files = $request->file('reference_files');
+                $filesToCheck = is_array($files) ? $files : [$files];
             } elseif ($request->hasFile('reference_file')) {
-                $deliverable->reference_file = $this->moveUploadedFile($request->file('reference_file'), 'references');
+                $files = $request->file('reference_file');
+                $filesToCheck = is_array($files) ? $files : [$files];
+            }
+
+            foreach ($filesToCheck as $f) {
+                if ($f && $f->isValid()) {
+                    $newRefFiles[] = $this->moveUploadedFile($f, 'references');
+                }
+            }
+
+            if (!empty($newRefFiles)) {
+                $existing = $request->boolean('delete_reference_file') ? [] : $deliverable->getReferenceFilesArray();
+                $merged = array_merge($existing, $newRefFiles);
+                $deliverable->reference_file = count($merged) === 1 ? $merged[0] : json_encode($merged);
+            } elseif ($request->has('reference_file') && is_string($request->reference_file) && !empty($request->reference_file)) {
+                $deliverable->reference_file = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($request->reference_file, '/'));
             }
             
-            if ($request->has('final_designs_file') && is_string($request->final_designs_file)) {
-                $deliverable->final_designs = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($request->final_designs_file, '/'));
+            // Artwork URLs combining & index removal
+            if ($request->has('delete_final_designs_url_indices')) {
+                $delArtUrlIndices = (array)$request->input('delete_final_designs_url_indices');
+                $existingArtUrls = $deliverable->getFinalDesignsUrlsArray();
+                foreach ($delArtUrlIndices as $idx) {
+                    unset($existingArtUrls[(int)$idx]);
+                }
+                $artUrlsList = array_values($existingArtUrls);
+                $deliverable->final_designs_link = empty($artUrlsList) ? null : (count($artUrlsList) === 1 ? $artUrlsList[0] : json_encode($artUrlsList));
+            } elseif ($request->has('final_designs_link') || $request->has('final_designs_urls')) {
+                $artUrlsList = [];
+                $rawArtUrls = array_merge(
+                    $request->has('final_designs_link') ? (array)$request->input('final_designs_link') : [],
+                    $request->has('final_designs_urls') ? (array)$request->input('final_designs_urls') : []
+                );
+                foreach ($rawArtUrls as $item) {
+                    if (empty($item)) continue;
+                    if (is_array($item)) {
+                        $artUrlsList = array_merge($artUrlsList, $item);
+                    } elseif (is_string($item)) {
+                        $trimmed = trim($item);
+                        if (str_starts_with($trimmed, '[')) {
+                            $jsonParsed = json_decode($trimmed, true);
+                            if (is_array($jsonParsed)) {
+                                $artUrlsList = array_merge($artUrlsList, $jsonParsed);
+                                continue;
+                            }
+                        }
+                        $parsed = preg_split('/[\r\n,]+/', $trimmed);
+                        $artUrlsList = array_merge($artUrlsList, $parsed);
+                    }
+                }
+                $artUrlsList = array_values(array_unique(array_filter(array_map('trim', $artUrlsList))));
+                $deliverable->final_designs_link = empty($artUrlsList) ? null : (count($artUrlsList) === 1 ? $artUrlsList[0] : json_encode($artUrlsList));
+            }
+
+            // Handle artwork file index deletion
+            if ($request->has('delete_final_designs_file_indices') || $request->has('delete_final_designs_file_index')) {
+                $artIndices = $request->input('delete_final_designs_file_indices', [$request->input('delete_final_designs_file_index')]);
+                $existingArt = $deliverable->getFinalDesignsArray();
+                foreach ((array)$artIndices as $idx) {
+                    $idx = (int)$idx;
+                    if (isset($existingArt[$idx])) {
+                        $this->deletePhysicalFile($existingArt[$idx]);
+                        unset($existingArt[$idx]);
+                    }
+                }
+                $existingArt = array_values($existingArt);
+                $deliverable->final_designs = empty($existingArt) ? null : (count($existingArt) === 1 ? $existingArt[0] : json_encode($existingArt));
+            }
+
+            // Handle multi artwork file uploads
+            $newArtFiles = [];
+            $artFilesToCheck = [];
+            if ($request->hasFile('final_designs_files')) {
+                $files = $request->file('final_designs_files');
+                $artFilesToCheck = is_array($files) ? $files : [$files];
             } elseif ($request->hasFile('final_designs_file')) {
-                $deliverable->final_designs = $this->moveUploadedFile($request->file('final_designs_file'), 'artwork');
+                $files = $request->file('final_designs_file');
+                $artFilesToCheck = is_array($files) ? $files : [$files];
+            }
+
+            foreach ($artFilesToCheck as $f) {
+                if ($f && $f->isValid()) {
+                    $newArtFiles[] = $this->moveUploadedFile($f, 'artwork');
+                }
+            }
+
+            if (!empty($newArtFiles)) {
+                $existingArt = $request->boolean('delete_final_designs') ? [] : $deliverable->getFinalDesignsArray();
+                $mergedArt = array_merge($existingArt, $newArtFiles);
+                $deliverable->final_designs = count($mergedArt) === 1 ? $mergedArt[0] : json_encode($mergedArt);
+            } elseif ($request->has('final_designs_file') && is_string($request->final_designs_file) && !empty($request->final_designs_file)) {
+                $deliverable->final_designs = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($request->final_designs_file, '/'));
             }
             
             $deliverable->save();
@@ -1135,11 +1283,10 @@ class DeliverableController extends Controller
     public function destroy(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        $isCreatorWriter = $user->role === 'Writer' && $deliverable->writer_id === $user->id;
 
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && !$isCreatorWriter) {
+        if (!$user->isAdmin() && $user->role !== 'Brand Manager') {
             if ($request->wantsJson() || $request->ajax()) {
-                return response()->json(['message' => 'Only Admins, Brand Managers, and the assigned Writer can delete deliverables.'], 403);
+                return response()->json(['message' => 'Only Admins and Brand Managers can delete deliverables.'], 403);
             }
             abort(403);
         }
@@ -1193,12 +1340,22 @@ class DeliverableController extends Controller
             $section->addTextBreak(1);
         }
 
+        $refFiles = $deliverable->getReferenceFilesArray();
+        $refUrls  = $deliverable->getReferenceUrlsArray();
+
         $section->addText('REFERENCE', ['bold' => true]);
-        if ($deliverable->reference) {
-            $section->addLink($deliverable->reference, $deliverable->reference);
-        } elseif ($deliverable->reference_file) {
-            $section->addLink($deliverable->reference_file, 'Attached File');
-        } else {
+        if (!empty($refUrls)) {
+            foreach ($refUrls as $u) {
+                $section->addLink($u, $u);
+            }
+        }
+        if (!empty($refFiles)) {
+            foreach ($refFiles as $idx => $f) {
+                $fullUrl = str_starts_with($f, 'http') ? $f : asset(ltrim($f, '/'));
+                $section->addLink($fullUrl, 'Attached Reference File #' . ($idx + 1));
+            }
+        }
+        if (empty($refUrls) && empty($refFiles)) {
             $section->addText('None', ['color' => '94a3b8']);
         }
         $section->addTextBreak(1);
@@ -1229,7 +1386,9 @@ class DeliverableController extends Controller
         $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
         $objWriter->save($tempFile);
 
-        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+        return response()->download($tempFile, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ])->deleteFileAfterSend(true);
     }
 
     /**
@@ -1244,7 +1403,9 @@ class DeliverableController extends Controller
         $tmpFile  = tempnam(sys_get_temp_dir(), 'pptx');
         \PhpOffice\PhpPresentation\IOFactory::createWriter($prs, 'PowerPoint2007')->save($tmpFile);
 
-        return response()->download($tmpFile, $fileName)->deleteFileAfterSend(true);
+        return response()->download($tmpFile, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        ])->deleteFileAfterSend(true);
     }
 
     /**
@@ -1269,7 +1430,9 @@ class DeliverableController extends Controller
         $tmpFile  = tempnam(sys_get_temp_dir(), 'pptx');
         \PhpOffice\PhpPresentation\IOFactory::createWriter($prs, 'PowerPoint2007')->save($tmpFile);
 
-        return response()->download($tmpFile, $fileName)->deleteFileAfterSend(true);
+        return response()->download($tmpFile, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        ])->deleteFileAfterSend(true);
     }
 
     /**
@@ -1300,6 +1463,11 @@ class DeliverableController extends Controller
     private function pptLocalImagePath(?string $url): ?string
     {
         if (!$url) return null;
+        if (is_string($url) && str_starts_with(trim($url), '[')) {
+            $arr = json_decode($url, true);
+            $url = is_array($arr) ? ($arr[0] ?? null) : $url;
+        }
+        if (!$url || !is_string($url)) return null;
         if (!preg_match('/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i', $url)) return null;
 
         if (str_starts_with($url, 'http')) {
@@ -1338,12 +1506,26 @@ class DeliverableController extends Controller
         $Fill  = \PhpOffice\PhpPresentation\Style\Fill::class;
         $Border = \PhpOffice\PhpPresentation\Style\Border::class;
 
-        $refPath   = $this->pptLocalImagePath($task->reference_file);
-        $artPath   = $this->pptLocalImagePath($task->final_designs);
-        
-        // For client presentation, prioritize final artwork. Fallback to reference if no artwork exists.
-        $primaryImgPath = $artPath ?: $refPath;
-        $hasImages = (bool) $primaryImgPath;
+        $refFiles = $task->getReferenceFilesArray();
+        $refUrls  = $task->getReferenceUrlsArray();
+
+        $refPaths = [];
+        foreach ($refFiles as $rf) {
+            $p = $this->pptLocalImagePath($rf);
+            if ($p) $refPaths[] = $p;
+        }
+        $artPath = $this->pptLocalImagePath($task->final_designs);
+
+        $allImages = [];
+        if ($artPath) {
+            $allImages[] = ['path' => $artPath, 'type' => 'FINAL ARTWORK'];
+        }
+        foreach ($refPaths as $idx => $rp) {
+            $label = count($refPaths) > 1 ? 'REFERENCE IMAGE #' . ($idx + 1) : 'REFERENCE IMAGE';
+            $allImages[] = ['path' => $rp, 'type' => $label];
+        }
+
+        $hasImages = !empty($allImages);
 
         // Slide canvas (px, 96dpi, default 4:3 = 960×720)
         $SW = 960; $SH = 720;
@@ -1429,43 +1611,64 @@ class DeliverableController extends Controller
 
         // ── 6. Image Section (Right Column) ─────────────────────────────
         if ($hasImages) {
-            $imgLabelText = $artPath ? 'FINAL ARTWORK' : 'REFERENCE IMAGE';
-            
+            $imgCount = count($allImages);
             $imgLabelY = $contentY;
             $lbl = $slide->createRichTextShape()
                 ->setHeight(18)->setWidth($imgW)->setOffsetX($imgX)->setOffsetY($imgLabelY);
             $lbl->getBorder()->setLineStyle($Border::LINE_NONE);
-            $lr = $lbl->createTextRun($imgLabelText);
+            $mainTitle = $artPath ? 'FINAL ARTWORK & REFERENCES' : ($imgCount > 1 ? 'REFERENCE IMAGES (' . $imgCount . ')' : 'REFERENCE IMAGE');
+            $lr = $lbl->createTextRun($mainTitle);
             $lr->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF94A3B8'));
-            
-            $imgOffsetYOffset = 22;
-            // Scale image to fit slot while preserving aspect ratio, centered in its box
-            $maxH = $contentH - $imgOffsetYOffset;
-            $maxW = $imgW;
-            [$origW, $origH] = @getimagesize($primaryImgPath) ?: [1, 1];
-            if ($origW > 0 && $origH > 0) {
-                $ratio   = $origW / $origH;
-                if (($maxW / $ratio) <= $maxH) {
-                    $fitW = $maxW;
-                    $fitH = (int)($maxW / $ratio);
-                } else {
-                    $fitH = $maxH;
-                    $fitW = (int)($fitH * $ratio);
-                }
+
+            $availY = $contentY + 24;
+            $availH = $contentH - 24;
+            $availW = $imgW;
+
+            if ($imgCount == 1) {
+                $cols = 1; $rows = 1;
+            } elseif ($imgCount == 2) {
+                $cols = 1; $rows = 2;
+            } elseif ($imgCount <= 4) {
+                $cols = 2; $rows = 2;
             } else {
-                $fitW = $maxW;
-                $fitH = $maxH;
+                $cols = 2; $rows = (int)ceil($imgCount / 2);
             }
 
-            // Center image in the right column, below the label
-            $imgOffsetX = $imgX + (int)(($maxW - $fitW) / 2);
-            $imgOffsetY = $contentY + $imgOffsetYOffset + (int)(($maxH - $fitH) / 2);
+            $slotW = (int)(($availW - (($cols - 1) * 12)) / $cols);
+            $slotH = (int)(($availH - (($rows - 1) * 12)) / $rows);
 
-            $drawing = new \PhpOffice\PhpPresentation\Shape\Drawing\File();
-            $drawing->setName('Artwork')->setPath($primaryImgPath)
-                    ->setWidth($fitW)->setHeight($fitH)
-                    ->setOffsetX($imgOffsetX)->setOffsetY($imgOffsetY);
-            $slide->addShape($drawing);
+            foreach ($allImages as $idx => $imgItem) {
+                $r = (int)($idx / $cols);
+                $c = $idx % $cols;
+
+                $posX = $imgX + ($c * ($slotW + 12));
+                $posY = $availY + ($r * ($slotH + 12));
+
+                $imgPath = $imgItem['path'];
+                [$origW, $origH] = @getimagesize($imgPath) ?: [1, 1];
+                if ($origW > 0 && $origH > 0) {
+                    $ratio = $origW / $origH;
+                    if (($slotW / $ratio) <= $slotH) {
+                        $fitW = $slotW;
+                        $fitH = (int)($slotW / $ratio);
+                    } else {
+                        $fitH = $slotH;
+                        $fitW = (int)($fitH * $ratio);
+                    }
+                } else {
+                    $fitW = $slotW;
+                    $fitH = $slotH;
+                }
+
+                $offX = $posX + (int)(($slotW - $fitW) / 2);
+                $offY = $posY + (int)(($slotH - $fitH) / 2);
+
+                $drawing = new \PhpOffice\PhpPresentation\Shape\Drawing\File();
+                $drawing->setName('Image_' . $idx)->setPath($imgPath)
+                        ->setWidth($fitW)->setHeight($fitH)
+                        ->setOffsetX($offX)->setOffsetY($offY);
+                $slide->addShape($drawing);
+            }
         }
 
         // ── 7. Text sections (Left column) with clean cards ──────
@@ -1554,11 +1757,9 @@ class DeliverableController extends Controller
         $addSection('CONCEPT',      $task->concept);
         $addSection('CAPTION',      $task->caption);
         $addSection('COPY',         $task->post_copy ?: ($task->subtask_copy ?? null));
-        $addSection('REFERENCE LINK', $task->reference);
 
-        if ($task->reference_file) {
-            $url = str_starts_with($task->reference_file, 'http') ? $task->reference_file : asset(ltrim($task->reference_file, '/'));
-            $addSection('REFERENCE FILE', $url);
+        if (!empty($refUrls)) {
+            $addSection('REFERENCE LINK(S)', implode("\n", $refUrls));
         }
 
         if ($task->final_designs) {
@@ -1576,6 +1777,17 @@ class DeliverableController extends Controller
         $ftrBg->getFill()->setFillType($Fill::FILL_SOLID)->setStartColor($color('FFFFFFFF'));
         $ftrBg->getBorder()->setLineStyle($Border::LINE_NONE);
         $ftrBg->createTextRun('')->getFont()->setSize(1)->setColor($color('FFFFFFFF'));
+    }
+
+    private function deletePhysicalFile(?string $path): void
+    {
+        if (!$path) return;
+        if (preg_match('#/(artwork|references|briefs|brand_logos|revision_images)/([^/?]+)(?:\?.*)?$#', $path, $m)) {
+            try { \Illuminate\Support\Facades\Storage::disk('s3')->delete($m[1] . '/' . $m[2]); } catch(\Throwable $e) {}
+        } else if (str_starts_with($path, '/references/') || str_starts_with($path, '/artwork/')) {
+            $fullPath = public_path(ltrim($path, '/'));
+            if (file_exists($fullPath)) @unlink($fullPath);
+        }
     }
 }
 

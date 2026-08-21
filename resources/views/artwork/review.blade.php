@@ -534,9 +534,15 @@
 <div class="canvas-area">
     <div class="artwork-wrapper" id="artworkWrapper">
         @php
-            $artworkUrl = $review->deliverable->final_designs
-                         ?? $review->deliverable->image_url
-                         ?? null;
+            $artArr = $review->deliverable ? $review->deliverable->getFinalDesignsArray() : [];
+            $artworkUrl = count($artArr) > 0 ? trim($artArr[0], "\"' \t\n\r\0\x0B") : null;
+            if (!$artworkUrl && $review->deliverable) {
+                $refArr = $review->deliverable->getReferenceFilesArray();
+                $artworkUrl = count($refArr) > 0 ? trim($refArr[0], "\"' \t\n\r\0\x0B") : null;
+            }
+            if (!$artworkUrl && $review->deliverable?->image_url) {
+                $artworkUrl = trim($review->deliverable->image_url, "\"' \t\n\r\0\x0B");
+            }
         @endphp
 
         @if($artworkUrl)
@@ -545,8 +551,7 @@
                  alt="Artwork"
                  draggable="false"
                  ondragstart="return false"
-                 onload="initCanvas()"
-                 crossorigin="anonymous">
+                 onload="initCanvas()">
         @else
             <div style="width:600px; height:400px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-weight:600; font-size:15px; border-radius:16px; border:1px dashed rgba(255,255,255,0.1);">
                 No artwork image available
@@ -600,9 +605,8 @@
         <input class="modal-input" type="text" id="clientNameInput"
                placeholder="Your name (e.g. Sara Hassan)"
                style="margin-bottom:16px; padding:13px 14px;">
-        <div class="modal-actions">
-            <button class="btn-ghost" onclick="skipName()">Skip</button>
-            <button class="btn-primary" onclick="saveName()">Start Reviewing</button>
+        <div class="modal-actions" style="margin-top:16px;">
+            <button class="btn-primary" onclick="saveName()" style="width:100%;">Start Reviewing</button>
         </div>
     </div>
 </div>
@@ -642,8 +646,10 @@ let textNotes     = [];     // {id, xPct, yPct, color, content}
 let pinCounter    = 0;
 let undoStack     = [];
 
-const IMG_URL     = @json($artworkUrl ?? '');
-const TOKEN       = @json($review->token);
+const IMG_URL             = @json($artworkUrl ?? '');
+const TOKEN               = @json($review->token);
+const INITIAL_ANNOTATIONS = @json($review->annotations ?? []);
+const SERVER_CLIENT_NAME = @json($review->client_name ?? '');
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Initialise Fabric canvas
@@ -711,8 +717,10 @@ function initCanvas() {
         // Save each completed path
         canvas.on('path:created', function(opt) {
             const path = opt.path;
+            const drawId = Date.now();
+            path.drawId = drawId;
             drawings.push({
-                id:       Date.now(),
+                id:       drawId,
                 type:     'drawing',
                 content:  JSON.stringify(path.toObject()),
                 color:    currentColor,
@@ -737,6 +745,72 @@ function initCanvas() {
                 openModal('textModal');
             }
         });
+
+        // Load existing submitted annotations on initial load
+        if (INITIAL_ANNOTATIONS && INITIAL_ANNOTATIONS.length > 0 && pins.length === 0 && drawings.length === 0 && textNotes.length === 0) {
+            INITIAL_ANNOTATIONS.forEach(ann => {
+                if (ann.type === 'pin') {
+                    pinCounter = Math.max(pinCounter, ann.pin_number || 0);
+                    const pin = {
+                        id:          ann.id || Date.now() + Math.random(),
+                        xPct:        parseFloat(ann.x_percent),
+                        yPct:        parseFloat(ann.y_percent),
+                        color:       ann.color || '#ef4444',
+                        comment:     ann.content || `Pin #${ann.pin_number}`,
+                        pinNumber:   ann.pin_number || pinCounter,
+                        isSubmitted: true,
+                    };
+                    pins.push(pin);
+                    renderPin(pin);
+                } else if (ann.type === 'drawing') {
+                    try {
+                        const drawId = ann.id || Date.now() + Math.random();
+                        const objData = typeof ann.content === 'string' ? JSON.parse(ann.content) : ann.content;
+                        fabric.util.enlivenObjects([objData], function(objects) {
+                            objects.forEach(function(o) {
+                                o.drawId = drawId;
+                                canvas.add(o);
+                            });
+                        });
+                        drawings.push({
+                            id:          drawId,
+                            type:        'drawing',
+                            content:     ann.content,
+                            color:       ann.color || '#ef4444',
+                            x_percent:   ann.x_percent,
+                            y_percent:   ann.y_percent,
+                            isSubmitted: true,
+                        });
+                    } catch(e) {}
+                } else if (ann.type === 'text') {
+                    const noteId = ann.id || Date.now() + Math.random();
+                    const note = {
+                        id:          noteId,
+                        xPct:        parseFloat(ann.x_percent),
+                        yPct:        parseFloat(ann.y_percent),
+                        color:       ann.color || '#ef4444',
+                        content:     ann.content,
+                        isSubmitted: true,
+                    };
+                    textNotes.push(note);
+                    if (canvas) {
+                        const itext = new fabric.IText(ann.content, {
+                            left:      (ann.x_percent / 100) * canvas.width,
+                            top:       (ann.y_percent / 100) * canvas.height,
+                            fill:      ann.color || '#ef4444',
+                            fontSize:  16,
+                            fontWeight:'700',
+                            fontFamily:'Inter, sans-serif',
+                            selectable:false,
+                            evented:   false,
+                        });
+                        itext.noteId = noteId;
+                        canvas.add(itext);
+                    }
+                }
+            });
+            updateSidePanel();
+        }
     });
 }
 
@@ -887,12 +961,41 @@ function confirmText() {
             selectable:false,
             evented:   false,
         });
+        itext.noteId = note.id;
         canvas.add(itext);
     }
 
     updateSidePanel();
     pendingText = null;
     closeModal('textModal');
+}
+
+function removeTextNote(id) {
+    textNotes = textNotes.filter(t => t.id !== id);
+    undoStack = undoStack.filter(u => !(u.type === 'text' && u.data.id === id));
+    if (canvas) {
+        const objs = canvas.getObjects();
+        const target = objs.find(o => o.noteId === id);
+        if (target) {
+            canvas.remove(target);
+            canvas.renderAll();
+        }
+    }
+    updateSidePanel();
+}
+
+function removeDrawing(id) {
+    drawings = drawings.filter(d => d.id !== id);
+    undoStack = undoStack.filter(u => !(u.type === 'drawing' && (u.data.id === id || u.data.drawId === id)));
+    if (canvas) {
+        const objs = canvas.getObjects();
+        const target = objs.find(o => o.drawId === id);
+        if (target) {
+            canvas.remove(target);
+            canvas.renderAll();
+        }
+    }
+    updateSidePanel();
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -904,15 +1007,9 @@ function undo() {
     if (last.type === 'pin') {
         removePin(last.data.id);
     } else if (last.type === 'drawing') {
-        const objs = canvas.getObjects();
-        if (objs.length > 0) {
-            canvas.remove(objs[objs.length - 1]);
-            drawings.pop();
-        }
+        removeDrawing(last.data.id || last.data.drawId);
     } else if (last.type === 'text') {
-        textNotes = textNotes.filter(t => t.id !== last.data.id);
-        const objs = canvas.getObjects();
-        if (objs.length > 0) canvas.remove(objs[objs.length - 1]);
+        removeTextNote(last.data.id);
     }
     updateSidePanel();
 }
@@ -942,25 +1039,47 @@ function updateSidePanel() {
 
     pins.forEach(pin => {
         list.innerHTML += `
-            <div class="annotation-item">
-                <div class="annotation-num" style="background:${pin.color};">${pin.pinNumber}</div>
-                <div class="annotation-text"><strong>Pin:</strong> ${escHtml(pin.comment)}</div>
+            <div class="annotation-item" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+                    <div class="annotation-num" style="background:${pin.color};">${pin.pinNumber}</div>
+                    <div class="annotation-text" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong>Pin:</strong> ${escHtml(pin.comment)}</div>
+                    ${pin.responseText ? `<div style="margin-top:4px; padding:4px 8px; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); border-radius:6px; font-size:11px; color:#fff; white-space:normal;"><span style="font-weight:800; color:#60a5fa;">💬 Team Reply:</span> ${escHtml(pin.responseText)}</div>` : ""}
+                </div>
+                ${pin.isSubmitted ? `
+                    <span style="font-size:10px; font-weight:800; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); padding:2px 7px; border-radius:6px; flex-shrink:0;">✓ Submitted</span>
+                ` : `
+                    <button onclick="removePin(${pin.id})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:14px; font-weight:700; padding:2px 6px; border-radius:4px; opacity:0.7; transition:all 0.15s; flex-shrink:0;" onmouseover="this.style.opacity='1'; this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.opacity='0.7'; this.style.background='none'" title="Remove Pin">✕</button>
+                `}
             </div>`;
     });
 
     drawings.forEach((d, i) => {
         list.innerHTML += `
-            <div class="annotation-item">
-                <div class="annotation-num" style="background:${d.color}; font-size:12px;">✏</div>
-                <div class="annotation-text" style="color:var(--muted);">Freehand drawing #${i+1}</div>
+            <div class="annotation-item" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+                    <div class="annotation-num" style="background:${d.color}; font-size:12px;">✏</div>
+                    <div class="annotation-text" style="color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Freehand drawing #${i+1}</div>
+                </div>
+                ${d.isSubmitted ? `
+                    <span style="font-size:10px; font-weight:800; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); padding:2px 7px; border-radius:6px; flex-shrink:0;">✓ Submitted</span>
+                ` : `
+                    <button onclick="removeDrawing(${d.id})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:14px; font-weight:700; padding:2px 6px; border-radius:4px; opacity:0.7; transition:all 0.15s; flex-shrink:0;" onmouseover="this.style.opacity='1'; this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.opacity='0.7'; this.style.background='none'" title="Remove Drawing">✕</button>
+                `}
             </div>`;
     });
 
     textNotes.forEach(t => {
         list.innerHTML += `
-            <div class="annotation-item">
-                <div class="annotation-num" style="background:${t.color}; font-size:12px;">T</div>
-                <div class="annotation-text">${escHtml(t.content)}</div>
+            <div class="annotation-item" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+                    <div class="annotation-num" style="background:${t.color}; font-size:12px;">T</div>
+                    <div class="annotation-text" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(t.content)}</div>
+                </div>
+                ${t.isSubmitted ? `
+                    <span style="font-size:10px; font-weight:800; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); padding:2px 7px; border-radius:6px; flex-shrink:0;">✓ Submitted</span>
+                ` : `
+                    <button onclick="removeTextNote(${t.id})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:14px; font-weight:700; padding:2px 6px; border-radius:4px; opacity:0.7; transition:all 0.15s; flex-shrink:0;" onmouseover="this.style.opacity='1'; this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.opacity='0.7'; this.style.background='none'" title="Remove Text">✕</button>
+                `}
             </div>`;
     });
 }
@@ -972,14 +1091,27 @@ function togglePanel() {
 // ──────────────────────────────────────────────────────────────────────────────
 // Name modal
 // ──────────────────────────────────────────────────────────────────────────────
-function saveName() {
-    const val = document.getElementById('clientNameInput').value.trim();
-    clientName = val || 'Client';
-    closeModal('nameModal');
-}
+document.addEventListener('DOMContentLoaded', function() {
+    const savedName = localStorage.getItem('client_name_' + TOKEN) || SERVER_CLIENT_NAME;
+    if (savedName) {
+        clientName = savedName;
+        const inp = document.getElementById('clientNameInput');
+        if (inp) inp.value = savedName;
+        closeModal('nameModal');
+        showToast(`Welcome back, ${savedName}!`, '#0055D4');
+    }
+});
 
-function skipName() {
-    clientName = 'Client';
+function saveName() {
+    const input = document.getElementById('clientNameInput');
+    const val = input.value.trim();
+    if (!val) {
+        input.style.borderColor = '#ef4444';
+        input.focus();
+        return;
+    }
+    clientName = val;
+    localStorage.setItem('client_name_' + TOKEN, val);
     closeModal('nameModal');
 }
 
@@ -987,8 +1119,16 @@ function skipName() {
 // Submit
 // ──────────────────────────────────────────────────────────────────────────────
 async function submitReview() {
-    const total = pins.length + drawings.length + textNotes.length;
-    if (total === 0) { showToast('Please add at least one annotation before submitting.', '#f59e0b'); return; }
+    const unsubmittedPins = pins.filter(p => !p.isSubmitted);
+    const unsubmittedDrawings = drawings.filter(d => !d.isSubmitted);
+    const unsubmittedTextNotes = textNotes.filter(t => !t.isSubmitted);
+
+    const totalUnsubmitted = unsubmittedPins.length + unsubmittedDrawings.length + unsubmittedTextNotes.length;
+
+    if (totalUnsubmitted === 0) {
+        showToast('No new annotations to submit. Add new feedback on the artwork above.', '#f59e0b');
+        return;
+    }
 
     const btn = document.getElementById('btnSubmit');
     btn.disabled = true;
@@ -996,7 +1136,7 @@ async function submitReview() {
 
     const annotations = [];
 
-    pins.forEach(pin => {
+    unsubmittedPins.forEach(pin => {
         annotations.push({
             type:       'pin',
             x_percent:  pin.xPct,
@@ -1007,7 +1147,7 @@ async function submitReview() {
         });
     });
 
-    drawings.forEach(d => {
+    unsubmittedDrawings.forEach(d => {
         annotations.push({
             type:       'drawing',
             x_percent:  d.x_percent,
@@ -1017,7 +1157,7 @@ async function submitReview() {
         });
     });
 
-    textNotes.forEach(t => {
+    unsubmittedTextNotes.forEach(t => {
         annotations.push({
             type:       'text',
             x_percent:  t.xPct,
@@ -1040,9 +1180,15 @@ async function submitReview() {
 
         const result = await resp.json();
         if (resp.ok && result.success) {
+            unsubmittedPins.forEach(p => p.isSubmitted = true);
+            unsubmittedDrawings.forEach(d => d.isSubmitted = true);
+            unsubmittedTextNotes.forEach(t => t.isSubmitted = true);
+
+            updateSidePanel();
+
             showToast('✓ Feedback submitted successfully! Thank you.');
             btn.textContent = '✓ Submitted';
-            setTimeout(() => { btn.textContent = 'Submit Feedback ✓'; btn.disabled = false; }, 3000);
+            setTimeout(() => { btn.textContent = 'Submit Feedback ✓'; btn.disabled = false; }, 2500);
         } else {
             showToast(result.error || 'Submission failed. Please try again.', '#ef4444');
             btn.disabled = false;

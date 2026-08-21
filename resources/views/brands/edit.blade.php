@@ -51,8 +51,8 @@
             <h3 class="text-[15px] font-bold text-gray-900 dark:text-white mb-1">Delete Brand</h3>
             <p class="text-[13px] text-gray-500 dark:text-slate-400 mb-5">Are you sure you want to permanently delete <strong class="text-gray-800 dark:text-white">{{ $brand->name }}</strong>? All associated projects will be removed. This cannot be undone.</p>
             <div class="flex gap-2 justify-end">
-                <button @click="showDeleteModal = false" class="px-4 py-2 rounded-lg text-[12px] font-semibold text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.10] transition-colors">Cancel</button>
-                <button @click="document.getElementById('delete-form').submit()" class="px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">Delete</button>
+                <button type="button" @click="showDeleteModal = false" class="px-4 py-2 rounded-lg text-[12px] font-semibold text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.10] transition-colors">Cancel</button>
+                <button type="button" @click="document.getElementById('delete-form').submit()" class="px-4 py-2 rounded-lg text-[12px] font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">Delete</button>
             </div>
         </div>
     </div>
@@ -159,7 +159,7 @@
         </div>
 
         <div class="f-footer">
-            @if(auth()->user()->isAdmin() || $brand->created_by === auth()->id())
+            @if(auth()->user()->isAdmin() || auth()->user()->role === 'Operations Manager' || $brand->created_by === auth()->id() || (!$brand->created_by && auth()->user()->role === 'Brand Manager'))
             <button type="button" @click="showDeleteModal = true" class="btn-d">Delete Brand</button>
             @else
             <span></span>

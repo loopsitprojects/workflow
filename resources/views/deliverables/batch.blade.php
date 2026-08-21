@@ -278,44 +278,65 @@
 
             <div class="pc-field">
                 <div class="pc-label">Reference</div>
-                @if($post->reference_file)
-                    @php $isRefImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $post->reference_file); @endphp
-                    @if($isRefImg)
-                        @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $post->reference_file))
-                            <video src="{{ $post->reference_file }}" class="artwork-thumb" onclick="openImg('{{ $post->reference_file }}')" preload="metadata"></video>
-                        @else
-                            <img src="{{ $post->reference_file }}" class="artwork-thumb" onclick="openImg('{{ $post->reference_file }}')" alt="Reference">
-                        @endif
-
+                @php
+                    $bRefFiles = $post->getReferenceFilesArray();
+                    $bRefUrls  = $post->getReferenceUrlsArray();
+                    $totalBRefFiles = count($bRefFiles);
+                    $totalBRefUrls  = count($bRefUrls);
+                    $totalBRefs     = $totalBRefFiles + $totalBRefUrls;
+                @endphp
+                @if($totalBRefs === 1 && $totalBRefFiles === 1)
+                    @php $singleBRef = $bRefFiles[0]; @endphp
+                    @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleBRef))
+                        <video src="{{ $singleBRef }}" class="artwork-thumb" onclick="openImg('{{ $singleBRef }}')" preload="metadata"></video>
                     @else
-                        <a href="{{ $post->reference_file }}" target="_blank" class="ref-link">
-                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Download File
-                        </a>
+                        <img src="{{ $singleBRef }}" class="artwork-thumb" onclick="openImg('{{ $singleBRef }}')" alt="Reference">
                     @endif
-                @elseif($post->reference)
-                    <a href="{{ $post->reference }}" target="_blank" class="ref-link">
+                @elseif($totalBRefs === 1 && $totalBRefUrls === 1)
+                    <a href="{{ $bRefUrls[0] }}" target="_blank" class="ref-link">
                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                         View Reference
                     </a>
-                @else<div class="pc-val pc-empty">None</div>@endif
+                @elseif($totalBRefs > 1)
+                    <button type="button" onclick="openMediaGallery('Reference Media', {{ json_encode($bRefFiles) }}, {{ json_encode($bRefUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalBRefs }} references">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        Ref ({{ $totalBRefs }})
+                    </button>
+                @else
+                    <div class="pc-val pc-empty">None</div>
+                @endif
             </div>
 
             <div class="pc-field">
                 <div class="pc-label">Final Artwork</div>
-                @if($post->final_designs)
-                    @if($isImg)
-                        @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $post->final_designs))
-                            <video src="{{ $post->final_designs }}" class="artwork-thumb" onclick="openImg('{{ $post->final_designs }}')" preload="metadata"></video>
+                @php
+                    $bArtFiles = $post->getFinalDesignsArray();
+                    $bArtUrls  = $post->getFinalDesignsUrlsArray();
+                    $totalBArtFiles = count($bArtFiles);
+                    $totalBArtUrls  = count($bArtUrls);
+                    $totalBArt      = $totalBArtFiles + $totalBArtUrls;
+                @endphp
+                @if($totalBArt === 1 && $totalBArtFiles === 1)
+                    @php $singleBArt = $bArtFiles[0]; @endphp
+                    @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $singleBArt))
+                        @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleBArt))
+                            <video src="{{ $singleBArt }}" class="artwork-thumb" onclick="openImg('{{ $singleBArt }}')" preload="metadata"></video>
                         @else
-                            <img src="{{ $post->final_designs }}" class="artwork-thumb" onclick="openImg('{{ $post->final_designs }}')" alt="Artwork">
+                            <img src="{{ $singleBArt }}" class="artwork-thumb" onclick="openImg('{{ $singleBArt }}')" alt="Artwork">
                         @endif
                     @else
-                        <a href="{{ $post->final_designs }}" target="_blank" class="ref-link" style="color:#10b981;background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.2);">Download</a>
+                        <a href="{{ $singleBArt }}" target="_blank" class="ref-link" style="color:#10b981;background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.2);">Download</a>
                     @endif
-                @elseif($post->final_designs_link)
-                    <a href="{{ $post->final_designs_link }}" target="_blank" class="ref-link" style="color:#10b981;background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.2);">View Link</a>
-                @else<div class="pc-val pc-empty">No artwork yet</div>@endif
+                @elseif($totalBArt === 1 && $totalBArtUrls === 1)
+                    <a href="{{ $bArtUrls[0] }}" target="_blank" class="ref-link" style="color:#10b981;background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.2);">View Link</a>
+                @elseif($totalBArt > 1)
+                    <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($bArtFiles) }}, {{ json_encode($bArtUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalBArt }} artworks">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Artwork ({{ $totalBArt }})
+                    </button>
+                @else
+                    <div class="pc-val pc-empty">No artwork yet</div>
+                @endif
             </div>
 
 
@@ -486,3 +507,113 @@ document.addEventListener('keydown', e => {
 </script>
 </x-layout>
 
+
+<script>
+
+        // Media Gallery Modal Functions
+        function openMediaGallery(title, files = [], urls = []) {
+            let modal = document.getElementById('mediaGalleryModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'mediaGalleryModal';
+                modal.className = 'cd-modal-overlay';
+                modal.style.cssText = 'z-index:999999; justify-content:center; align-items:center; opacity:0; transition:opacity 0.2s ease; display:none;';
+                modal.onclick = closeMediaGallery;
+                modal.innerHTML = `
+                    <div class="cd-modal" style="width:90%; max-width:680px; max-height:85vh; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,0.3); display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
+                        <div style="padding:16px 20px; border-bottom:1px solid var(--color-border-primary); display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-secondary);">
+                            <h3 id="mediaGalleryTitle" style="margin:0; font-size:15px; font-weight:800; color:var(--color-text-primary); display:flex; align-items:center; gap:8px;"></h3>
+                            <button onclick="closeMediaGallery()" style="background:rgba(255,255,255,0.08); border:none; color:var(--color-text-secondary); width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.color='var(--color-text-primary)';this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.color='var(--color-text-secondary)';this.style.background='rgba(255,255,255,0.08)'">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        <div id="mediaGalleryContent" style="padding:20px; overflow-y:auto; flex:1; display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; align-content:start;"></div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            const titleEl = document.getElementById('mediaGalleryTitle');
+            const contentEl = document.getElementById('mediaGalleryContent');
+            titleEl.innerHTML = `<svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> ${title} (${(files ? files.length : 0) + (urls ? urls.length : 0)})`;
+
+            let html = '';
+
+            if (files && files.length > 0) {
+                files.forEach((fileUrl, idx) => {
+                    const isVideo = fileUrl.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
+                    const isImg   = fileUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(?:$|\?)/i);
+
+                    html += `<div style="background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; align-items:center; transition:transform 0.15s; box-shadow:0 4px 12px rgba(0,0,0,0.08);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">`;
+                    
+                    if (isVideo) {
+                        html += `
+                            <div style="position:relative; width:100%; height:140px; background:#000; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="openImagePreview('${fileUrl}', false)">
+                                <video src="${fileUrl}" style="width:100%; height:100%; object-fit:cover;" preload="metadata"></video>
+                                <div style="position:absolute; background:rgba(0,0,0,0.6); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+                                    <svg width="16" height="16" fill="#fff" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                </div>
+                            </div>`;
+                    } else if (isImg) {
+                        html += `
+                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="openImagePreview('${fileUrl}', false)">
+                                <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            </div>`;
+                    } else {
+                        html += `
+                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px; text-align:center;">
+                                <svg width="28" height="28" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary); word-break:break-all;">${fileUrl.split('/').pop()}</span>
+                            </div>`;
+                    }
+
+                    html += `
+                        <div style="width:100%; padding:8px 10px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary);">
+                            <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">Item ${idx + 1}</span>
+                            <a href="${fileUrl}" target="_blank" download style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:5px; text-decoration:none;" onclick="event.stopPropagation();">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Open
+                            </a>
+                        </div>
+                    </div>`;
+                });
+            }
+
+            if (urls && urls.length > 0) {
+                urls.forEach((url, idx) => {
+                    html += `
+                        <div style="grid-column:1 / -1; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:10px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                            <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+                                <div style="width:32px; height:32px; border-radius:8px; background:rgba(0,85,212,0.1); color:#0055D4; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                </div>
+                                <span style="font-size:11px; font-weight:600; color:var(--color-text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${url}">${url}</span>
+                            </div>
+                            <a href="${url}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; padding:5px 12px; font-size:11px; font-weight:700; color:#0055D4; background:rgba(0,85,212,0.1); border:1px solid rgba(0,85,212,0.25); border-radius:6px; text-decoration:none; flex-shrink:0;">
+                                Visit Link
+                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                        </div>`;
+                });
+            }
+
+            contentEl.innerHTML = html || '<div style="grid-column:1 / -1; text-align:center; padding:30px; color:var(--color-text-secondary); font-size:12px;">No items found.</div>';
+
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modal.querySelector('.cd-modal').classList.add('active');
+            }, 10);
+        }
+
+        function closeMediaGallery(e) {
+            if (e && e.target !== document.getElementById('mediaGalleryModal')) return;
+            const modal = document.getElementById('mediaGalleryModal');
+            if (!modal) return;
+            modal.style.opacity = '0';
+            if (modal.querySelector('.cd-modal')) modal.querySelector('.cd-modal').classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 200);
+        }
+</script>

@@ -16,6 +16,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if (request()->server('HTTP_X_FORWARDED_PROTO') === 'https' || request()->isSecure() || env('FORCE_HTTPS', false)) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         \Illuminate\Support\Facades\Gate::before(function (\App\Models\User $user, $ability) {
             if ($user->isAdmin()) {
                 return true;
@@ -23,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \Illuminate\Support\Facades\Gate::define('create-deliverable', function (\App\Models\User $user) {
-            return in_array($user->role, ['Brand Manager', 'Writer']);
+            return in_array($user->role, ['Brand Manager', 'Writer', 'Operations Manager']);
         });
     }
 }

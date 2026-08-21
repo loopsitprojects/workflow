@@ -49,14 +49,76 @@
         </div>
     </div>
 
-    {{-- Pending Deliverables --}}
-    @if($pendingDeliverables->count() > 0)
+    {{-- Projects by type --}}
+    @php
+        $typeOrder = ['retainer', 'campaign', 'pitch'];
+        $groupedProjects = $brand->projects->groupBy('workflow_type')->sortBy(function($val, $key) use ($typeOrder) {
+            return array_search($key, $typeOrder) ?? 99;
+        });
+        $typeLabels = ['retainer' => 'Retainer Jobs', 'campaign' => 'Campaigns', 'pitch' => 'Pitches'];
+    @endphp
+
+    @forelse($groupedProjects as $type => $projects)
     <div>
+        {{-- Section header --}}
         <div class="flex items-center gap-2 mb-3">
-            <h2 class="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">Pending Deliverables</h2>
-            <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-slate-400 text-[10px] font-bold rounded">{{ $pendingDeliverables->count() }}</span>
+            <h2 class="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">{{ $typeLabels[$type] ?? 'Projects' }}</h2>
+            <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 text-[10px] font-bold rounded">{{ $projects->count() }}</span>
+            @if($type === 'retainer')
+                <a href="{{ route('brands.retainer-board', $brand) }}"
+                   class="ml-auto text-[11px] font-semibold text-blue-500 dark:text-blue-400 hover:underline flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                    View Retainer Board
+                </a>
+            @endif
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+
+        {{-- Project tiles --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            @foreach($projects as $project)
+            <div class="flex items-center justify-between gap-3 px-4 py-3 bg-white dark:bg-[#111827] rounded-xl border border-gray-200 dark:border-white/[0.08] hover:border-blue-500 dark:hover:border-blue-500 transition-all group">
+                <div class="flex items-center gap-2 min-w-0">
+                    @if($project->job_number)
+                        <span class="text-[12px] font-extrabold text-blue-600 dark:text-blue-400 flex-shrink-0">[{{ $project->job_number }}]</span>
+                    @endif
+                    <a href="{{ route('projects.show', $project) }}" class="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                        {{ $project->name }}
+                    </a>
+                </div>
+                <a href="{{ route('projects.show', $project) }}" class="flex-shrink-0 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1">
+                    View Board
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </a>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @empty
+    <div class="py-16 text-center">
+        <p class="text-sm text-gray-400 dark:text-slate-500">No projects yet for this brand.</p>
+        <a href="{{ route('projects.create', ['brand_id' => $brand->id]) }}" class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-500 hover:underline">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            Create the first project
+        </a>
+    </div>
+    @endforelse
+
+    {{-- Pending Deliverables (Collapsible at bottom) --}}
+    @if($pendingDeliverables->count() > 0)
+    <div x-data="{ open: true }" class="pt-6 border-t border-gray-200 dark:border-slate-800 mt-4">
+        <button type="button" @click="open = !open" class="w-full flex items-center justify-between py-1 text-left focus:outline-none group cursor-pointer">
+            <div class="flex items-center gap-2">
+                <h2 class="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest group-hover:text-gray-600 dark:group-hover:text-slate-300 transition-colors">Pending Deliverables</h2>
+                <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 text-[10px] font-bold rounded">{{ $pendingDeliverables->count() }}</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 dark:text-slate-500 group-hover:text-gray-600 dark:group-hover:text-slate-300 transition-colors">
+                <span x-text="open ? 'Collapse' : 'Expand'"></span>
+                <svg class="w-4 h-4 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </div>
+        </button>
+        <div x-show="open" x-transition class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
             @foreach($pendingDeliverables as $task)
             @php
                 $daysLeft = $task->deadline ? now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($task->deadline)->startOfDay(), false) : null;
@@ -95,112 +157,6 @@
         </div>
     </div>
     @endif
-
-    {{-- Projects by type --}}
-    @php
-        $typeOrder = ['retainer', 'campaign', 'pitch'];
-        $groupedProjects = $brand->projects->groupBy('workflow_type')->sortBy(function($val, $key) use ($typeOrder) {
-            return array_search($key, $typeOrder) ?? 99;
-        });
-        $typeLabels = ['retainer' => 'Retainer Jobs', 'campaign' => 'Campaigns', 'pitch' => 'Pitches'];
-    @endphp
-
-    @forelse($groupedProjects as $type => $projects)
-    <div>
-        {{-- Section header --}}
-        <div class="flex items-center gap-2 mb-3">
-            <h2 class="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">{{ $typeLabels[$type] ?? 'Projects' }}</h2>
-            <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-slate-400 text-[10px] font-bold rounded">{{ $projects->count() }}</span>
-            @if($type === 'retainer')
-                <a href="{{ route('brands.retainer-board', $brand) }}"
-                   class="ml-auto text-[11px] font-semibold text-blue-500 dark:text-blue-400 hover:underline flex items-center gap-1">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-                    View Retainer Board
-                </a>
-            @endif
-        </div>
-
-        {{-- Project rows --}}
-        <div class="flex flex-col gap-2">
-            @foreach($projects as $project)
-            <div class="flex items-center gap-4 px-4 py-3.5 bg-white dark:bg-[#111827] rounded-xl border border-gray-100 dark:border-white/[0.06] hover:border-gray-200 dark:hover:border-white/[0.12] transition-colors group">
-
-                {{-- Name + description --}}
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-baseline gap-2 flex-wrap">
-                        @if($project->job_number)
-                            <span class="text-[11px] font-bold text-blue-500 dark:text-blue-400 flex-shrink-0">[{{ $project->job_number }}]</span>
-                        @endif
-                        <a href="{{ route('projects.show', $project) }}"
-                           class="text-[14px] font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate">
-                            {{ $project->name }}
-                        </a>
-                    </div>
-                    @if($project->description)
-                        <p class="text-[12px] text-gray-400 dark:text-slate-500 truncate mt-0.5">{{ strip_tags($project->description) }}</p>
-                    @endif
-                </div>
-
-                {{-- Member initials --}}
-                <div class="flex items-center -space-x-1.5 flex-shrink-0">
-                    @forelse($project->members->take(4) as $i => $member)
-                        <div class="w-7 h-7 rounded-full border-2 border-white dark:border-[#111827] bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-slate-300 flex-shrink-0 uppercase"
-                             title="{{ $member->name }} · {{ $member->role }}"
-                             style="z-index: {{ 10 - $i }}">
-                            {{ substr($member->name, 0, 1) }}
-                        </div>
-                    @empty
-                        <span class="text-[11px] text-gray-300 dark:text-slate-600 italic">Unassigned</span>
-                    @endforelse
-                    @if($project->members->count() > 4)
-                        <div class="w-7 h-7 rounded-full border-2 border-white dark:border-[#111827] bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-[9px] font-bold text-gray-500 dark:text-slate-400 flex-shrink-0">
-                            +{{ $project->members->count() - 4 }}
-                        </div>
-                    @endif
-                </div>
-
-                {{-- Status --}}
-                @php
-                    $statusColors = [
-                        'To commence' => 'bg-gray-100 dark:bg-white/[0.05] text-gray-500 dark:text-slate-400 border-gray-200 dark:border-white/[0.08]',
-                        'In Progress'  => 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-500/20',
-                        'On Hold'      => 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-500/20',
-                        'Completed'    => 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-500/20',
-                        'Not Started'  => 'bg-gray-100 dark:bg-white/[0.05] text-gray-500 dark:text-slate-400 border-gray-200 dark:border-white/[0.08]',
-                    ];
-                    $sc = $statusColors[$project->status] ?? $statusColors['Not Started'];
-                @endphp
-                <span class="px-2.5 py-1 rounded-md text-[10px] font-semibold border flex-shrink-0 {{ $sc }} uppercase tracking-wide whitespace-nowrap">
-                    {{ $project->status }}
-                </span>
-
-                {{-- Progress --}}
-                <div class="w-20 flex-shrink-0 hidden md:block">
-                    <div class="w-full bg-gray-100 dark:bg-white/[0.06] h-1 rounded-full overflow-hidden">
-                        <div class="h-full rounded-full transition-all"
-                             style="width:{{ $project->progress ?? 0 }}%; background: {{ ($project->progress ?? 0) >= 100 ? '#10b981' : '#3b82f6' }}"></div>
-                    </div>
-                    <p class="text-[9px] text-gray-400 dark:text-slate-600 mt-1 text-right">{{ $project->progress ?? 0 }}%</p>
-                </div>
-
-                {{-- View Board --}}
-                <a href="{{ route('projects.show', $project) }}"
-                   class="flex-shrink-0 px-3 py-1.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-lg transition-colors whitespace-nowrap border border-blue-100 dark:border-blue-500/20">
-                    View Board
-                </a>
-            </div>
-            @endforeach
-        </div>
-    </div>
-    @empty
-    <div class="py-16 text-center">
-        <p class="text-sm text-gray-400 dark:text-slate-500">No projects yet for this brand.</p>
-        <a href="{{ route('projects.create', ['brand_id' => $brand->id]) }}" class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-500 hover:underline">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-            Create the first project
-        </a>
-    </div>
-    @endforelse
 
 </div>
 </x-layout>

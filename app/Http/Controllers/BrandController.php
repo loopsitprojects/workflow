@@ -3,7 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Brand;
+use App\Models\User;
+use App\Models\ArtworkReview;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class BrandController extends Controller
 {
@@ -83,11 +90,13 @@ class BrandController extends Controller
     {
         $user = auth()->user();
         if ((!$user->isAdmin() && $user->role !== 'Operations Manager')) {
-            if ($user->role === 'Brand Manager' && $brand->created_by !== $user->id) {
-                return redirect()->route('brands.index')->with('error', 'Access Denied: Only the Brand Manager who created this brand can access it.');
-            }
-            if ($user->role !== 'Brand Manager' && $brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
-                return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+            $hasRestriction = $brand->created_by || $brand->members()->exists();
+            if ($hasRestriction) {
+                $isCreator = $brand->created_by === $user->id;
+                $isMember = $brand->members()->where('users.id', $user->id)->exists();
+                if (!$isCreator && !$isMember) {
+                    return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+                }
             }
         }
 
@@ -104,11 +113,13 @@ class BrandController extends Controller
     {
         $user = auth()->user();
         if ((!$user->isAdmin() && $user->role !== 'Operations Manager')) {
-            if ($user->role === 'Brand Manager' && $brand->created_by !== $user->id) {
-                return redirect()->route('brands.index')->with('error', 'Access Denied: Only the Brand Manager who created this brand can access it.');
-            }
-            if ($user->role !== 'Brand Manager' && $brand->created_by !== $user->id && !$brand->members()->where('users.id', $user->id)->exists()) {
-                return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+            $hasRestriction = $brand->created_by || $brand->members()->exists();
+            if ($hasRestriction) {
+                $isCreator = $brand->created_by === $user->id;
+                $isMember = $brand->members()->where('users.id', $user->id)->exists();
+                if (!$isCreator && !$isMember) {
+                    return redirect()->route('brands.index')->with('error', 'Access Denied: You are not assigned to this brand.');
+                }
             }
         }
 
@@ -128,10 +139,15 @@ class BrandController extends Controller
         $user = auth()->user();
         if ((!$user->isAdmin() && $user->role !== 'Operations Manager')) {
             if ($user->role !== 'Brand Manager') {
-                return redirect()->route('brands.index')->with('error', 'Access Denied: Only Brand Managers can edit brands.');
+                abort(403, 'Access Denied: Only Brand Managers can edit brands.');
             }
-            if ($user->role === 'Brand Manager' && $brand->created_by !== $user->id) {
-                return redirect()->route('brands.index')->with('error', 'Access Denied: Only the Brand Manager who created this brand can edit it.');
+            $hasRestriction = $brand->created_by || $brand->members()->exists();
+            if ($hasRestriction) {
+                $isCreator = $brand->created_by === $user->id;
+                $isMember = $brand->members()->where('users.id', $user->id)->exists();
+                if (!$isCreator && !$isMember) {
+                    abort(403, 'Access Denied: You are not assigned to this brand.');
+                }
             }
         }
         $users = \App\Models\User::all();
@@ -144,10 +160,15 @@ class BrandController extends Controller
         $user = auth()->user();
         if ((!$user->isAdmin() && $user->role !== 'Operations Manager')) {
             if ($user->role !== 'Brand Manager') {
-                return redirect()->route('brands.index')->with('error', 'Access Denied: Only Brand Managers can edit brands.');
+                abort(403, 'Access Denied: Only Brand Managers can edit brands.');
             }
-            if ($user->role === 'Brand Manager' && $brand->created_by !== $user->id) {
-                return redirect()->route('brands.index')->with('error', 'Access Denied: Only the Brand Manager who created this brand can edit it.');
+            $hasRestriction = $brand->created_by || $brand->members()->exists();
+            if ($hasRestriction) {
+                $isCreator = $brand->created_by === $user->id;
+                $isMember = $brand->members()->where('users.id', $user->id)->exists();
+                if (!$isCreator && !$isMember) {
+                    abort(403, 'Access Denied: You are not assigned to this brand.');
+                }
             }
         }
         // Auto-generate slug from name if not provided or empty
@@ -200,10 +221,43 @@ class BrandController extends Controller
     public function destroy(Brand $brand)
     {
         $user = auth()->user();
-        if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && $brand->created_by !== $user->id) {
-            return redirect()->route('brands.index')->with('error', 'Access Denied: You can only delete brands you created.');
+        $canDelete = $user->isAdmin() 
+            || $user->role === 'Operations Manager' 
+            || ($brand->created_by && $brand->created_by === $user->id)
+            || (!$brand->created_by && $user->role === 'Brand Manager');
+
+        if (!$canDelete) {
+            return redirect()->route('brands.index')->with('error', 'Access Denied: You do not have permission to delete this brand.');
         }
-        $brand->delete();
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($brand) {
+            $brand->members()->detach();
+
+            foreach ($brand->projects as $project) {
+                foreach ($project->deliverables as $deliverable) {
+                    if (method_exists($deliverable, 'approvalsHistory')) {
+                        $deliverable->approvalsHistory()->delete();
+                    }
+                    if (method_exists($deliverable, 'revisionsHistory')) {
+                        $deliverable->revisionsHistory()->delete();
+                    }
+                    if (method_exists($deliverable, 'reassignments')) {
+                        $deliverable->reassignments()->delete();
+                    }
+                    $artworkReviews = \App\Models\ArtworkReview::where('deliverable_id', $deliverable->id)->get();
+                    foreach ($artworkReviews as $review) {
+                        $review->annotations()->delete();
+                        $review->delete();
+                    }
+                    $deliverable->delete();
+                }
+                $project->members()->detach();
+                $project->delete();
+            }
+
+            $brand->delete();
+        });
+
         return redirect()->route('brands.index')->with('success', 'Brand deleted successfully.');
     }
 }

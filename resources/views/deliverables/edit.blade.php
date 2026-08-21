@@ -180,38 +180,38 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
 
         {{-- Reference --}}
         <div class="f-section">
-            <label class="f-label">Reference</label>
-            <div class="ref-toggle">
-                <button type="button" class="ref-btn {{ !$deliverable->reference_file ? 'active' : '' }}" onclick="toggleRef('link')">Link</button>
-                <button type="button" class="ref-btn {{ $deliverable->reference_file ? 'active' : '' }}" onclick="toggleRef('upload')">Upload</button>
-            </div>
-            <div id="ref-link" style="display:{{ !$deliverable->reference_file ? 'block' : 'none' }};">
-                <input type="url" name="reference" placeholder="https://…" class="f-input"
-                       value="{{ old('reference', $deliverable->reference) }}">
-            </div>
-            <div id="ref-upload" style="display:{{ $deliverable->reference_file ? 'block' : 'none' }};" x-data="{ removing: false }">
-                @if($deliverable->reference_file)
-                    <div x-show="!removing" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);border-radius:8px;margin-bottom:10px;">
-                        <a href="{{ $deliverable->reference_file }}" target="_blank">
-                            <img src="{{ $deliverable->reference_file }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">
-                        </a>
-                        <span style="flex:1;font-size:11px;font-weight:600;color:var(--color-text-secondary);">Current reference image</span>
-                        <button type="button" @click="removing = true"
-                            style="padding:4px 10px;font-size:10px;font-weight:700;color:#ef4444;background:transparent;border:1.5px solid rgba(239,68,68,0.3);border-radius:6px;cursor:pointer;">
-                            Remove
-                        </button>
+            <label class="f-label">Reference <span style="opacity:0.6;font-weight:400;font-size:11px;">(Add reference link, reference image/file, or both)</span></label>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; align-items:start;">
+                {{-- Reference Link --}}
+                <div>
+                    <label style="display:block;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;">Reference Link / URL</label>
+                    <input type="url" name="reference" placeholder="https://…" class="f-input"
+                           value="{{ old('reference', $deliverable->reference) }}">
+                </div>
+
+                {{-- Reference File --}}
+                <div x-data="{ removing: false }">
+                    <label style="display:block;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;">Reference Image / File</label>
+                    @if($deliverable->reference_file)
+                        <div x-show="!removing" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);border-radius:8px;margin-bottom:10px;">
+                            <a href="{{ $deliverable->reference_file }}" target="_blank">
+                                <img src="{{ $deliverable->reference_file }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">
+                            </a>
+                            <span style="flex:1;font-size:11px;font-weight:600;color:var(--color-text-secondary);">Current reference image</span>
+                            <button type="button" @click="removing = true"
+                                style="padding:4px 10px;font-size:10px;font-weight:700;color:#ef4444;background:transparent;border:1.5px solid rgba(239,68,68,0.3);border-radius:6px;cursor:pointer;">
+                                Remove
+                            </button>
+                        </div>
+                        <div x-show="removing" style="padding:8px 12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:8px;margin-bottom:10px;font-size:12px;font-weight:600;color:#ef4444;display:none;">
+                            Image will be removed on save.
+                            <button type="button" @click="removing = false" style="margin-left:8px;font-size:11px;color:var(--color-text-secondary);background:none;border:none;cursor:pointer;font-weight:600;">Undo</button>
+                        </div>
+                        <input type="hidden" name="delete_reference_file" :value="removing ? '1' : '0'">
+                    @endif
+                    <div x-show="!removing ?? true">
+                        <input type="file" name="reference_file" accept="image/*,video/*,application/pdf" class="f-input" style="padding:9px 14px;cursor:pointer;">
                     </div>
-                    <div x-show="removing" style="padding:8px 12px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:8px;margin-bottom:10px;font-size:12px;font-weight:600;color:#ef4444;display:none;">
-                        Reference image will be removed on save.
-                        <button type="button" @click="removing = false" style="margin-left:8px;font-size:11px;color:var(--color-text-secondary);background:none;border:none;cursor:pointer;font-weight:600;">Undo</button>
-                    </div>
-                    <input type="hidden" name="delete_reference_file" :value="removing ? '1' : '0'">
-                @endif
-                <div x-show="!removing ?? true">
-                    <label style="display:block;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;">
-                        {{ $deliverable->reference_file ? 'Upload replacement' : 'Upload reference image' }}
-                    </label>
-                    <input type="file" name="reference_file" accept="image/*,application/pdf" class="f-input" style="padding:9px 14px;cursor:pointer;">
                 </div>
             </div>
         </div>

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Invitation;
+use App\Models\Brand;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -51,10 +53,7 @@ class RegisterController extends Controller
         ]);
 
         if ($role === 'Operations Manager') {
-            $brands = \App\Models\Brand::all();
-            foreach ($brands as $brand) {
-                $brand->team()->attach($user->id, ['role' => 'Operations Manager']);
-            }
+            $user->brands()->syncWithoutDetaching(\App\Models\Brand::pluck('id')->toArray());
         }
 
         $invitation->delete();

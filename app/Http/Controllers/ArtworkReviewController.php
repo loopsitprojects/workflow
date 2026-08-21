@@ -74,6 +74,13 @@ class ArtworkReviewController extends Controller
 
         // Notify Brand Manager / Lead / link creator
         $deliverable = $review->deliverable;
+        if ($deliverable) {
+            $deliverable->update(['client_status' => 'Client Revisions']);
+            if ($deliverable->parent_deliverable_id) {
+                Deliverable::where('id', $deliverable->parent_deliverable_id)->update(['client_status' => 'Client Revisions']);
+            }
+        }
+
         $manager = null;
         if ($deliverable) {
             $manager = $deliverable->brandManager ?? $deliverable->project?->lead;
@@ -114,6 +121,12 @@ class ArtworkReviewController extends Controller
             'created_by'     => auth()->id(),
         ]);
 
+        // Automatically update deliverable client_status to 'Sent to Client'
+        $deliverable->update(['client_status' => 'Sent to Client']);
+        if ($deliverable->parent_deliverable_id) {
+            Deliverable::where('id', $deliverable->parent_deliverable_id)->update(['client_status' => 'Sent to Client']);
+        }
+
         $url = route('artwork.review.show', ['token' => $review->token]);
 
         return response()->json([
@@ -135,7 +148,7 @@ class ArtworkReviewController extends Controller
     public function dashboard(Deliverable $deliverable)
     {
         $reviews = ArtworkReview::where('deliverable_id', $deliverable->id)
-            ->with(['annotations.resolvedBy', 'creator'])
+            ->with(['annotations.resolvedBy', 'annotations.respondedBy', 'creator'])
             ->latest()
             ->get();
 
@@ -143,9 +156,48 @@ class ArtworkReviewController extends Controller
     }
 
     /**
-     * Toggle resolved state of an annotation.
-     * Route: POST /artwork-annotations/{annotation}/resolve
+     * Respond to a client annotation.
+     * Route: POST /artwork-annotations/{annotation}/respond
      */
+    /**
+     * Delete a response from a client annotation.
+     * Route: DELETE /artwork-annotations/{annotation}/respond
+     */
+    public function deleteResponse(ArtworkAnnotation $annotation)
+    {
+        if ($annotation->responded_by && $annotation->responded_by !== auth()->id() && !auth()->user()?->isAdmin()) {
+            return response()->json(['error' => 'Only the author of this reply can delete it.'], 403);
+        }
+
+        $annotation->update([
+            'response_text' => null,
+            'responded_by'  => null,
+            'responded_at'  => null,
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function respond(Request $request, ArtworkAnnotation $annotation)
+    {
+        $data = $request->validate([
+            'response_text' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $annotation->update([
+            'response_text' => $data['response_text'],
+            'responded_by'  => auth()->id(),
+            'responded_at'  => now(),
+        ]);
+
+        return response()->json([
+            'success'       => true,
+            'response_text' => $annotation->response_text,
+            'responded_by'  => auth()->user()?->name ?? 'Team',
+            'responded_at'  => $annotation->fresh()->responded_at?->diffForHumans() ?? 'Just now',
+        ]);
+    }
+
     public function resolve(ArtworkAnnotation $annotation)
     {
         $annotation->update([
@@ -153,6 +205,17 @@ class ArtworkReviewController extends Controller
             'resolved_by' => $annotation->is_resolved ? null : auth()->id(),
             'resolved_at' => $annotation->is_resolved ? null : now(),
         ]);
+
+        $review = $annotation->review;
+        if ($review && $review->deliverable) {
+            $deliv = $review->deliverable;
+            $unresolved = $review->annotations()->where('is_resolved', false)->exists();
+            $newStatus = $unresolved ? 'Client Revisions' : 'Client Approved';
+            $deliv->update(['client_status' => $newStatus]);
+            if ($deliv->parent_deliverable_id) {
+                Deliverable::where('id', $deliv->parent_deliverable_id)->update(['client_status' => $newStatus]);
+            }
+        }
 
         return response()->json([
             'success'     => true,

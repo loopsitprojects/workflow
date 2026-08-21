@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Admin\MaintenanceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,7 +13,8 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect()->intended(route('dashboard'));
         }
-        return view('auth.login');
+        $maintenance = \App\Http\Controllers\Admin\MaintenanceController::getStatus();
+        return view('auth.login', compact('maintenance'));
     }
 
     public function login(Request $request)
@@ -29,6 +31,19 @@ class AuthController extends Controller
             return back()
                 ->withInput($request->only('login'))
                 ->withErrors(['login' => 'The provided credentials do not match our records.']);
+        }
+
+        $user = Auth::user();
+
+        $maintenance = \App\Http\Controllers\Admin\MaintenanceController::getStatus();
+        if (!empty($maintenance['enabled']) && !$user->isAdmin()) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()
+                ->withInput($request->only('login'))
+                ->withErrors(['login' => 'The system is currently under maintenance. Only Administrators can log in at this time.']);
         }
 
         $request->session()->regenerate();

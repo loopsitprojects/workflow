@@ -8,9 +8,13 @@ use App\Http\Controllers\DeliverableController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ArtworkReviewController;
+use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SubtaskTypeController;
+use App\Http\Controllers\Admin\MaintenanceController;
 
-Route::get('/invite/{token}', [\App\Http\Controllers\RegisterController::class, 'show'])->name('register');
-Route::post('/invite/{token}', [\App\Http\Controllers\RegisterController::class, 'store']);
+Route::get('/invite/{token}', [RegisterController::class, 'show'])->name('register');
+Route::post('/invite/{token}', [RegisterController::class, 'store']);
 
 // Public Artwork Review (no authentication required — client-facing)
 Route::get('/artwork-review/{token}', [ArtworkReviewController::class, 'show'])->name('artwork.review.show');
@@ -22,8 +26,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/settings', [\App\Http\Controllers\SettingsController::class, 'edit'])->name('settings.edit');
-    Route::post('/settings', [\App\Http\Controllers\SettingsController::class, 'update'])->name('settings.update');
+    Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
+    Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::resource('brands', BrandController::class);
     Route::post('/deliverables/{deliverable}/batch-submit', [DeliverableController::class, 'batchSubmit'])->name('deliverables.batchSubmit');
     Route::get('brands/{brand}/retainer-board', [BrandController::class, 'retainerBoard'])->name('brands.retainer-board');
@@ -57,14 +61,18 @@ Route::middleware('auth')->group(function () {
     Route::get('deliverables/{deliverable}/artwork-review', [ArtworkReviewController::class, 'dashboard'])->name('artwork.dashboard');
     Route::get('deliverables/{deliverable}/artwork-reviews-json', [ArtworkReviewController::class, 'reviewsJson'])->name('artwork.reviews-json');
     Route::post('artwork-annotations/{annotation}/resolve', [ArtworkReviewController::class, 'resolve'])->name('artwork.annotation.resolve');
+    Route::post('artwork-annotations/{annotation}/respond', [ArtworkReviewController::class, 'respond'])->name('artwork.annotation.respond');
+    Route::delete('artwork-annotations/{annotation}/respond', [ArtworkReviewController::class, 'deleteResponse'])->name('artwork.annotation.delete-response');
     Route::delete('artwork-reviews/{review}', [ArtworkReviewController::class, 'destroy'])->name('artwork.review.destroy');
 
     // Admin Routes
     Route::group(['prefix' => 'admin', 'middleware' => 'admin'], function () {
         Route::get('/settings', [UserController::class, 'settings'])->name('admin.settings');
         Route::post('/users/invite', [UserController::class, 'invite'])->name('admin.users.invite');
-          Route::resource('users', UserController::class);
-        Route::resource('subtask-types', \App\Http\Controllers\SubtaskTypeController::class)->only(['index', 'store', 'destroy']);
+        Route::post('/maintenance/toggle', [MaintenanceController::class, 'toggle'])->name('admin.maintenance.toggle');
+        Route::post('/maintenance/message', [MaintenanceController::class, 'updateMessage'])->name('admin.maintenance.message');
+        Route::resource('users', UserController::class)->except(['show']);
+        Route::resource('subtask-types', SubtaskTypeController::class)->only(['index', 'store', 'destroy']);
     });
 
     // Notification Actions

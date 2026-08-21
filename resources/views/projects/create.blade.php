@@ -179,49 +179,137 @@ function addBatchCard(existingData = null) {
     const filteredTypes = subtaskTypes.filter(t => t.workflow_type === activeWorkflow);
 
     const batchName = existingData && existingData.name ? existingData.name : `Batch ${batchIndex}`;
+    const batchDeadline = existingData && existingData.deadline ? existingData.deadline : '';
 
     let typesHtml = '';
     if (filteredTypes.length > 0) {
-        typesHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;">`;
+        typesHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">`;
         filteredTypes.forEach(type => {
-            const countValue = existingData && existingData.post_types && existingData.post_types[type.id] ? existingData.post_types[type.id] : 0;
+            let countValue = 0;
+            let dateValue = '';
+            let savedItemDates = null;
+
+            if (existingData && existingData.post_types && existingData.post_types[type.id]) {
+                const ptData = existingData.post_types[type.id];
+                if (typeof ptData === 'object') {
+                    countValue = ptData.count || 0;
+                    dateValue = ptData.deadline || '';
+                    savedItemDates = ptData.dates || null;
+                } else {
+                    countValue = ptData || 0;
+                }
+            }
+
             typesHtml += `
-                <div style="display:flex;align-items:center;justify-content:space-between;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:8px 12px;">
-                    <span style="font-size:11px;font-weight:600;color:var(--color-text-primary);">${type.name}</span>
-                    <input type="number" name="batches[${batchIndex}][post_types][${type.id}]" min="0" max="200" value="${countValue}"
-                        style="width:48px;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:6px;padding:4px 6px;font-size:12px;font-weight:700;color:var(--color-text-primary);text-align:center;outline:none;"
-                        onfocus="this.select()">
+                <div style="background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                        <span style="font-size:11px;font-weight:700;color:var(--color-text-primary);">${type.name}</span>
+                        <div style="display:flex;align-items:center;gap:4px;">
+                            <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);">Qty:</span>
+                            <input type="number" id="qty-input-${batchIndex}-${type.id}" name="batches[${batchIndex}][post_types][${type.id}][count]" min="0" max="200" value="${countValue}"
+                                style="width:46px;background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:6px;padding:3px 5px;font-size:12px;font-weight:700;color:var(--color-text-primary);text-align:center;outline:none;"
+                                onfocus="this.select()"
+                                oninput="renderItemDates(this, ${batchIndex}, ${type.id}, '${type.name.replace(/'/g, "\\'")}')">
+                        </div>
+                    </div>
+                    <div id="item-dates-${batchIndex}-${type.id}" style="display:none;"></div>
                 </div>
             `;
         });
         typesHtml += `</div>`;
     } else {
-        const postsCount = existingData && existingData.posts_count ? existingData.posts_count : 0;
+        const postsCount = existingData && existingData.posts_count ? (existingData.posts_count.count || existingData.posts_count) : 0;
         typesHtml = `
-            <div>
-                <label style="font-size:11px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:4px;">Posts Count</label>
-                <input type="number" name="batches[${batchIndex}][posts_count]" min="0" max="200" value="${postsCount}" class="f-input" style="max-width:100px;">
+            <div style="display:flex;align-items:center;gap:14px;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:10px 14px;">
+                <div>
+                    <label style="font-size:10px;font-weight:700;color:var(--color-text-secondary);display:block;margin-bottom:4px;text-transform:uppercase;">Posts Count</label>
+                    <input type="number" name="batches[${batchIndex}][posts_count][count]" min="0" max="200" value="${postsCount}" class="f-input" style="max-width:90px;padding:4px 8px;font-size:12px;font-weight:700;">
+                </div>
             </div>
         `;
     }
 
     card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-            <div style="flex:1;display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:220px;display:flex;align-items:center;gap:8px;">
                 <span style="font-size:11px;font-weight:800;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;" class="batch-number-badge">1</span>
                 <input type="text" name="batches[${batchIndex}][name]" value="${batchName}" placeholder="Enter Batch Name..." required
-                    style="width:100%;max-width:240px;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--color-text-primary);outline:none;">
+                    style="width:100%;max-width:220px;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--color-text-primary);outline:none;">
             </div>
-            <button type="button" onclick="removeBatchCard(${batchIndex})" style="background:none;border:none;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:2px;">
-                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                Remove
-            </button>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.04em;">Batch Due:</span>
+                    <input type="date" name="batches[${batchIndex}][deadline]" value="${batchDeadline}"
+                        style="background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:600;color:var(--color-text-primary);outline:none;">
+                </div>
+                <button type="button" onclick="removeBatchCard(${batchIndex})" style="background:none;border:none;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;padding:4px;display:inline-flex;align-items:center;gap:2px;">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    Remove
+                </button>
+            </div>
         </div>
         ${typesHtml}
     `;
 
     container.appendChild(card);
+
+    if (filteredTypes.length > 0) {
+        filteredTypes.forEach(type => {
+            const qtyInput = card.querySelector(`#qty-input-${batchIndex}-${type.id}`);
+            if (qtyInput) {
+                let savedDates = null;
+                if (existingData && existingData.post_types && existingData.post_types[type.id] && typeof existingData.post_types[type.id] === 'object') {
+                    savedDates = existingData.post_types[type.id].dates || null;
+                }
+                renderItemDates(qtyInput, batchIndex, type.id, type.name, savedDates);
+            }
+        });
+    }
+
     reindexBatchNumbers();
+}
+
+function renderItemDates(input, batchIdx, typeId, typeName, savedDates = null) {
+    const qty = parseInt(input.value) || 0;
+    const container = document.getElementById(`item-dates-${batchIdx}-${typeId}`);
+    if (!container) return;
+
+    const existingDates = savedDates || {};
+    if (!savedDates) {
+        container.querySelectorAll('input[type="date"]').forEach((el) => {
+            const match = el.name.match(/\[dates\]\[(\d+)\]/);
+            if (match && match[1]) {
+                existingDates[match[1]] = el.value;
+            }
+        });
+    }
+
+    if (qty <= 0) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '6px';
+    container.style.marginTop = '6px';
+    container.style.paddingTop = '6px';
+    container.style.borderTop = '1px dashed var(--color-border-primary)';
+
+    let html = '';
+    for (let i = 1; i <= qty; i++) {
+        const dateVal = existingDates[i] || '';
+        const label = (qty === 1) ? `${typeName} Due Date` : `${typeName} ${i} Due Date`;
+        html += `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);">${label}:</span>
+                <input type="date" name="batches[${batchIdx}][post_types][${typeId}][dates][${i}]" value="${dateVal}"
+                    style="background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:6px;padding:3px 6px;font-size:11px;font-weight:600;color:var(--color-text-primary);outline:none;">
+            </div>
+        `;
+    }
+    container.innerHTML = html;
 }
 
 function removeBatchCard(id) {

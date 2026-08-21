@@ -309,9 +309,17 @@
 <div class="page">
 
     @php
-        $refImgSrc  = batchPdfImgSrc($deliverable->reference_file);
+        $refFiles  = $deliverable->getReferenceFilesArray();
+        $refUrls   = $deliverable->getReferenceUrlsArray();
+
+        $refImgSrcs = [];
+        foreach ($refFiles as $fPath) {
+            $src = batchPdfImgSrc($fPath);
+            if ($src) $refImgSrcs[] = $src;
+        }
+
         $artImgSrc  = batchPdfImgSrc($deliverable->final_designs);
-        $hasRefImg  = (bool) $refImgSrc;
+        $hasRefImg  = !empty($refImgSrcs);
         $hasArtImg  = (bool) $artImgSrc;
         $deadline   = $deliverable->deadline ? \Carbon\Carbon::parse($deliverable->deadline)->format('d M Y') : null;
         $stageName  = $deliverable->approval_stage ?? 'N/A';
@@ -387,17 +395,23 @@
     @endif
 
     {{-- Media --}}
-    @if($hasRefImg || $hasArtImg || $deliverable->reference || $deliverable->final_designs_link || $deliverable->reference_file || $deliverable->final_designs)
+    @if($hasRefImg || $hasArtImg || !empty($refUrls) || $deliverable->final_designs_link || !empty($refFiles) || $deliverable->final_designs)
     <div class="rule-thin"></div>
 
     @if($hasRefImg && $hasArtImg)
         <div class="two-col">
             <div class="two-col-cell">
-                <div class="section-label">Reference</div>
+                <div class="section-label">Reference Images / Files</div>
                 <div class="img-container">
-                    <img src="{{ $refImgSrc }}" alt="Reference">
-                    @if($deliverable->reference)
-                        <div class="img-link" style="margin-top:5px;">{{ $deliverable->reference }}</div>
+                    @foreach($refImgSrcs as $imgSrc)
+                        <img src="{{ $imgSrc }}" alt="Reference" style="margin-bottom:6px;">
+                    @endforeach
+                    @if(!empty($refUrls))
+                        <div style="margin-top:6px;">
+                            @foreach($refUrls as $url)
+                                <div class="img-link"><a href="{{ $url }}" target="_blank" style="color:#0055D4;">{{ $url }}</a></div>
+                            @endforeach
+                        </div>
                     @endif
                 </div>
             </div>
@@ -406,18 +420,24 @@
                 <div class="img-container">
                     <img src="{{ $artImgSrc }}" alt="Artwork">
                     @if($deliverable->final_designs_link)
-                        <div class="img-link" style="margin-top:5px;">{{ $deliverable->final_designs_link }}</div>
+                        <div class="img-link" style="margin-top:5px;"><a href="{{ $deliverable->final_designs_link }}" target="_blank" style="color:#10b981;">{{ $deliverable->final_designs_link }}</a></div>
                     @endif
                 </div>
             </div>
         </div>
     @elseif($hasRefImg)
         <div class="section">
-            <div class="section-label">Reference</div>
+            <div class="section-label">Reference Images / Files</div>
             <div class="img-full">
-                <img src="{{ $refImgSrc }}" alt="Reference">
-                @if($deliverable->reference)
-                    <div class="img-link" style="margin-top:5px;">{{ $deliverable->reference }}</div>
+                @foreach($refImgSrcs as $imgSrc)
+                    <img src="{{ $imgSrc }}" alt="Reference" style="margin-bottom:8px;">
+                @endforeach
+                @if(!empty($refUrls))
+                    <div style="margin-top:6px;">
+                        @foreach($refUrls as $url)
+                            <div class="img-link"><a href="{{ $url }}" target="_blank" style="color:#0055D4;">{{ $url }}</a></div>
+                        @endforeach
+                    </div>
                 @endif
             </div>
         </div>
@@ -425,7 +445,7 @@
         <div class="section">
             <div class="section-label">Artwork Link</div>
             <div class="img-container">
-                <div class="img-link">{{ $deliverable->final_designs_link }}</div>
+                <div class="img-link"><a href="{{ $deliverable->final_designs_link }}" target="_blank" style="color:#10b981;">{{ $deliverable->final_designs_link }}</a></div>
             </div>
         </div>
         @endif
@@ -435,15 +455,17 @@
             <div class="img-full">
                 <img src="{{ $artImgSrc }}" alt="Artwork">
                 @if($deliverable->final_designs_link)
-                    <div class="img-link" style="margin-top:5px;">{{ $deliverable->final_designs_link }}</div>
+                    <div class="img-link" style="margin-top:5px;"><a href="{{ $deliverable->final_designs_link }}" target="_blank" style="color:#10b981;">{{ $deliverable->final_designs_link }}</a></div>
                 @endif
             </div>
         </div>
-        @if($deliverable->reference)
+        @if(!empty($refUrls))
         <div class="section">
-            <div class="section-label">Reference Link</div>
+            <div class="section-label">Reference Links</div>
             <div class="img-container">
-                <div class="img-link">{{ $deliverable->reference }}</div>
+                @foreach($refUrls as $url)
+                    <div class="img-link"><a href="{{ $url }}" target="_blank" style="color:#0055D4;">{{ $url }}</a></div>
+                @endforeach
             </div>
         </div>
         @endif
@@ -452,10 +474,14 @@
             <div class="two-col-cell">
                 <div class="section-label">Reference</div>
                 <div class="img-container">
-                    @if($deliverable->reference)
-                        <div class="img-link">{{ $deliverable->reference }}</div>
-                    @elseif($deliverable->reference_file)
-                        <div class="img-link">{{ $deliverable->reference_file }}</div>
+                    @if(!empty($refUrls))
+                        @foreach($refUrls as $url)
+                            <div class="img-link"><a href="{{ $url }}" target="_blank" style="color:#0055D4;">{{ $url }}</a></div>
+                        @endforeach
+                    @elseif(!empty($refFiles))
+                        @foreach($refFiles as $f)
+                            <div class="img-link">{{ $f }}</div>
+                        @endforeach
                     @else
                         <div class="img-none">None provided</div>
                     @endif
@@ -465,7 +491,7 @@
                 <div class="section-label">Artwork</div>
                 <div class="img-container">
                     @if($deliverable->final_designs_link)
-                        <div class="img-link">{{ $deliverable->final_designs_link }}</div>
+                        <div class="img-link"><a href="{{ $deliverable->final_designs_link }}" target="_blank" style="color:#10b981;">{{ $deliverable->final_designs_link }}</a></div>
                     @elseif($deliverable->final_designs)
                         <div class="img-link">{{ $deliverable->final_designs }}</div>
                     @else

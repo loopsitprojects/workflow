@@ -1,1 +1,0 @@
-<?php require 'vendor/autoload.php'; $app = require_once 'bootstrap/app.php'; $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class); $kernel->bootstrap(); try { $res = Illuminate\Support\Facades\Storage::disk('s3')->put('test.txt', 'test'); echo 'Result: ' . ($res ? 'true' : 'false') . PHP_EOL; } catch (\Exception $e) { echo 'Exception: ' . $e->getMessage(); }

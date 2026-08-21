@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Invitation;
+use App\Models\Brand;
+use App\Http\Controllers\Admin\MaintenanceController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -131,7 +135,8 @@ class UserController extends Controller
 
     public function settings()
     {
-        return view('admin.settings');
+        $maintenance = \App\Http\Controllers\Admin\MaintenanceController::getStatus();
+        return view('admin.settings', compact('maintenance'));
     }
 }
 

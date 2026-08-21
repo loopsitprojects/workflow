@@ -370,10 +370,10 @@
 </style>
 
     <style>
-        .cd-modal-overlay { position: relative !important; display: block !important; opacity: 1 !important; z-index: 1 !important; background: transparent !important; backdrop-filter: none !important; padding: 0; }
-        .cd-modal { max-width: 100% !important; width: 100% !important; margin: 0; transform: none !important; box-shadow: none !important; background: transparent !important; border-radius: 0 !important; border: none !important; overflow: visible !important; }
-        .cd-modal-header { padding: 0 0 24px 0 !important; border-bottom: none !important; }
-        .cd-modal-body { padding: 0 !important; overflow: visible !important; height: auto !important; flex: none !important; }
+        #taskModalOverlay.cd-modal-overlay, #taskModalOverlay { position: relative !important; display: block !important; opacity: 1 !important; z-index: 1 !important; background: transparent !important; backdrop-filter: none !important; padding: 0; }
+        #taskModalOverlay .cd-modal { max-width: 100% !important; width: 100% !important; margin: 0; transform: none !important; box-shadow: none !important; background: transparent !important; border-radius: 0 !important; border: none !important; overflow: visible !important; }
+        #taskModalOverlay .cd-modal-header { padding: 0 0 24px 0 !important; border-bottom: none !important; }
+        #taskModalOverlay .cd-modal-body { padding: 0 !important; overflow: visible !important; height: auto !important; flex: none !important; }
         #modalTaskTitle { border: 1px solid var(--color-border-primary) !important; background: var(--color-bg-secondary) !important; }
     </style>
 
@@ -388,83 +388,78 @@
         <!-- Detail Modal -->
     <div id="taskModalOverlay" class="cd-modal-overlay" >
         <div class="cd-modal" >
-            <div class="cd-modal-header" style="padding: 20px 32px; align-items: center; gap: 24px; justify-content: space-between;">
-                <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; padding-right: 16px;">
-                    <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" style="font-size:20px; font-weight:900; color:var(--color-text-primary); margin:0; border:1px solid transparent; background:transparent; width:auto; flex:1; min-width:0; outline:none; border-radius:8px; padding:4px 8px; margin-left:-8px; transition:all 0.2s;" readonly onfocus="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-secondary)'" onblur="this.style.borderColor='transparent'; this.style.background='transparent'">
+            <div class="cd-modal-header" style="padding: 16px 32px; align-items: center; gap: 24px; justify-content: space-between;">
+                <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
                     <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:0; flex-shrink:0;"></div>
                     <div id="modalTopDeadlines" style="display:flex; align-items:center; gap:8px; flex-shrink:0;"></div>
                 </div>
                 <div style="display:flex; align-items:center; gap:12px;">
-                    <div style="display:flex; gap:8px; margin-right:12px; border-right:1px solid var(--color-border-primary); padding-right:12px;">
-                                        <a id="btnExportPpt" href="#" class="cd-btn" style="padding:8px 14px; font-size:12px; background:#ea580c; color:#fff; border:none; box-shadow:0 4px 12px rgba(234,88,12,0.25); font-weight:800; border-radius:8px; transition:transform 0.15s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'" title="Download PPT">
-                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right:4px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                            Download PPT
-                                        </a>
-
-                                    </div>
-
+                    <a id="btnExportPpt" href="#" class="cd-btn" style="padding:8px 14px; font-size:12px; background:#ea580c; color:#fff; border:none; box-shadow:0 4px 12px rgba(234,88,12,0.25); font-weight:800; border-radius:8px; transition:transform 0.15s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'" title="Download PPT">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right:4px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Download PPT
+                    </a>
                 </div>
             </div>
             <div class="cd-modal-body">
-                <div style="display:flex; flex-wrap:wrap; gap:16px; margin-bottom:24px; background:var(--color-bg-secondary); padding:16px; border-radius:12px; border:1px solid var(--color-border-primary);">
-                    <div class="detail-item" style="flex:1; min-width:140px; margin:0;">
-                        <label class="detail-label">Current Stage</label>
-                        <div id="modalStage" class="detail-val" style="font-weight:900; color:#0055D4;">-</div>
-                    </div>
-                    <div class="detail-item" style="flex:1; min-width:140px; margin:0;">
-                        <label class="detail-label">Priority</label>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <input type="hidden" id="modalPriorityTaskId" value="">
-                            @if($isAdmin || in_array($userRole, ['brandmanager', 'writer', 'approver', 'approvercoordinator', 'coordinator']))
-                                <select id="prioritySelect" onchange="updatePriorityInlineModal(this, document.getElementById('modalPriorityTaskId').value)" class="cd-btn cd-btn-outline" style="padding:4px 8px; border-radius:6px; font-size:13px; font-weight:900; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
-                                    <option value="High Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">High Priority (Urgent)</option>
-                                    <option value="Medium" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Medium (Stable)</option>
-                                    <option value="Low Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Low Priority (Paused)</option>
-                                </select>
-                            @else
-                                <div id="modalPriorityDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);"></div>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="detail-item" style="flex:1; min-width:140px; margin:0;">
-                        <label class="detail-label">Client Status</label>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <input type="hidden" id="modalClientStatusTaskId" value="">
-                            @if($isAdmin || $userRole === 'brandmanager')
-                                <select id="clientStatusSelect" onchange="updateClientStatusInlineModal(this, document.getElementById('modalClientStatusTaskId').value)" class="cd-btn cd-btn-outline" style="padding:4px 8px; border-radius:6px; font-size:13px; font-weight:900; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
-                                    <option value="Not Sent" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Not Sent</option>
-                                    <option value="Sent to Client" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Sent to Client</option>
-                                    <option value="Waiting for Feedback" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Waiting for Feedback</option>
-                                    <option value="Client Approved" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Client Approved</option>
-                                    <option value="Client Revisions" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Client Revisions</option>
-                                </select>
-                            @else
-                                <div id="modalClientStatusDisplay" class="detail-val" style="font-weight:900; color:var(--color-text-primary);">Not Sent</div>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="detail-item" id="modalDeliverableDeadlineBox" style="flex:1; min-width:140px; margin:0;">
-                        <label class="detail-label" style="color:#3b82f6;">Deliverable Deadline</label>
-                        <div style="display:flex; gap:8px;">
-                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm"
-                                style="flex:1; padding:6px 10px; border:1.5px solid rgba(59,130,246,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
-                            <button type="button" id="saveDeadlineBtn" style="display:none; padding:6px 12px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
-                        </div>
-                    </div>
-                    <div class="detail-item" id="modalDesignerDeadlineBox" style="display:none; flex:1; min-width:140px; margin:0;">
-                        <label class="detail-label" style="color:#8b5cf6;">Designer Deadline</label>
-                        <div id="modalDesignerDeadline" style="font-size:13px; font-weight:700; color:#8b5cf6; padding:6px 10px; background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.2); border-radius:8px;"></div>
-                    </div>
-                </div>
-                <!-- Workflow Tracker -->
-                <div class="workflow-steps" id="modalWorkflowSteps">
+                <!-- 1. Workflow Progress Stepper (TOP) -->
+                <div class="workflow-steps" id="modalWorkflowSteps" style="margin-top: 4px; margin-bottom: 20px;">
                     @foreach($stages as $index => $stage)
                         <div class="step-item" data-stage="{{ $stage }}">
                             <div class="step-dot">{{ $index + 1 }}</div>
                             <div class="step-label">{{ $stage }}</div>
                         </div>
                     @endforeach
+                </div>
+
+                <!-- 2. Compact Metadata Bar -->
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; background:var(--color-bg-secondary); padding:10px 16px; border-radius:12px; border:1px solid var(--color-border-primary);">
+                    <div class="detail-item" style="display:flex; align-items:center; gap:8px; flex:1; min-width:130px; margin:0;">
+                        <label class="detail-label" style="margin:0; flex-shrink:0;">Current Stage:</label>
+                        <div id="modalStage" class="detail-val" style="font-weight:900; color:#0055D4; font-size:13px;">-</div>
+                    </div>
+                    <div class="detail-item" style="display:flex; align-items:center; gap:8px; flex:1; min-width:140px; margin:0;">
+                        <label class="detail-label" style="margin:0; flex-shrink:0;">Priority:</label>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="hidden" id="modalPriorityTaskId" value="">
+                            @if($isAdmin || in_array($userRole, ['brandmanager', 'writer', 'approver', 'approvercoordinator', 'coordinator']))
+                                <select id="prioritySelect" onchange="updatePriorityInlineModal(this, document.getElementById('modalPriorityTaskId').value)" class="cd-btn cd-btn-outline" style="padding:3px 6px; border-radius:6px; font-size:12px; font-weight:800; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
+                                    <option value="High Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">High Priority (Urgent)</option>
+                                    <option value="Medium" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Medium (Stable)</option>
+                                    <option value="Low Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Low Priority (Paused)</option>
+                                </select>
+                            @else
+                                <div id="modalPriorityDisplay" class="detail-val" style="font-weight:800; font-size:12px; color:var(--color-text-primary);"></div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="detail-item" style="display:flex; align-items:center; gap:8px; flex:1; min-width:150px; margin:0;">
+                        <label class="detail-label" style="margin:0; flex-shrink:0;">Client Status:</label>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <div id="modalClientStatusDisplay" class="detail-val" style="font-weight:800; font-size:12px; color:var(--color-text-primary);">Not Sent</div>
+                            <a id="modalClientReviewLink" href="#" target="_blank" style="display:none; align-items:center; gap:3px; font-size:11px; font-weight:800; color:#3b82f6; text-decoration:none;" title="Open Client Review Page">
+                                🔗 Review Link
+                            </a>
+                        </div>
+                    </div>
+                    <div class="detail-item" id="modalDeliverableDeadlineBox" style="display:flex; align-items:center; gap:8px; flex:1; min-width:180px; margin:0;">
+                        <label class="detail-label" style="color:#3b82f6; margin:0; flex-shrink:0;">Deadline:</label>
+                        <div style="display:flex; gap:6px; align-items:center; flex:1;">
+                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm"
+                                style="flex:1; padding:4px 8px; border:1.5px solid rgba(59,130,246,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
+                            <button type="button" id="saveDeadlineBtn" style="display:none; padding:4px 8px; background:#3b82f6; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
+                        </div>
+                    </div>
+                    <div class="detail-item" id="modalDesignerDeadlineBox" style="display:none; align-items:center; gap:8px; flex:1; min-width:160px; margin:0;">
+                        <label class="detail-label" style="color:#8b5cf6; margin:0; flex-shrink:0;">Designer Due:</label>
+                        <div id="modalDesignerDeadline" style="font-size:12px; font-weight:700; color:#8b5cf6; padding:3px 8px; background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.2); border-radius:6px;"></div>
+                    </div>
+                </div>
+
+                <!-- 3. Deliverable Name Field (Below Current Stage / Metadata Bar) -->
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; background:var(--color-bg-secondary); padding:10px 16px; border-radius:12px; border:1px solid var(--color-border-primary);">
+                    <label class="detail-label" style="margin:0; flex-shrink:0; font-size:11px; font-weight:900; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.1em;">Deliverable Name:</label>
+                    <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" style="font-size:15px; font-weight:800; color:var(--color-text-primary); margin:0; border:1.5px solid var(--color-border-primary); background:var(--color-bg-primary); width:100%; flex:1; outline:none; border-radius:8px; padding:6px 12px; transition:all 0.2s;" readonly onfocus="this.style.borderColor='#0055D4'; this.style.background='var(--color-bg-primary)'" onblur="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-primary)'">
                 </div>
 
                 <!-- Reassign Designer Area -->
@@ -540,45 +535,58 @@
                     <div class="detail-item full" style="clear:both; position:relative; z-index:10;">
                         <label class="detail-label">Reference</label>
                         <div id="modalReference" class="detail-val" style="margin-bottom: 24px; display: block; overflow: hidden;"></div>
-                        <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.1); border-radius:16px; margin-top: 16px;">
-                            <div>
-                                <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Upload New Reference File</div>
-                                <input type="file" id="modalReferenceFileInput" name="reference_file" form="submitStageForm" accept="image/*,video/*" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
-                                    const f = this.files[0];
-                                    const prev = document.getElementById('modalReferenceImagePreview');
-                                    const vidPrev = document.getElementById('modalReferenceVideoPreview');
-                                    const clearBtn = document.getElementById('modalReferenceClearBtn');
-                                    if (f && f.type.startsWith('image/')) {
-                                        const r = new FileReader();
-                                        r.onload = e => { prev.src = e.target.result; prev.style.display='block'; vidPrev.style.display='none'; vidPrev.src=''; };
-                                        r.readAsDataURL(f);
-                                        if (clearBtn) clearBtn.style.display = 'flex';
-                                    } else if (f && f.type.startsWith('video/')) {
-                                        const url = (window.URL || window.webkitURL).createObjectURL(f);
-                                        vidPrev.src = url; vidPrev.style.display='block'; prev.style.display='none'; prev.src='';
-                                        if (clearBtn) clearBtn.style.display = 'flex';
-                                    } else {
-                                        prev.style.display='none'; prev.src='';
-                                        vidPrev.style.display='none'; vidPrev.src='';
-                                        if (clearBtn) clearBtn.style.display = 'none';
-                                    }
-                                ">
-                                <div style="position:relative; display:inline-block; margin-top:10px;">
-                                    <img id="modalReferenceImagePreview" src="" alt="Reference Preview" style="display:none; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
-                                    <video id="modalReferenceVideoPreview" controls style="display:none; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary);"></video>
-                                    <button type="button" id="modalReferenceClearBtn" onclick="
-                                        document.getElementById('modalReferenceFileInput').value='';
-                                        document.getElementById('modalReferenceImagePreview').style.display='none';
-                                        document.getElementById('modalReferenceImagePreview').src='';
-                                        document.getElementById('modalReferenceVideoPreview').style.display='none';
-                                        document.getElementById('modalReferenceVideoPreview').src='';
-                                        this.style.display='none';
-                                    " style="display:none; position:absolute; top:-10px; right:-10px; background:#ef4444; color:#fff; border:none; border-radius:50%; width:24px; height:24px; font-weight:bold; cursor:pointer; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.2); z-index:10; font-size: 12px;">✕</button>
+                        <div id="modalReferenceEditArea" style="display:none; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top: 16px;">
+                            <!-- Section 1: Reference Files & Images -->
+                            <div style="padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.12); border-radius:14px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                                    <span style="font-size:11px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em;">📁 Reference Images & Files</span>
+                                    <button type="button" onclick="addReferenceInputRow('file')" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.2); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                        Add Image / File
+                                    </button>
+                                </div>
+                                <div id="modalReferenceFilesContainer" style="display:flex; flex-direction:column; gap:10px;">
+                                    <div class="ref-input-row">
+                                        <input type="file" id="modalReferenceFileInput" name="reference_files[]" form="submitStageForm" accept="image/*,video/*" multiple style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                                            const previewContainer = document.getElementById('modalReferenceMultiPreviews');
+                                            if (previewContainer) {
+                                                previewContainer.innerHTML = '';
+                                                Array.from(this.files).forEach((file, idx) => {
+                                                    const wrapper = document.createElement('div');
+                                                    wrapper.style.cssText = 'position:relative; display:inline-block; margin-right:8px; margin-top:8px;';
+                                                    if (file.type.startsWith('image/')) {
+                                                        const r = new FileReader();
+                                                        r.onload = e => {
+                                                            wrapper.innerHTML = `<img src='${e.target.result}' style='max-width:100px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:cover;'>`;
+                                                        };
+                                                        r.readAsDataURL(file);
+                                                    } else if (file.type.startsWith('video/')) {
+                                                        const url = (window.URL || window.webkitURL).createObjectURL(file);
+                                                        wrapper.innerHTML = `<video src='${url}' controls style='max-width:120px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary);'></video>`;
+                                                    }
+                                                    previewContainer.appendChild(wrapper);
+                                                });
+                                            }
+                                        ">
+                                        <div id="modalReferenceMultiPreviews" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;"></div>
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Reference URL</div>
-                                <input type="url" id="modalReferenceUrl" name="reference" form="submitStageForm" placeholder="https://..." style="width:100%; padding:10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+
+                            <!-- Section 2: Reference Links & URLs -->
+                            <div style="padding:16px; background:rgba(59,130,246,0.03); border:1px solid rgba(59,130,246,0.12); border-radius:14px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                                    <span style="font-size:11px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em;">🔗 Reference Links & URLs</span>
+                                    <button type="button" onclick="addReferenceInputRow('link')" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:rgba(59,130,246,0.1); color:#2563eb; border:1px solid rgba(59,130,246,0.2); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                        Add Link
+                                    </button>
+                                </div>
+                                <div id="modalReferenceLinksContainer" style="display:flex; flex-direction:column; gap:10px;">
+                                    <div class="ref-input-row">
+                                        <input type="url" id="modalReferenceUrl" name="reference_urls[]" form="submitStageForm" placeholder="https://..." style="width:100%; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -674,45 +682,72 @@
                     <div id="designerDeliveryArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.1); border-radius:16px;">
                         <label class="detail-label" style="color:#10b981; margin-bottom:14px;">Deliver Final Artwork</label>
                         {{-- Self-contained form — avoids cross-form file input bugs --}}
-                        <form id="artworkDeliveryForm" method="POST" enctype="multipart/form-data">
+                        <form id="artworkDeliveryForm" method="POST" enctype="multipart/form-data" onsubmit="
+                            const btn = this.querySelector('button[type=submit]');
+                            if (btn) {
+                                btn.disabled = true;
+                                btn.style.opacity = '0.75';
+                                btn.style.cursor = 'not-allowed';
+                                btn.innerHTML = `<svg width='14' height='14' fill='none' stroke='currentColor' viewBox='0 0 24 24' style='animation: spin 1s linear infinite; margin-right: 6px;'><circle cx='12' cy='12' r='10' stroke='currentColor' stroke-width='4' style='opacity:0.25;'></circle><path fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z' style='opacity:0.75;'></path></svg> Uploading Artwork...`;
+                            }
+                        ">
                             @csrf
                             <input type="hidden" name="action" value="save_only">
-                            <div style="display:flex; flex-direction:column; gap:12px;">
-                                {{-- Styled file upload --}}
-                                <label for="modalArtworkFile" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1.5px dashed rgba(16,185,129,0.35);border-radius:10px;cursor:pointer;background:rgba(16,185,129,0.03);transition:border-color 0.15s;" onmouseenter="this.style.borderColor='rgba(16,185,129,0.6)'" onmouseleave="this.style.borderColor='rgba(16,185,129,0.35)'">
-                                    <div style="width:36px;height:36px;border-radius:8px;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                        <svg width="16" height="16" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+                                {{-- Section 1: Artwork Files --}}
+                                <div style="display:flex; flex-direction:column; gap:10px; padding:14px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:12px;">
+                                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                                        <div style="font-size:11px; font-weight:800; color:#10b981; text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; gap:6px;">
+                                            <span>🎨</span> Final Artwork Files
+                                        </div>
+                                        <button type="button" onclick="addArtworkInputRow('file')" style="background:rgba(16,185,129,0.1); color:#10b981; border:1px solid rgba(16,185,129,0.2); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+                                            + Add Artwork File
+                                        </button>
                                     </div>
-                                    <div style="flex:1;min-width:0;">
-                                        <div style="font-size:12px;font-weight:700;color:#10b981;" id="artworkFileLabel">Choose image file…</div>
-                                        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:2px;">PNG, JPG, GIF, WebP, MP4, WebM</div>
+                                    <div id="modalArtworkFilesContainer" style="display:flex; flex-direction:column; gap:10px;">
+                                        <div class="art-input-row" style="display:flex; flex-direction:column; gap:6px;">
+                                            <div style="display:flex; align-items:center; gap:10px;">
+                                                <input type="file" id="modalArtworkFile" name="final_designs_files[]" form="artworkDeliveryForm" accept="image/*,video/*" multiple style="width:100%; padding:8px; border:1.5px dashed rgba(16,185,129,0.35); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                                                    const prevDiv = document.getElementById('modalArtworkInitialPreview');
+                                                    if (prevDiv) {
+                                                        prevDiv.innerHTML = '';
+                                                        Array.from(this.files).forEach(file => {
+                                                            const wrapper = document.createElement('div');
+                                                            if (file.type.startsWith('image/')) {
+                                                                const r = new FileReader();
+                                                                r.onload = (e) => {
+                                                                    wrapper.innerHTML = `<img src='${e.target.result}' style='max-width:100px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:cover;'>`;
+                                                                };
+                                                                r.readAsDataURL(file);
+                                                            } else if (file.type.startsWith('video/')) {
+                                                                const url = (window.URL || window.webkitURL).createObjectURL(file);
+                                                                wrapper.innerHTML = `<video src='${url}' controls style='max-width:120px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary);'></video>`;
+                                                            }
+                                                            prevDiv.appendChild(wrapper);
+                                                        });
+                                                    }
+                                                ">
+                                            </div>
+                                            <div id="modalArtworkInitialPreview" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;"></div>
+                                        </div>
                                     </div>
-                                    <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="
-                                        const f = this.files[0];
-                                        document.getElementById('artworkFileLabel').textContent = f?.name || 'Choose image file…';
-                                        const imgP = document.getElementById('modalArtworkPreview');
-                                        const vidP = document.getElementById('modalArtworkVideoPreview');
-                                        if(imgP) imgP.style.display = 'none';
-                                        if(vidP) vidP.style.display = 'none';
-                                        if (f && f.type.startsWith('image/')) {
-                                            if(imgP) { imgP.src = URL.createObjectURL(f); imgP.style.display = 'block'; }
-                                        } else if (f && f.type.startsWith('video/')) {
-                                            if(vidP) { vidP.src = URL.createObjectURL(f); vidP.style.display = 'block'; }
-                                        }
-                                    ">
-                                </label>
-                                <img id="modalArtworkPreview" src="" style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
-                                <video id="modalArtworkVideoPreview" controls style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary);"></video>
-                                {{-- OR divider --}}
-                                <div style="display:flex;align-items:center;gap:8px;">
-                                    <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
-                                    <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);">OR</span>
-                                    <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
                                 </div>
-                                {{-- External link --}}
-                                <div>
-                                    <div style="font-size:10px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">External Link</div>
-                                    <input type="url" name="final_designs_link" placeholder="https://drive.google.com/…" style="width:100%;padding:10px 12px;border:1.5px solid var(--color-border-primary);border-radius:8px;font-size:13px;font-family:inherit;color:var(--color-text-primary);background:var(--color-bg-primary);outline:none;transition:border-color 0.15s;box-sizing:border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor=''">
+
+                                {{-- Section 2: Artwork Links --}}
+                                <div style="display:flex; flex-direction:column; gap:10px; padding:14px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:12px;">
+                                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                                        <div style="font-size:11px; font-weight:800; color:#10b981; text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; gap:6px;">
+                                            <span>🔗</span> Artwork Links & URLs
+                                        </div>
+                                        <button type="button" onclick="addArtworkInputRow('link')" style="background:rgba(16,185,129,0.1); color:#10b981; border:1px solid rgba(16,185,129,0.2); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+                                            + Add Link
+                                        </button>
+                                    </div>
+                                    <div id="modalArtworkLinksContainer" style="display:flex; flex-direction:column; gap:10px;">
+                                        <div class="art-input-row">
+                                            <input type="url" id="modalArtworkUrl" name="final_designs_urls[]" form="artworkDeliveryForm" placeholder="https://drive.google.com/…" style="width:100%; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <button type="submit" style="margin-top:14px;width:100%;padding:10px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:8px;">
@@ -1085,6 +1120,158 @@
             if (h) h.value = d ? (t ? `${d}T${t}` : d) : '';
         }
 
+        function addReferenceInputRow(type) {
+            if (type === 'file') {
+                const container = document.getElementById('modalReferenceFilesContainer') || document.getElementById('modalReferenceFilesContainerPrj');
+                if (!container) return;
+                const row = document.createElement('div');
+                row.className = 'ref-input-row';
+                row.style.cssText = 'margin-top:10px; padding-top:10px; border-top:1px dashed var(--color-border-primary);';
+                
+                const rowId = 'row_prev_' + Date.now() + Math.random().toString(36).substr(2, 4);
+                row.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="file" name="reference_files[]" form="submitStageForm" accept="image/*,video/*" multiple style="flex:1; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                            const prevDiv = document.getElementById('${rowId}');
+                            if (prevDiv) {
+                                prevDiv.innerHTML = '';
+                                Array.from(this.files).forEach(file => {
+                                    const wrapper = document.createElement('div');
+                                    wrapper.style.cssText = 'position:relative; display:inline-block; margin-right:8px; margin-top:8px;';
+                                    if (file.type.startsWith('image/')) {
+                                        const r = new FileReader();
+                                        r.onload = e => {
+                                            wrapper.innerHTML = \`<img src='\${e.target.result}' style='max-width:100px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:cover;'>\`;
+                                        };
+                                        r.readAsDataURL(file);
+                                    } else if (file.type.startsWith('video/')) {
+                                        const url = (window.URL || window.webkitURL).createObjectURL(file);
+                                        wrapper.innerHTML = \`<video src='\${url}' controls style='max-width:120px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary);'></video>\`;
+                                    }
+                                    prevDiv.appendChild(wrapper);
+                                });
+                            }
+                        ">
+                        <button type="button" onclick="this.closest('.ref-input-row').remove()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:8px; padding:8px 12px; font-weight:bold; cursor:pointer; font-size:11px;" title="Remove file input">✕ Remove</button>
+                    </div>
+                    <div id="${rowId}" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;"></div>
+                `;
+                container.appendChild(row);
+            } else {
+                const container = document.getElementById('modalReferenceLinksContainer') || document.getElementById('modalReferenceLinksContainerPrj');
+                if (!container) return;
+                const row = document.createElement('div');
+                row.className = 'ref-input-row';
+                row.style.cssText = 'display:flex; align-items:center; gap:10px; margin-top:8px;';
+                row.innerHTML = `
+                    <input type="url" name="reference_urls[]" form="submitStageForm" placeholder="https://..." style="flex:1; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                    <button type="button" onclick="this.closest('.ref-input-row').remove()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:8px; padding:8px 12px; font-weight:bold; cursor:pointer; font-size:11px;" title="Remove link input">✕ Remove</button>
+                `;
+                container.appendChild(row);
+            }
+        }
+
+        function removeSpecificRefFile(boxId, index) {
+            const box = document.getElementById(boxId);
+            if (box) box.style.display = 'none';
+            const form = document.getElementById('submitStageForm');
+            if (form) {
+                let input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'delete_reference_file_indices[]';
+                input.value = index;
+                form.appendChild(input);
+            }
+        }
+
+        function removeSpecificRefUrl(boxId, index) {
+            const box = document.getElementById(boxId);
+            if (box) box.style.display = 'none';
+            const form = document.getElementById('submitStageForm');
+            if (form) {
+                let input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'delete_reference_url_indices[]';
+                input.value = index;
+                form.appendChild(input);
+            }
+        }
+
+        function removeSpecificArtFile(boxId, index) {
+            const box = document.getElementById(boxId);
+            if (box) box.style.display = 'none';
+            const form = document.getElementById('artworkDeliveryForm') || document.getElementById('submitStageForm');
+            if (form) {
+                let input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'delete_final_designs_file_indices[]';
+                input.value = index;
+                form.appendChild(input);
+            }
+        }
+
+        function removeSpecificArtUrl(boxId, index) {
+            const box = document.getElementById(boxId);
+            if (box) box.style.display = 'none';
+            const form = document.getElementById('artworkDeliveryForm') || document.getElementById('submitStageForm');
+            if (form) {
+                let input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'delete_final_designs_url_indices[]';
+                input.value = index;
+                form.appendChild(input);
+            }
+        }
+
+        function addArtworkInputRow(type) {
+            if (type === 'file') {
+                const container = document.getElementById('modalArtworkFilesContainer') || document.getElementById('modalArtworkFilesContainerPrj');
+                if (!container) return;
+                const rowId = `artRowPrev_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+                const row = document.createElement('div');
+                row.className = 'art-input-row';
+                row.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin-top:8px;';
+                row.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="file" name="final_designs_files[]" form="artworkDeliveryForm" accept="image/*,video/*" multiple style="flex:1; padding:8px; border:1.5px dashed rgba(16,185,129,0.35); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                            const prevDiv = document.getElementById('${rowId}');
+                            if (prevDiv) {
+                                prevDiv.innerHTML = '';
+                                Array.from(this.files).forEach(file => {
+                                    const wrapper = document.createElement('div');
+                                    if (file.type.startsWith('image/')) {
+                                        const r = new FileReader();
+                                        r.onload = (e) => {
+                                            wrapper.innerHTML = \`<img src='\${e.target.result}' style='max-width:100px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:cover;'>\`;
+                                        };
+                                        r.readAsDataURL(file);
+                                    } else if (file.type.startsWith('video/')) {
+                                        const url = (window.URL || window.webkitURL).createObjectURL(file);
+                                        wrapper.innerHTML = \`<video src='\${url}' controls style='max-width:120px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary);'></video>\`;
+                                    }
+                                    prevDiv.appendChild(wrapper);
+                                });
+                            }
+                        ">
+                        <button type="button" onclick="this.closest('.art-input-row').remove()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:8px; padding:8px 12px; font-weight:bold; cursor:pointer; font-size:11px;" title="Remove artwork input">✕ Remove</button>
+                    </div>
+                    <div id="${rowId}" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;"></div>
+                `;
+                container.appendChild(row);
+            } else {
+                const container = document.getElementById('modalArtworkLinksContainer') || document.getElementById('modalArtworkLinksContainerPrj');
+                if (!container) return;
+                const row = document.createElement('div');
+                row.className = 'art-input-row';
+                row.style.cssText = 'display:flex; align-items:center; gap:10px; margin-top:8px;';
+                row.innerHTML = `
+                    <input type="url" name="final_designs_urls[]" form="artworkDeliveryForm" placeholder="https://drive.google.com/…" style="flex:1; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                    <button type="button" onclick="this.closest('.art-input-row').remove()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:8px; padding:8px 12px; font-weight:bold; cursor:pointer; font-size:11px;" title="Remove link input">✕ Remove</button>
+                `;
+                container.appendChild(row);
+            }
+        }
+
         function openTaskModal(task) {
             try {
                 console.log('Opening Task Modal for:', task);
@@ -1161,24 +1348,23 @@
                 if (document.getElementById('modalPriorityEdit')) document.getElementById('modalPriorityEdit').style.display = 'none';
                 
                 if (document.getElementById('modalClientStatusDisplay')) {
-                    document.getElementById('modalClientStatusDisplay').textContent = task.client_status || 'Not Sent';
+                    const cStatus = task.client_status || 'Not Sent';
+                    const disp = document.getElementById('modalClientStatusDisplay');
+                    disp.textContent = cStatus;
+                    disp.style.color = cStatus === 'Client Approved' ? '#10b981' : (cStatus === 'Client Revisions' ? '#ef4444' : (cStatus === 'Sent to Client' || cStatus === 'Waiting for Feedback' ? '#3b82f6' : 'var(--color-text-secondary)'));
                 }
-                if (document.getElementById('modalClientStatusTaskId')) document.getElementById('modalClientStatusTaskId').value = task.id;
-                if (document.getElementById('clientStatusSelect')) {
-                    const clientSelect = document.getElementById('clientStatusSelect');
-                    clientSelect.value = task.client_status || 'Not Sent';
-                    
-                    const bmStages = ['Brand Manager', 'Final Approval', 'AM/BD'];
-                    if (!bmStages.includes(task.approval_stage)) {
-                        clientSelect.disabled = true;
-                        clientSelect.style.opacity = '0.5';
-                        clientSelect.style.cursor = 'not-allowed';
-                        clientSelect.title = 'Client status can only be changed on Brand Manager stages.';
+                const reviewLinkEl = document.getElementById('modalClientReviewLink');
+                if (reviewLinkEl) {
+                    if (task.artwork_reviews && task.artwork_reviews.length > 0) {
+                        const activeRev = task.artwork_reviews.find(r => r.is_active);
+                        if (activeRev) {
+                            reviewLinkEl.href = `/artwork-review/${activeRev.token}`;
+                            reviewLinkEl.style.display = 'inline-flex';
+                        } else {
+                            reviewLinkEl.style.display = 'none';
+                        }
                     } else {
-                        clientSelect.disabled = false;
-                        clientSelect.style.opacity = '1';
-                        clientSelect.style.cursor = 'pointer';
-                        clientSelect.title = '';
+                        reviewLinkEl.style.display = 'none';
                     }
                 }
                 
@@ -1267,8 +1453,8 @@
                 const ddHidden   = document.getElementById('designerDeadlineInput');
                 if (task.designer_deadline) {
                     const ddDate = new Date(task.designer_deadline);
-                    ddEl.textContent = ddDate.toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'});
-                    ddBox.style.display = 'block';
+                    if (ddEl) ddEl.textContent = ddDate.toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'});
+                    if (ddBox) ddBox.style.display = 'block';
                     const pad = n => String(n).padStart(2,'0');
                     const dateStr = `${ddDate.getFullYear()}-${pad(ddDate.getMonth()+1)}-${pad(ddDate.getDate())}`;
                     const timeStr = `${pad(ddDate.getHours())}:${pad(ddDate.getMinutes())}`;
@@ -1276,7 +1462,7 @@
                     if (ddTimeInput) ddTimeInput.value = timeStr;
                     if (ddHidden)    ddHidden.value = `${dateStr}T${timeStr}`;
                 } else {
-                    ddBox.style.display = 'none';
+                    if (ddBox) ddBox.style.display = 'none';
                     if (ddDateInput) ddDateInput.value = '';
                     if (ddTimeInput) ddTimeInput.value = '';
                     if (ddHidden)    ddHidden.value = '';
@@ -1307,49 +1493,98 @@
                     }
                 }
 
-                document.getElementById('deleteReferenceFile').value = '0';
-                let refHtml = '';
-                if (task.reference_file) {
-                    const isVideo = task.reference_file.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
-                    if (isVideo) {
-                        refHtml = `
-                        <div style="display:flex; align-items:flex-end; gap:16px;">
-                            <div style="display:inline-block;">
-                                <video controls src="${task.reference_file}" style="width:100%; max-width:300px; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;"></video>
-                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">Reference Video</span>
-                            </div>
-                            <button type="button" onclick="document.getElementById('modalReference').innerHTML='<span style=\\'color:#94a3b8; font-size:13px; font-weight:500;\\'>Reference will be removed on save</span>'; document.getElementById('deleteReferenceFile').value='1';" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
-                        </div>`;
+                const delRefFile = document.getElementById('deleteReferenceFile');
+                if (delRefFile) delRefFile.value = '0';
+                let refParts = [];
+
+                let refFiles = [];
+                if (task.reference_files_list && Array.isArray(task.reference_files_list)) {
+                    refFiles = task.reference_files_list;
+                } else if (task.reference_file) {
+                    if (typeof task.reference_file === 'string' && task.reference_file.startsWith('[')) {
+                        try { refFiles = JSON.parse(task.reference_file); } catch(e) { refFiles = [task.reference_file]; }
+                    } else if (Array.isArray(task.reference_file)) {
+                        refFiles = task.reference_file;
                     } else {
-                        refHtml = `
-                        <div style="display:flex; align-items:flex-end; gap:16px;">
-                            <div onclick="openImagePreview('${task.reference_file}', false)" style="display:inline-block; cursor:pointer;">
-                                <img src="${task.reference_file}" style="width:100%; max-width:200px; height:auto; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;">
-                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">View Reference Image</span>
-                            </div>
-                            <button type="button" onclick="document.getElementById('modalReference').innerHTML='<span style=\\'color:#94a3b8; font-size:13px; font-weight:500;\\'>Reference will be removed on save</span>'; document.getElementById('deleteReferenceFile').value='1';" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
-                        </div>`;
+                        refFiles = [task.reference_file];
                     }
+                }
+
+                refFiles.forEach((fileUrl, index) => {
+                    if (!fileUrl) return;
+                    const isVideo = fileUrl.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
+                    const boxId = `modalRefFileBox_${index}`;
+                    const labelText = refFiles.length > 1 ? `Reference File #${index + 1}` : 'Reference File';
+                    if (isVideo) {
+                        refParts.push(`
+                        <div id="${boxId}" style="display:flex; align-items:flex-end; gap:12px; margin-bottom:8px;">
+                            <div style="display:inline-block;">
+                                <video controls src="${fileUrl}" style="width:100%; max-width:260px; max-height:160px; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:4px;"></video>
+                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">${labelText}</span>
+                            </div>
+                            <button type="button" onclick="removeSpecificRefFile('${boxId}', ${index})" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
+                        </div>`);
+                    } else {
+                        refParts.push(`
+                        <div id="${boxId}" style="display:flex; align-items:flex-end; gap:12px; margin-bottom:8px;">
+                            <div onclick="openImagePreview('${fileUrl}', false)" style="display:inline-block; cursor:pointer;">
+                                <img src="${fileUrl}" style="width:100%; max-width:180px; max-height:140px; height:auto; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:4px; object-fit:cover;">
+                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">${labelText}</span>
+                            </div>
+                            <button type="button" onclick="removeSpecificRefFile('${boxId}', ${index})" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
+                        </div>`);
+                    }
+                });
+
+                let refUrls = [];
+                if (task.reference_urls_list && Array.isArray(task.reference_urls_list)) {
+                    refUrls = task.reference_urls_list;
                 } else if (task.reference) {
-                    refHtml = `<div style="padding-bottom: 8px;"><a href="${task.reference}" target="_blank" class="ref-chip" style="margin-bottom: 12px; display: inline-flex;">
-                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                        Visit Link
-                    </a></div>`;
+                    if (typeof task.reference === 'string' && task.reference.startsWith('[')) {
+                        try { refUrls = JSON.parse(task.reference); } catch(e) { refUrls = [task.reference]; }
+                    } else if (Array.isArray(task.reference)) {
+                        refUrls = task.reference;
+                    } else {
+                        refUrls = task.reference.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+                    }
+                }
+
+                refUrls.forEach((url, index) => {
+                    if (!url) return;
+                    const label = refUrls.length > 1 ? `Visit Link #${index + 1}` : 'Visit Reference Link';
+                    const linkBoxId = `modalRefUrlBox_${index}`;
+                    refParts.push(`
+                    <div id="${linkBoxId}" style="display:inline-flex; align-items:center; gap:8px; margin-bottom:4px;">
+                        <a href="${url}" target="_blank" class="ref-chip" style="display:inline-flex; align-items:center; gap:6px;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            ${label}
+                        </a>
+                        <button type="button" onclick="removeSpecificRefUrl('${linkBoxId}', ${index})" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" title="Remove link">Remove</button>
+                    </div>`);
+                });
+
+                if (refParts.length > 0) {
+                    refHtml = `<div style="display:flex; flex-wrap:wrap; align-items:center; gap:16px;">${refParts.join('')}</div>`;
                 } else {
                     refHtml = '<span style="color:#94a3b8; font-size:13px; font-weight:500;">No reference provided</span>';
                 }
-                document.getElementById('modalReference').innerHTML = refHtml;
+                const modRef = document.getElementById('modalReference');
+                if (modRef) modRef.innerHTML = refHtml;
                 
-
-                document.getElementById('revisionsForm').action = `/deliverables/${task.id}/revisions`;
-                document.getElementById('submitStageForm').action = `/deliverables/${task.id}/submit`;
-                document.getElementById('artworkDeliveryForm').action = `/deliverables/${task.id}/submit`;
-                document.getElementById('artworkFileLabel').textContent = 'Choose image file…';
+                const revForm = document.getElementById('revisionsForm');
+                if (revForm) revForm.action = `/deliverables/${task.id}/revisions`;
+                const subForm = document.getElementById('submitStageForm');
+                if (subForm) subForm.action = `/deliverables/${task.id}/submit`;
+                const artForm = document.getElementById('artworkDeliveryForm');
+                if (artForm) artForm.action = `/deliverables/${task.id}/submit`;
+                const artLabel = document.getElementById('artworkFileLabel');
+                if (artLabel) artLabel.textContent = 'Choose image file…';
 
                 // Update export links
                 const btnExportDocx = document.getElementById('btnExportDocx');
                 if (btnExportDocx) btnExportDocx.href = `/deliverables/${task.id}/export/docx`;
-                document.getElementById('btnExportPpt').href = `/deliverables/${task.id}/export/ppt`;
+                const btnExportPpt = document.getElementById('btnExportPpt');
+                if (btnExportPpt) btnExportPpt.href = `/deliverables/${task.id}/export/ppt`;
 
                 // Team Grid
                 const teamGrid = document.getElementById('modalTeamGrid');
@@ -1393,53 +1628,94 @@
                     });
                 }
                 
-                let finalHtml = '';
-                if (task.final_designs) {
-                    const isImage = /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i.test(task.final_designs);
-                    if (isImage) {
-                        const isVideo = /\.(mp4|webm|ogg|mov)(?:$|\?)/i.test(task.final_designs);
-                        finalHtml += `
-                            <div style="display:inline-block; margin-right:12px; vertical-align:top; text-align:center;">
-                                <div onclick="openImagePreview('${task.final_designs}', ${canDesignerEdit}, ${task.id})" style="text-decoration:none; cursor:pointer;">
-                                    ${isVideo ? `<video src="${task.final_designs}" class="task-thumbnail" preload="metadata"></video>` : `<img src="${task.final_designs}" class="task-thumbnail" alt="Final Design">`}
-                                    <span style="display:block; font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; margin-top:6px; text-align:center;">Preview Artwork</span>
-                                </div>
-                                ${canDesignerEdit ? `
-                                    <button type="submit" name="delete_final_designs" value="1" form="submitStageForm" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
-                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                        Remove
-                                    </button>
-                                ` : ''}
-                            </div>`;
+                let artFiles = [];
+                if (task.final_designs_list && Array.isArray(task.final_designs_list)) {
+                    artFiles = task.final_designs_list;
+                } else if (task.final_designs) {
+                    if (typeof task.final_designs === 'string' && task.final_designs.startsWith('[')) {
+                        try { artFiles = JSON.parse(task.final_designs); } catch(e) { artFiles = [task.final_designs]; }
+                    } else if (Array.isArray(task.final_designs)) {
+                        artFiles = task.final_designs;
                     } else {
-                        finalHtml += `
-                            <div style="display:inline-block; margin-right:12px; vertical-align:top; text-align:center;">
-                                <a href="${task.final_designs}" target="_blank" style="color:#10b981; font-weight:700; display:block; margin-bottom:8px;">View Deliverable</a>
-                                ${canDesignerEdit ? `
-                                    <button type="submit" name="delete_final_designs" value="1" form="submitStageForm" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
-                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                        Remove
-                                    </button>
-                                ` : ''}
-                            </div>`;
+                        artFiles = [task.final_designs];
                     }
                 }
-                if (task.final_designs_link) {
-                    finalHtml += `
-                        <div style="display:inline-block; vertical-align:top; text-align:center; margin-right:12px;">
-                            <a href="${task.final_designs_link}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:10px 16px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:10px; color:#10b981; text-decoration:none; vertical-align:top;">
+
+                let artUrls = [];
+                if (task.final_designs_urls_list && Array.isArray(task.final_designs_urls_list)) {
+                    artUrls = task.final_designs_urls_list;
+                } else if (task.final_designs_link) {
+                    if (typeof task.final_designs_link === 'string' && task.final_designs_link.startsWith('[')) {
+                        try { artUrls = JSON.parse(task.final_designs_link); } catch(e) { artUrls = [task.final_designs_link]; }
+                    } else if (Array.isArray(task.final_designs_link)) {
+                        artUrls = task.final_designs_link;
+                    } else {
+                        artUrls = task.final_designs_link.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+                    }
+                }
+
+                let finalParts = [];
+                artFiles.forEach((fileUrl, index) => {
+                    if (!fileUrl) return;
+                    const isVideo = /\.(mp4|webm|ogg|mov)(?:$|\?)/i.test(fileUrl);
+                    const boxId = `modalArtFileBox_${index}`;
+                    const labelText = artFiles.length > 1 ? `Artwork File #${index + 1}` : 'Preview Artwork';
+                    finalParts.push(`
+                        <div id="${boxId}" style="display:inline-block; margin-right:12px; margin-bottom:8px; vertical-align:top; text-align:center;">
+                            <div onclick="openImagePreview('${fileUrl}', ${canDesignerEdit}, ${task.id})" style="text-decoration:none; cursor:pointer;">
+                                ${isVideo ? `<video src="${fileUrl}" class="task-thumbnail" preload="metadata"></video>` : `<img src="${fileUrl}" class="task-thumbnail" alt="Final Design">`}
+                                <span style="display:block; font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; margin-top:6px; text-align:center;">${labelText}</span>
+                            </div>
+                            ${canDesignerEdit ? `
+                                <button type="button" onclick="removeSpecificArtFile('${boxId}', ${index})" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
+                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    Remove
+                                </button>
+                            ` : ''}
+                        </div>`);
+                });
+
+                artUrls.forEach((url, index) => {
+                    if (!url) return;
+                    const label = artUrls.length > 1 ? `External Link #${index + 1}` : 'External Link';
+                    const linkBoxId = `modalArtUrlBox_${index}`;
+                    finalParts.push(`
+                        <div id="${linkBoxId}" style="display:inline-block; vertical-align:top; text-align:center; margin-right:12px; margin-bottom:8px;">
+                            <a href="${url}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:10px 16px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:10px; color:#10b981; text-decoration:none; vertical-align:top;">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                                <span style="font-size:11px; font-weight:800; text-transform:uppercase;">External Link</span>
+                                <span style="font-size:11px; font-weight:800; text-transform:uppercase;">${label}</span>
                             </a>
                             ${canDesignerEdit ? `
-                                <button type="submit" name="delete_final_designs_link" value="1" form="submitStageForm" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
+                                <button type="button" onclick="removeSpecificArtUrl('${linkBoxId}', ${index})" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
                                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     Remove Link
                                 </button>
                             ` : ''}
-                        </div>`;
+                        </div>`);
+                });
+
+                document.getElementById('modalFinal').innerHTML = finalParts.join('') || '<span style="color:#94a3b8; font-size:13px; font-weight:500;">Pending Delivery</span>';
+
+                const artLinksContainer = document.getElementById('modalArtworkLinksContainer') || document.getElementById('modalArtworkLinksContainerPrj');
+                if (artLinksContainer) {
+                    artLinksContainer.innerHTML = '';
+                    if (artUrls.length === 0) {
+                        artLinksContainer.innerHTML = `
+                            <div class="art-input-row">
+                                <input type="url" id="modalArtworkUrl" name="final_designs_urls[]" form="artworkDeliveryForm" placeholder="https://drive.google.com/…" style="width:100%; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                            </div>`;
+                    } else {
+                        artUrls.forEach((url, idx) => {
+                            const row = document.createElement('div');
+                            row.className = 'art-input-row';
+                            row.style.cssText = 'display:flex; align-items:center; gap:10px; margin-top:8px;';
+                            row.innerHTML = `
+                                <input type="url" name="final_designs_urls[]" value="${url}" form="artworkDeliveryForm" placeholder="https://drive.google.com/…" style="flex:1; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                <button type="button" onclick="this.closest('.art-input-row').remove()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:8px; padding:8px 12px; font-weight:bold; cursor:pointer; font-size:11px;" title="Remove link input">✕ Remove</button>`;
+                            artLinksContainer.appendChild(row);
+                        });
+                    }
                 }
-                document.getElementById('modalFinal').innerHTML = finalHtml || '<span style="color:#94a3b8; font-size:13px; font-weight:500;">Pending Delivery</span>';
 
                 // History
                 const appBox = document.getElementById('modalApprovalsBox');
@@ -1670,56 +1946,93 @@
                     (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
                     (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner));
 
-                if (canAct) {
+                if (canAct && submitBtnForm) {
                     submitBtnForm.style.display = 'flex';
                     const nextBtn = document.getElementById('submitStageBtn');
                     const isLastStage = WORKFLOW_STAGES.indexOf(stage) >= WORKFLOW_STAGES.length - 2;
 
-                    if (stage === 'Designer') nextBtn.textContent = 'Request for Approval';
-                    else nextBtn.textContent = isLastStage ? 'Approve & Close' : 'Submit to Next';
+                    if (nextBtn) {
+                        if (stage === 'Designer') nextBtn.textContent = 'Request for Approval';
+                        else nextBtn.textContent = isLastStage ? 'Approve & Close' : 'Submit to Next';
+                    }
 
                     if (stage === 'Writer' || stage === 'Assignee') {
                         if (task.approver_id) {
-                            apprArea.style.display = 'none';
-                            apprArea.querySelector('select').disabled = true;
+                            if (apprArea) {
+                                apprArea.style.display = 'none';
+                                const sel = apprArea.querySelector('select');
+                                if (sel) sel.disabled = true;
+                            }
                         } else {
-                            apprArea.style.display = 'block';
-                            apprArea.querySelector('select').disabled = false;
+                            if (apprArea) {
+                                apprArea.style.display = 'block';
+                                const sel = apprArea.querySelector('select');
+                                if (sel) sel.disabled = false;
+                            }
                         }
                     }
                     if (stage === 'Approver') {
-                        bmArea.style.display = 'block';
-                        bmArea.querySelector('select').disabled = false;
+                        if (bmArea) {
+                            bmArea.style.display = 'block';
+                            const sel = bmArea.querySelector('select');
+                            if (sel) sel.disabled = false;
+                        }
                         
                         const faArea = document.getElementById('modalFurtherApproverGroup');
                         if (faArea) {
                             faArea.style.display = 'block';
-                            faArea.querySelector('select').disabled = false;
+                            const sel = faArea.querySelector('select');
+                            if (sel) sel.disabled = false;
                         }
                     }
                     if (stage === 'Brand Manager' || stage === 'AM/BD') {
-                        coordArea.style.display = 'block';
-                        coordArea.querySelector('select').disabled = false;
+                        if (coordArea) {
+                            coordArea.style.display = 'block';
+                            const sel = coordArea.querySelector('select');
+                            if (sel) sel.disabled = false;
+                        }
                     }
                     if (stage === 'Coordinator') {
-                        dArea.style.display = 'block';
-                        dArea.querySelector('select').disabled = false;
+                        if (dArea) {
+                            dArea.style.display = 'block';
+                            const sel = dArea.querySelector('select');
+                            if (sel) sel.disabled = false;
+                        }
                     }
-                    if (stage === 'Designer') delArea.style.display = 'block';
+                    if (stage === 'Designer' && delArea) delArea.style.display = 'block';
                 }
 
                 // Edit Permissions (already computed above)
-
-                document.getElementById('modalTaskTitle').readOnly = !writerEditPermission;
-                quillConcept.enable(writerEditPermission);
-                quillCaption.enable(writerEditPermission);
-                quillCopy.enable(writerEditPermission);
+                const mTitle = document.getElementById('modalTaskTitle');
+                if (mTitle) mTitle.readOnly = !writerEditPermission;
+                if (typeof quillConcept !== 'undefined' && quillConcept) quillConcept.enable(writerEditPermission);
+                if (typeof quillCaption !== 'undefined' && quillCaption) quillCaption.enable(writerEditPermission);
+                if (typeof quillCopy !== 'undefined' && quillCopy) quillCopy.enable(writerEditPermission);
                 
                 // Reference Edit Area
                 const refEditArea = document.getElementById('modalReferenceEditArea');
                 if (refEditArea) {
-                    refEditArea.style.display = writerEditPermission ? 'flex' : 'none';
-                    document.getElementById('modalReferenceUrl').value = task.reference || '';
+                    refEditArea.style.display = writerEditPermission ? 'grid' : 'none';
+                    const linksContainer = document.getElementById('modalReferenceLinksContainer') || document.getElementById('modalReferenceLinksContainerPrj');
+                    if (linksContainer) {
+                        linksContainer.innerHTML = '';
+                        if (refUrls.length === 0) {
+                            linksContainer.innerHTML = `
+                                <div class="ref-input-row">
+                                    <input type="url" id="modalReferenceUrl" name="reference_urls[]" form="submitStageForm" placeholder="https://..." style="width:100%; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                </div>`;
+                        } else {
+                            refUrls.forEach((url, idx) => {
+                                const row = document.createElement('div');
+                                row.className = 'ref-input-row';
+                                row.style.cssText = 'display:flex; align-items:center; gap:10px; margin-top:8px;';
+                                row.innerHTML = `
+                                    <input type="url" name="reference_urls[]" value="${url}" form="submitStageForm" placeholder="https://..." style="flex:1; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                    <button type="button" onclick="this.closest('.ref-input-row').remove()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:8px; padding:8px 12px; font-weight:bold; cursor:pointer; font-size:11px;" title="Remove link input">✕ Remove</button>`;
+                                linksContainer.appendChild(row);
+                            });
+                        }
+                    }
                 }
 
                 if ((writerEditPermission && (stage === 'Writer' || stage === 'Assignee' || stage === 'Writer Review')) ||
@@ -2483,5 +2796,109 @@ function fallbackCopyToClipboard(text, btn) {
 document.getElementById('sendArtworkModalOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeSendArtworkModal();
 });
+
+// Image Preview Functions
+function openImagePreview(url, canRemove = false, deliverableId = null) {
+    const isVideo = url.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
+    if (isVideo) {
+        document.getElementById('imagePreviewSrc').style.display = 'none';
+        document.getElementById('imagePreviewSrc').src = '';
+        document.getElementById('videoPreviewSrc').style.display = 'block';
+        document.getElementById('videoPreviewSrc').src = url;
+    } else {
+        document.getElementById('videoPreviewSrc').style.display = 'none';
+        document.getElementById('videoPreviewSrc').src = '';
+        document.getElementById('imagePreviewSrc').style.display = 'block';
+        document.getElementById('imagePreviewSrc').src = url;
+    }
+    document.getElementById('imagePreviewDownload').href = url;
+    
+    const removeBtn = document.getElementById('imagePreviewRemoveBtn');
+    if (removeBtn) {
+        if (canRemove) {
+            removeBtn.style.display = 'inline-flex';
+            if (deliverableId) {
+                document.getElementById('submitStageForm').action = `/deliverables/${deliverableId}/submit`;
+            }
+        } else {
+            removeBtn.style.display = 'none';
+        }
+    }
+    
+    const overlay = document.getElementById('imagePreviewOverlay');
+    overlay.style.display = 'flex';
+    setTimeout(() => {
+        overlay.style.opacity = '1';
+        overlay.querySelector('.cd-modal').classList.add('active');
+    }, 10);
+}
+
+function downloadMedia(event, url) {
+    event.preventDefault();
+    const btn = event.currentTarget;
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = 'Downloading...';
+    btn.style.pointerEvents = 'none';
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.blob();
+        })
+        .then(blob => {
+            const blobUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            const filename = url.substring(url.lastIndexOf('/') + 1).split('?')[0] || 'artwork';
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(blobUrl);
+            a.remove();
+        })
+        .catch(err => {
+            console.error('Download via fetch failed, opening in new tab', err);
+            window.open(url, '_blank');
+        })
+        .finally(() => {
+            btn.innerHTML = originalContent;
+            btn.style.pointerEvents = 'auto';
+        });
+}
+
+function closeImagePreview(e) {
+    if (e && e.target !== document.getElementById('imagePreviewOverlay')) return;
+    const overlay = document.getElementById('imagePreviewOverlay');
+    overlay.style.opacity = '0';
+    overlay.querySelector('.cd-modal').classList.remove('active');
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        document.getElementById('imagePreviewSrc').src = '';
+    }, 300);
+}
 </script>
+
+<!-- Image Preview Modal -->
+<div id="imagePreviewOverlay" class="cd-modal-overlay" onclick="closeImagePreview(event)" style="z-index: 999999; justify-content: center; align-items: center;">
+    <div class="cd-modal" style="max-width: 90%; max-height: 90vh; background: transparent; border: none; box-shadow: none; display: flex; flex-direction: column; align-items: center; justify-content: center;" onclick="event.stopPropagation()">
+        <div style="position: absolute; top: 16px; right: 16px; z-index: 10;">
+            <button onclick="closeImagePreview()" style="background: rgba(15, 23, 42, 0.6); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(4px);">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <img id="imagePreviewSrc" src="" style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 12px; border: 4px solid var(--color-bg-primary); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+        <video id="videoPreviewSrc" src="" controls style="display:none; max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 12px; border: 4px solid var(--color-bg-primary); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);"></video>
+        <div style="margin-top: 12px; display: flex; gap: 12px; justify-content: center; align-items: center;">
+            <a id="imagePreviewDownload" href="" download target="_blank" class="cd-btn cd-btn-primary" style="padding: 10px 24px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; box-shadow: 0 10px 20px rgba(0, 85, 212, 0.2);" onclick="downloadMedia(event, this.href)">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Download Original
+            </a>
+            <button type="submit" name="delete_final_designs" value="1" form="submitStageForm" id="imagePreviewRemoveBtn" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding: 10px 24px; font-size: 13px; font-weight: 700; display: none; align-items: center; gap: 8px; justify-content: center; background: rgba(239, 68, 68, 0.1); backdrop-filter: blur(4px);">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Remove Artwork
+            </button>
+        </div>
+    </div>
+</div>
 </x-layout>

@@ -4,8 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Brand;
+use App\Models\User;
+use App\Models\Deliverable;
+use App\Models\SubtaskType;
 use App\Notifications\BriefUploaded;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ProjectController extends Controller
 {
@@ -70,9 +76,9 @@ class ProjectController extends Controller
             'post_type_counts.*' => 'nullable|integer|min:0|max:200',
             'batches' => 'nullable|array',
             'batches.*.name' => 'required|string',
+            'batches.*.deadline' => 'nullable',
             'batches.*.post_types' => 'nullable|array',
-            'batches.*.post_types.*' => 'nullable|integer|min:0|max:200',
-            'batches.*.posts_count' => 'nullable|integer|min:0|max:200',
+            'batches.*.posts_count' => 'nullable',
         ]);
 
         $postTypeCounts = $request->input('post_type_counts', []);
@@ -139,37 +145,61 @@ class ProjectController extends Controller
 
             foreach ($batches as $batch) {
                 $batchName = $batch['name'] ?? 'Batch';
+                $batchDeadline = !empty($batch['deadline']) ? $batch['deadline'] : $project->deadline;
                 $postTypes = $batch['post_types'] ?? [];
 
                 // Create the parent deliverable (the batch itself)
                 $parent = \App\Models\Deliverable::create(array_merge($baseRow, [
                     'title'     => $batchName,
                     'post_type' => null,
+                    'deadline'  => $batchDeadline,
                 ]));
 
                 $children = [];
 
-                foreach ($postTypes as $typeId => $count) {
-                    $count = (int)$count;
+                foreach ($postTypes as $typeId => $typeData) {
+                    if (is_array($typeData)) {
+                        $count = (int)($typeData['count'] ?? 0);
+                        $typeDeadline = !empty($typeData['deadline']) ? $typeData['deadline'] : null;
+                        $itemDates = $typeData['dates'] ?? [];
+                    } else {
+                        $count = (int)$typeData;
+                        $typeDeadline = null;
+                        $itemDates = [];
+                    }
+
                     if ($count <= 0) continue;
 
                     $typeName = $subtaskTypeModels[$typeId]->name ?? 'Post';
+
                     for ($i = 1; $i <= $count; $i++) {
+                        $deliverableDeadline = !empty($itemDates[$i])
+                            ? $itemDates[$i]
+                            : ($typeDeadline ?: $batchDeadline);
+
                         $children[] = array_merge($baseRow, [
                             'parent_deliverable_id' => $parent->id,
                             'title'                 => $typeName . ' ' . $i,
                             'post_type'             => $typeName,
+                            'deadline'              => $deliverableDeadline,
                         ]);
                     }
                 }
 
-                $bPostsCount = (int)($batch['posts_count'] ?? 0);
+                $bPostsCount = is_array($batch['posts_count'] ?? null) 
+                    ? (int)($batch['posts_count']['count'] ?? 0) 
+                    : (int)($batch['posts_count'] ?? 0);
+                $bPostsDeadline = is_array($batch['posts_count'] ?? null) && !empty($batch['posts_count']['deadline'])
+                    ? $batch['posts_count']['deadline']
+                    : $batchDeadline;
+
                 if ($bPostsCount > 0) {
                     for ($i = 1; $i <= $bPostsCount; $i++) {
                         $children[] = array_merge($baseRow, [
                             'parent_deliverable_id' => $parent->id,
                             'title'                 => 'Post ' . $i,
                             'post_type'             => null,
+                            'deadline'              => $bPostsDeadline,
                         ]);
                     }
                 }
@@ -179,45 +209,48 @@ class ProjectController extends Controller
                 }
             }
         } else {
-            $hasTypeCounts = !empty(array_filter($postTypeCounts, fn($v) => (int)$v > 0));
+            $hasTypeCounts = !empty(array_filter($postTypeCounts, fn($v) => (is_array($v) ? (int)($v['count'] ?? 0) : (int)$v) > 0));
+            $postTypeDates = $request->input('post_type_dates', []);
 
             if ($hasTypeCounts) {
-                $activeCounts = array_filter($postTypeCounts, fn($v) => (int)$v > 0);
-                $multipleTypes = count($activeCounts) > 1;
-                $subtaskTypeModels = \App\Models\SubtaskType::whereIn('id', array_keys($activeCounts))->get()->keyBy('id');
+                $subtaskTypeModels = \App\Models\SubtaskType::all()->keyBy('id');
 
-                foreach ($activeCounts as $typeId => $count) {
-                    $count = (int) $count;
-                    $typeName = $subtaskTypeModels[$typeId]->name ?? 'Post';
-
-                    if ($multipleTypes) {
-                        $parent = \App\Models\Deliverable::create(array_merge($baseRow, [
-                            'title'     => $typeName,
-                            'post_type' => $typeName,
-                        ]));
-
-                        $children = [];
-                        for ($i = 1; $i <= $count; $i++) {
-                            $children[] = array_merge($baseRow, [
-                                'parent_deliverable_id' => $parent->id,
-                                'title'                 => $typeName . ' ' . $i,
-                                'post_type'             => $typeName,
-                            ]);
-                        }
-                        \App\Models\Deliverable::insert($children);
+                foreach ($postTypeCounts as $typeId => $typeVal) {
+                    if (is_array($typeVal)) {
+                        $count = (int)($typeVal['count'] ?? 0);
+                        $typeDeadline = !empty($typeVal['deadline']) ? $typeVal['deadline'] : null;
                     } else {
-                        for ($i = 1; $i <= $count; $i++) {
-                            $deliverables[] = array_merge($baseRow, [
-                                'title'     => $typeName . ' ' . $i,
-                                'post_type' => $typeName,
-                            ]);
-                        }
+                        $count = (int)$typeVal;
+                        $typeDeadline = $postTypeDates[$typeId] ?? null;
                     }
+
+                    if ($count <= 0) continue;
+
+                    $typeName = $subtaskTypeModels[$typeId]->name ?? 'Post';
+                    $itemDeadline = $typeDeadline ?: $project->deadline;
+
+                    $parent = \App\Models\Deliverable::create(array_merge($baseRow, [
+                        'title'     => $typeName,
+                        'post_type' => $typeName,
+                        'deadline'  => $itemDeadline,
+                    ]));
+
+                    $children = [];
+                    for ($i = 1; $i <= $count; $i++) {
+                        $children[] = array_merge($baseRow, [
+                            'parent_deliverable_id' => $parent->id,
+                            'title'                 => $typeName . ' ' . $i,
+                            'post_type'             => $typeName,
+                            'deadline'              => $itemDeadline,
+                        ]);
+                    }
+                    \App\Models\Deliverable::insert($children);
                 }
             } elseif ($postsCount > 0) {
                 for ($i = 1; $i <= $postsCount; $i++) {
                     $deliverables[] = array_merge($baseRow, [
-                        'title' => 'Post ' . $i,
+                        'title'    => 'Post ' . $i,
+                        'deadline' => $project->deadline,
                     ]);
                 }
             }
@@ -271,6 +304,7 @@ class ProjectController extends Controller
             'deliverables.brandManager',
             'deliverables.coordinator',
             'deliverables.designer',
+            'deliverables.artworkReviews',
             'deliverables.subtasks.revisionsHistory.user', 
             'deliverables.subtasks.revisionsHistory.fixedByUser',
             'deliverables.subtasks.approvalsHistory.user',
@@ -279,6 +313,7 @@ class ProjectController extends Controller
             'deliverables.subtasks.brandManager',
             'deliverables.subtasks.coordinator',
             'deliverables.subtasks.designer',
+            'deliverables.subtasks.artworkReviews',
         ]);
         $brandId = $project->brand_id;
         $brandManagers = \App\Models\User::where('role', 'Brand Manager')

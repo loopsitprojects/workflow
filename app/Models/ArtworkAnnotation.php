@@ -12,6 +12,9 @@ class ArtworkAnnotation extends Model
         'x_percent',
         'y_percent',
         'content',
+        'response_text',
+        'responded_by',
+        'responded_at',
         'color',
         'pin_number',
         'is_resolved',
@@ -20,11 +23,12 @@ class ArtworkAnnotation extends Model
     ];
 
     protected $casts = [
-        'is_resolved' => 'boolean',
-        'resolved_at' => 'datetime',
-        'x_percent'   => 'float',
-        'y_percent'   => 'float',
-        'pin_number'  => 'integer',
+        'is_resolved'  => 'boolean',
+        'resolved_at'  => 'datetime',
+        'responded_at' => 'datetime',
+        'x_percent'    => 'float',
+        'y_percent'    => 'float',
+        'pin_number'   => 'integer',
     ];
 
     // ── Relationships ────────────────────────────────────────────────────────
@@ -37,5 +41,10 @@ class ArtworkAnnotation extends Model
     public function resolvedBy()
     {
         return $this->belongsTo(User::class, 'resolved_by');
+    }
+
+    public function respondedBy()
+    {
+        return $this->belongsTo(User::class, 'responded_by');
     }
 }

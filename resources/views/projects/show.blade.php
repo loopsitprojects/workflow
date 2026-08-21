@@ -482,9 +482,8 @@
                                 <th style="width:80px;">Type</th>
                                 <th style="width:90px;">Caption</th>
                                 <th style="width:90px;">Post Copy</th>
-                                <th style="width:50px;">Ref</th>
-                                <th style="width:65px;">Artwork</th>
-                                <th style="width:55px;">Hrs</th>
+                                <th style="width:85px;">Ref</th>
+                                <th style="width:90px;">Artwork</th>
                                 <th style="width:70px;">Rev</th>
                                 <th style="width:80px;">Stage</th>
                                 <th style="width:110px;">Client</th>
@@ -663,98 +662,67 @@
                                                 @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ strip_tags($subtask->post_copy) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
-                                        <td onclick="event.stopPropagation()">
-                                            @if($subtask->reference_file)
-                                              @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $subtask->reference_file))
-                                                  <video src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Video" preload="metadata"></video>
-                                              @else
-                                                  <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Image">
-                                              @endif
-                                            @elseif($subtask->reference)
-                                                <a href="{{ $subtask->reference }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15);" title="Visit Link">
+                                        <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
+                                            @php
+                                                $subRefFiles = $subtask->getReferenceFilesArray();
+                                                $subRefUrls  = $subtask->getReferenceUrlsArray();
+                                                $totalSubRefFiles = count($subRefFiles);
+                                                $totalSubRefUrls  = count($subRefUrls);
+                                                $totalSubRefs     = $totalSubRefFiles + $totalSubRefUrls;
+                                            @endphp
+                                            @if($totalSubRefs === 1 && $totalSubRefFiles === 1)
+                                                @php $singleRef = $subRefFiles[0]; @endphp
+                                                @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
+                                                    <video src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Video" preload="metadata"></video>
+                                                @else
+                                                    <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Image">
+                                                @endif
+                                            @elseif($totalSubRefs === 1 && $totalSubRefUrls === 1)
+                                                <a href="{{ $subRefUrls[0] }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4);" title="Visit Link">
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                                                 </a>
+                                            @elseif($totalSubRefs > 1)
+                                                <button type="button" onclick="openMediaGallery('Reference Media', {{ json_encode($subRefFiles) }}, {{ json_encode($subRefUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalSubRefs }} references">
+                                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                    Ref ({{ $totalSubRefs }})
+                                                </button>
                                             @else
                                                 <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                             @endif
                                         </td>
-                                        <td>
-                                            @if($subtask->final_designs)
-                                                @php
-                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $subtask->final_designs);
-                                                    $isAssignedDesigner = $currentUserId == $subtask->designer_id;
-                                                    $designerEditPermission = $isAssignedDesigner;
-                                                    $canRemoveSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
-                                                @endphp
-                                                @if($isImg)
-                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $subtask->final_designs))
-                                                          <video src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="View Video" preload="metadata"></video>
-                                                      @else
-                                                          <img src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork">
-                                                      @endif
+                                        <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
+                                            @php
+                                                $artFiles = $subtask->getFinalDesignsArray();
+                                                $artUrls  = $subtask->getFinalDesignsUrlsArray();
+                                                $totalArtFiles = count($artFiles);
+                                                $totalArtUrls  = count($artUrls);
+                                                $totalArt      = $totalArtFiles + $totalArtUrls;
+
+                                                $isAssignedDesigner = $currentUserId == $subtask->designer_id;
+                                                $designerEditPermission = $isAssignedDesigner;
+                                                $canRemoveSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
+                                            @endphp
+
+                                            @if($totalArt === 1 && $totalArtFiles === 1)
+                                                @php $singleArt = $artFiles[0]; @endphp
+                                                @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $singleArt))
+                                                    @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
+                                                        <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ $singleArt }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="View Video" preload="metadata"></video>
+                                                    @else
+                                                        <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ $singleArt }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork">
+                                                    @endif
                                                 @else
-                                                    <a href="{{ $subtask->final_designs }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
+                                                    <a href="{{ $singleArt }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
                                                 @endif
-                                            @elseif($subtask->final_designs_link)
-                                                <a href="{{ $subtask->final_designs_link }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
+                                            @elseif($totalArt === 1 && $totalArtUrls === 1)
+                                                <a href="{{ $artUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
+                                            @elseif($totalArt > 1)
+                                                <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($artFiles) }}, {{ json_encode($artUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalArt }} artworks">
+                                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                    Artwork ({{ $totalArt }})
+                                                </button>
                                             @else
-                                                @php
-                                                    $isAssignedDesigner = $currentUserId == $subtask->designer_id;
-                                                    $designerEditPermission = $isAssignedDesigner;
-                                                    $canUploadSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
-                                                @endphp
-                                                @if(false)
-                                                    <div style="position:relative;display:inline-block;" onclick="event.stopPropagation()">
-                                                        <button type="button" onclick="toggleArtworkPicker('awp-{{ $subtask->id }}',this)" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:9px;font-weight:700;color:#0055D4;background:rgba(0,85,212,0.1);border:1px solid rgba(0,85,212,0.2);border-radius:6px;cursor:pointer;">
-                                                            <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                                            Upload
-                                                        </button>
-                                                        <div id="awp-{{ $subtask->id }}" class="aw-picker" style="display:none;position:fixed;z-index:9999;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.18);padding:10px;width:210px;" onclick="event.stopPropagation()">
-                                                            <form action="{{ route('deliverables.submit', $subtask) }}" method="POST" enctype="multipart/form-data">
-                                                                @csrf
-                                                                <input type="hidden" name="action" value="save_only">
-                                                                <label style="display:flex;align-items:center;gap:9px;padding:8px;border-radius:7px;cursor:pointer;transition:background 0.12s;" onmouseenter="this.style.background='var(--color-bg-secondary)'" onmouseleave="this.style.background='transparent'">
-                                                                    <div style="width:28px;height:28px;border-radius:6px;background:rgba(0,85,212,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                                                        <svg width="13" height="13" fill="none" stroke="#0055D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Media</div>
-                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP, MP4, WebM</div>
-                                                                    </div>
-                                                                    <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
-                                                                </label>
-                                                            </form>
-                                                            <div style="display:flex;align-items:center;gap:6px;margin:4px 6px;">
-                                                                <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
-                                                                <span style="font-size:9px;color:var(--color-text-secondary);">or</span>
-                                                                <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
-                                                            </div>
-                                                            <form action="{{ route('deliverables.submit', $subtask) }}" method="POST" style="padding:2px 4px 4px;">
-                                                                @csrf
-                                                                <input type="hidden" name="action" value="save_only">
-                                                                <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;">
-                                                                    <div style="width:28px;height:28px;border-radius:6px;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                                                        <svg width="12" height="12" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                                                    </div>
-                                                                    <span style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Paste Link</span>
-                                                                </div>
-                                                                <input type="url" name="final_designs_link" placeholder="https://…" required style="width:100%;padding:7px 10px;font-size:11px;border:1.5px solid var(--color-border-primary);border-radius:7px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor=''">
-                                                                <button type="submit" style="width:100%;margin-top:7px;padding:7px;background:#10b981;color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;">Save Link</button>
-                                                            </form>
-                                                        </div>
-                                                    </div>
-                                                @else
-                                                    <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
-                                                @endif
-                                            @endif
-                                        </td>
-                                        <td onclick="event.stopPropagation()">
-                                            @php $canEditHrs = $currentUserIsAdmin ||
-    ($userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId)); @endphp
-                                            @if($canEditHrs)
-                                                <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $subtask->id }}" value="{{ $subtask->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
-                                            @else
-                                                <span style="font-size:11px;font-weight:600;color:var(--color-text-secondary);">{{ $subtask->work_hours ? number_format($subtask->work_hours, 1).'h' : '—' }}</span>
+                                                <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
                                             @endif
                                         </td>
                                         <td>
@@ -854,616 +822,6 @@
                                                 @endif
                                             </div>
                                         </td>
-                                    </tr>
-                                    @endforeach
-                                @else
-                                    <!-- Standard Row for Deliverable without Subtasks -->
-                                    <tr class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
-                                        <td>
-                                            <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
-                                                @php
-                                                    $taskPrio = $task->priority ?? 'Medium';
-                                                    $taskPrioColor = $taskPrio === 'High Priority' ? '#ef4444' : ($taskPrio === 'Low Priority' ? '#f59e0b' : '#10b981');
-                                                @endphp
-                                                <span onclick="openPriorityInlineEditor(event, {{ $task->id }}, '{{ $taskPrio }}')" style="cursor:pointer; display:inline-flex;">
-                                                    <svg width="14" height="14" fill="{{ $taskPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0; margin-right:4px;" title="{{ $taskPrio }} (Click to edit)">
-                                                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
-                                                    </svg>
-                                                </span>
-                                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:#0055D4; font-size:13px;">{{ $task->title }}</span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
-                                            <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
-                                            <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
-
-                                        </td>
-                                        <td>@if($task->concept)<div class="cell-text" onclick="openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ strip_tags($task->concept) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
-                                        <td>
-                                            @php $taskColors = $subtaskTypeColors[$task->subtask_type] ?? $subtaskTypeColors['default']; @endphp
-                                            <span class="subtask-pill" style="background:{{ $taskColors['bg'] }}; color:{{ $taskColors['text'] }}; border-color:{{ $taskColors['border'] }};">
-                                                {{ $task->subtask_type ?: 'Standard' }}
-                                            </span>
-                                        </td>
-                                        <td>@if($task->caption)<div class="cell-text" onclick="openTextPreview('Caption',{{ json_encode($task->caption) }})">{{ strip_tags($task->caption) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
-                                        <td>@if($task->post_copy)<div class="cell-text" onclick="openTextPreview('Post Copy',{{ json_encode($task->post_copy) }})">{{ strip_tags($task->post_copy) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif</td>
-                                        <td>
-                                            @if($task->reference_file)
-                                                  @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->reference_file))
-                                                      <video src="{{ $task->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $task->reference_file }}', false)" title="View Video" preload="metadata"></video>
-                                                  @else
-                                                      <img src="{{ $task->reference_file }}" class="rtb-ref-preview" onclick="event.stopPropagation(); openImagePreview('{{ $task->reference_file }}', false)">
-                                                  @endif
-                                            @elseif($task->reference)
-                                                <a href="{{ $task->reference }}" target="_blank" class="ref-chip" style="padding:4px 8px; font-size:9px;">Link</a>
-                                            @else
-                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($task->final_designs)
-                                                @php 
-                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $task->final_designs); 
-                                                    $isAssignedDesigner = $currentUserId == $task->designer_id;
-                                                    $designerEditPermission = $isAssignedDesigner;
-                                                    $canRemoveTask = ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
-                                                @endphp
-                                                @if($isImg)
-                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->final_designs))
-                                                          <video src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="View Video" preload="metadata"></video>
-                                                      @else
-                                                          <img src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="Click to view artwork">
-                                                      @endif
-                                                @else
-                                                    <a href="{{ $task->final_designs }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
-                                                @endif
-                                            @elseif($task->final_designs_link)
-                                                <a href="{{ $task->final_designs_link }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
-                                            @else
-                                                @php
-                                                    $isAssignedDesigner = $currentUserId == $task->designer_id;
-                                                    $designerEditPermission = $isAssignedDesigner;
-                                                    $canUploadTask = ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
-                                                @endphp
-                                                @if(false)
-                                                    <div style="position:relative;display:inline-block;" onclick="event.stopPropagation()">
-                                                        <button type="button" onclick="toggleArtworkPicker('awp-{{ $task->id }}',this)" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:9px;font-weight:700;color:#0055D4;background:rgba(0,85,212,0.1);border:1px solid rgba(0,85,212,0.2);border-radius:6px;cursor:pointer;">
-                                                            <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                                            Upload
-                                                        </button>
-                                                        <div id="awp-{{ $task->id }}" class="aw-picker" style="display:none;position:fixed;z-index:9999;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.18);padding:10px;width:210px;" onclick="event.stopPropagation()">
-                                                            <form action="{{ route('deliverables.submit', $task) }}" method="POST" enctype="multipart/form-data">
-                                                                @csrf
-                                                                <input type="hidden" name="action" value="save_only">
-                                                                <label style="display:flex;align-items:center;gap:9px;padding:8px;border-radius:7px;cursor:pointer;transition:background 0.12s;" onmouseenter="this.style.background='var(--color-bg-secondary)'" onmouseleave="this.style.background='transparent'">
-                                                                    <div style="width:28px;height:28px;border-radius:6px;background:rgba(0,85,212,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                                                        <svg width="13" height="13" fill="none" stroke="#0055D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Media</div>
-                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP, MP4, WebM</div>
-                                                                    </div>
-                                                                    <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
-                                                                </label>
-                                                            </form>
-                                                            <div style="display:flex;align-items:center;gap:6px;margin:4px 6px;">
-                                                                <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
-                                                                <span style="font-size:9px;color:var(--color-text-secondary);">or</span>
-                                                                <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
-                                                            </div>
-                                                            <form action="{{ route('deliverables.submit', $task) }}" method="POST" style="padding:2px 4px 4px;">
-                                                                @csrf
-                                                                <input type="hidden" name="action" value="save_only">
-                                                                <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;">
-                                                                    <div style="width:28px;height:28px;border-radius:6px;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                                                        <svg width="12" height="12" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                                                    </div>
-                                                                    <span style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Paste Link</span>
-                                                                </div>
-                                                                <input type="url" name="final_designs_link" placeholder="https://…" required style="width:100%;padding:7px 10px;font-size:11px;border:1.5px solid var(--color-border-primary);border-radius:7px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor=''">
-                                                                <button type="submit" style="width:100%;margin-top:7px;padding:7px;background:#10b981;color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;">Save Link</button>
-                                                            </form>
-                                                        </div>
-                                                    </div>
-                                                @else
-                                                    <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
-                                                @endif
-                                            @endif
-                                        </td>
-                                        <td onclick="event.stopPropagation()">
-                                            @php $canEditHrs = $currentUserIsAdmin ||
-    ($userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId)); @endphp
-                                            @if($canEditHrs)
-                                                <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $task->id }}" value="{{ $task->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
-                                            @else
-                                                <span style="font-size:11px;font-weight:600;color:var(--color-text-secondary);">{{ $task->work_hours ? number_format($task->work_hours, 1).'h' : '—' }}</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @php
-                                                $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
-                                                $taskRevHistory = $task->getRelation('revisionsHistory') ?? collect();
-                                                $taskWrevs = $taskRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
-                                                $taskDrevs = $taskRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
-                                            @endphp
-                                            <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                                @if($taskWrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $taskWrevs }}</span>
-                                                @endif
-                                                @if($taskDrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $taskDrevs }}</span>
-                                                @endif
-                                                @if($taskWrevs === 0 && $taskDrevs === 0)
-                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="rtb-stage-label">
-                                                {{ $task->approval_stage ?: 'Writer' }}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            @if($isAdmin || $userRole === 'brandmanager')
-                                                <select onchange="updateClientStatusInline(this, {{ $task->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
-                                                    <option value="Not Sent" {{ !$task->client_status || $task->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
-                                                    <option value="Sent to Client" {{ $task->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
-                                                    <option value="Waiting for Feedback" {{ $task->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
-                                                    <option value="Client Approved" {{ $task->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
-                                                    <option value="Client Revisions" {{ $task->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
-                                                </select>
-                                            @else
-                                                <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
-                                                    {{ $task->client_status ?: 'Not Sent' }}
-                                                </div>
-                                            @endif
-                                        </td>
-                                        <td style="text-align:center;">
-                                            <div class="quick-actions-grid">
-                                                @php
-                                                    $stage = $task->approval_stage;
-                                                    $nextStage = $task->getNextStage();
-                                                    $canApproveIndividual = $isAdmin || (
-                                                        (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review' || $stage === 'Scheduled') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
-                                                        (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
-                                                        ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
-                                                        ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
-                                                    );
-                                                    $canReviseIndividual = $isAdmin || (
-                                                        (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                        ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
-                                                        (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
-                                                    );
-
-                                                    // Contextual label
-                                                    $btnLabel = 'Approve';
-                                                    if ($stage === 'Writer' || $stage === 'Assignee') $btnLabel = 'Submit';
-                                                    elseif ($stage === 'Coordinator') $btnLabel = 'Assign';
-                                                    elseif ($stage === 'Designer') $btnLabel = 'Send';
-                                                    elseif ($stage === 'Scheduled') $btnLabel = 'Scheduled';
-                                                    elseif ($stage === 'Writer Review') $btnLabel = 'Approve';
-                                                    elseif ($stage === 'Approver Review') $btnLabel = 'Approve';
-                                                @endphp
-
-                                                @if($task->revision_instructions)
-                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
-                                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
-                                                        Revision Requested
-                                                    </button>
-                                                @endif
-                                                @if($canApproveIndividual && $nextStage)
-                                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {approver: {{ $task->approver_id ?? 'null' }}, brand_manager: {{ $task->brand_manager_id ?? 'null' }}, coordinator: {{ $task->coordinator_id ?? 'null' }}, designer: {{ $task->designer_id ?? 'null' }}, writerName: '{{ addslashes($task->writer->name ?? '') }}', approverName: '{{ addslashes($task->approver->name ?? $project->approver->name ?? '') }}'}, {{ $task->revision_instructions ? 'true' : 'false' }})" class="quick-action-btn btn-approve-quick">
-                                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                        {{ $btnLabel }}
-                                                    </button>
-                                                @endif
-
-                                                @if($canReviseIndividual && $stage !== 'Writer' && $stage !== 'Assignee')
-                                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', 1, 'revision', {approver: {{ $task->approver_id ?? 'null' }}, brand_manager: {{ $task->brand_manager_id ?? 'null' }}, coordinator: {{ $task->coordinator_id ?? 'null' }}, designer: {{ $task->designer_id ?? 'null' }}, writerName: '{{ addslashes($task->writer->name ?? '') }}', approverName: '{{ addslashes($task->approver->name ?? $project->approver->name ?? '') }}'})" class="quick-action-btn btn-revise-quick">
-                                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                                        Revise
-                                                    </button>
-                                                @endif
-
-                                                <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">
-    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-    View
-</a>
-
-
-                                                @if($isAdmin || $userRole === 'brandmanager')
-                                                <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirm('Delete Deliverable?')" style="display:contents;" onclick="event.stopPropagation()">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" class="quick-action-btn btn-delete-quick">
-                                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                        Del
-                                                    </button>
-                                                </form>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endif
-                            @empty
-                            <tr>
-                                <td colspan="12" style="padding:60px 24px; text-align:center;">
-                                    <div style="display:inline-flex;flex-direction:column;align-items:center;gap:14px;">
-                                        <div style="width:56px;height:56px;border-radius:50%;background:var(--color-bg-secondary);border:2px dashed var(--color-border-primary);display:flex;align-items:center;justify-content:center;">
-                                            <svg width="22" height="22" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                        </div>
-                                        <div>
-                                            <div style="font-size:14px;font-weight:900;color:var(--color-text-primary);margin-bottom:4px;">No deliverables yet</div>
-                                            <div style="font-size:12px;font-weight:600;color:var(--color-text-secondary);">Add your first deliverable to get started</div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    @else
-                        <thead>
-                                <tr>
-                                    <th style="width:140px;">Deliverable</th>
-                                    <th style="width:75px;">Due Date</th>
-                                    <th style="width:90px;">Concept</th>
-                                <th style="width:80px;">Post Type</th>
-                                <th style="width:90px;">Caption</th>
-                                <th style="width:90px;">Post Copy</th>
-                                <th style="width:45px;">Ref</th>
-                                <th style="width:65px;">Artwork</th>
-                                <th style="width:55px;">Hrs</th>
-                                <th style="width:70px;">Rev</th>
-                                <th style="width:80px;">Stage</th>
-                                <th style="width:110px;">Client</th>
-                                <th style="width:130px; text-align:center;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                                @forelse($project->deliverables->whereNull('parent_deliverable_id') as $task)
-                                @if($task->subtasks->count() > 0)
-                                    <!-- Heading Row for Deliverable with Subtasks -->
-                                    <tr class="rtb-heading-row" style="background:rgba(255,255,255,0.03); border-left:4px solid #0055D4; cursor:pointer;" onclick="toggleSubtasks(event, {{ $task->id }})">
-                                        <td colspan="9">
-                                            <div class="deliverable-name-cell" style="padding: 10px 0; display:flex; align-items:center; gap:12px;">
-                                                <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle active" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:6px; outline:none;"></button>
-                                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:#0055D4; font-size:15px; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->title }}</span>
-                                                <span style="font-size:11px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:20px;">{{ $task->subtasks->count() }} Tasks</span>
-                                            </div>
-                                        </td>
-                                        <td onclick="event.stopPropagation()"></td>
-                                        <td>
-                                            <div class="rtb-stage-label" style="background:#0055D4; color:#ffffff; font-weight:800; padding:4px 10px; border-radius:6px; font-size:10px; box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-                                                {{ $task->approval_stage ?: 'Writer' }}
-                                            </div>
-                                        </td>
-                                        <td style="text-align:right; padding-right:15px;">
-                                            @php
-                                                $userRole = strtolower(str_replace(' ', '', auth()->user()->role));
-                                                $isAdmin = $userRole === 'admin';
-                                                $stage = $task->approval_stage;
-                                                
-                                                $isReviewStage = in_array($stage, ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Coordinator', 'Designer']);
-                                                
-                                                $canApproveBatch = $isAdmin || (
-                                                    (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Writer Review' || $stage === 'Scheduled') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
-                                                    (($stage === 'Brand Manager' || $stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
-                                                    ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
-                                                    ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
-                                                );
-
-                                                $canReviseBatch = $isAdmin || (
-                                                    (($stage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                                    ((in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->approver_id || $task->approver_id == $currentUserId)) || ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId))) ||
-                                                    (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId))
-                                                );
-                                                
-                                                $nextStage = $task->getNextStage();
-                                                $label = "Approve Batch";
-                                                if ($nextStage) {
-                                                    if ($stage === 'Writer' || $stage === 'Assignee') $label = "Submit Batch to Approver";
-                                                    elseif ($stage === 'Scheduled') $label = "Scheduled and Closed";
-                                                    elseif ($stage === 'Approver') $label = "Submit to Brand Manager";
-                                                    elseif ($stage === 'Brand Manager') $label = "Submit to Coordinator";
-                                                    elseif ($stage === 'Coordinator') $label = "Submit to Designer";
-                                                    elseif ($stage === 'Designer') $label = "Batch Design Delivery";
-                                                    elseif ($stage === 'Writer Review') $label = "Approve to Approver Review";
-                                                    elseif ($stage === 'Approver Review') $label = "Approve to Final Approval";
-                                                    elseif ($nextStage === 'Closed') $label = "Approve & Close Batch";
-                                                }
-
-                                                $subtasks = $task->subtasks;
-                                                $allTasksForBatch = $subtasks;
-                                                $totalInBatch = $allTasksForBatch->count();
-
-                                                $stageOrder = ['Writer', 'Assignee', 'Approver', 'Brand Manager', 'AM/BD', 'Coordinator', 'Designer', 'Writer Review', 'Approver Review', 'Final Approval', 'Scheduled', 'Closed'];
-                                                $currIdx = array_search($stage, $stageOrder);
-                                                
-                                                $readyInBatch = $allTasksForBatch->filter(function($t) use ($stage, $stageOrder, $currIdx) {
-                                                    $tIdx = array_search($t->approval_stage, $stageOrder);
-                                                    if ($tIdx > $currIdx) return true; // Already moved ahead
-                                                    if ($tIdx < $currIdx) return false; // Behind (Revision Request)
-                                                    
-                                                    return true; // Consider ready since it is at the current stage
-                                                })->count();
-
-                                                $progressBatch = ($totalInBatch > 0) ? ($readyInBatch / $totalInBatch) * 100 : 0;
-                                                $allReady = $readyInBatch === $totalInBatch;
-                                                $hasIndividuallySubmitted = $subtasks->contains(function($t) use ($stage, $stageOrder, $currIdx) {
-                                                    $tIdx = array_search($t->approval_stage, $stageOrder);
-                                                    return $tIdx > $currIdx;
-                                                });
-
-                                                if ($hasIndividuallySubmitted) {
-                                                    $label = "Batch Gated (Individual Submission)";
-                                                }
-
-                                                // Block batch submission if any subtask is individually submitted ahead
-                                                $isGated = $hasIndividuallySubmitted;
-                                            @endphp
-                                            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-                                                <div style="display:flex; align-items:center; gap:10px; margin-bottom: 2px;">
-                                                    <div style="text-align:right;">
-                                                        <div style="font-size:9px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px;">Batch Progress</div>
-                                                        <div style="font-size:11px; font-weight:900; color:{{ $allReady ? '#10b981' : '#0055D4' }};">{{ $readyInBatch }} / {{ $totalInBatch }} Ready</div>
-                                                    </div>
-                                                    <div style="width:60px; height:6px; background:rgba(0,85,212,0.1); border-radius:10px; overflow:hidden;">
-                                                        <div style="width:{{ $progressBatch }}%; height:100%; background:{{ $allReady ? '#10b981' : '#0055D4' }}; transition:width 0.3s ease;"></div>
-                                                    </div>
-                                                </div>
-                                                <div style="display:flex; flex-direction:column; align-items:stretch; gap:8px; width: 100%;" onclick="event.stopPropagation()">
-                                                    @php 
-                                                        $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "'}";
-                                                    @endphp
-                                                    <div style="display:flex; gap:6px; width: 100%;">
-                                                        <a href="{{ route('deliverables.export-batch.ppt', $task->id) }}" onclick="event.stopPropagation()" class="cd-btn cd-btn-outline" title="Export Batch PPT" style="flex:1; justify-content:center; padding:6px; border-radius:8px; font-size:9px; font-weight:600; letter-spacing:0.05em;">PPT</a>
-                                                    </div>
-                                                    @if($canReviseBatch)
-                                                        @php
-                                                            $hasRevisionInBatch = $allTasksForBatch->contains(function($t) use ($stageOrder, $currIdx) {
-                                                                $tIdx = array_search($t->approval_stage, $stageOrder);
-                                                                return $tIdx !== false && $tIdx < $currIdx;
-                                                            });
-                                                        @endphp
-                                                        <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $stage }}', {{ $totalInBatch }}, 'revision', {{ $batchStakeholders }})" 
-                                                                class="cd-btn cd-btn-outline" 
-                                                                style="padding:6px 12px; border-radius:8px; font-size:9px; letter-spacing:0.05em; width: 100%; justify-content: center; {{ !$hasRevisionInBatch ? 'color:#ef4444; border-color:rgba(239,68,68,0.2); background:rgba(239,68,68,0.05); cursor:pointer;' : 'color:var(--color-text-secondary); border-color:var(--color-border-primary); background:none; cursor:not-allowed; opacity:0.6;' }}"
-                                                                {{ $hasRevisionInBatch ? 'disabled' : '' }}>
-                                                            Revise Batch
-                                                        </button>
-                                                    @endif
-                                                    @if($canApproveBatch && $nextStage)
-                                                        <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }}, {{ $task->revision_instructions ? 'true' : 'false' }})" 
-                                                                class="cd-btn {{ (!$isGated) ? 'cd-btn-primary' : 'cd-btn-outline' }}" 
-                                                                style="padding:6px 12px; border-radius:8px; font-size:9px; letter-spacing:0.05em; box-shadow:none; width: 100%; justify-content: center; {{ $isGated ? 'opacity:0.6; cursor:not-allowed; color:#94a3b8; border-color:#e2e8f0;' : '' }}"
-                                                                {{ $isGated ? 'disabled' : '' }}>
-                                                            {{ $label }}
-                                                        </button>
-                                                    @endif
-                                                </div>
-                                        </td>
-                                    </tr>
-                                    @foreach($task->subtasks as $subtask)
-                                    <tr class="subtask-row subtask-of-{{ $task->id }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
-                                        <td>
-                                            <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
-                                                <span style="font-weight:700; color:#475569;">{{ $subtask->title }}</span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
-                                            <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
-                                            <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
-                                        </td>
-                                        <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="concept" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($subtask->concept) }}</textarea>
-                                        </td>
-                                        <td>
-                                            @if($subtask->subtask_type)
-                                                @php $colors = $subtaskTypeColors[$subtask->subtask_type] ?? $subtaskTypeColors['default']; @endphp
-                                                <span class="subtask-pill" style="background:{{ $colors['bg'] }}; color:{{ $colors['text'] }}; border-color:{{ $colors['border'] }};">
-                                                    {{ $subtask->subtask_type }}
-                                                </span>
-                                            @else
-                                                —
-                                            @endif
-                                        </td>
-                                        <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="caption" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($subtask->caption) }}</textarea>
-                                        </td>
-                                        <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $subtask->id }}" data-field="post_copy" onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($subtask->post_copy) }}</textarea>
-                                        </td>
-                                        <td onclick="event.stopPropagation()">
-                                            @if($subtask->reference_file)
-                                              @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $subtask->reference_file))
-                                                  <video src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Video" preload="metadata"></video>
-                                              @else
-                                                  <img src="{{ $subtask->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $subtask->reference_file }}', false)" title="View Image">
-                                              @endif
-                                            @elseif($subtask->reference)
-                                                <a href="{{ $subtask->reference }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15);" title="Visit Link">
-                                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                                </a>
-                                            @else
-                                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($subtask->final_designs)
-                                                @php
-                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $subtask->final_designs);
-                                                    $isAssignedDesigner = $currentUserId == $subtask->designer_id;
-                                                    $designerEditPermission = $isAssignedDesigner || ($currentUserRole === 'designer' && !$subtask->designer_id);
-                                                    $canRemoveSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
-                                                @endphp
-                                                @if($isImg)
-                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $subtask->final_designs))
-                                                          <video src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="View Video" preload="metadata"></video>
-                                                      @else
-                                                          <img src="{{ $subtask->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $subtask->final_designs }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork">
-                                                      @endif
-                                                @else
-                                                    <a href="{{ $subtask->final_designs }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
-                                                @endif
-                                            @elseif($subtask->final_designs_link)
-                                                <a href="{{ $subtask->final_designs_link }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
-                                            @else
-                                                @php
-                                                    $isAssignedDesigner = $currentUserId == $subtask->designer_id;
-                                                    $designerEditPermission = $isAssignedDesigner || ($currentUserRole === 'designer' && !$subtask->designer_id);
-                                                    $canUploadSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
-                                                @endphp
-                                                @if(false)
-                                                    <div style="position:relative;display:inline-block;" onclick="event.stopPropagation()">
-                                                        <button type="button" onclick="toggleArtworkPicker('awp-{{ $subtask->id }}',this)" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;font-size:9px;font-weight:700;color:#0055D4;background:rgba(0,85,212,0.1);border:1px solid rgba(0,85,212,0.2);border-radius:6px;cursor:pointer;">
-                                                            <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                                            Upload
-                                                        </button>
-                                                        <div id="awp-{{ $subtask->id }}" class="aw-picker" style="display:none;position:fixed;z-index:9999;background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.18);padding:10px;width:210px;" onclick="event.stopPropagation()">
-                                                            <form action="{{ route('deliverables.submit', $subtask) }}" method="POST" enctype="multipart/form-data" class="ajax-form">
-                                                                @csrf
-                                                                <input type="hidden" name="action" value="save_only">
-                                                                <label style="display:flex;align-items:center;gap:9px;padding:8px;border-radius:7px;cursor:pointer;transition:background 0.12s;" onmouseenter="this.style.background='var(--color-bg-secondary)'" onmouseleave="this.style.background='transparent'">
-                                                                    <div style="width:28px;height:28px;border-radius:6px;background:rgba(0,85,212,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                                                        <svg width="13" height="13" fill="none" stroke="#0055D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Media</div>
-                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP, MP4, WebM</div>
-                                                                    </div>
-                                                                    <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))">
-                                                                </label>
-                                                            </form>
-                                                            <div style="display:flex;align-items:center;gap:6px;margin:4px 6px;">
-                                                                <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
-                                                                <span style="font-size:9px;color:var(--color-text-secondary);">or</span>
-                                                                <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
-                                                            </div>
-                                                            <form action="{{ route('deliverables.submit', $subtask) }}" method="POST" style="padding:2px 4px 4px;" class="ajax-form">
-                                                                @csrf
-                                                                <input type="hidden" name="action" value="save_only">
-                                                                <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px;">
-                                                                    <div style="width:28px;height:28px;border-radius:6px;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                                                        <svg width="12" height="12" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                                                    </div>
-                                                                    <span style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Paste Link</span>
-                                                                </div>
-                                                                <input type="url" name="final_designs_link" placeholder="https://…" required style="width:100%;padding:7px 10px;font-size:11px;border:1.5px solid var(--color-border-primary);border-radius:7px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor=''">
-                                                                <button type="submit" style="width:100%;margin-top:7px;padding:7px;background:#10b981;color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;">Save Link</button>
-                                                            </form>
-                                                        </div>
-                                                    </div>
-                                                @else
-                                                    <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
-                                                @endif
-                                            @endif
-                                        </td>
-                                        <td onclick="event.stopPropagation()">
-                                            @php $canEditHrs = $currentUserIsAdmin ||
-    ($userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId)); @endphp
-                                            @if($canEditHrs)
-                                                <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $subtask->id }}" value="{{ $subtask->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
-                                            @else
-                                                <span style="font-size:11px;font-weight:600;color:var(--color-text-secondary);">{{ $subtask->work_hours ? number_format($subtask->work_hours, 1).'h' : '—' }}</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @php
-                                                $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
-                                                $subRevHistory = $subtask->getRelation('revisionsHistory') ?? collect();
-                                                $subWrevs = $subRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
-                                                $subDrevs = $subRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
-                                            @endphp
-                                            <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                                @if($subWrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $subWrevs }}</span>
-                                                @endif
-                                                @if($subDrevs > 0)
-                                                    <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(236,72,153,0.1);color:#db2777;border:1.5px solid rgba(236,72,153,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">D</span>{{ $subDrevs }}</span>
-                                                @endif
-                                                @if($subWrevs === 0 && $subDrevs === 0)
-                                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $subtask->approval_stage }}</div>
-                                        </td>
-                                        <td>
-                                            <div style="font-size:10px; font-weight:700; color:{{ $subtask->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
-                                                {{ $subtask->client_status ?: 'Not Sent' }}
-                                            </div>
-                                        </td>
-                                        <td style="text-align:center;">
-                                            <div class="quick-actions-grid">
-                                                @php
-                                                    $subStage = $subtask->approval_stage;
-                                                    $subNextStage = $subtask->getNextStage();
-                                                    $canApproveSub = $isAdmin || (
-                                                        (($subStage === 'Writer' || $subStage === 'Assignee' || $subStage === 'Writer Review' || $subStage === 'Scheduled') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        ((in_array($subStage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) || ($subStage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$subtask->further_approver_id || $subtask->further_approver_id == $currentUserId))) ||
-                                                        (($subStage === 'Brand Manager' || $subStage === 'AM/BD' || $subStage === 'Final Approval') && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId)) ||
-                                                        ($subStage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator']) && (!$subtask->coordinator_id || $subtask->coordinator_id == $currentUserId)) ||
-                                                        ($subStage === 'Designer' && $userRole === 'designer' && (!$subtask->designer_id || $subtask->designer_id == $currentUserId))
-                                                    );
-                                                    $canReviseSub = $isAdmin || (
-                                                        (($subStage === 'Writer Review') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || $subtask->writer_id == $currentUserId)) ||
-                                                        ((in_array($subStage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$subtask->approver_id || $subtask->approver_id == $currentUserId)) || ($subStage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$subtask->further_approver_id || $subtask->further_approver_id == $currentUserId))) ||
-                                                        (in_array($subStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && $userRole === 'brandmanager' && (!$subtask->brand_manager_id || $subtask->brand_manager_id == $currentUserId))
-                                                    );
-
-                                                    // Contextual label
-                                                    $btnLabel = 'Approve';
-                                                    if ($subStage === 'Writer' || $subStage === 'Assignee') $btnLabel = 'Submit';
-                                                    elseif ($subStage === 'Coordinator') $btnLabel = 'Assign';
-                                                    elseif ($subStage === 'Designer') $btnLabel = 'Send';
-                                                    elseif ($subStage === 'Scheduled') $btnLabel = 'Scheduled and Closed';
-                                                    elseif ($subStage === 'Writer Review') $btnLabel = 'Approve';
-                                                    elseif ($subStage === 'Approver Review') $btnLabel = 'Approve';
-                                                @endphp
-
-                                                @php
-                                                    $subStakeholders = "{approver: " . ($subtask->approver_id ?? 'null') . ", brand_manager: " . ($subtask->brand_manager_id ?? 'null') . ", coordinator: " . ($subtask->coordinator_id ?? 'null') . ", designer: " . ($subtask->designer_id ?? 'null') . ", writerName: '" . addslashes($subtask->writer->name ?? '') . "', approverName: '" . addslashes($subtask->approver->name ?? $project->approver->name ?? '') . "'}";
-                                                @endphp
-                                                @if($subtask->revision_instructions)
-                                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
-                                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
-                                                        Revision Requested
-                                                    </button>
-                                                @endif
-                                                @if($canApproveSub && $subNextStage)
-                                                    <button type="button" onclick="openBatchModal(event, {{ $subtask->id }}, '{{ $subNextStage }}', 1, 'submit', {{ $subStakeholders }}, {{ $subtask->revision_instructions ? 'true' : 'false' }})" class="quick-action-btn btn-approve-quick">
-                                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                        {{ $btnLabel }}
-                                                    </button>
-                                                @endif
-
-                                                @if($canReviseSub && $subStage !== 'Writer' && $subStage !== 'Assignee')
-                                                    <button type="button" onclick="openBatchModal(event, {{ $subtask->id }}, '{{ $subStage }}', 1, 'revision', {{ $subStakeholders }})" class="quick-action-btn btn-revise-quick">
-                                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                                        Revise
-                                                    </button>
-                                                @endif
-
-                                                <a href="{{ route('deliverables.show', $subtask->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">
-    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-    View
-</a>
-                                                @if($isAdmin || $userRole === 'brandmanager' || $userRole === 'writer')
-                                                <form action="{{ route('deliverables.destroy', $subtask) }}" method="POST" onsubmit="return confirm('CRITICAL ACTION: Are you sure you want to permanently delete this subtask?')" style="display:contents;" onclick="event.stopPropagation()">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" class="quick-action-btn btn-delete-quick">
-                                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                        Del
-                                                    </button>
-                                                </form>
-                                                @endif
-                                            </div>
-                                        </td>
-
                                     </tr>
                                     @endforeach
                                 @else
@@ -1582,15 +940,6 @@
                                                 @else
                                                     <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
                                                 @endif
-                                            @endif
-                                        </td>
-                                        <td onclick="event.stopPropagation()">
-                                            @php $canEditHrs = $currentUserIsAdmin ||
-    ($userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId)); @endphp
-                                            @if($canEditHrs)
-                                                <input type="number" min="0" max="999" step="0.5" class="hrs-input" data-task-id="{{ $task->id }}" value="{{ $task->work_hours ?? '' }}" placeholder="0" style="width:46px;padding:4px 6px;font-size:11px;font-weight:600;border:1.5px solid var(--color-border-primary);border-radius:6px;background:var(--color-bg-secondary);color:var(--color-text-primary);outline:none;text-align:center;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor=''">
-                                            @else
-                                                <span style="font-size:11px;font-weight:600;color:var(--color-text-secondary);">{{ $task->work_hours ? number_format($task->work_hours, 1).'h' : '—' }}</span>
                                             @endif
                                         </td>
                                         <td>
@@ -4100,6 +3449,114 @@
                 overlay.style.display = 'none';
                 activeTextarea = null;
             }, 300);
+        }
+
+        
+        // Media Gallery Modal Functions
+        function openMediaGallery(title, files = [], urls = []) {
+            let modal = document.getElementById('mediaGalleryModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'mediaGalleryModal';
+                modal.className = 'cd-modal-overlay';
+                modal.style.cssText = 'z-index:999999; justify-content:center; align-items:center; opacity:0; transition:opacity 0.2s ease; display:none;';
+                modal.onclick = closeMediaGallery;
+                modal.innerHTML = `
+                    <div class="cd-modal" style="width:90%; max-width:680px; max-height:85vh; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,0.3); display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
+                        <div style="padding:16px 20px; border-bottom:1px solid var(--color-border-primary); display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-secondary);">
+                            <h3 id="mediaGalleryTitle" style="margin:0; font-size:15px; font-weight:800; color:var(--color-text-primary); display:flex; align-items:center; gap:8px;"></h3>
+                            <button onclick="closeMediaGallery()" style="background:rgba(255,255,255,0.08); border:none; color:var(--color-text-secondary); width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.color='var(--color-text-primary)';this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.color='var(--color-text-secondary)';this.style.background='rgba(255,255,255,0.08)'">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        <div id="mediaGalleryContent" style="padding:20px; overflow-y:auto; flex:1; display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; align-content:start;"></div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            const titleEl = document.getElementById('mediaGalleryTitle');
+            const contentEl = document.getElementById('mediaGalleryContent');
+            titleEl.innerHTML = `<svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> ${title} (${(files ? files.length : 0) + (urls ? urls.length : 0)})`;
+
+            let html = '';
+
+            if (files && files.length > 0) {
+                files.forEach((fileUrl, idx) => {
+                    const isVideo = fileUrl.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
+                    const isImg   = fileUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(?:$|\?)/i);
+
+                    html += `<div style="background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; align-items:center; transition:transform 0.15s; box-shadow:0 4px 12px rgba(0,0,0,0.08);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">`;
+                    
+                    if (isVideo) {
+                        html += `
+                            <div style="position:relative; width:100%; height:140px; background:#000; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="openImagePreview('${fileUrl}', false)">
+                                <video src="${fileUrl}" style="width:100%; height:100%; object-fit:cover;" preload="metadata"></video>
+                                <div style="position:absolute; background:rgba(0,0,0,0.6); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+                                    <svg width="16" height="16" fill="#fff" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                </div>
+                            </div>`;
+                    } else if (isImg) {
+                        html += `
+                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="openImagePreview('${fileUrl}', false)">
+                                <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            </div>`;
+                    } else {
+                        html += `
+                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px; text-align:center;">
+                                <svg width="28" height="28" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary); word-break:break-all;">${fileUrl.split('/').pop()}</span>
+                            </div>`;
+                    }
+
+                    html += `
+                        <div style="width:100%; padding:8px 10px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary);">
+                            <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">Item ${idx + 1}</span>
+                            <a href="${fileUrl}" target="_blank" download style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:5px; text-decoration:none;" onclick="event.stopPropagation();">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Open
+                            </a>
+                        </div>
+                    </div>`;
+                });
+            }
+
+            if (urls && urls.length > 0) {
+                urls.forEach((url, idx) => {
+                    html += `
+                        <div style="grid-column:1 / -1; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:10px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                            <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+                                <div style="width:32px; height:32px; border-radius:8px; background:rgba(0,85,212,0.1); color:#0055D4; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                </div>
+                                <span style="font-size:11px; font-weight:600; color:var(--color-text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${url}">${url}</span>
+                            </div>
+                            <a href="${url}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; padding:5px 12px; font-size:11px; font-weight:700; color:#0055D4; background:rgba(0,85,212,0.1); border:1px solid rgba(0,85,212,0.25); border-radius:6px; text-decoration:none; flex-shrink:0;">
+                                Visit Link
+                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                        </div>`;
+                });
+            }
+
+            contentEl.innerHTML = html || '<div style="grid-column:1 / -1; text-align:center; padding:30px; color:var(--color-text-secondary); font-size:12px;">No items found.</div>';
+
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.style.opacity = '1';
+                modal.querySelector('.cd-modal').classList.add('active');
+            }, 10);
+        }
+
+        function closeMediaGallery(e) {
+            if (e && e.target !== document.getElementById('mediaGalleryModal')) return;
+            const modal = document.getElementById('mediaGalleryModal');
+            if (!modal) return;
+            modal.style.opacity = '0';
+            if (modal.querySelector('.cd-modal')) modal.querySelector('.cd-modal').classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 200);
         }
 
         // Image Preview Functions

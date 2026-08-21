@@ -55,6 +55,95 @@ class Deliverable extends Model
         'designer_deadline' => 'datetime',
     ];
 
+    protected $appends = [
+        'reference_files_list',
+        'reference_urls_list',
+        'final_designs_list',
+        'final_designs_urls_list',
+    ];
+
+    public function getReferenceFilesArray(): array
+    {
+        if (empty($this->reference_file)) {
+            return [];
+        }
+        $val = trim(trim($this->reference_file), '"\'');
+        if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
+            $decoded = json_decode($val, true);
+            if (is_array($decoded)) {
+                return array_values(array_filter(array_map(fn($item) => is_string($item) ? trim($item, '"\'') : $item, $decoded)));
+            }
+        }
+        return [$val];
+    }
+
+    public function getReferenceUrlsArray(): array
+    {
+        if (empty($this->reference)) {
+            return [];
+        }
+        $val = trim(trim($this->reference), '"\'');
+        if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
+            $decoded = json_decode($val, true);
+            if (is_array($decoded)) {
+                return array_values(array_filter(array_map(fn($item) => is_string($item) ? trim($item, '"\'') : $item, $decoded)));
+            }
+        }
+        $urls = preg_split('/[\r\n,]+/', $val);
+        return array_values(array_filter(array_map(fn($u) => trim($u, '"\' '), $urls)));
+    }
+
+    public function getFinalDesignsArray(): array
+    {
+        if (empty($this->final_designs)) {
+            return [];
+        }
+        $val = trim(trim($this->final_designs), '"\'');
+        if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
+            $decoded = json_decode($val, true);
+            if (is_array($decoded)) {
+                return array_values(array_filter(array_map(fn($item) => is_string($item) ? trim($item, '"\'') : $item, $decoded)));
+            }
+        }
+        return [$val];
+    }
+
+    public function getFinalDesignsUrlsArray(): array
+    {
+        if (empty($this->final_designs_link)) {
+            return [];
+        }
+        $val = trim(trim($this->final_designs_link), '"\'');
+        if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
+            $decoded = json_decode($val, true);
+            if (is_array($decoded)) {
+                return array_values(array_filter(array_map(fn($item) => is_string($item) ? trim($item, '"\'') : $item, $decoded)));
+            }
+        }
+        $urls = preg_split('/[\r\n,]+/', $val);
+        return array_values(array_filter(array_map(fn($u) => trim($u, '"\' '), $urls)));
+    }
+
+    public function getReferenceFilesListAttribute(): array
+    {
+        return $this->getReferenceFilesArray();
+    }
+
+    public function getReferenceUrlsListAttribute(): array
+    {
+        return $this->getReferenceUrlsArray();
+    }
+
+    public function getFinalDesignsListAttribute(): array
+    {
+        return $this->getFinalDesignsArray();
+    }
+
+    public function getFinalDesignsUrlsListAttribute(): array
+    {
+        return $this->getFinalDesignsUrlsArray();
+    }
+
     protected static function booted()
     {
         static::saved(function ($deliverable) {
@@ -352,5 +441,13 @@ class Deliverable extends Model
                 $actor
             ));
         }
+    }
+
+    /**
+     * Artwork review links relationship
+     */
+    public function artworkReviews()
+    {
+        return $this->hasMany(ArtworkReview::class, 'deliverable_id');
     }
 }

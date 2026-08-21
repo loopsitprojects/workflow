@@ -332,16 +332,16 @@
                 '<textarea name="subtasks[' + idx + '][post_copy]" rows="3" placeholder="N/A" class="styled-textarea" style="min-height:70px;"></textarea>' +
                 '</div>' +
                 '<div class="subtask-cell full" style="border-bottom:none;">' +
-                '<label class="field-label">Reference</label>' +
-                '<div class="ref-toggle-container">' +
-                '<button type="button" class="ref-toggle-btn active" onclick="toggleRefType(' + idx + ', \'link\')">Link</button>' +
-                '<button type="button" class="ref-toggle-btn" onclick="toggleRefType(' + idx + ', \'upload\')">Upload</button>' +
-                '</div>' +
-                '<div id="ref-input-link-' + idx + '" style="display:block;">' +
+                '<label class="field-label">Reference <span style="opacity:0.6;font-weight:400;font-size:11px;">(Link, Image/File, or Both)</span></label>' +
+                '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; align-items:start; margin-top:6px;">' +
+                '<div>' +
+                '<label style="display:block;font-size:10px;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;text-transform:uppercase;">Reference Link</label>' +
                 '<input type="url" name="subtasks[' + idx + '][reference]" placeholder="https://..." class="styled-input">' +
                 '</div>' +
-                '<div id="ref-input-upload-' + idx + '" style="display:none;">' +
+                '<div>' +
+                '<label style="display:block;font-size:10px;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;text-transform:uppercase;">Reference Image / File</label>' +
                 '<input type="file" name="subtasks[' + idx + '][reference_file]" accept="image/*,video/*" class="styled-input" style="padding:9px 14px;cursor:pointer;">' +
+                '</div>' +
                 '</div>' +
                 '</div>' +
                 '</div>';
