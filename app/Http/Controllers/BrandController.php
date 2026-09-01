@@ -104,7 +104,7 @@ class BrandController extends Controller
             $q->orderBy('type', 'desc'); // primary first
         }]);
         
-        $pendingDeliverables = $brand->deliverables()->where('deliverables.status', '!=', 'Done')->with('project')->get();
+        $pendingDeliverables = $brand->deliverables()->doesntHave('subtasks')->where('deliverables.status', '!=', 'Done')->with('project')->get();
         
         return view('brands.show', compact('brand', 'pendingDeliverables'));
     }
@@ -124,6 +124,7 @@ class BrandController extends Controller
         }
 
         $deliverables = $brand->deliverables()
+            ->doesntHave('subtasks')
             ->whereHas('project', function($q) {
                 $q->where('workflow_type', 'retainer');
             })

@@ -274,10 +274,26 @@
             return null;
         };
 
-        $refImgSrc  = $imgSrc($deliverable->reference_file);
-        $artImgSrc  = $imgSrc($deliverable->final_designs);
-        $hasRefImg  = (bool) $refImgSrc;
-        $hasArtImg  = (bool) $artImgSrc;
+        $refFiles   = $deliverable->getReferenceFilesArray();
+        $refUrls    = $deliverable->getReferenceUrlsArray();
+        $refImgSrcs = [];
+        foreach ($refFiles as $rf) {
+            $src = $imgSrc($rf);
+            if ($src) $refImgSrcs[] = $src;
+        }
+
+        $artFiles   = $deliverable->getFinalDesignsArray();
+        if (empty($artFiles) && !empty($deliverable->final_designs)) {
+            $artFiles = [$deliverable->final_designs];
+        }
+        $artImgSrcs = [];
+        foreach ($artFiles as $af) {
+            $src = $imgSrc($af);
+            if ($src) $artImgSrcs[] = $src;
+        }
+
+        $hasRefImg  = !empty($refImgSrcs);
+        $hasArtImg  = !empty($artImgSrcs);
         $brand      = $deliverable->project->brand->name  ?? '';
         $project    = $deliverable->project->name         ?? '';
         $deadline   = $deliverable->deadline ? \Carbon\Carbon::parse($deliverable->deadline)->format('d M Y') : null;
@@ -356,38 +372,52 @@
     @endif
 
     {{-- Media --}}
-    @if($hasRefImg || $hasArtImg || $deliverable->reference || $deliverable->final_designs_link)
+    @if($hasRefImg || $hasArtImg || !empty($refUrls) || $deliverable->final_designs_link || !empty($refFiles) || !empty($artFiles))
     <div class="rule-thin"></div>
 
     @if($hasRefImg && $hasArtImg)
-        {{-- Both images — side by side --}}
+        {{-- Both images — side by side with separate headers --}}
         <div class="two-col">
             <div class="two-col-cell">
-                <div class="section-label">Reference</div>
+                <div class="section-label">Final Artwork</div>
                 <div class="img-container">
-                    <img src="{{ $refImgSrc }}" alt="Reference">
-                    @if($deliverable->reference)
-                        <div class="img-link" style="margin-top:6px;">{{ $deliverable->reference }}</div>
+                    @foreach($artImgSrcs as $imgSrc)
+                        <img src="{{ $imgSrc }}" alt="Artwork" style="margin-bottom:6px;">
+                    @endforeach
+                    @if($deliverable->final_designs_link)
+                        <div class="img-link" style="margin-top:6px;"><a href="{{ $deliverable->final_designs_link }}" target="_blank" style="color:#10b981;">{{ $deliverable->final_designs_link }}</a></div>
                     @endif
                 </div>
             </div>
             <div class="two-col-cell">
-                <div class="section-label">Artwork</div>
+                <div class="section-label">Reference Images / Files</div>
                 <div class="img-container">
-                    <img src="{{ $artImgSrc }}" alt="Artwork">
-                    @if($deliverable->final_designs_link)
-                        <div class="img-link" style="margin-top:6px;">{{ $deliverable->final_designs_link }}</div>
+                    @foreach($refImgSrcs as $imgSrc)
+                        <img src="{{ $imgSrc }}" alt="Reference" style="margin-bottom:6px;">
+                    @endforeach
+                    @if(!empty($refUrls))
+                        <div style="margin-top:6px;">
+                            @foreach($refUrls as $url)
+                                <div class="img-link"><a href="{{ $url }}" target="_blank" style="color:#0055D4;">{{ $url }}</a></div>
+                            @endforeach
+                        </div>
                     @endif
                 </div>
             </div>
         </div>
     @elseif($hasRefImg)
         <div class="section">
-            <div class="section-label">Reference</div>
+            <div class="section-label">Reference Images / Files</div>
             <div class="img-full">
-                <img src="{{ $refImgSrc }}" alt="Reference">
-                @if($deliverable->reference)
-                    <div class="img-link" style="margin-top:6px;">{{ $deliverable->reference }}</div>
+                @foreach($refImgSrcs as $imgSrc)
+                    <img src="{{ $imgSrc }}" alt="Reference" style="margin-bottom:8px;">
+                @endforeach
+                @if(!empty($refUrls))
+                    <div style="margin-top:6px;">
+                        @foreach($refUrls as $url)
+                            <div class="img-link"><a href="{{ $url }}" target="_blank" style="color:#0055D4;">{{ $url }}</a></div>
+                        @endforeach
+                    </div>
                 @endif
             </div>
         </div>
@@ -401,38 +431,30 @@
         @endif
     @elseif($hasArtImg)
         <div class="section">
-            <div class="section-label">Artwork</div>
+            <div class="section-label">Final Artwork</div>
             <div class="img-full">
-                <img src="{{ $artImgSrc }}" alt="Artwork">
+                @foreach($artImgSrcs as $imgSrc)
+                    <img src="{{ $imgSrc }}" alt="Artwork" style="margin-bottom:8px;">
+                @endforeach
                 @if($deliverable->final_designs_link)
-                    <div class="img-link" style="margin-top:6px;">{{ $deliverable->final_designs_link }}</div>
+                    <div class="img-link" style="margin-top:6px;"><a href="{{ $deliverable->final_designs_link }}" target="_blank" style="color:#10b981;">{{ $deliverable->final_designs_link }}</a></div>
                 @endif
             </div>
         </div>
-        @if($deliverable->reference)
+        @if(!empty($refUrls))
         <div class="section">
-            <div class="section-label">Reference Link</div>
+            <div class="section-label">Reference Link(s)</div>
             <div class="img-container">
-                <div class="img-link">{{ $deliverable->reference }}</div>
+                @foreach($refUrls as $url)
+                    <div class="img-link"><a href="{{ $url }}" target="_blank" style="color:#0055D4;">{{ $url }}</a></div>
+                @endforeach
             </div>
         </div>
         @endif
     @else
         <div class="two-col">
             <div class="two-col-cell">
-                <div class="section-label">Reference</div>
-                <div class="img-container">
-                    @if($deliverable->reference)
-                        <div class="img-link">{{ $deliverable->reference }}</div>
-                    @elseif($deliverable->reference_file)
-                        <div class="img-link">{{ $deliverable->reference_file }}</div>
-                    @else
-                        <div class="img-none">None provided</div>
-                    @endif
-                </div>
-            </div>
-            <div class="two-col-cell">
-                <div class="section-label">Artwork</div>
+                <div class="section-label">Final Artwork</div>
                 <div class="img-container">
                     @if($deliverable->final_designs_link)
                         <div class="img-link">{{ $deliverable->final_designs_link }}</div>
@@ -440,6 +462,22 @@
                         <div class="img-link">{{ $deliverable->final_designs }}</div>
                     @else
                         <div class="img-none">Pending</div>
+                    @endif
+                </div>
+            </div>
+            <div class="two-col-cell">
+                <div class="section-label">Reference</div>
+                <div class="img-container">
+                    @if(!empty($refUrls))
+                        @foreach($refUrls as $url)
+                            <div class="img-link">{{ $url }}</div>
+                        @endforeach
+                    @elseif(!empty($refFiles))
+                        @foreach($refFiles as $f)
+                            <div class="img-link">{{ $f }}</div>
+                        @endforeach
+                    @else
+                        <div class="img-none">None provided</div>
                     @endif
                 </div>
             </div>

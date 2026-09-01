@@ -9,6 +9,7 @@ class ArtworkReview extends Model
 {
     protected $fillable = [
         'deliverable_id',
+        'round_number',
         'token',
         'client_name',
         'client_email',

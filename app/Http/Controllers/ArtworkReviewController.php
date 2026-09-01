@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ArtworkAnnotation;
+use App\Models\ArtworkAnnotationComment;
 use App\Models\ArtworkReview;
 use App\Models\Deliverable;
 use Illuminate\Http\Request;
@@ -20,14 +21,16 @@ class ArtworkReviewController extends Controller
     public function show(string $token)
     {
         $review = ArtworkReview::where('token', $token)
-            ->with(['deliverable', 'annotations'])
+            ->with(['deliverable.subtasks', 'annotations.comments.user', 'annotations.resolvedBy'])
             ->firstOrFail();
 
         if (!$review->isAccessible()) {
             return view('artwork.expired');
         }
 
-        return view('artwork.review', compact('review'));
+        $artworks = $review->deliverable ? $review->deliverable->getAllArtworkFiles() : [];
+
+        return view('artwork.review', compact('review', 'artworks'));
     }
 
     /**
@@ -43,14 +46,16 @@ class ArtworkReviewController extends Controller
         }
 
         $data = $request->validate([
-            'client_name'   => ['nullable', 'string', 'max:120'],
-            'annotations'   => ['required', 'array', 'min:1'],
-            'annotations.*.type'      => ['required', 'in:pin,drawing,text'],
-            'annotations.*.x_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'annotations.*.y_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'annotations.*.content'   => ['nullable', 'string'],
-            'annotations.*.color'     => ['nullable', 'string', 'max:20'],
-            'annotations.*.pin_number'=> ['nullable', 'integer'],
+            'client_name'                => ['nullable', 'string', 'max:120'],
+            'annotations'                => ['required', 'array', 'min:1'],
+            'annotations.*.type'         => ['required', 'in:pin,drawing,text'],
+            'annotations.*.artwork_index'=> ['nullable', 'integer', 'min:0'],
+            'annotations.*.image_url'    => ['nullable', 'string'],
+            'annotations.*.x_percent'    => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'annotations.*.y_percent'    => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'annotations.*.content'      => ['nullable', 'string'],
+            'annotations.*.color'        => ['nullable', 'string', 'max:20'],
+            'annotations.*.pin_number'   => ['nullable', 'integer'],
         ]);
 
         // Save client name if provided
@@ -58,17 +63,17 @@ class ArtworkReviewController extends Controller
             $review->update(['client_name' => $data['client_name']]);
         }
 
-        // Remove previous annotations for this review (replace with new submission)
-        $review->annotations()->delete();
-
         foreach ($data['annotations'] as $ann) {
             $review->annotations()->create([
-                'type'       => $ann['type'],
-                'x_percent'  => $ann['x_percent'] ?? null,
-                'y_percent'  => $ann['y_percent'] ?? null,
-                'content'    => $ann['content'] ?? null,
-                'color'      => $ann['color'] ?? '#ef4444',
-                'pin_number' => $ann['pin_number'] ?? null,
+                'artwork_index' => $ann['artwork_index'] ?? 0,
+                'image_url'     => $ann['image_url'] ?? null,
+                'type'          => $ann['type'],
+                'x_percent'     => $ann['x_percent'] ?? null,
+                'y_percent'     => $ann['y_percent'] ?? null,
+                'content'       => $ann['content'] ?? null,
+                'color'         => $ann['color'] ?? '#ef4444',
+                'pin_number'    => $ann['pin_number'] ?? null,
+                'is_resolved'   => false,
             ]);
         }
 
@@ -92,10 +97,37 @@ class ArtworkReviewController extends Controller
         }
 
         if ($manager) {
-            $manager->notify(new \App\Notifications\ArtworkReviewSubmitted($review, $review->client_name ?? 'Client'));
+            try {
+                $manager->notify(new \App\Notifications\ArtworkReviewSubmitted($review, $review->client_name ?? 'Client'));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to send ArtworkReviewSubmitted notification: ' . $e->getMessage());
+            }
         }
 
         return response()->json(['success' => true, 'message' => 'Your feedback has been submitted successfully!']);
+    }
+
+    /**
+     * Client approves the artwork deliverable.
+     * Route: POST /artwork-review/{token}/approve
+     */
+    public function approve(Request $request, string $token)
+    {
+        $review = ArtworkReview::where('token', $token)->firstOrFail();
+
+        if (!$review->isAccessible()) {
+            return response()->json(['error' => 'This review link has expired or been deactivated.'], 403);
+        }
+
+        $deliverable = $review->deliverable;
+        if ($deliverable) {
+            $deliverable->update(['client_status' => 'Client Approved']);
+            if ($deliverable->parent_deliverable_id) {
+                Deliverable::where('id', $deliverable->parent_deliverable_id)->update(['client_status' => 'Client Approved']);
+            }
+        }
+
+        return response()->json(['success' => true, 'message' => 'Artwork has been approved!']);
     }
 
     // =========================================================================
@@ -103,22 +135,25 @@ class ArtworkReviewController extends Controller
     // =========================================================================
 
     /**
-     * Generate a new review link for a deliverable.
+     * Generate or fetch the single permanent shareable review link for a deliverable.
      * Route: POST /deliverables/{deliverable}/send-artwork
      */
     public function create(Request $request, Deliverable $deliverable)
     {
-        $request->validate([
-            'expires_days' => ['nullable', 'integer', 'min:1', 'max:365'],
-        ]);
+        $review = ArtworkReview::firstOrCreate(
+            ['deliverable_id' => $deliverable->id],
+            [
+                'round_number'   => 1,
+                'token'          => ArtworkReview::generateToken(),
+                'expires_at'     => null,
+                'is_active'      => true,
+                'created_by'     => auth()->id(),
+            ]
+        );
 
-        $days    = $request->input('expires_days', 30);
-        $review  = ArtworkReview::create([
-            'deliverable_id' => $deliverable->id,
-            'token'          => ArtworkReview::generateToken(),
-            'expires_at'     => now()->addDays($days),
-            'is_active'      => true,
-            'created_by'     => auth()->id(),
+        $review->update([
+            'is_active'  => true,
+            'expires_at' => null,
         ]);
 
         // Automatically update deliverable client_status to 'Sent to Client'
@@ -133,10 +168,9 @@ class ArtworkReviewController extends Controller
             'success' => true,
             'url'     => $url,
             'review'  => [
-                'id'         => $review->id,
-                'token'      => $review->token,
-                'expires_at' => $review->expires_at?->toDateString(),
-                'url'        => $url,
+                'id'           => $review->id,
+                'token'        => $review->token,
+                'url'          => $url,
             ],
         ]);
     }
@@ -147,55 +181,73 @@ class ArtworkReviewController extends Controller
      */
     public function dashboard(Deliverable $deliverable)
     {
-        $reviews = ArtworkReview::where('deliverable_id', $deliverable->id)
-            ->with(['annotations.resolvedBy', 'annotations.respondedBy', 'creator'])
-            ->latest()
-            ->get();
+        $deliverable->load('subtasks');
+        $artworks = $deliverable->getAllArtworkFiles();
 
-        return view('artwork.team_view', compact('deliverable', 'reviews'));
+        $review = ArtworkReview::firstOrCreate(
+            ['deliverable_id' => $deliverable->id],
+            [
+                'round_number'   => 1,
+                'token'          => ArtworkReview::generateToken(),
+                'expires_at'     => null,
+                'is_active'      => true,
+                'created_by'     => auth()->id(),
+            ]
+        );
+
+        $review->load(['annotations.resolvedBy', 'annotations.comments.user', 'creator']);
+
+        return view('artwork.team_view', compact('deliverable', 'review', 'artworks'));
     }
 
     /**
-     * Respond to a client annotation.
+     * Add a comment to an artwork annotation.
      * Route: POST /artwork-annotations/{annotation}/respond
      */
-    /**
-     * Delete a response from a client annotation.
-     * Route: DELETE /artwork-annotations/{annotation}/respond
-     */
-    public function deleteResponse(ArtworkAnnotation $annotation)
-    {
-        if ($annotation->responded_by && $annotation->responded_by !== auth()->id() && !auth()->user()?->isAdmin()) {
-            return response()->json(['error' => 'Only the author of this reply can delete it.'], 403);
-        }
-
-        $annotation->update([
-            'response_text' => null,
-            'responded_by'  => null,
-            'responded_at'  => null,
-        ]);
-
-        return response()->json(['success' => true]);
-    }
-
     public function respond(Request $request, ArtworkAnnotation $annotation)
     {
-        $data = $request->validate([
-            'response_text' => ['required', 'string', 'max:1000'],
+        $request->validate([
+            'comment' => ['nullable', 'string', 'max:2000'],
+            'response_text' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $annotation->update([
-            'response_text' => $data['response_text'],
-            'responded_by'  => auth()->id(),
-            'responded_at'  => now(),
+        $commentText = trim($request->input('comment') ?? $request->input('response_text') ?? '');
+        if (empty($commentText)) {
+            return response()->json(['error' => 'Comment cannot be empty.'], 422);
+        }
+
+        $comment = $annotation->comments()->create([
+            'user_id' => auth()->id(),
+            'comment' => $commentText,
         ]);
 
         return response()->json([
-            'success'       => true,
-            'response_text' => $annotation->response_text,
-            'responded_by'  => auth()->user()?->name ?? 'Team',
-            'responded_at'  => $annotation->fresh()->responded_at?->diffForHumans() ?? 'Just now',
+            'success' => true,
+            'comment' => [
+                'id'               => $comment->id,
+                'comment'          => $comment->comment,
+                'user_id'          => $comment->user_id,
+                'user_name'        => auth()->user()?->name ?? 'Team Member',
+                'user_initials'    => strtoupper(substr(auth()->user()?->name ?? 'T', 0, 2)),
+                'created_at_human' => $comment->created_at->diffForHumans(),
+                'can_delete'       => true,
+            ],
         ]);
+    }
+
+    /**
+     * Delete a comment from an artwork annotation.
+     * Route: DELETE /artwork-annotation-comments/{comment}
+     */
+    public function deleteComment(ArtworkAnnotationComment $comment)
+    {
+        if ($comment->user_id && $comment->user_id !== auth()->id() && !auth()->user()?->isAdmin()) {
+            return response()->json(['error' => 'You can only delete your own comments.'], 403);
+        }
+
+        $comment->delete();
+
+        return response()->json(['success' => true]);
     }
 
     public function resolve(ArtworkAnnotation $annotation)
@@ -249,6 +301,7 @@ class ArtworkReviewController extends Controller
             ->map(function ($r) {
                 return [
                     'id'               => $r->id,
+                    'round_number'     => $r->round_number ?? 1,
                     'url'              => route('artwork.review.show', ['token' => $r->token]),
                     'is_active'        => $r->is_active,
                     'expires_at'       => $r->expires_at?->toDateString(),

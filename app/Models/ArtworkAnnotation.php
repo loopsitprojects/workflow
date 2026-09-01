@@ -8,6 +8,8 @@ class ArtworkAnnotation extends Model
 {
     protected $fillable = [
         'artwork_review_id',
+        'artwork_index',
+        'image_url',
         'type',
         'x_percent',
         'y_percent',
@@ -23,12 +25,13 @@ class ArtworkAnnotation extends Model
     ];
 
     protected $casts = [
-        'is_resolved'  => 'boolean',
-        'resolved_at'  => 'datetime',
-        'responded_at' => 'datetime',
-        'x_percent'    => 'float',
-        'y_percent'    => 'float',
-        'pin_number'   => 'integer',
+        'is_resolved'   => 'boolean',
+        'resolved_at'   => 'datetime',
+        'responded_at'  => 'datetime',
+        'x_percent'     => 'float',
+        'y_percent'     => 'float',
+        'pin_number'    => 'integer',
+        'artwork_index' => 'integer',
     ];
 
     // ── Relationships ────────────────────────────────────────────────────────
@@ -46,5 +49,10 @@ class ArtworkAnnotation extends Model
     public function respondedBy()
     {
         return $this->belongsTo(User::class, 'responded_by');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(ArtworkAnnotationComment::class, 'artwork_annotation_id')->with('user')->oldest();
     }
 }

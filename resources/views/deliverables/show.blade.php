@@ -444,22 +444,18 @@
                     <div class="detail-item" id="modalDeliverableDeadlineBox" style="display:flex; align-items:center; gap:8px; flex:1; min-width:180px; margin:0;">
                         <label class="detail-label" style="color:#3b82f6; margin:0; flex-shrink:0;">Deadline:</label>
                         <div style="display:flex; gap:6px; align-items:center; flex:1;">
-                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm"
+                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm" min="{{ date('Y-m-d') }}"
                                 style="flex:1; padding:4px 8px; border:1.5px solid rgba(59,130,246,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
                                 onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
                             <button type="button" id="saveDeadlineBtn" style="display:none; padding:4px 8px; background:#3b82f6; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
                         </div>
-                    </div>
-                    <div class="detail-item" id="modalDesignerDeadlineBox" style="display:none; align-items:center; gap:8px; flex:1; min-width:160px; margin:0;">
-                        <label class="detail-label" style="color:#8b5cf6; margin:0; flex-shrink:0;">Designer Due:</label>
-                        <div id="modalDesignerDeadline" style="font-size:12px; font-weight:700; color:#8b5cf6; padding:3px 8px; background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.2); border-radius:6px;"></div>
                     </div>
                 </div>
 
                 <!-- 3. Deliverable Name Field (Below Current Stage / Metadata Bar) -->
                 <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; background:var(--color-bg-secondary); padding:10px 16px; border-radius:12px; border:1px solid var(--color-border-primary);">
                     <label class="detail-label" style="margin:0; flex-shrink:0; font-size:11px; font-weight:900; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.1em;">Deliverable Name:</label>
-                    <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" style="font-size:15px; font-weight:800; color:var(--color-text-primary); margin:0; border:1.5px solid var(--color-border-primary); background:var(--color-bg-primary); width:100%; flex:1; outline:none; border-radius:8px; padding:6px 12px; transition:all 0.2s;" readonly onfocus="this.style.borderColor='#0055D4'; this.style.background='var(--color-bg-primary)'" onblur="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-primary)'">
+                    <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" value="{{ $deliverable->title ?? '' }}" style="font-size:15px; font-weight:800; color:var(--color-text-primary); margin:0; border:1.5px solid var(--color-border-primary); background:var(--color-bg-primary); width:100%; flex:1; outline:none; border-radius:8px; padding:6px 12px; transition:all 0.2s;" onfocus="this.style.borderColor='#0055D4'; this.style.background='var(--color-bg-primary)'" onblur="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-primary)'">
                 </div>
 
                 <!-- Reassign Designer Area -->
@@ -662,21 +658,6 @@
                             @endforeach
                         </select>
                         <p style="font-size:11px; color:#8b5cf6; margin-top:8px; font-weight:600;">Selection required to advance to Designer stage.</p>
-                        <div style="margin-top:14px;">
-                            <label style="display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#8b5cf6; margin-bottom:6px;">Internal Designer Deadline <span style="font-weight:500; opacity:0.65; text-transform:none; letter-spacing:0;">(optional)</span></label>
-                            <div style="display:flex; gap:8px;">
-                                <input type="date" id="designerDeadlineDateInput" min="{{ date('Y-m-d') }}"
-                                    style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                    onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'"
-                                    onchange="syncDesignerDeadline()">
-                                <input type="time" id="designerDeadlineTimeInput"
-                                    style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                    onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'"
-                                    onchange="syncDesignerDeadline()">
-                            </div>
-                            <input type="hidden" name="designer_deadline" id="designerDeadlineInput" form="submitStageForm">
-                            <p style="font-size:11px; color:var(--color-text-secondary); margin-top:6px; font-weight:500;">Set an internal due date/time for the designer — earlier than the final project deadline.</p>
-                        </div>
                     </div>
 
                     <div id="designerDeliveryArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.1); border-radius:16px;">
@@ -755,17 +736,6 @@
                                 Save Artwork
                             </button>
                         </form>
-                    </div>
-
-                    <div id="designerSelectionAreaInModal" class="detail-item full" style="display:none; margin-top:0px; padding:20px; background:rgba(0,85,212,0.05); border:1px solid rgba(0,85,212,0.1); border-radius:16px;">
-                        <label class="detail-label" style="color:#0055D4; margin-bottom:12px;">Assign Next Designer</label>
-                        <select name="designer_id" form="submitStageForm" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                            <option value="">Select Designer...</option>
-                            @foreach($designers as $designer)
-                                <option value="{{ $designer->id }}">{{ $designer->name }}</option>
-                            @endforeach
-                        </select>
-                        <p style="font-size:11px; color:#0055D4; margin-top:8px; font-weight:600;">Selection required to advance to Designer stage.</p>
                     </div>
 
                     <div id="submitNotesArea" class="detail-item full" style="margin-top:0px; padding:20px; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.05); border-radius:16px;">
@@ -1113,13 +1083,6 @@
             });
         }
 
-        function syncDesignerDeadline() {
-            const d = document.getElementById('designerDeadlineDateInput')?.value;
-            const t = document.getElementById('designerDeadlineTimeInput')?.value;
-            const h = document.getElementById('designerDeadlineInput');
-            if (h) h.value = d ? (t ? `${d}T${t}` : d) : '';
-        }
-
         function addReferenceInputRow(type) {
             if (type === 'file') {
                 const container = document.getElementById('modalReferenceFilesContainer') || document.getElementById('modalReferenceFilesContainerPrj');
@@ -1433,39 +1396,6 @@
                         dueBadge.textContent = `Due: ${dateStr}`;
                         topDeadlinesEl.appendChild(dueBadge);
                     }
-                    
-                    // 2. Designer Deadline (if assigned)
-                    if (task.designer_deadline) {
-                        const ddDate = new Date(task.designer_deadline);
-                        const ddStr = ddDate.toLocaleString(undefined, {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'});
-                        const dsBadge = document.createElement('div');
-                        dsBadge.style.cssText = 'background: rgba(139, 92, 246, 0.08); color: #8b5cf6; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
-                        dsBadge.textContent = `Designer Due: ${ddStr}`;
-                        topDeadlinesEl.appendChild(dsBadge);
-                    }
-                }
-
-                // Designer deadline display
-                const ddBox = document.getElementById('modalDesignerDeadlineBox');
-                const ddEl  = document.getElementById('modalDesignerDeadline');
-                const ddDateInput = document.getElementById('designerDeadlineDateInput');
-                const ddTimeInput = document.getElementById('designerDeadlineTimeInput');
-                const ddHidden   = document.getElementById('designerDeadlineInput');
-                if (task.designer_deadline) {
-                    const ddDate = new Date(task.designer_deadline);
-                    if (ddEl) ddEl.textContent = ddDate.toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'});
-                    if (ddBox) ddBox.style.display = 'block';
-                    const pad = n => String(n).padStart(2,'0');
-                    const dateStr = `${ddDate.getFullYear()}-${pad(ddDate.getMonth()+1)}-${pad(ddDate.getDate())}`;
-                    const timeStr = `${pad(ddDate.getHours())}:${pad(ddDate.getMinutes())}`;
-                    if (ddDateInput) ddDateInput.value = dateStr;
-                    if (ddTimeInput) ddTimeInput.value = timeStr;
-                    if (ddHidden)    ddHidden.value = `${dateStr}T${timeStr}`;
-                } else {
-                    if (ddBox) ddBox.style.display = 'none';
-                    if (ddDateInput) ddDateInput.value = '';
-                    if (ddTimeInput) ddTimeInput.value = '';
-                    if (ddHidden)    ddHidden.value = '';
                 }
 
                 // Deliverable Deadline Input Population
@@ -1946,14 +1876,44 @@
                     (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
                     (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner));
 
+                // Check if current user was the last person who submitted/approved this deliverable
+                const approvals = task.approvals_history || task.approvalsHistory || [];
+                const latestApproval = (approvals && approvals.length > 0) ? approvals[0] : null;
+                const isLastSubmitter = latestApproval && (latestApproval.user_id == AUTH_USER_ID);
+
+                // Check if the current user is specifically assigned to handle this current stage
+                const isCurrentStageAssignee = 
+                    (stage === 'Writer' || stage === 'Assignee' || stage === 'Writer Review') ? isAssignedWriter :
+                    (stage === 'Approver' || stage === 'Approver Review' || stage === 'Further Approver') ? isAssignedApprover :
+                    (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval') ? isAssignedBrandMgr :
+                    (stage === 'Coordinator') ? isAssignedCoordinator :
+                    (stage === 'Designer') ? isAssignedDesigner : false;
+
+                // If the user was the one who submitted the previous stage, and is not assigned to this next stage, disable the button
+                const isWaitingForDifferentPerson = isLastSubmitter && !isCurrentStageAssignee;
+
                 if (canAct && submitBtnForm) {
                     submitBtnForm.style.display = 'flex';
                     const nextBtn = document.getElementById('submitStageBtn');
                     const isLastStage = WORKFLOW_STAGES.indexOf(stage) >= WORKFLOW_STAGES.length - 2;
 
                     if (nextBtn) {
-                        if (stage === 'Designer') nextBtn.textContent = 'Request for Approval';
-                        else nextBtn.textContent = isLastStage ? 'Approve & Close' : 'Submit to Next';
+                        if (isWaitingForDifferentPerson) {
+                            nextBtn.disabled = true;
+                            nextBtn.style.opacity = '0.5';
+                            nextBtn.style.cursor = 'not-allowed';
+                            nextBtn.style.boxShadow = 'none';
+                            nextBtn.textContent = 'Submitted · Waiting for ' + stage;
+                            nextBtn.title = 'You have already submitted this deliverable. It is currently with the ' + stage + '.';
+                        } else {
+                            nextBtn.disabled = false;
+                            nextBtn.style.opacity = '1';
+                            nextBtn.style.cursor = 'pointer';
+                            nextBtn.style.boxShadow = '0 4px 12px rgba(0,85,212,0.4)';
+                            if (stage === 'Designer') nextBtn.textContent = 'Request for Approval';
+                            else nextBtn.textContent = isLastStage ? 'Approve & Close' : 'Submit to Next';
+                            nextBtn.title = '';
+                        }
                     }
 
                     if (stage === 'Writer' || stage === 'Assignee') {
@@ -2004,15 +1964,17 @@
 
                 // Edit Permissions (already computed above)
                 const mTitle = document.getElementById('modalTaskTitle');
-                if (mTitle) mTitle.readOnly = !writerEditPermission;
+                const canEditTitle = writerEditPermission || isAdmin || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole);
+                if (mTitle) mTitle.readOnly = !canEditTitle;
                 if (typeof quillConcept !== 'undefined' && quillConcept) quillConcept.enable(writerEditPermission);
                 if (typeof quillCaption !== 'undefined' && quillCaption) quillCaption.enable(writerEditPermission);
                 if (typeof quillCopy !== 'undefined' && quillCopy) quillCopy.enable(writerEditPermission);
                 
                 // Reference Edit Area
                 const refEditArea = document.getElementById('modalReferenceEditArea');
+                const canEditReference = writerEditPermission || isAdmin || hasWriterRole || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole);
                 if (refEditArea) {
-                    refEditArea.style.display = writerEditPermission ? 'grid' : 'none';
+                    refEditArea.style.display = canEditReference ? 'grid' : 'none';
                     const linksContainer = document.getElementById('modalReferenceLinksContainer') || document.getElementById('modalReferenceLinksContainerPrj');
                     if (linksContainer) {
                         linksContainer.innerHTML = '';
@@ -2035,8 +1997,7 @@
                     }
                 }
 
-                if ((writerEditPermission && (stage === 'Writer' || stage === 'Assignee' || stage === 'Writer Review')) ||
-                    (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager') {
+                if (canEditReference || (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager') {
                     submitBtnForm.style.display = 'flex';
                     saveContentBtn.style.display = 'block';
                 }
@@ -2137,25 +2098,7 @@
         }
 
         function showConfirm(title, message) {
-            return new Promise(resolve => {
-                const el = document.createElement('div');
-                el.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);';
-                el.innerHTML = `
-                    <div style="background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:16px;padding:24px;width:100%;max-width:360px;box-shadow:0 25px 50px rgba(0,0,0,0.3);">
-                        <div style="width:44px;height:44px;background:rgba(59,130,246,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-                            <svg width="20" height="20" fill="none" stroke="#3b82f6" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        </div>
-                        <h3 style="font-size:15px;font-weight:700;color:var(--color-text-primary);margin-bottom:6px;">${title}</h3>
-                        <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:20px;">${message}</p>
-                        <div style="display:flex;gap:8px;justify-content:flex-end;">
-                            <button id="confirm-cancel" style="padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);cursor:pointer;">Cancel</button>
-                            <button id="confirm-ok" style="padding:8px 20px;border-radius:8px;font-size:12px;font-weight:700;color:#fff;background:#0055D4;border:none;cursor:pointer;">Confirm</button>
-                        </div>
-                    </div>`;
-                document.body.appendChild(el);
-                el.querySelector('#confirm-ok').onclick = () => { document.body.removeChild(el); resolve(true); };
-                el.querySelector('#confirm-cancel').onclick = () => { document.body.removeChild(el); resolve(false); };
-            });
+            return window.customConfirm({ title: title, message: message, isDanger: true });
         }
 
         function toggleSubtasks(e, taskId) {
@@ -2319,7 +2262,7 @@
                     const MAX_SIZE = 2 * 1024 * 1024; // 2MB default PHP limit
 
                     document.querySelectorAll(`[form="${submitForm.id}"]`).forEach(el => {
-                        if (el.type === 'submit' || el.type === 'button' || el.tagName === 'BUTTON') return;
+                        if (el.type === 'submit' || el.type === 'button' || el.tagName === 'BUTTON' || el.disabled) return;
                         if (el.name && !formData.has(el.name)) {
                             if (el.type === 'file') {
                                 if (el.files.length > 0) {
@@ -2344,6 +2287,43 @@
                     if (btn && btn.name) {
                         formData.set(btn.name, btn.value);
                     }
+
+                    // Client-side validation: if submitting to next stage, ensure required assignee is selected
+                    const isSubmittingNext = !btn || btn.value !== 'save_only';
+                    if (isSubmittingNext) {
+                        const coordArea = document.getElementById('coordinatorSelectionArea');
+                        if (coordArea && coordArea.style.display !== 'none') {
+                            const coordSel = coordArea.querySelector('select');
+                            if (coordSel && !coordSel.value) {
+                                showErrorModal('Please select a **Coordinator** before submitting to the next stage.');
+                                return;
+                            }
+                        }
+                        const dArea = document.getElementById('designerSelectionArea');
+                        if (dArea && dArea.style.display !== 'none') {
+                            const dSel = dArea.querySelector('select');
+                            if (dSel && !dSel.value) {
+                                showErrorModal('Please select a **Designer** before submitting to the next stage.');
+                                return;
+                            }
+                        }
+                        const apprArea = document.getElementById('approverSelectionArea');
+                        if (apprArea && apprArea.style.display !== 'none') {
+                            const apprSel = apprArea.querySelector('select');
+                            if (apprSel && !apprSel.value) {
+                                showErrorModal('Please select an **Approver** before submitting to the next stage.');
+                                return;
+                            }
+                        }
+                        const bmArea = document.getElementById('brandManagerSelectionArea');
+                        if (bmArea && bmArea.style.display !== 'none') {
+                            const bmSel = bmArea.querySelector('select');
+                            if (bmSel && !bmSel.value) {
+                                showErrorModal('Please select a **Brand Manager** before submitting to the next stage.');
+                                return;
+                            }
+                        }
+                    }
                     
                     const originalText = btn ? btn.innerHTML : 'Submit';
                     if (btn) {
@@ -2352,6 +2332,7 @@
                     }
 
                     const formActionUrl = this.getAttribute('action');
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]')?.value || '{{ csrf_token() }}';
 
                     try {
                         const response = await fetch(formActionUrl, {
@@ -2359,7 +2340,8 @@
                             body: formData,
                             headers: {
                                 'X-Requested-With': 'XMLHttpRequest',
-                                'Accept': 'application/json'
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken
                             }
                         });
                         
@@ -2392,31 +2374,39 @@
         });
 
         function showErrorModal(message) {
-            // Convert markdown-style **bolding** to <b> or styled span if needed, or just insert
+            if (!message) return;
+            // Convert markdown-style **bolding** to <b> or styled span
             let formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight:900; color:var(--color-text-primary);">$1</span>');
-            document.getElementById('taskErrorModalMessage').innerHTML = formattedMessage;
+            const msgEl = document.getElementById('taskErrorModalMessage');
             const overlay = document.getElementById('taskErrorModalOverlay');
             const box = document.getElementById('taskErrorModalBox');
             
-            overlay.style.display = 'flex';
-            setTimeout(() => {
-                overlay.style.opacity = '1';
-                box.style.opacity = '1';
-                box.style.transform = 'scale(1)';
-            }, 10);
+            if (msgEl && overlay && box) {
+                msgEl.innerHTML = formattedMessage;
+                overlay.style.display = 'flex';
+                setTimeout(() => {
+                    overlay.style.opacity = '1';
+                    box.style.opacity = '1';
+                    box.style.transform = 'scale(1)';
+                }, 10);
+            } else {
+                alert(message.replace(/\*\*/g, ''));
+            }
         }
         
         function hideErrorModal() {
             const overlay = document.getElementById('taskErrorModalOverlay');
             const box = document.getElementById('taskErrorModalBox');
             
-            overlay.style.opacity = '0';
-            box.style.opacity = '0';
-            box.style.transform = 'scale(0.95)';
-            
-            setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 300);
+            if (overlay && box) {
+                overlay.style.opacity = '0';
+                box.style.opacity = '0';
+                box.style.transform = 'scale(0.95)';
+                
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300);
+            }
         }
 
         // deleteTaskFromModal uses currentTaskData.id and is defined above
@@ -2432,7 +2422,7 @@ async function reassignDesigner(btn) {
         return;
     }
 
-    if (!confirm('Are you sure you want to reassign this deliverable to a different designer?')) return;
+    if (!await window.customConfirm({ title: 'Reassign Designer', message: 'Are you sure you want to reassign this deliverable to a different designer?', isDanger: false })) return;
 
     if (btn) {
         btn.disabled = true;
@@ -2539,11 +2529,6 @@ async function reassignDesigner(btn) {
                 selectEl.disabled = false;
             }
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const task = @json($deliverable);
-            openTaskModal(task);
-        });
     </script>
 
 {{-- ──────────────────────────────────────────────────────────────────────────
@@ -2551,7 +2536,7 @@ async function reassignDesigner(btn) {
 ──────────────────────────────────────────────────────────────────────────── --}}
 <div id="sendArtworkModalOverlay"
      style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.7); backdrop-filter:blur(8px); z-index:9999; justify-content:center; align-items:center; opacity:0; transition:opacity 0.25s;">
-    <div style="background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:24px; padding:32px; width:460px; max-width:94vw; box-shadow:0 30px 80px rgba(0,0,0,0.25); transform:scale(0.96); transition:transform 0.25s;" id="sendArtworkModalBox">
+    <div style="background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:24px; padding:32px; width:480px; max-width:94vw; box-shadow:0 30px 80px rgba(0,0,0,0.25); transform:scale(0.96); transition:transform 0.25s;" id="sendArtworkModalBox">
 
         {{-- Header --}}
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
@@ -2562,7 +2547,7 @@ async function reassignDesigner(btn) {
                     </div>
                     <div>
                         <div style="font-size:16px; font-weight:800; color:var(--color-text-primary);">Send Artwork to Client</div>
-                        <div style="font-size:11px; color:var(--color-text-secondary); margin-top:1px;">Generate a shareable link — no login required for client</div>
+                        <div style="font-size:11px; color:var(--color-text-secondary); margin-top:1px;">Single permanent shareable link for client proofing</div>
                     </div>
                 </div>
             </div>
@@ -2572,55 +2557,42 @@ async function reassignDesigner(btn) {
                     onmouseout="this.style.background='var(--color-bg-secondary)'">✕</button>
         </div>
 
-        {{-- Expiry setting --}}
-        <div style="margin-bottom:20px;">
-            <label style="display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--color-text-secondary); margin-bottom:8px;">Link Expiry</label>
-            <select id="artworkExpiryDays"
-                    style="width:100%; padding:10px 14px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; cursor:pointer;">
-                <option value="7">7 days</option>
-                <option value="14">14 days</option>
-                <option value="30" selected>30 days</option>
-                <option value="90">90 days</option>
-                <option value="365">1 year</option>
-            </select>
-        </div>
-
-        {{-- Generated link display --}}
-        <div id="generatedLinkArea" style="display:none; margin-bottom:20px; padding:14px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:12px;">
-            <div style="font-size:10px; font-weight:700; color:#10b981; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Review Link Generated ✓</div>
+        {{-- Single Shareable Link Display Area --}}
+        <div id="singleLinkSection" style="margin-bottom:20px; padding:16px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.25); border-radius:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                <div style="font-size:11px; font-weight:800; color:#10b981; text-transform:uppercase; letter-spacing:0.08em; display:flex; align-items:center; gap:6px;">
+                    <span style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block;"></span>
+                    Permanent Client Review Link
+                </div>
+                <div id="currentRoundBadge" style="font-size:10px; font-weight:700; background:#10b981; color:#fff; padding:2px 8px; border-radius:12px;">
+                    ● Active Link
+                </div>
+            </div>
             <div style="display:flex; gap:8px; align-items:center;">
                 <input type="text" id="generatedLinkInput" readonly
-                       style="flex:1; padding:9px 12px; border:1px solid rgba(16,185,129,0.2); border-radius:8px; font-size:11px; font-family:monospace; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none;">
+                       style="flex:1; padding:10px 12px; border:1px solid rgba(16,185,129,0.25); border-radius:8px; font-size:11px; font-family:monospace; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none;">
                 <button id="copyLinkBtn" onclick="copyGeneratedLink()"
-                        style="padding:9px 16px; background:#10b981; color:#fff; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; transition:all 0.15s; flex-shrink:0;"
+                        style="padding:10px 16px; background:#10b981; color:#fff; border:none; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; transition:all 0.15s; flex-shrink:0;"
                         onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
-                    📋 Copy
+                    📋 Copy Link
                 </button>
             </div>
-            <p style="font-size:11px; color:var(--color-text-secondary); margin-top:8px; font-weight:500;">
-                Share this link via WhatsApp, Email, or any channel. The client doesn't need an account.
+            <p style="font-size:11px; color:var(--color-text-secondary); margin-top:8px; font-weight:500; line-height:1.4;">
+                Share this link with your client. They can review artwork, leave comments, and approve designs without logging in. When revised artwork is uploaded, this link updates automatically.
             </p>
         </div>
 
-        {{-- Existing reviews --}}
-        <div id="existingReviewsArea" style="margin-bottom:20px; display:none;">
-            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--color-text-secondary); margin-bottom:8px;">Existing Review Links</div>
-            <div id="existingReviewsList" style="display:flex; flex-direction:column; gap:6px;"></div>
-        </div>
-
-        {{-- Footer --}}
-        <div style="display:flex; gap:10px; justify-content:flex-end;">
+        {{-- Footer Actions --}}
+        <div style="display:flex; gap:10px; justify-content:space-between; align-items:center;">
             <a id="viewAllAnnotationsBtn" href="{{ route('artwork.dashboard', $deliverable) }}"
-               style="display:inline-flex; align-items:center; gap:6px; padding:10px 16px; background:rgba(139,92,246,0.1); color:#8b5cf6; border:1px solid rgba(139,92,246,0.2); border-radius:10px; font-size:12px; font-weight:700; text-decoration:none; transition:all 0.15s;"
+               style="display:inline-flex; align-items:center; gap:6px; padding:10px 14px; background:rgba(139,92,246,0.1); color:#8b5cf6; border:1px solid rgba(139,92,246,0.2); border-radius:10px; font-size:11px; font-weight:700; text-decoration:none; transition:all 0.15s;"
                target="_blank">
                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                View All Annotations
+                View Feedback Dashboard
             </a>
-            <button onclick="generateArtworkLink()" id="generateLinkBtn"
-                    style="display:inline-flex; align-items:center; gap:6px; padding:10px 20px; background:linear-gradient(135deg,#10b981,#059669); color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(16,185,129,0.3);"
-                    onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
-                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                Generate New Link
+            <button onclick="closeSendArtworkModal()"
+                    style="display:inline-flex; align-items:center; gap:6px; padding:10px 18px; background:var(--color-bg-secondary); color:var(--color-text-primary); border:1px solid var(--color-border-primary); border-radius:10px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;">
+                Done
             </button>
         </div>
     </div>
@@ -2631,7 +2603,7 @@ async function reassignDesigner(btn) {
 
 let currentDeliverableIdForArtwork = null;
 
-function openSendArtworkModal() {
+async function openSendArtworkModal() {
     const overlay = document.getElementById('sendArtworkModalOverlay');
     overlay.style.display = 'flex';
     requestAnimationFrame(() => {
@@ -2639,15 +2611,12 @@ function openSendArtworkModal() {
         document.getElementById('sendArtworkModalBox').style.transform = 'scale(1)';
     });
 
-    // Extract deliverable ID from the page data
     const taskData = @json($deliverable);
     currentDeliverableIdForArtwork = taskData.id;
 
-    // Load existing reviews
-    loadExistingReviews(currentDeliverableIdForArtwork);
-    // Reset generated link
-    document.getElementById('generatedLinkArea').style.display = 'none';
-    document.getElementById('generatedLinkInput').value = '';
+    // Load or create single review link
+    await getOrCreateSingleLink();
+    await loadExistingReviews(currentDeliverableIdForArtwork);
 }
 
 function closeSendArtworkModal() {
@@ -2657,13 +2626,7 @@ function closeSendArtworkModal() {
     setTimeout(() => { overlay.style.display = 'none'; }, 250);
 }
 
-async function generateArtworkLink() {
-    const btn = document.getElementById('generateLinkBtn');
-    btn.disabled = true;
-    btn.innerHTML = `<span style="opacity:0.7">Generating…</span>`;
-
-    const days = document.getElementById('artworkExpiryDays').value;
-
+async function getOrCreateSingleLink() {
     try {
         const resp = await fetch(`/deliverables/${currentDeliverableIdForArtwork}/send-artwork`, {
             method: 'POST',
@@ -2672,26 +2635,34 @@ async function generateArtworkLink() {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Accept': 'application/json',
             },
-            body: JSON.stringify({ expires_days: parseInt(days) }),
+            body: JSON.stringify({}),
         });
 
         const data = await resp.json();
         if (resp.ok && data.success) {
             document.getElementById('generatedLinkInput').value = data.url;
-            document.getElementById('generatedLinkArea').style.display = 'block';
-            // Refresh the existing reviews list
-            loadExistingReviews(currentDeliverableIdForArtwork);
-            // Update the summary in the deliverable modal
-            updateReviewSummary(currentDeliverableIdForArtwork);
-        } else {
-            alert(data.message || 'Failed to generate link.');
+            document.getElementById('currentRoundBadge').textContent = '● Active Link';
         }
     } catch(e) {
-        alert('Network error. Please try again.');
+        console.error('Error fetching review link:', e);
     }
+}
 
-    btn.disabled = false;
-    btn.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg> Generate New Link`;
+function copyGeneratedLink() {
+    const input = document.getElementById('generatedLinkInput');
+    const btn = document.getElementById('copyLinkBtn');
+    if (!input.value) return;
+
+    input.select();
+    navigator.clipboard.writeText(input.value);
+
+    const origText = btn.innerHTML;
+    btn.innerHTML = '✓ Copied!';
+    btn.style.background = '#059669';
+    setTimeout(() => {
+        btn.innerHTML = origText;
+        btn.style.background = '#10b981';
+    }, 2000);
 }
 
 async function loadExistingReviews(deliverableId) {
@@ -2701,47 +2672,19 @@ async function loadExistingReviews(deliverableId) {
         });
         const reviews = await resp.json();
 
-        const area  = document.getElementById('existingReviewsArea');
-        const list  = document.getElementById('existingReviewsList');
-        if (reviews.length === 0) { area.style.display = 'none'; return; }
-
-        area.style.display = 'block';
-        list.innerHTML = '';
-
-        reviews.forEach(r => {
-            const statusColor = r.is_accessible ? '#10b981' : '#94a3b8';
-            const statusLabel = r.is_accessible ? 'Active' : 'Inactive';
-
-            const item = document.createElement('div');
-            item.style.cssText = 'display:flex; align-items:center; gap:10px; padding:9px 12px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:10px; font-size:11px;';
-            item.innerHTML = `
-                <span style="width:7px; height:7px; border-radius:50%; background:${statusColor}; flex-shrink:0;"></span>
-                <span style="flex:1; color:var(--color-text-secondary);">
-                    ${r.client_name || 'Link'} · <strong style="color:var(--color-text-primary);">${r.annotations_count} annotation(s)</strong> · ${r.created_at}
-                    ${r.expires_at ? `· Expires ${r.expires_at}` : ''}
-                </span>
-                <button onclick="copyToClipboard('${r.url}', this)"
-                        style="padding:3px 9px; background:rgba(59,130,246,0.1); color:#3b82f6; border:1px solid rgba(59,130,246,0.2); border-radius:6px; font-size:10px; font-weight:700; cursor:pointer; white-space:nowrap;">
-                    Copy
-                </button>
-            `;
-            list.appendChild(item);
-        });
-
         // Update the summary badge in the deliverable modal
         const summaryEl = document.getElementById('reviewLinksSummary');
         const contentEl = document.getElementById('reviewLinksContent');
         const viewLink  = document.getElementById('viewAnnotationsLink');
         if (summaryEl && contentEl) {
-            const totalAnnot = reviews.reduce((s, r) => s + r.annotations_count, 0);
-            const openAnnot  = reviews.reduce((s, r) => s + r.unresolved_count, 0);
-            const activeCount = reviews.filter(r => r.is_accessible).length;
+            const totalAnnot = reviews.reduce((s, r) => s + (r.annotations_count || 0), 0);
+            const openAnnot  = reviews.reduce((s, r) => s + (r.unresolved_count || 0), 0);
             summaryEl.style.display = 'block';
             contentEl.innerHTML = `
                 <div style="display:flex; gap:16px; align-items:center;">
-                    <span><strong style="color:#10b981;">${activeCount}</strong> active link(s)</span>
-                    <span><strong style="color:var(--color-text-primary);">${totalAnnot}</strong> total annotation(s)</span>
-                    ${openAnnot > 0 ? `<span style="color:#f59e0b;"><strong>${openAnnot}</strong> unresolved</span>` : ''}
+                    <span><strong style="color:#10b981;">● Active Review Link</strong></span>
+                    <span><strong style="color:var(--color-text-primary);">${totalAnnot}</strong> total note(s)</span>
+                    ${openAnnot > 0 ? `<span style="color:#f59e0b;"><strong>${openAnnot}</strong> open</span>` : '<span style="color:#10b981;">All notes resolved ✓</span>'}
                 </div>`;
         }
         if (viewLink && reviews.length > 0) {
@@ -2877,6 +2820,15 @@ function closeImagePreview(e) {
         document.getElementById('imagePreviewSrc').src = '';
     }, 300);
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof openTaskModal === 'function') {
+        const deliverableData = @json($deliverable);
+        if (deliverableData && deliverableData.id) {
+            openTaskModal(deliverableData);
+        }
+    }
+});
 </script>
 
 <!-- Image Preview Modal -->
@@ -2899,6 +2851,18 @@ function closeImagePreview(e) {
                 Remove Artwork
             </button>
         </div>
+    </div>
+</div>
+
+<!-- Centered Error Modal -->
+<div id="taskErrorModalOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:9999999; align-items:center; justify-content:center; padding:20px; text-align:center; transition:opacity 0.3s ease; opacity:0;">
+    <div id="taskErrorModalBox" style="background:var(--color-bg-primary); border-radius:24px; padding:32px; max-width:400px; width:100%; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); transform:scale(0.95); transition:transform 0.3s ease, opacity 0.3s ease; opacity:0;">
+        <div style="width:64px; height:64px; border-radius:16px; background:#fef2f2; color:#ef4444; display:flex; align-items:center; justify-content:center; margin:0 auto 24px;">
+            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+        </div>
+        <h3 style="font-size:20px; font-weight:900; color:var(--color-text-primary); margin-bottom:12px;">Alert</h3>
+        <p id="taskErrorModalMessage" style="font-size:14px; font-weight:500; color:var(--color-text-secondary); line-height:1.6; margin-bottom:32px;"></p>
+        <button onclick="hideErrorModal()" style="background:#0f172a; color:#fff; border:none; width:100%; padding:14px; border-radius:14px; font-weight:800; font-size:14px; cursor:pointer; box-shadow:0 10px 20px rgba(15,23,42,0.2);">Got it</button>
     </div>
 </div>
 </x-layout>

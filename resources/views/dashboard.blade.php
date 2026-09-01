@@ -87,35 +87,18 @@
                     <p class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-3">Active Deliverables</p>
                     @php
                         $activeTasks = $deliverables->where('status', '!=', 'Done')->sortBy('deadline');
-                        
-                        $clientTasks = collect();
-                        if (auth()->check() && auth()->user()->role === 'Brand Manager') {
-                            $clientTasks = $activeTasks->filter(function($t) {
-                                return in_array($t->approval_stage, ['Brand Manager', 'AM/BD', 'Final Approval'])
-                                       && !empty($t->client_status)
-                                       && $t->client_status !== 'Not Sent';
-                            });
-                            $activeTasks = $activeTasks->diff($clientTasks);
-                        }
-
                         $groupTasks = function($tasks) {
                             $grouped = [];
                             foreach($tasks as $t) {
-                                $key = $t->parent_deliverable_id ? 'batch_' . $t->parent_deliverable_id : 'single_' . $t->id;
-                                if (!isset($grouped[$key])) {
-                                    $grouped[$key] = [
-                                        'is_batch' => (bool)$t->parent_deliverable_id,
-                                        'parent' => $t->parent,
-                                        'project' => $t->project,
-                                        'priority' => $t->priority,
-                                        'deadline' => $t->deadline,
-                                        'subtasks' => []
-                                    ];
-                                }
-                                $grouped[$key]['subtasks'][] = $t;
-                                if ($t->deadline && (!$grouped[$key]['deadline'] || $t->deadline < $grouped[$key]['deadline'])) {
-                                    $grouped[$key]['deadline'] = $t->deadline;
-                                }
+                                $key = 'single_' . $t->id;
+                                $grouped[$key] = [
+                                    'is_batch' => false,
+                                    'parent' => $t->parent,
+                                    'project' => $t->project,
+                                    'priority' => $t->priority,
+                                    'deadline' => $t->deadline,
+                                    'subtasks' => [$t]
+                                ];
                             }
                             uasort($grouped, function($a, $b) {
                                 if (!$a['deadline']) return 1;
@@ -126,89 +109,7 @@
                         };
 
                         $groupedActive = $groupTasks($activeTasks);
-                        $groupedClient = $groupTasks($clientTasks);
                     @endphp
-
-                    {{-- Client Approvals (Brand Manager only) --}}
-                    @if(auth()->check() && auth()->user()->role === 'Brand Manager' && $groupedClient)
-                    <div class="mb-6">
-                        <p class="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-3">Client Approvals</p>
-                        @foreach($groupedClient as $group)
-                        @php
-                            $isBatch = $group['is_batch'];
-                            $mainTitle = $isBatch ? $group['parent']->title : $group['subtasks'][0]->title;
-                            $project = $group['project'];
-                            $priority = $group['priority'];
-                            $deadline = $group['deadline'];
-                            $subtasks = $group['subtasks'];
-                            // Assume all subtasks in a batch have similar client_status or just take the first
-                            $clientStatus = $subtasks[0]->client_status ?? '';
-
-                            $priorityFills = [
-                                'High Priority' => '#ef4444',
-                                'Medium'        => '#10b981',
-                                'Low Priority'  => '#f59e0b',
-                            ];
-                            $prioFill = $priorityFills[$priority] ?? '#10b981';
-                        @endphp
-                        <a href="{{ route('projects.show', $project->id) }}"
-                           class="flex flex-col bg-white dark:bg-[#111827] rounded-xl px-5 py-4 border border-amber-200 dark:border-amber-500/20 card-shadow hover:border-amber-400 dark:hover:border-amber-500/50 hover:shadow-md transition-all mb-2 group block" style="background:linear-gradient(to right, rgba(245, 158, 11, 0.02), transparent);">
-                            <div class="flex items-start justify-between min-w-0">
-                                <div class="flex items-start gap-4 min-w-0">
-                                    <svg width="12" height="12" fill="{{ $prioFill }}" viewBox="0 0 16 16" style="flex-shrink:0; margin-top:3px;">
-                                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
-                                    </svg>
-                                    <div class="min-w-0">
-                                        <h3 class="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                            {{ $mainTitle }}
-                                        </h3>
-                                        <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                            <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ $project->brand->name ?? '' }}</span>
-                                            @if($project)
-                                                <span class="text-gray-200 dark:text-slate-700">·</span>
-                                                <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ $project->name }}</span>
-                                            @endif
-                                            @if($clientStatus)
-                                                <span class="text-gray-200 dark:text-slate-700">·</span>
-                                                <span class="text-[10px] font-bold text-amber-500 uppercase tracking-wide px-1.5 py-0.5 bg-amber-50 dark:bg-amber-500/10 rounded">{{ $clientStatus }}</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex-shrink-0 text-right ml-4">
-                                    @if($deadline)
-                                        @php $daysLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($deadline)->startOfDay(), false); @endphp
-                                        @if($daysLeft < 0)
-                                            <span class="text-[10px] font-black text-red-500 uppercase tracking-widest">Overdue</span>
-                                        @elseif($daysLeft === 0)
-                                            <span class="text-[10px] font-black text-orange-500 uppercase tracking-widest">Due Today</span>
-                                        @elseif($daysLeft <= 3)
-                                            <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest">{{ $daysLeft }}d left</span>
-                                        @else
-                                            <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ \Carbon\Carbon::parse($deadline)->format('M j') }}</span>
-                                        @endif
-                                    @else
-                                        <span class="text-[10px] text-gray-300 dark:text-slate-700">No date</span>
-                                    @endif
-                                </div>
-                            </div>
-    
-                            @if($isBatch)
-                                <div class="mt-3 ml-6 pl-3 border-l-2 border-amber-100 dark:border-amber-900/30 flex flex-col gap-2">
-                                    @foreach($subtasks as $t)
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-[11px] font-semibold text-blue-500 dark:text-blue-400 pr-2">{{ $t->title }}</span>
-                                            @if($t->client_status)
-                                                <span class="text-[9px] font-bold text-amber-500 uppercase tracking-wider flex-shrink-0">{{ $t->client_status }}</span>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </a>
-                        @endforeach
-                    </div>
-                    @endif
 
                     @forelse($groupedActive as $group)
                     @php
@@ -246,6 +147,10 @@
                                         @if(!$isBatch && $subtasks[0]->approval_stage)
                                             <span class="text-gray-200 dark:text-slate-700">·</span>
                                             <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wide">{{ $subtasks[0]->approval_stage }}</span>
+                                        @endif
+                                        @if(!$isBatch && $subtasks[0]->client_status && $subtasks[0]->client_status !== 'Not Sent')
+                                            <span class="text-gray-200 dark:text-slate-700">·</span>
+                                            <span class="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wide bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 rounded">{{ $subtasks[0]->client_status }}</span>
                                         @endif
                                     </div>
                                 </div>
@@ -296,16 +201,13 @@
                         $completedTasks = $deliverables->where('status', 'Done');
                         $groupedCompleted = [];
                         foreach($completedTasks as $t) {
-                            $key = $t->parent_deliverable_id ? 'batch_' . $t->parent_deliverable_id : 'single_' . $t->id;
-                            if (!isset($groupedCompleted[$key])) {
-                                $groupedCompleted[$key] = [
-                                    'is_batch' => (bool)$t->parent_deliverable_id,
-                                    'parent' => $t->parent,
-                                    'project' => $t->project,
-                                    'subtasks' => []
-                                ];
-                            }
-                            $groupedCompleted[$key]['subtasks'][] = $t;
+                            $key = 'single_' . $t->id;
+                            $groupedCompleted[$key] = [
+                                'is_batch' => false,
+                                'parent' => $t->parent,
+                                'project' => $t->project,
+                                'subtasks' => [$t]
+                            ];
                         }
                     @endphp
                     @foreach($groupedCompleted as $group)

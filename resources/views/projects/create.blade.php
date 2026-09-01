@@ -239,7 +239,7 @@ function addBatchCard(existingData = null) {
             <div style="display:flex;align-items:center;gap:8px;">
                 <div style="display:flex;align-items:center;gap:6px;">
                     <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.04em;">Batch Due:</span>
-                    <input type="date" name="batches[${batchIndex}][deadline]" value="${batchDeadline}"
+                    <input type="date" name="batches[${batchIndex}][deadline]" value="${batchDeadline}" min="${new Date().toISOString().split('T')[0]}"
                         style="background:var(--color-bg-primary);border:1.5px solid var(--color-border-primary);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:600;color:var(--color-text-primary);outline:none;">
                 </div>
                 <button type="button" onclick="removeBatchCard(${batchIndex})" style="background:none;border:none;color:#ef4444;font-size:11px;font-weight:700;cursor:pointer;padding:4px;display:inline-flex;align-items:center;gap:2px;">
@@ -297,6 +297,7 @@ function renderItemDates(input, batchIdx, typeId, typeName, savedDates = null) {
     container.style.paddingTop = '6px';
     container.style.borderTop = '1px dashed var(--color-border-primary)';
 
+    const todayStr = new Date().toISOString().split('T')[0];
     let html = '';
     for (let i = 1; i <= qty; i++) {
         const dateVal = existingDates[i] || '';
@@ -304,7 +305,7 @@ function renderItemDates(input, batchIdx, typeId, typeName, savedDates = null) {
         html += `
             <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
                 <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);">${label}:</span>
-                <input type="date" name="batches[${batchIdx}][post_types][${typeId}][dates][${i}]" value="${dateVal}"
+                <input type="date" name="batches[${batchIdx}][post_types][${typeId}][dates][${i}]" value="${dateVal}" min="${todayStr}"
                     style="background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:6px;padding:3px 6px;font-size:11px;font-weight:600;color:var(--color-text-primary);outline:none;">
             </div>
         `;

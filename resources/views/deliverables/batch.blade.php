@@ -548,7 +548,7 @@ document.addEventListener('keydown', e => {
                     
                     if (isVideo) {
                         html += `
-                            <div style="position:relative; width:100%; height:140px; background:#000; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="openImagePreview('${fileUrl}', false)">
+                            <div style="position:relative; width:100%; height:140px; background:#000; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="closeMediaGallery(); openLightbox('${fileUrl}')">
                                 <video src="${fileUrl}" style="width:100%; height:100%; object-fit:cover;" preload="metadata"></video>
                                 <div style="position:absolute; background:rgba(0,0,0,0.6); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
                                     <svg width="16" height="16" fill="#fff" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -556,7 +556,7 @@ document.addEventListener('keydown', e => {
                             </div>`;
                     } else if (isImg) {
                         html += `
-                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="openImagePreview('${fileUrl}', false)">
+                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="closeMediaGallery(); openLightbox('${fileUrl}')">
                                 <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                             </div>`;
                     } else {

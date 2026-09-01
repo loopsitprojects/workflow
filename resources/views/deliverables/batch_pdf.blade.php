@@ -318,9 +318,18 @@
             if ($src) $refImgSrcs[] = $src;
         }
 
-        $artImgSrc  = batchPdfImgSrc($deliverable->final_designs);
+        $artFiles   = $deliverable->getFinalDesignsArray();
+        if (empty($artFiles) && !empty($deliverable->final_designs)) {
+            $artFiles = [$deliverable->final_designs];
+        }
+        $artImgSrcs = [];
+        foreach ($artFiles as $af) {
+            $src = batchPdfImgSrc($af);
+            if ($src) $artImgSrcs[] = $src;
+        }
+
         $hasRefImg  = !empty($refImgSrcs);
-        $hasArtImg  = (bool) $artImgSrc;
+        $hasArtImg  = !empty($artImgSrcs);
         $deadline   = $deliverable->deadline ? \Carbon\Carbon::parse($deliverable->deadline)->format('d M Y') : null;
         $stageName  = $deliverable->approval_stage ?? 'N/A';
         $isClosed   = strtolower($stageName) === 'closed';
@@ -395,11 +404,22 @@
     @endif
 
     {{-- Media --}}
-    @if($hasRefImg || $hasArtImg || !empty($refUrls) || $deliverable->final_designs_link || !empty($refFiles) || $deliverable->final_designs)
+    @if($hasRefImg || $hasArtImg || !empty($refUrls) || $deliverable->final_designs_link || !empty($refFiles) || !empty($artFiles))
     <div class="rule-thin"></div>
 
     @if($hasRefImg && $hasArtImg)
         <div class="two-col">
+            <div class="two-col-cell">
+                <div class="section-label">Final Artwork</div>
+                <div class="img-container">
+                    @foreach($artImgSrcs as $imgSrc)
+                        <img src="{{ $imgSrc }}" alt="Artwork" style="margin-bottom:6px;">
+                    @endforeach
+                    @if($deliverable->final_designs_link)
+                        <div class="img-link" style="margin-top:5px;"><a href="{{ $deliverable->final_designs_link }}" target="_blank" style="color:#10b981;">{{ $deliverable->final_designs_link }}</a></div>
+                    @endif
+                </div>
+            </div>
             <div class="two-col-cell">
                 <div class="section-label">Reference Images / Files</div>
                 <div class="img-container">
@@ -412,15 +432,6 @@
                                 <div class="img-link"><a href="{{ $url }}" target="_blank" style="color:#0055D4;">{{ $url }}</a></div>
                             @endforeach
                         </div>
-                    @endif
-                </div>
-            </div>
-            <div class="two-col-cell">
-                <div class="section-label">Artwork</div>
-                <div class="img-container">
-                    <img src="{{ $artImgSrc }}" alt="Artwork">
-                    @if($deliverable->final_designs_link)
-                        <div class="img-link" style="margin-top:5px;"><a href="{{ $deliverable->final_designs_link }}" target="_blank" style="color:#10b981;">{{ $deliverable->final_designs_link }}</a></div>
                     @endif
                 </div>
             </div>

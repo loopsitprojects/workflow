@@ -131,6 +131,10 @@
                         <span class="text-[11px] font-medium text-blue-500 dark:text-blue-400 truncate max-w-[140px]">{{ $task->project->name }}</span>
                         <span class="opacity-30 text-[10px]">·</span>
                         <span class="text-[11px] text-gray-400 dark:text-slate-500 uppercase tracking-wide">{{ $task->approval_stage ?: $task->status }}</span>
+                        @if($task->client_status && $task->client_status !== 'Not Sent')
+                            <span class="opacity-30 text-[10px]">·</span>
+                            <span class="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wide bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 rounded">{{ $task->client_status }}</span>
+                        @endif
                     </div>
                 </div>
                 <div class="flex-shrink-0 ml-4 text-right">

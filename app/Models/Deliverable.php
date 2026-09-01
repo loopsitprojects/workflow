@@ -47,12 +47,10 @@ class Deliverable extends Model
         'reference_file',
         'notes',
         'work_hours',
-        'designer_deadline',
         'client_status',
     ];
 
     protected $casts = [
-        'designer_deadline' => 'datetime',
     ];
 
     protected $appends = [
@@ -106,6 +104,40 @@ class Deliverable extends Model
             }
         }
         return [$val];
+    }
+
+    public function getAllArtworkFiles(): array
+    {
+        $files = $this->getFinalDesignsArray();
+
+        // If deliverable has subtasks (e.g. Carousel slides), collect each subtask's artwork
+        if ($this->subtasks && $this->subtasks->isNotEmpty()) {
+            foreach ($this->subtasks as $sub) {
+                $subFiles = $sub->getFinalDesignsArray();
+                if (empty($subFiles)) {
+                    $subFiles = $sub->getReferenceFilesArray();
+                }
+                if (empty($subFiles) && !empty($sub->image_url)) {
+                    $subFiles = [$sub->image_url];
+                }
+                foreach ($subFiles as $sf) {
+                    if (!in_array($sf, $files)) {
+                        $files[] = $sf;
+                    }
+                }
+            }
+        }
+
+        // Fallback to reference files if no final designs are uploaded
+        if (empty($files)) {
+            $files = $this->getReferenceFilesArray();
+        }
+
+        if (empty($files) && !empty($this->image_url)) {
+            $files[] = $this->image_url;
+        }
+
+        return array_values(array_unique(array_filter(array_map(fn($u) => trim($u, "\"' \t\n\r\0\x0B"), $files))));
     }
 
     public function getFinalDesignsUrlsArray(): array

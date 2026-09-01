@@ -278,15 +278,19 @@ class ProjectController extends Controller
         // Notify all writers in the brand
         $actor = auth()->user();
         $notifiedIds = [];
-        if ($brand) {
-            foreach ($brand->members->where('role', 'Writer') as $writer) {
-                $writer->notify(new BriefUploaded($project, $actor));
-                $notifiedIds[] = $writer->id;
+        try {
+            if ($brand) {
+                foreach ($brand->members->where('role', 'Writer') as $writer) {
+                    $writer->notify(new BriefUploaded($project, $actor));
+                    $notifiedIds[] = $writer->id;
+                }
             }
-        }
-        // Also notify the specifically assigned writer if not already a brand member
-        if ($project->writer_id && !in_array($project->writer_id, $notifiedIds)) {
-            $project->writer->notify(new BriefUploaded($project, $actor));
+            // Also notify the specifically assigned writer if not already a brand member
+            if ($project->writer_id && !in_array($project->writer_id, $notifiedIds)) {
+                $project->writer->notify(new BriefUploaded($project, $actor));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to send BriefUploaded notification: ' . $e->getMessage());
         }
 
         return redirect()->route('projects.show', $project)->with('success', 'Project created successfully.');
@@ -424,14 +428,18 @@ class ProjectController extends Controller
         if (isset($validated['brief_file_path'])) {
             $actor = auth()->user();
             $notifiedIds = [];
-            if ($brand) {
-                foreach ($brand->members->where('role', 'Writer') as $writer) {
-                    $writer->notify(new BriefUploaded($project, $actor, true));
-                    $notifiedIds[] = $writer->id;
+            try {
+                if ($brand) {
+                    foreach ($brand->members->where('role', 'Writer') as $writer) {
+                        $writer->notify(new BriefUploaded($project, $actor, true));
+                        $notifiedIds[] = $writer->id;
+                    }
                 }
-            }
-            if ($project->writer_id && !in_array($project->writer_id, $notifiedIds)) {
-                $project->writer->notify(new BriefUploaded($project, $actor, true));
+                if ($project->writer_id && !in_array($project->writer_id, $notifiedIds)) {
+                    $project->writer->notify(new BriefUploaded($project, $actor, true));
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to send BriefUploaded notification: ' . $e->getMessage());
             }
         }
 

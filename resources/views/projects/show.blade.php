@@ -812,7 +812,7 @@
 
 
                                                 @if($isAdmin || $userRole === 'brandmanager')
-                                                <form action="{{ route('deliverables.destroy', $subtask) }}" method="POST" onsubmit="return confirm('Delete Deliverable?')" style="display:contents;" onclick="event.stopPropagation()">
+                                                <form action="{{ route('deliverables.destroy', $subtask) }}" method="POST" onsubmit="return confirmAction(event, 'Delete Deliverable?', 'Are you sure you want to delete this deliverable? This action cannot be undone.', true)" style="display:contents;" onclick="event.stopPropagation()">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="quick-action-btn btn-delete-quick">
                                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -1039,7 +1039,7 @@
                                                     Sub
                                                 </a>
                                                 @if($isAdmin || $userRole === 'brandmanager')
-                                                <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirm('Delete Deliverable?')" style="display:contents;" onclick="event.stopPropagation()">
+                                                <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirmAction(event, 'Delete Deliverable?', 'Are you sure you want to delete this deliverable? This action cannot be undone.', true)" style="display:contents;" onclick="event.stopPropagation()">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="quick-action-btn btn-delete-quick">
                                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -1081,7 +1081,7 @@
         <div class="cd-modal" onclick="event.stopPropagation()">
             <div class="cd-modal-header" style="padding: 20px 32px; align-items: center;">
                 <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
-                    <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" style="font-size:20px; font-weight:900; color:var(--color-text-primary); margin:0; border:1px solid transparent; background:transparent; width:auto; flex:1; min-width:0; outline:none; border-radius:8px; padding:4px 8px; margin-left:-8px; transition:all 0.2s;" readonly onfocus="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-secondary)'" onblur="this.style.borderColor='transparent'; this.style.background='transparent'">
+                    <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" style="font-size:20px; font-weight:900; color:var(--color-text-primary); margin:0; border:1px solid transparent; background:transparent; width:auto; flex:1; min-width:0; outline:none; border-radius:8px; padding:4px 8px; margin-left:-8px; transition:all 0.2s;" onfocus="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-secondary)'" onblur="this.style.borderColor='transparent'; this.style.background='transparent'">
                     <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:0; flex-shrink:0;"></div>
                     <div id="modalTopDeadlines" style="display:flex; align-items:center; gap:8px; flex-shrink:0;"></div>
                 </div>
@@ -1188,16 +1188,11 @@
                     <div class="detail-item" id="modalDeliverableDeadlineBox" style="flex:1;">
                         <label class="detail-label" style="color:#3b82f6;">Deliverable Deadline</label>
                         <div style="display:flex; gap:8px;">
-                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm"
+                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm" min="{{ date('Y-m-d') }}"
                                 style="flex:1; padding:8px 12px; border:1.5px solid rgba(59,130,246,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
                                 onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
                             <button type="button" id="saveDeadlineBtn" style="display:none; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
                         </div>
-                    </div>
-
-                    <div class="detail-item" id="modalDesignerDeadlineBox" style="display:none; flex:1;">
-                        <label class="detail-label" style="color:#8b5cf6;">Designer Deadline</label>
-                        <div id="modalDesignerDeadline" style="font-size:13px; font-weight:700; color:#8b5cf6; padding:8px 12px; background:rgba(139,92,246,0.07); border:1px solid rgba(139,92,246,0.2); border-radius:8px;"></div>
                     </div>
                 </div>
 
@@ -1344,21 +1339,6 @@
                             @endforeach
                         </select>
                         <p style="font-size:11px; color:#8b5cf6; margin-top:8px; font-weight:600;">Selection required to advance to Designer stage.</p>
-                        <div style="margin-top:14px;">
-                            <label style="display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#8b5cf6; margin-bottom:6px;">Internal Designer Deadline <span style="font-weight:500; opacity:0.65; text-transform:none; letter-spacing:0;">(optional)</span></label>
-                            <div style="display:flex; gap:8px;">
-                                <input type="date" id="designerDeadlineDateInput" min="{{ date('Y-m-d') }}"
-                                    style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                    onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'"
-                                    onchange="syncDesignerDeadline()">
-                                <input type="time" id="designerDeadlineTimeInput"
-                                    style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                    onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'"
-                                    onchange="syncDesignerDeadline()">
-                            </div>
-                            <input type="hidden" name="designer_deadline" id="designerDeadlineInput" form="submitStageForm">
-                            <p style="font-size:11px; color:var(--color-text-secondary); margin-top:6px; font-weight:500;">Set an internal due date/time for the designer — earlier than the final project deadline.</p>
-                        </div>
                     </div>
 
                     <div id="designerDeliveryArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.1); border-radius:16px;">
@@ -1410,17 +1390,6 @@
                                 Save Artwork
                             </button>
                         </form>
-                    </div>
-
-                    <div id="designerSelectionAreaInModal" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(0,85,212,0.05); border:1px solid rgba(0,85,212,0.1); border-radius:16px;">
-                        <label class="detail-label" style="color:#0055D4; margin-bottom:12px;">Assign Next Designer</label>
-                        <select name="designer_id" form="submitStageForm" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                            <option value="">Select Designer...</option>
-                            @foreach($designers as $designer)
-                                <option value="{{ $designer->id }}">{{ $designer->name }}</option>
-                            @endforeach
-                        </select>
-                        <p style="font-size:11px; color:#0055D4; margin-top:8px; font-weight:600;">Selection required to advance to Designer stage.</p>
                     </div>
 
                     <div id="submitNotesArea" class="detail-item full" style="margin-top:10px; padding:20px; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.05); border-radius:16px;">
@@ -1544,7 +1513,7 @@
     </form>
 
     <!-- Centered Error Modal -->
-    <div id="taskErrorModalOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:999999; align-items:center; justify-content:center; padding:20px; text-align:center; transition:opacity 0.3s ease; opacity:0;">
+    <div id="taskErrorModalOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:9999999; align-items:center; justify-content:center; padding:20px; text-align:center; transition:opacity 0.3s ease; opacity:0;">
         <div id="taskErrorModalBox" style="background:var(--color-bg-primary); border-radius:24px; padding:32px; max-width:400px; width:100%; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); transform:scale(0.95); transition:transform 0.3s ease, opacity 0.3s ease; opacity:0;">
             <div style="width:64px; height:64px; border-radius:16px; background:#fef2f2; color:#ef4444; display:flex; align-items:center; justify-content:center; margin:0 auto 24px;">
                 <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -1763,13 +1732,6 @@
             });
         }
 
-        function syncDesignerDeadline() {
-            const d = document.getElementById('designerDeadlineDateInput')?.value;
-            const t = document.getElementById('designerDeadlineTimeInput')?.value;
-            const h = document.getElementById('designerDeadlineInput');
-            if (h) h.value = d ? (t ? `${d}T${t}` : d) : '';
-        }
-
         function openTaskModal(task) {
             try {
                 console.log('Opening Task Modal for:', task);
@@ -1933,38 +1895,6 @@
                         topDeadlinesEl.appendChild(dueBadge);
                     }
                     
-                    // 2. Designer Deadline (if assigned)
-                    if (task.designer_deadline) {
-                        const ddDate = new Date(task.designer_deadline);
-                        const ddStr = ddDate.toLocaleString(undefined, {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'});
-                        const dsBadge = document.createElement('div');
-                        dsBadge.style.cssText = 'background: rgba(139, 92, 246, 0.08); color: #8b5cf6; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
-                        dsBadge.textContent = `Designer Due: ${ddStr}`;
-                        topDeadlinesEl.appendChild(dsBadge);
-                    }
-                }
-
-                // Designer deadline display
-                const ddBox = document.getElementById('modalDesignerDeadlineBox');
-                const ddEl  = document.getElementById('modalDesignerDeadline');
-                const ddDateInput = document.getElementById('designerDeadlineDateInput');
-                const ddTimeInput = document.getElementById('designerDeadlineTimeInput');
-                const ddHidden   = document.getElementById('designerDeadlineInput');
-                if (task.designer_deadline) {
-                    const ddDate = new Date(task.designer_deadline);
-                    ddEl.textContent = ddDate.toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'});
-                    ddBox.style.display = 'block';
-                    const pad = n => String(n).padStart(2,'0');
-                    const dateStr = `${ddDate.getFullYear()}-${pad(ddDate.getMonth()+1)}-${pad(ddDate.getDate())}`;
-                    const timeStr = `${pad(ddDate.getHours())}:${pad(ddDate.getMinutes())}`;
-                    if (ddDateInput) ddDateInput.value = dateStr;
-                    if (ddTimeInput) ddTimeInput.value = timeStr;
-                    if (ddHidden)    ddHidden.value = `${dateStr}T${timeStr}`;
-                } else {
-                    ddBox.style.display = 'none';
-                    if (ddDateInput) ddDateInput.value = '';
-                    if (ddTimeInput) ddTimeInput.value = '';
-                    if (ddHidden)    ddHidden.value = '';
                 }
 
                 // Deliverable Deadline Input Population
@@ -2327,13 +2257,45 @@
                     (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
                     (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner));
 
+                // Check if current user was the last person who submitted/approved this deliverable
+                const approvals = task.approvals_history || task.approvalsHistory || [];
+                const latestApproval = (approvals && approvals.length > 0) ? approvals[0] : null;
+                const isLastSubmitter = latestApproval && (latestApproval.user_id == AUTH_USER_ID);
+
+                // Check if the current user is specifically assigned to handle this current stage
+                const isCurrentStageAssignee = 
+                    (stage === 'Writer' || stage === 'Assignee' || stage === 'Writer Review') ? isAssignedWriter :
+                    (stage === 'Approver' || stage === 'Approver Review' || stage === 'Further Approver') ? isAssignedApprover :
+                    (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval') ? isAssignedBrandMgr :
+                    (stage === 'Coordinator') ? isAssignedCoordinator :
+                    (stage === 'Designer') ? isAssignedDesigner : false;
+
+                // If the user was the one who submitted the previous stage, and is not assigned to this next stage, disable the button
+                const isWaitingForDifferentPerson = isLastSubmitter && !isCurrentStageAssignee;
+
                 if (canAct) {
                     submitBtnForm.style.display = 'flex';
                     const nextBtn = document.getElementById('submitStageBtn');
                     const isLastStage = WORKFLOW_STAGES.indexOf(stage) >= WORKFLOW_STAGES.length - 2;
 
-                    if (stage === 'Designer') nextBtn.textContent = 'Request for Approval';
-                    else nextBtn.textContent = isLastStage ? 'Approve & Close' : 'Submit to Next';
+                    if (nextBtn) {
+                        if (isWaitingForDifferentPerson) {
+                            nextBtn.disabled = true;
+                            nextBtn.style.opacity = '0.5';
+                            nextBtn.style.cursor = 'not-allowed';
+                            nextBtn.style.boxShadow = 'none';
+                            nextBtn.textContent = 'Submitted · Waiting for ' + stage;
+                            nextBtn.title = 'You have already submitted this deliverable. It is currently with the ' + stage + '.';
+                        } else {
+                            nextBtn.disabled = false;
+                            nextBtn.style.opacity = '1';
+                            nextBtn.style.cursor = 'pointer';
+                            nextBtn.style.boxShadow = '0 4px 12px rgba(0,85,212,0.4)';
+                            if (stage === 'Designer') nextBtn.textContent = 'Request for Approval';
+                            else nextBtn.textContent = isLastStage ? 'Approve & Close' : 'Submit to Next';
+                            nextBtn.title = '';
+                        }
+                    }
 
                     if (stage === 'Writer' || stage === 'Assignee') {
                         if (task.approver_id) {
@@ -2367,20 +2329,22 @@
 
                 // Edit Permissions (already computed above)
 
-                document.getElementById('modalTaskTitle').readOnly = !writerEditPermission;
+                const canEditTitle = writerEditPermission || isAdmin || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole);
+                document.getElementById('modalTaskTitle').readOnly = !canEditTitle;
                 quillConcept.enable(writerEditPermission);
                 quillCaption.enable(writerEditPermission);
                 quillCopy.enable(writerEditPermission);
                 
                 // Reference Edit Area
                 const refEditArea = document.getElementById('modalReferenceEditArea');
+                const canEditReference = writerEditPermission || isAdmin || hasWriterRole || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole);
                 if (refEditArea) {
-                    refEditArea.style.display = writerEditPermission ? 'flex' : 'none';
-                    document.getElementById('modalReferenceUrl').value = task.reference || '';
+                    refEditArea.style.display = canEditReference ? 'flex' : 'none';
+                    const refInput = document.getElementById('modalReferenceUrl');
+                    if (refInput) refInput.value = task.reference || '';
                 }
 
-                if ((writerEditPermission && (stage === 'Writer' || stage === 'Assignee' || stage === 'Writer Review')) ||
-                    (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager') {
+                if (canEditReference || (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager') {
                     submitBtnForm.style.display = 'flex';
                     saveContentBtn.style.display = 'block';
                 }
@@ -2476,25 +2440,7 @@
         }
 
         function showConfirm(title, message) {
-            return new Promise(resolve => {
-                const el = document.createElement('div');
-                el.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);';
-                el.innerHTML = `
-                    <div style="background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:16px;padding:24px;width:100%;max-width:360px;box-shadow:0 25px 50px rgba(0,0,0,0.3);">
-                        <div style="width:44px;height:44px;background:rgba(59,130,246,0.1);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-                            <svg width="20" height="20" fill="none" stroke="#3b82f6" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        </div>
-                        <h3 style="font-size:15px;font-weight:700;color:var(--color-text-primary);margin-bottom:6px;">${title}</h3>
-                        <p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:20px;">${message}</p>
-                        <div style="display:flex;gap:8px;justify-content:flex-end;">
-                            <button id="confirm-cancel" style="padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);cursor:pointer;">Cancel</button>
-                            <button id="confirm-ok" style="padding:8px 20px;border-radius:8px;font-size:12px;font-weight:700;color:#fff;background:#0055D4;border:none;cursor:pointer;">Confirm</button>
-                        </div>
-                    </div>`;
-                document.body.appendChild(el);
-                el.querySelector('#confirm-ok').onclick = () => { document.body.removeChild(el); resolve(true); };
-                el.querySelector('#confirm-cancel').onclick = () => { document.body.removeChild(el); resolve(false); };
-            });
+            return window.customConfirm({ title: title, message: message, isDanger: true });
         }
 
         function toggleSubtasks(e, taskId) {
@@ -2658,7 +2604,7 @@
                     const MAX_SIZE = 2 * 1024 * 1024; // 2MB default PHP limit
 
                     document.querySelectorAll(`[form="${submitForm.id}"]`).forEach(el => {
-                        if (el.type === 'submit' || el.type === 'button' || el.tagName === 'BUTTON') return;
+                        if (el.type === 'submit' || el.type === 'button' || el.tagName === 'BUTTON' || el.disabled) return;
                         if (el.name && !formData.has(el.name)) {
                             if (el.type === 'file') {
                                 if (el.files.length > 0) {
@@ -2683,6 +2629,43 @@
                     if (btn && btn.name) {
                         formData.set(btn.name, btn.value);
                     }
+
+                    // Client-side validation: if submitting to next stage, ensure required assignee is selected
+                    const isSubmittingNext = !btn || btn.value !== 'save_only';
+                    if (isSubmittingNext) {
+                        const coordArea = document.getElementById('coordinatorSelectionArea');
+                        if (coordArea && coordArea.style.display !== 'none') {
+                            const coordSel = coordArea.querySelector('select');
+                            if (coordSel && !coordSel.value) {
+                                showErrorModal('Please select a **Coordinator** before submitting to the next stage.');
+                                return;
+                            }
+                        }
+                        const dArea = document.getElementById('designerSelectionArea');
+                        if (dArea && dArea.style.display !== 'none') {
+                            const dSel = dArea.querySelector('select');
+                            if (dSel && !dSel.value) {
+                                showErrorModal('Please select a **Designer** before submitting to the next stage.');
+                                return;
+                            }
+                        }
+                        const apprArea = document.getElementById('approverSelectionArea');
+                        if (apprArea && apprArea.style.display !== 'none') {
+                            const apprSel = apprArea.querySelector('select');
+                            if (apprSel && !apprSel.value) {
+                                showErrorModal('Please select an **Approver** before submitting to the next stage.');
+                                return;
+                            }
+                        }
+                        const bmArea = document.getElementById('brandManagerSelectionArea');
+                        if (bmArea && bmArea.style.display !== 'none') {
+                            const bmSel = bmArea.querySelector('select');
+                            if (bmSel && !bmSel.value) {
+                                showErrorModal('Please select a **Brand Manager** before submitting to the next stage.');
+                                return;
+                            }
+                        }
+                    }
                     
                     const originalText = btn ? btn.innerHTML : 'Submit';
                     if (btn) {
@@ -2691,6 +2674,7 @@
                     }
 
                     const formActionUrl = this.getAttribute('action');
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]')?.value || '{{ csrf_token() }}';
 
                     try {
                         const response = await fetch(formActionUrl, {
@@ -2698,7 +2682,8 @@
                             body: formData,
                             headers: {
                                 'X-Requested-With': 'XMLHttpRequest',
-                                'Accept': 'application/json'
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken
                             }
                         });
                         
@@ -2731,31 +2716,39 @@
         });
 
         function showErrorModal(message) {
-            // Convert markdown-style **bolding** to <b> or styled span if needed, or just insert
+            if (!message) return;
+            // Convert markdown-style **bolding** to <b> or styled span
             let formattedMessage = message.replace(/\*\*(.*?)\*\*/g, '<span style="font-weight:900; color:var(--color-text-primary);">$1</span>');
-            document.getElementById('taskErrorModalMessage').innerHTML = formattedMessage;
+            const msgEl = document.getElementById('taskErrorModalMessage');
             const overlay = document.getElementById('taskErrorModalOverlay');
             const box = document.getElementById('taskErrorModalBox');
             
-            overlay.style.display = 'flex';
-            setTimeout(() => {
-                overlay.style.opacity = '1';
-                box.style.opacity = '1';
-                box.style.transform = 'scale(1)';
-            }, 10);
+            if (msgEl && overlay && box) {
+                msgEl.innerHTML = formattedMessage;
+                overlay.style.display = 'flex';
+                setTimeout(() => {
+                    overlay.style.opacity = '1';
+                    box.style.opacity = '1';
+                    box.style.transform = 'scale(1)';
+                }, 10);
+            } else {
+                alert(message.replace(/\*\*/g, ''));
+            }
         }
         
         function hideErrorModal() {
             const overlay = document.getElementById('taskErrorModalOverlay');
             const box = document.getElementById('taskErrorModalBox');
             
-            overlay.style.opacity = '0';
-            box.style.opacity = '0';
-            box.style.transform = 'scale(0.95)';
-            
-            setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 300);
+            if (overlay && box) {
+                overlay.style.opacity = '0';
+                box.style.opacity = '0';
+                box.style.transform = 'scale(0.95)';
+                
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300);
+            }
         }
 
         // deleteTaskFromModal uses currentTaskData.id and is defined above
@@ -2788,19 +2781,6 @@
                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 2px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                         This person will handle all remaining approval steps for this batch.
                     </p>
-                </div>
-                <!-- Designer Deadline (shown only when advancing to Designer stage) -->
-                <div id="batchDesignerDeadlineGroup" style="display:none; margin-top:16px; padding:16px; border-radius:12px; border:1.5px solid rgba(139,92,246,0.2); background:rgba(139,92,246,0.04);">
-                    <label style="display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#8b5cf6; margin-bottom:8px;">Internal Designer Deadline <span style="font-weight:500; opacity:0.65; text-transform:none; letter-spacing:0;">(optional)</span></label>
-                    <div style="display:flex; gap:8px;">
-                        <input type="date" id="batchDesignerDeadlineDateInput" min="{{ date('Y-m-d') }}"
-                            style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                            onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'">
-                        <input type="time" id="batchDesignerDeadlineTimeInput"
-                            style="flex:1; padding:10px 12px; border:1.5px solid rgba(139,92,246,0.25); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                            onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,0.25)'">
-                    </div>
-                    <p style="font-size:11px; color:var(--color-text-secondary); margin-top:6px; font-weight:500;">Set an internal due date/time for the designer — earlier than the final project deadline.</p>
                 </div>
                 <!-- Revision Group -->
                 <div id="batchRevisionGroup" style="display: none;">
@@ -3084,19 +3064,6 @@
                 }
             }
 
-            // Show designer deadline field only when advancing to Designer stage
-            const batchDeadlineGroup = document.getElementById('batchDesignerDeadlineGroup');
-            if (batchDeadlineGroup) {
-                const showDeadline = (type === 'submit' && nextStage === 'Designer');
-                batchDeadlineGroup.style.display = showDeadline ? 'block' : 'none';
-                if (!showDeadline) {
-                    const di = document.getElementById('batchDesignerDeadlineDateInput');
-                    const ti = document.getElementById('batchDesignerDeadlineTimeInput');
-                    if (di) di.value = '';
-                    if (ti) ti.value = '';
-                }
-            }
-
             modal.style.display = 'flex';
             setTimeout(() => {
                 modal.style.opacity = '1';
@@ -3116,11 +3083,6 @@
             document.getElementById('batchRevisionImageLabel').textContent = 'Choose image…';
             const prev = document.getElementById('batchRevisionImagePreview');
             prev.src = ''; prev.style.display = 'none';
-            // Reset designer deadline
-            const ddDateInp = document.getElementById('batchDesignerDeadlineDateInput');
-            const ddTimeInp = document.getElementById('batchDesignerDeadlineTimeInput');
-            if (ddDateInp) ddDateInp.value = '';
-            if (ddTimeInp) ddTimeInp.value = '';
         }
 
         async function executeBatchAction() {
@@ -3257,16 +3219,6 @@
                 payload.further_approver_id = furtherApproverSelect.value;
             }
 
-            // Include designer deadline if set (combine separate date + time inputs)
-            const batchDeadlineGroup = document.getElementById('batchDesignerDeadlineGroup');
-            if (batchDeadlineGroup && batchDeadlineGroup.style.display !== 'none') {
-                const batchDate = document.getElementById('batchDesignerDeadlineDateInput')?.value;
-                const batchTime = document.getElementById('batchDesignerDeadlineTimeInput')?.value;
-                if (batchDate || batchTime) {
-                    payload.designer_deadline = (batchDate && batchTime) ? `${batchDate}T${batchTime}` : (batchDate || batchTime);
-                }
-            }
-
             // Collect reference image files — switch to FormData if any are selected
             const refFiles = {};
             document.querySelectorAll('.batch-ref-file').forEach(input => {
@@ -3281,7 +3233,6 @@
                 fd.append('batch_data', JSON.stringify(batchData));
                 if (roleField && assigneeId && assigneeId !== 'individual') fd.append(roleField, assigneeId);
                 if (payload.further_approver_id) fd.append('further_approver_id', payload.further_approver_id);
-                if (payload.designer_deadline) fd.append('designer_deadline', payload.designer_deadline);
                 Object.entries(refFiles).forEach(([id, file]) => fd.append('reference_files[' + id + ']', file));
                 fetchOpts = { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }, body: fd };
             } else {
@@ -3490,7 +3441,7 @@
                     
                     if (isVideo) {
                         html += `
-                            <div style="position:relative; width:100%; height:140px; background:#000; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="openImagePreview('${fileUrl}', false)">
+                            <div style="position:relative; width:100%; height:140px; background:#000; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="closeMediaGallery(); openImagePreview('${fileUrl}', false)">
                                 <video src="${fileUrl}" style="width:100%; height:100%; object-fit:cover;" preload="metadata"></video>
                                 <div style="position:absolute; background:rgba(0,0,0,0.6); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
                                     <svg width="16" height="16" fill="#fff" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -3498,7 +3449,7 @@
                             </div>`;
                     } else if (isImg) {
                         html += `
-                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="openImagePreview('${fileUrl}', false)">
+                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="closeMediaGallery(); openImagePreview('${fileUrl}', false)">
                                 <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                             </div>`;
                     } else {
@@ -3561,6 +3512,10 @@
 
         // Image Preview Functions
         function openImagePreview(url, canRemove = false, deliverableId = null) {
+            if (typeof closeMediaGallery === 'function') {
+                closeMediaGallery();
+            }
+
             const isVideo = url.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
             if (isVideo) {
                 document.getElementById('imagePreviewSrc').style.display = 'none';

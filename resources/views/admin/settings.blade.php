@@ -87,7 +87,7 @@
                     <span class="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-slate-500">
                         {{ $maintenance['enabled'] ? 'ON' : 'OFF' }}
                     </span>
-                    <button type="submit" onclick="return confirm('{{ $maintenance['enabled'] ? 'Turn OFF Maintenance Mode?' : 'Turn ON Maintenance Mode?' }}');"
+                    <button type="submit" onclick="return confirmAction(event, '{{ $maintenance['enabled'] ? 'Turn OFF Maintenance Mode?' : 'Turn ON Maintenance Mode?' }}', '{{ $maintenance['enabled'] ? 'Allow non-administrator users to access the system again?' : 'Restrict system access to administrators only while performing maintenance?' }}', {{ $maintenance['enabled'] ? 'false' : 'true' }});"
                         class="relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $maintenance['enabled'] ? 'bg-amber-500' : 'bg-gray-300 dark:bg-slate-700' }}"
                         role="switch" aria-checked="{{ $maintenance['enabled'] ? 'true' : 'false' }}">
                         <span class="pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $maintenance['enabled'] ? 'translate-x-6' : 'translate-x-0' }}"></span>

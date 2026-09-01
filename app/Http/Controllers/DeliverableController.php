@@ -301,7 +301,6 @@ class DeliverableController extends Controller
             'final_designs' => 'nullable|string',
             'revisions' => 'nullable|integer',
             'is_ready' => 'nullable|boolean',
-            'designer_deadline' => 'nullable|date',
         ]);
 
         if ($request->has('writer_id')) {
@@ -405,12 +404,16 @@ class DeliverableController extends Controller
         // Notify the new designer
         $newDesigner = User::find($newDesignerId);
         if ($newDesigner) {
-            $newDesigner->notify(new DeliverableUpdated(
-                $deliverable,
-                "reassigned the deliverable to you (Designer)",
-                'reassignment',
-                $user
-            ));
+            try {
+                $newDesigner->notify(new DeliverableUpdated(
+                    $deliverable,
+                    "reassigned the deliverable to you (Designer)",
+                    'reassignment',
+                    $user
+                ));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to send DeliverableUpdated notification: ' . $e->getMessage());
+            }
         }
 
         $fromName = $oldDesignerId ? User::find($oldDesignerId)?->name : 'Unassigned';
@@ -593,7 +596,6 @@ class DeliverableController extends Controller
                     $deliverable->work_hours = $newWorkHours;
                 }
             }
-            if ($request->has('designer_deadline')) $deliverable->designer_deadline = $request->designer_deadline ?: null;
             if ($request->has('deadline')) {
                 $newDeadline = $request->deadline ?: null;
                 $oldDeadline = $deliverable->deadline ? \Carbon\Carbon::parse($deliverable->deadline)->format('Y-m-d') : null;
@@ -1020,12 +1022,16 @@ class DeliverableController extends Controller
 
             $furtherApprover = \App\Models\User::find($furtherApproverId);
             if ($furtherApprover) {
-                $furtherApprover->notify(new DeliverableUpdated(
-                    $deliverable,
-                    'sent **' . $deliverable->title . '** for your approval',
-                    'stage_update',
-                    auth()->user()
-                ));
+                try {
+                    $furtherApprover->notify(new DeliverableUpdated(
+                        $deliverable,
+                        'sent **' . $deliverable->title . '** for your approval',
+                        'stage_update',
+                        auth()->user()
+                    ));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Failed to send DeliverableUpdated notification: ' . $e->getMessage());
+                }
             }
 
             return ['success' => true, 'message' => 'Deliverable sent to ' . ($furtherApprover->name ?? 'further approver') . ' for additional approval.'];
@@ -1055,11 +1061,6 @@ class DeliverableController extends Controller
         if (isset($data['coordinator_id'])) $deliverable->coordinator_id = $data['coordinator_id'];
         if (isset($data['designer_id'])) $deliverable->designer_id = $data['designer_id'];
 
-        // Coordinator sets an internal deadline for the designer when handing off (optional)
-        if ($oldStage === 'Coordinator') {
-            $deliverable->designer_deadline = !empty($data['designer_deadline']) ? $data['designer_deadline'] : null;
-        }
-
         // Designer Delivery
         if ($oldStage === 'Designer') {
             if (isset($data['final_designs'])) $deliverable->final_designs = $data['final_designs'];
@@ -1075,10 +1076,8 @@ class DeliverableController extends Controller
             }
         }
 
-        // Reset client_status when advancing past the first Brand Manager stage
-        if (in_array($oldStage, ['Brand Manager', 'AM/BD']) && !in_array($nextStage, ['Brand Manager', 'AM/BD', 'Further Approver'])) {
-            $deliverable->client_status = null;
-        }
+        // Reset client_status when advancing to the next stage
+        $deliverable->client_status = null;
 
         $deliverable->approval_stage = $nextStage;
         $deliverable->progress_percent = $deliverable->getStageProgress();
@@ -1168,12 +1167,16 @@ class DeliverableController extends Controller
                 ? ($deliverable->designer ?? $deliverable->project?->designer)
                 : ($deliverable->writer ?? $deliverable->project?->writer);
             if ($notifyTarget) {
-                $notifyTarget->notify(new \App\Notifications\DeliverableUpdated(
-                    $deliverable,
-                    "requested revisions at stage **{$oldStage}**",
-                    'revision_request',
-                    auth()->user()
-                ));
+                try {
+                    $notifyTarget->notify(new \App\Notifications\DeliverableUpdated(
+                        $deliverable,
+                        "requested revisions at stage **{$oldStage}**",
+                        'revision_request',
+                        auth()->user()
+                    ));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Failed to send DeliverableUpdated notification: ' . $e->getMessage());
+                }
             }
 
             return redirect()->back()->with('success', 'Revision requested successfully.');
@@ -1260,12 +1263,16 @@ class DeliverableController extends Controller
                     ? ($task->designer ?? $task->project?->designer)
                     : ($task->writer ?? $task->project?->writer);
                 if ($notifyTarget) {
-                    $notifyTarget->notify(new \App\Notifications\DeliverableUpdated(
-                        $task,
-                        "requested revisions for batch **{$deliverable->title}**",
-                        'revision_request',
-                        auth()->user()
-                    ));
+                    try {
+                        $notifyTarget->notify(new \App\Notifications\DeliverableUpdated(
+                            $task,
+                            "requested revisions for batch **{$deliverable->title}**",
+                            'revision_request',
+                            auth()->user()
+                        ));
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('Failed to send DeliverableUpdated notification: ' . $e->getMessage());
+                    }
                 }
             }
 
@@ -1514,18 +1521,21 @@ class DeliverableController extends Controller
             $p = $this->pptLocalImagePath($rf);
             if ($p) $refPaths[] = $p;
         }
-        $artPath = $this->pptLocalImagePath($task->final_designs);
 
-        $allImages = [];
-        if ($artPath) {
-            $allImages[] = ['path' => $artPath, 'type' => 'FINAL ARTWORK'];
-        }
-        foreach ($refPaths as $idx => $rp) {
-            $label = count($refPaths) > 1 ? 'REFERENCE IMAGE #' . ($idx + 1) : 'REFERENCE IMAGE';
-            $allImages[] = ['path' => $rp, 'type' => $label];
+        $artFiles = $task->getFinalDesignsArray();
+        if (empty($artFiles) && !empty($task->final_designs)) {
+            $artFiles = [$task->final_designs];
         }
 
-        $hasImages = !empty($allImages);
+        $artPaths = [];
+        foreach ($artFiles as $af) {
+            $p = $this->pptLocalImagePath($af);
+            if ($p) $artPaths[] = $p;
+        }
+
+        $hasArt = !empty($artPaths);
+        $hasRef = !empty($refPaths);
+        $hasImages = $hasArt || $hasRef;
 
         // Slide canvas (px, 96dpi, default 4:3 = 960×720)
         $SW = 960; $SH = 720;
@@ -1609,65 +1619,105 @@ class DeliverableController extends Controller
             $div->createTextRun('')->getFont()->setSize(1)->setColor($color('FFE2E8F0'));
         }
 
-        // ── 6. Image Section (Right Column) ─────────────────────────────
+        // ── 6. Image Section (Right Column - Separated Artwork & References) ──
         if ($hasImages) {
-            $imgCount = count($allImages);
-            $imgLabelY = $contentY;
-            $lbl = $slide->createRichTextShape()
-                ->setHeight(18)->setWidth($imgW)->setOffsetX($imgX)->setOffsetY($imgLabelY);
-            $lbl->getBorder()->setLineStyle($Border::LINE_NONE);
-            $mainTitle = $artPath ? 'FINAL ARTWORK & REFERENCES' : ($imgCount > 1 ? 'REFERENCE IMAGES (' . $imgCount . ')' : 'REFERENCE IMAGE');
-            $lr = $lbl->createTextRun($mainTitle);
-            $lr->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF94A3B8'));
+            $renderGrid = function(int $boxX, int $boxY, int $boxW, int $boxH, array $paths, string $prefix) use ($slide) {
+                $count = count($paths);
+                if ($count === 0 || $boxW <= 0 || $boxH <= 0) return;
 
-            $availY = $contentY + 24;
-            $availH = $contentH - 24;
-            $availW = $imgW;
-
-            if ($imgCount == 1) {
-                $cols = 1; $rows = 1;
-            } elseif ($imgCount == 2) {
-                $cols = 1; $rows = 2;
-            } elseif ($imgCount <= 4) {
-                $cols = 2; $rows = 2;
-            } else {
-                $cols = 2; $rows = (int)ceil($imgCount / 2);
-            }
-
-            $slotW = (int)(($availW - (($cols - 1) * 12)) / $cols);
-            $slotH = (int)(($availH - (($rows - 1) * 12)) / $rows);
-
-            foreach ($allImages as $idx => $imgItem) {
-                $r = (int)($idx / $cols);
-                $c = $idx % $cols;
-
-                $posX = $imgX + ($c * ($slotW + 12));
-                $posY = $availY + ($r * ($slotH + 12));
-
-                $imgPath = $imgItem['path'];
-                [$origW, $origH] = @getimagesize($imgPath) ?: [1, 1];
-                if ($origW > 0 && $origH > 0) {
-                    $ratio = $origW / $origH;
-                    if (($slotW / $ratio) <= $slotH) {
-                        $fitW = $slotW;
-                        $fitH = (int)($slotW / $ratio);
-                    } else {
-                        $fitH = $slotH;
-                        $fitW = (int)($fitH * $ratio);
-                    }
+                if ($count == 1) {
+                    $cols = 1; $rows = 1;
+                } elseif ($count == 2) {
+                    $cols = ($boxW >= $boxH * 1.1) ? 2 : 1;
+                    $rows = ($cols == 2) ? 1 : 2;
+                } elseif ($count <= 4) {
+                    $cols = 2; $rows = (int)ceil($count / 2);
                 } else {
-                    $fitW = $slotW;
-                    $fitH = $slotH;
+                    $cols = 3; $rows = (int)ceil($count / 3);
                 }
 
-                $offX = $posX + (int)(($slotW - $fitW) / 2);
-                $offY = $posY + (int)(($slotH - $fitH) / 2);
+                $gap = 10;
+                $slotW = (int)(($boxW - (($cols - 1) * $gap)) / $cols);
+                $slotH = (int)(($boxH - (($rows - 1) * $gap)) / $rows);
 
-                $drawing = new \PhpOffice\PhpPresentation\Shape\Drawing\File();
-                $drawing->setName('Image_' . $idx)->setPath($imgPath)
-                        ->setWidth($fitW)->setHeight($fitH)
-                        ->setOffsetX($offX)->setOffsetY($offY);
-                $slide->addShape($drawing);
+                foreach ($paths as $idx => $imgPath) {
+                    $r = (int)($idx / $cols);
+                    $c = $idx % $cols;
+
+                    $posX = $boxX + ($c * ($slotW + $gap));
+                    $posY = $boxY + ($r * ($slotH + $gap));
+
+                    [$origW, $origH] = @getimagesize($imgPath) ?: [1, 1];
+                    if ($origW > 0 && $origH > 0) {
+                        $ratio = $origW / $origH;
+                        if (($slotW / $ratio) <= $slotH) {
+                            $fitW = $slotW;
+                            $fitH = (int)($slotW / $ratio);
+                        } else {
+                            $fitH = $slotH;
+                            $fitW = (int)($fitH * $ratio);
+                        }
+                    } else {
+                        $fitW = $slotW;
+                        $fitH = $slotH;
+                    }
+
+                    $offX = $posX + (int)(($slotW - $fitW) / 2);
+                    $offY = $posY + (int)(($slotH - $fitH) / 2);
+
+                    $drawing = new \PhpOffice\PhpPresentation\Shape\Drawing\File();
+                    $drawing->setName($prefix . '_' . $idx)->setPath($imgPath)
+                            ->setWidth($fitW)->setHeight($fitH)
+                            ->setOffsetX($offX)->setOffsetY($offY);
+                    $slide->addShape($drawing);
+                }
+            };
+
+            if ($hasArt && $hasRef) {
+                // Split right column into 2 clearly separated sections
+                $topH = (int)($contentH * 0.54);
+                $botH = $contentH - $topH - 20;
+
+                // 1. FINAL ARTWORK Header & Grid
+                $lblArt = $slide->createRichTextShape()
+                    ->setHeight(18)->setWidth($imgW)->setOffsetX($imgX)->setOffsetY($contentY);
+                $lblArt->getBorder()->setLineStyle($Border::LINE_NONE);
+                $artTitle = count($artPaths) > 1 ? 'FINAL ARTWORK (' . count($artPaths) . ')' : 'FINAL ARTWORK';
+                $artRun = $lblArt->createTextRun($artTitle);
+                $artRun->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF0F172A'));
+
+                $renderGrid($imgX, $contentY + 22, $imgW, $topH - 26, $artPaths, 'FinalArt');
+
+                // 2. REFERENCE IMAGES Header & Grid
+                $refStartY = $contentY + $topH + 8;
+                $lblRef = $slide->createRichTextShape()
+                    ->setHeight(18)->setWidth($imgW)->setOffsetX($imgX)->setOffsetY($refStartY);
+                $lblRef->getBorder()->setLineStyle($Border::LINE_NONE);
+                $refTitle = count($refPaths) > 1 ? 'REFERENCE IMAGES (' . count($refPaths) . ')' : 'REFERENCE IMAGE';
+                $refRun = $lblRef->createTextRun($refTitle);
+                $refRun->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF94A3B8'));
+
+                $renderGrid($imgX, $refStartY + 22, $imgW, $botH - 26, $refPaths, 'RefImage');
+            } elseif ($hasArt) {
+                // Final Artwork ONLY
+                $lblArt = $slide->createRichTextShape()
+                    ->setHeight(18)->setWidth($imgW)->setOffsetX($imgX)->setOffsetY($contentY);
+                $lblArt->getBorder()->setLineStyle($Border::LINE_NONE);
+                $artTitle = count($artPaths) > 1 ? 'FINAL ARTWORK (' . count($artPaths) . ')' : 'FINAL ARTWORK';
+                $artRun = $lblArt->createTextRun($artTitle);
+                $artRun->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF0F172A'));
+
+                $renderGrid($imgX, $contentY + 24, $imgW, $contentH - 28, $artPaths, 'FinalArt');
+            } elseif ($hasRef) {
+                // Reference Images ONLY
+                $lblRef = $slide->createRichTextShape()
+                    ->setHeight(18)->setWidth($imgW)->setOffsetX($imgX)->setOffsetY($contentY);
+                $lblRef->getBorder()->setLineStyle($Border::LINE_NONE);
+                $refTitle = count($refPaths) > 1 ? 'REFERENCE IMAGES (' . count($refPaths) . ')' : 'REFERENCE IMAGE';
+                $refRun = $lblRef->createTextRun($refTitle);
+                $refRun->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF94A3B8'));
+
+                $renderGrid($imgX, $contentY + 24, $imgW, $contentH - 28, $refPaths, 'RefImage');
             }
         }
 
@@ -1762,9 +1812,16 @@ class DeliverableController extends Controller
             $addSection('REFERENCE LINK(S)', implode("\n", $refUrls));
         }
 
-        if ($task->final_designs) {
-            $url = str_starts_with($task->final_designs, 'http') ? $task->final_designs : asset(ltrim($task->final_designs, '/'));
-            $addSection('FINAL ARTWORK FILE', $url);
+        if (!empty($artFiles)) {
+            $formattedArt = [];
+            foreach ($artFiles as $af) {
+                $formattedArt[] = str_starts_with($af, 'http') ? $af : asset(ltrim($af, '/'));
+            }
+            $addSection('FINAL ARTWORK FILE' . (count($formattedArt) > 1 ? 'S' : ''), implode("\n", $formattedArt));
+        }
+
+        if ($task->final_designs_link) {
+            $addSection('FINAL DESIGNS LINK', $task->final_designs_link);
         }
 
         if ($task->final_designs_link) {

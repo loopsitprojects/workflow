@@ -12,6 +12,7 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SubtaskTypeController;
 use App\Http\Controllers\Admin\MaintenanceController;
+use App\Http\Controllers\ForgotPasswordController;
 
 Route::get('/invite/{token}', [RegisterController::class, 'show'])->name('register');
 Route::post('/invite/{token}', [RegisterController::class, 'store']);
@@ -19,10 +20,19 @@ Route::post('/invite/{token}', [RegisterController::class, 'store']);
 // Public Artwork Review (no authentication required — client-facing)
 Route::get('/artwork-review/{token}', [ArtworkReviewController::class, 'show'])->name('artwork.review.show');
 Route::post('/artwork-review/{token}/annotate', [ArtworkReviewController::class, 'store'])->name('artwork.review.annotate')->middleware('throttle:30,1');
+Route::post('/artwork-review/{token}/approve', [ArtworkReviewController::class, 'approve'])->name('artwork.review.approve')->middleware('throttle:30,1');
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Password Reset & OTP Routes
+Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendOtp'])->name('password.email');
+Route::get('/verify-otp', [ForgotPasswordController::class, 'showVerifyOtpForm'])->name('password.otp.show');
+Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name('password.otp.verify');
+Route::get('/reset-password', [ForgotPasswordController::class, 'showResetPasswordForm'])->name('password.reset');
+Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])->name('password.update');
 
 Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -62,7 +72,7 @@ Route::middleware('auth')->group(function () {
     Route::get('deliverables/{deliverable}/artwork-reviews-json', [ArtworkReviewController::class, 'reviewsJson'])->name('artwork.reviews-json');
     Route::post('artwork-annotations/{annotation}/resolve', [ArtworkReviewController::class, 'resolve'])->name('artwork.annotation.resolve');
     Route::post('artwork-annotations/{annotation}/respond', [ArtworkReviewController::class, 'respond'])->name('artwork.annotation.respond');
-    Route::delete('artwork-annotations/{annotation}/respond', [ArtworkReviewController::class, 'deleteResponse'])->name('artwork.annotation.delete-response');
+    Route::delete('artwork-annotation-comments/{comment}', [ArtworkReviewController::class, 'deleteComment'])->name('artwork.annotation.delete-comment');
     Route::delete('artwork-reviews/{review}', [ArtworkReviewController::class, 'destroy'])->name('artwork.review.destroy');
 
     // Admin Routes

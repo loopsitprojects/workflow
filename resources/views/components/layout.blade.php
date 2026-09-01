@@ -102,5 +102,6 @@
     </main>
     <x-notification-panel />
     <x-toast />
+    <x-confirm-modal />
 </body>
 </html>

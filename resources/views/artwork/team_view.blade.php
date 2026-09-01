@@ -84,11 +84,15 @@
         </div>
     </div>
 
-    @if($reviews->isEmpty())
+    @php
+        $activeReview = isset($review) ? $review : (isset($reviews) ? $reviews->first() : null);
+    @endphp
+
+    @if(!$activeReview)
         <div class="panel">
             <div class="empty-state">
                 <div class="empty-icon">🔗</div>
-                <p>No review links have been generated yet.</p>
+                <p>No review link has been generated yet.</p>
                 <p style="margin-top:4px; font-size:12px;">Go back to the deliverable and click <strong>"Send to Client"</strong> to generate one.</p>
             </div>
         </div>
@@ -96,39 +100,58 @@
         <div class="ar-grid">
             {{-- Left: Artwork with pin overlay from latest review --}}
             @php
-                $artArr = $deliverable->getFinalDesignsArray();
-                $artworkUrl = count($artArr) > 0 ? trim($artArr[0], "\"' \t\n\r\0\x0B") : null;
-                if (!$artworkUrl) {
-                    $refArr = $deliverable->getReferenceFilesArray();
-                    $artworkUrl = count($refArr) > 0 ? trim($refArr[0], "\"' \t\n\r\0\x0B") : null;
+                $artworksList = !empty($artworks) ? $artworks : [];
+                if (empty($artworksList)) {
+                    $artworksList = $deliverable->getAllArtworkFiles();
                 }
-                if (!$artworkUrl && $deliverable->image_url) {
-                    $artworkUrl = trim($deliverable->image_url, "\"' \t\n\r\0\x0B");
-                }
-                $allAnnotations = $reviews->flatMap(fn($r) => $r->annotations);
+                $totalArtworks = count($artworksList);
+                $initialArtworkUrl = $totalArtworks > 0 ? $artworksList[0] : null;
+
+                $allAnnotations = $activeReview->annotations;
                 $pins           = $allAnnotations->where('type', 'pin');
                 $allDrawings    = $allAnnotations->where('type', 'drawing');
+                $openCount      = $allAnnotations->where('is_resolved', false)->count();
+                $resolvedCount  = $allAnnotations->where('is_resolved', true)->count();
             @endphp
             <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
             <div>
+                @if($totalArtworks > 1)
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:14px; padding:8px 14px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button onclick="teamPrevSlide()" style="background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); color:var(--color-text-primary); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer;">◀</button>
+                            <span id="teamSlideIndicator" style="font-size:12px; font-weight:800; color:var(--color-text-primary);">Slide 1 of {{ $totalArtworks }}</span>
+                            <button onclick="teamNextSlide()" style="background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); color:var(--color-text-primary); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer;">▶</button>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px; overflow-x:auto;">
+                            @foreach($artworksList as $tIdx => $tArt)
+                                <div class="team-thumb-card {{ $tIdx === 0 ? 'active' : '' }}" id="teamThumb-{{ $tIdx }}" onclick="teamSwitchSlide({{ $tIdx }})" style="cursor:pointer; border-radius:8px; padding:2px; border:2px solid {{ $tIdx === 0 ? '#0055D4' : 'transparent' }};">
+                                    <img src="{{ $tArt }}" style="width:28px; height:28px; border-radius:6px; object-fit:cover;" title="Slide {{ $tIdx + 1 }}">
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 <div class="artwork-viewer" style="padding:16px;">
-                    @if($artworkUrl)
+                    @if($initialArtworkUrl)
                         <div id="artworkWrapper" style="position:relative; display:inline-block; width:100%;">
-                            @if(preg_match('/\.(mp4|webm|ogg|mov)/i', $artworkUrl))
-                                <video src="{{ $artworkUrl }}" controls class="artwork-viewer-img"></video>
+                            @if(preg_match('/\.(mp4|webm|ogg|mov)/i', $initialArtworkUrl))
+                                <video src="{{ $initialArtworkUrl }}" controls class="artwork-viewer-img" id="teamArtworkVideo"></video>
                             @else
-                                <img src="{{ $artworkUrl }}" alt="Artwork" class="artwork-viewer-img" id="teamArtworkImg" onload="initTeamCanvas()">
+                                <img src="{{ $initialArtworkUrl }}" alt="Artwork" class="artwork-viewer-img" id="teamArtworkImg" onload="initTeamCanvas()">
                             @endif
                             <canvas id="team-drawing-canvas" style="position:absolute; top:0; left:0; pointer-events:none; z-index:3;"></canvas>
                             <div class="pin-overlay" id="teamPinOverlay" style="z-index: 10;">
                                 @foreach($pins as $pin)
-                                    <div class="tv-pin"
+                                    <div class="tv-pin team-pin-item"
                                          id="tv-pin-{{ $pin->id }}"
-                                         style="left:{{ $pin->x_percent }}%; top:{{ $pin->y_percent }}%;"
+                                         data-artwork-index="{{ $pin->artwork_index ?? 0 }}"
+                                         data-review-id="{{ $pin->artwork_review_id }}"
+                                         style="left:{{ $pin->x_percent }}%; top:{{ $pin->y_percent }}%; display:none;"
                                          title="{{ $pin->content }}">
                                         <div class="tv-pin-circle {{ $pin->is_resolved ? 'resolved' : '' }}"
                                              style="background:{{ $pin->is_resolved ? '#10b981' : $pin->color }};">
-                                            {{ $pin->pin_number ?? $loop->iteration }}
+                                            {{ $pin->is_resolved ? '✓' : ($pin->pin_number ?? $loop->iteration) }}
                                         </div>
                                         <div class="tv-pin-tail {{ $pin->is_resolved ? 'resolved' : '' }}" style="background:{{ $pin->is_resolved ? '#10b981' : $pin->color }};"></div>
                                     </div>
@@ -147,151 +170,205 @@
                 @endif
             </div>
 
-            {{-- Right: Review cards + annotation list --}}
+            {{-- Right: Permanent Review Card + Living Annotation Checklist --}}
             <div>
-                @foreach($reviews as $review)
-                    <div class="review-card" id="review-card-{{ $review->id }}">
-                        <div class="review-card-head">
-                            <div class="review-card-head-left">
-                                <div class="review-client">
-                                    {{ $review->client_name ?? 'Client (anonymous)' }}
-                                </div>
-                                <div class="review-meta">
-                                    Generated {{ $review->created_at->diffForHumans() }}
-                                    @if($review->expires_at)
-                                        · Expires {{ $review->expires_at->format('M j, Y') }}
-                                    @endif
-                                    @if($review->creator)
-                                        · by {{ $review->creator->name }}
-                                    @endif
-                                </div>
-                                <div style="margin-top:6px; display:flex; align-items:center; gap:8px;">
-                                    <span class="status-pill {{ $review->isAccessible() ? 'active' : 'inactive' }}">
-                                        {{ $review->isAccessible() ? '● Active' : '● Inactive' }}
-                                    </span>
-                                    <span style="font-size:11px; color:var(--color-text-secondary);">
-                                        {{ $review->annotations->count() }} annotation(s)
-                                        · {{ $review->annotations->where('is_resolved',false)->count() }} open
-                                    </span>
-                                </div>
+                <div class="review-card" id="review-card-{{ $activeReview->id }}">
+                    <div class="review-card-head">
+                        <div class="review-card-head-left">
+                            <div class="review-client" style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:12px; font-weight:800; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); padding:2px 8px; border-radius:6px;">
+                                    Live Review
+                                </span>
+                                <span>{{ $activeReview->client_name ?? 'Client Review Session' }}</span>
                             </div>
-                            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-                                {{-- Copy link button --}}
-                                <button onclick="copyReviewLink('{{ route('artwork.review.show', $review->token) }}', this)"
-                                        style="padding:5px 12px; background:rgba(59,130,246,0.1); color:#3b82f6; border:1px solid rgba(59,130,246,0.2); border-radius:8px; font-size:10px; font-weight:700; cursor:pointer; transition:all 0.15s;">
-                                    📋 Copy Link
-                                </button>
-                                @if($review->is_active)
-                                    <button class="deactivate-btn" onclick="deactivateReview({{ $review->id }}, this)">
-                                        Deactivate
-                                    </button>
-                                @endif
+                            <div class="review-meta" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                <span>Active link for {{ $deliverable->title }}</span>
+                                <span>·</span>
+                                <span style="color:#0055D4; font-weight:700;">🔄 Artwork updated {{ $deliverable->updated_at?->diffForHumans() }}</span>
+                            </div>
+                            <div style="margin-top:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                <span class="status-pill active">
+                                    ● Active
+                                </span>
+                                <span style="font-size:11px; font-weight:700; color:var(--color-text-primary);">
+                                    {{ $allAnnotations->count() }} total notes
+                                </span>
+                                <span style="font-size:11px; font-weight:800; color:#f59e0b;">
+                                    · 🟡 {{ $openCount }} open
+                                </span>
+                                <span style="font-size:11px; font-weight:800; color:#10b981;">
+                                    · 🟢 {{ $resolvedCount }} resolved
+                                </span>
                             </div>
                         </div>
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                            {{-- Copy link button --}}
+                            <button type="button" onclick="copyReviewLink('{{ route('artwork.review.show', $activeReview->token) }}', this)"
+                                    style="padding:6px 12px; background:rgba(59,130,246,0.12); color:#38bdf8; border:1px solid rgba(59,130,246,0.3); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all 0.15s;"
+                                    onmouseover="this.style.background='rgba(59,130,246,0.25)'; this.style.color='#fff';"
+                                    onmouseout="this.style.background='rgba(59,130,246,0.12)'; this.style.color='#38bdf8';">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                                <span>Copy Link</span>
+                            </button>
+                            <a href="{{ route('artwork.review.show', $activeReview->token) }}" target="_blank"
+                               style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-decoration:none; display:inline-flex; align-items:center; gap:3px;">
+                                <span>View as Client</span> ↗
+                            </a>
+                        </div>
+                    </div>
 
-                        {{-- Annotation items --}}
-                        @if($review->annotations->isNotEmpty())
+                    {{-- Status and Slide Filter Bar --}}
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; padding:10px 14px; background:var(--color-bg-primary); border-bottom:1px solid var(--color-border-primary); flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <button type="button" onclick="teamFilterStatus('all')" id="team-status-btn-all" class="team-status-btn" style="padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; border:1px solid #0055D4; background:rgba(0,85,212,0.1); color:#0055D4;">
+                                All ({{ $allAnnotations->count() }})
+                            </button>
+                            <button type="button" onclick="teamFilterStatus('open')" id="team-status-btn-open" class="team-status-btn" style="padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; border:1px solid var(--color-border-primary); background:transparent; color:var(--color-text-secondary);">
+                                🟡 Open ({{ $openCount }})
+                            </button>
+                            <button type="button" onclick="teamFilterStatus('resolved')" id="team-status-btn-resolved" class="team-status-btn" style="padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; border:1px solid var(--color-border-primary); background:transparent; color:var(--color-text-secondary);">
+                                🟢 Resolved ({{ $resolvedCount }})
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Annotation items --}}
+                    @if($activeReview->annotations->isNotEmpty())
+                            @php
+                                $groupedAnn = $activeReview->annotations->groupBy(fn($a) => (int)($a->artwork_index ?? 0));
+                            @endphp
+
+                            @if($totalArtworks > 1)
+                                <div style="display:flex; align-items:center; gap:6px; padding:8px 14px; background:var(--color-bg-primary); border-bottom:1px solid var(--color-border-primary); overflow-x:auto;">
+                                    <button type="button" onclick="teamFilterAnnotTab('all')" id="team-tab-btn-all" class="team-tab-btn" style="padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; border:1px solid var(--color-border-primary); background:transparent; color:var(--color-text-secondary); white-space:nowrap;">
+                                        All Slides ({{ $activeReview->annotations->count() }})
+                                    </button>
+                                    @for($s = 0; $s < $totalArtworks; $s++)
+                                        @php $sCount = isset($groupedAnn[$s]) ? $groupedAnn[$s]->count() : 0; @endphp
+                                        <button type="button" onclick="teamFilterAnnotTab({{ $s }})" id="team-tab-btn-{{ $s }}" class="team-tab-btn" style="padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; border:1px solid {{ $s === 0 ? '#0055D4' : 'var(--color-border-primary)' }}; background:{{ $s === 0 ? 'rgba(0,85,212,0.1)' : 'transparent' }}; color:{{ $s === 0 ? '#0055D4' : 'var(--color-text-secondary)' }}; white-space:nowrap;">
+                                            Slide {{ $s + 1 }} ({{ $sCount }})
+                                        </button>
+                                    @endfor
+                                </div>
+                            @endif
+
                             <div class="annot-list">
-                                @foreach($review->annotations as $ann)
-                                    <div class="annot-item {{ $ann->is_resolved ? 'resolved' : '' }}" id="annot-{{ $ann->id }}" data-color="{{ $ann->color }}">
-                                        <div class="annot-badge" style="background:{{ $ann->is_resolved ? '#10b981' : $ann->color }};">
-                                            @if($ann->type === 'pin') {{ $ann->pin_number ?? '•' }}
-                                            @elseif($ann->type === 'drawing') ✏
-                                            @else T
-                                            @endif
-                                        </div>
-                                        <div class="annot-content">
-                                            <div class="annot-type">{{ ucfirst($ann->type) }}</div>
-                                            @if($ann->content && $ann->type !== 'drawing')
-                                                <div class="annot-text">{{ $ann->content }}</div>
-                                            @else
-                                                <div class="annot-text" style="color:var(--color-text-secondary);">Freehand drawing</div>
-                                            @endif
-                                            
-                                            <div id="annot-response-box-{{ $ann->id }}" style="{{ $ann->response_text ? '' : 'display:none;' }} margin-top:6px; padding:6px 10px; border-radius:8px; background:rgba(0,85,212,0.08); border:1px solid rgba(0,85,212,0.2); font-size:11px; position:relative;">
-                                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                                                    <div style="font-weight:700; color:#0055D4; font-size:9px;" id="annot-response-meta-{{ $ann->id }}">
-                                                        💬 Response by {{ $ann->respondedBy->name ?? 'Team' }} · {{ $ann->responded_at?->diffForHumans() }}
+                                @foreach($groupedAnn as $slideIdx => $slideAnnotations)
+                                    <div class="team-slide-annot-group" id="team-slide-group-{{ $slideIdx }}" data-slide-index="{{ $slideIdx }}" style="display:{{ $totalArtworks > 1 && $slideIdx !== 0 ? 'none' : 'block' }};">
+                                        @if($totalArtworks > 1)
+                                            <div style="padding:8px 12px; margin:8px 0 6px; background:var(--color-bg-primary); border-radius:8px; display:flex; justify-content:space-between; align-items:center; border-left:3px solid #0055D4; cursor:pointer;" onclick="teamSwitchSlide({{ $slideIdx }})">
+                                                <span style="font-size:11px; font-weight:800; color:var(--color-text-primary);">
+                                                    🖼️ Slide {{ $slideIdx + 1 }} Feedback
+                                                </span>
+                                                <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">
+                                                    {{ $slideAnnotations->count() }} item(s)
+                                                </span>
+                                            </div>
+                                        @endif
+
+                                        @foreach($slideAnnotations as $ann)
+                                            <div class="annot-item team-note-card {{ $ann->is_resolved ? 'resolved' : 'open' }}" id="annot-{{ $ann->id }}" data-resolved="{{ $ann->is_resolved ? '1' : '0' }}" data-color="{{ $ann->color }}" onclick="teamSwitchSlide({{ $ann->artwork_index ?? 0 }}); flashTeamPin({{ $ann->id }});" style="cursor:pointer; margin-bottom:8px; border-left:3px solid {{ $ann->is_resolved ? '#10b981' : '#f59e0b' }};">
+                                                <div class="annot-badge" style="background:{{ $ann->is_resolved ? '#10b981' : $ann->color }};">
+                                                    @if($ann->type === 'pin') {{ $ann->is_resolved ? '✓' : ($ann->pin_number ?? '•') }}
+                                                    @elseif($ann->type === 'drawing') ✏
+                                                    @else T
+                                                    @endif
+                                                </div>
+                                                <div class="annot-content">
+                                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+                                                        <div style="display:flex; align-items:center; gap:6px;">
+                                                            <span class="annot-type">{{ ucfirst($ann->type) }}</span>
+                                                            <span style="font-size:10px; font-weight:800; color:{{ $ann->is_resolved ? '#10b981' : '#f59e0b' }};">
+                                                                {{ $ann->is_resolved ? '✓ Resolved' : '🟡 Open' }}
+                                                            </span>
+                                                        </div>
+                                                        @if($totalArtworks > 1)
+                                                            <span style="font-size:9px; font-weight:800; color:#0055D4; background:rgba(0,85,212,0.08); padding:1px 6px; border-radius:4px;">
+                                                                Slide {{ ($ann->artwork_index ?? 0) + 1 }}
+                                                            </span>
+                                                        @endif
                                                     </div>
-                                                    <button type="button" onclick="deleteAnnotationResponse({{ $ann->id }})" title="Delete Reply" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:12px; font-weight:700; padding:0 4px; opacity:0.75;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.75'">
-                                                        🗑
+                                                    @if($ann->content && $ann->type !== 'drawing')
+                                                        <div class="annot-text">{{ $ann->content }}</div>
+                                                    @else
+                                                        <div class="annot-text" style="color:var(--color-text-secondary);">Freehand drawing</div>
+                                                    @endif
+                                                    
+                                                    {{-- Multi-comment Discussion Thread --}}
+                                                    <div id="annot-comments-container-{{ $ann->id }}" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+                                                        <div id="annot-comments-list-{{ $ann->id }}" style="display:flex; flex-direction:column; gap:6px;">
+                                                            @foreach($ann->comments as $comment)
+                                                                <div id="annot-comment-item-{{ $comment->id }}" style="padding:8px 10px; border-radius:8px; background:rgba(0,85,212,0.06); border:1px solid rgba(0,85,212,0.18); font-size:11px;">
+                                                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                                                                        <div style="display:flex; align-items:center; gap:6px;">
+                                                                            <span style="font-weight:800; color:#0055D4; font-size:10px;">
+                                                                                {{ $comment->user->name ?? 'Team Member' }}
+                                                                            </span>
+                                                                            <span style="color:var(--color-text-secondary); font-size:9px;">
+                                                                                {{ $comment->created_at->diffForHumans() }}
+                                                                            </span>
+                                                                        </div>
+                                                                        @if($comment->user_id === auth()->id() || auth()->user()?->isAdmin())
+                                                                            <button type="button" onclick="deleteAnnotationComment({{ $comment->id }})" title="Delete Comment" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#ef4444; cursor:pointer; font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; display:inline-flex; align-items:center; gap:3px; transition:all 0.15s;" onmouseover="this.style.background='#ef4444'; this.style.color='#fff';" onmouseout="this.style.background='rgba(239,68,68,0.15)'; this.style.color='#ef4444';">
+                                                                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                                                <span>Delete</span>
+                                                                            </button>
+                                                                        @endif
+                                                                    </div>
+                                                                    <div style="color:var(--color-text-primary); font-size:11px; white-space:pre-wrap; word-break:break-word;">{{ $comment->comment }}</div>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+
+                                                        {{-- Inline Add Reply Box --}}
+                                                        <div id="reply-form-{{ $ann->id }}" style="display:none; margin-top:6px;">
+                                                            <textarea id="reply-input-{{ $ann->id }}" rows="2" placeholder="Write a comment / reply..." style="width:100%; padding:6px 8px; font-size:11px; border:1px solid var(--color-border-primary); border-radius:6px; background:var(--color-bg-primary); color:var(--color-text-primary); outline:none; resize:none;"></textarea>
+                                                            <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:4px;">
+                                                                <button type="button" onclick="toggleReplyForm({{ $ann->id }})" style="padding:4px 10px; border-radius:6px; font-size:10px; font-weight:700; border:1px solid var(--color-border-primary); background:transparent; color:var(--color-text-secondary); cursor:pointer;">Cancel</button>
+                                                                <button type="button" onclick="submitAnnotationResponse({{ $ann->id }})" style="padding:4px 12px; border-radius:6px; font-size:10px; font-weight:700; border:none; background:#0055D4; color:#fff; cursor:pointer;">Post Comment</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    @if($ann->is_resolved && $ann->resolvedBy)
+                                                        <div style="font-size:10px; color:var(--color-text-secondary); margin-top:4px;">
+                                                            Resolved by {{ $ann->resolvedBy->name }}
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+                                                    <button type="button" onclick="toggleReplyForm({{ $ann->id }})" class="annot-resolve-btn" style="background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.2);">
+                                                        💬 Reply
+                                                    </button>
+                                                    <button type="button" class="annot-resolve-btn {{ $ann->is_resolved ? 'unresolve' : 'resolve' }}" onclick="toggleResolve({{ $ann->id }}, this)">
+                                                        {{ $ann->is_resolved ? '↩ Reopen' : '✓ Resolve' }}
                                                     </button>
                                                 </div>
-                                                <div id="annot-response-text-{{ $ann->id }}" style="color:var(--color-text-primary); font-weight:500; font-size:11px;">{{ $ann->response_text }}</div>
                                             </div>
-
-                                            @if($ann->is_resolved && $ann->resolvedBy)
-                                                <div style="font-size:10px; color:var(--color-text-secondary); margin-top:3px;">
-                                                    Resolved by {{ $ann->resolvedBy->name }}
-                                                </div>
-                                            @endif
-
-                                            <div id="reply-form-{{ $ann->id }}" style="display:none; margin-top:8px;">
-                                                <textarea id="reply-input-{{ $ann->id }}" rows="2" placeholder="Type your response to client..." style="width:100%; padding:6px 8px; font-size:11px; border:1px solid var(--color-border-primary); border-radius:6px; background:var(--color-bg-primary); color:var(--color-text-primary); outline:none; resize:none;">{{ $ann->response_text }}</textarea>
-                                                <div style="display:flex; justify-content:flex-end; gap:4px; margin-top:4px;">
-                                                    <button type="button" onclick="toggleReplyForm({{ $ann->id }})" style="padding:3px 8px; border-radius:5px; font-size:10px; font-weight:700; border:1px solid var(--color-border-primary); background:transparent; color:var(--color-text-secondary); cursor:pointer;">Cancel</button>
-                                                    <button type="button" onclick="submitAnnotationResponse({{ $ann->id }})" style="padding:3px 10px; border-radius:5px; font-size:10px; font-weight:700; border:none; background:#0055D4; color:#fff; cursor:pointer;">Send Reply</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-                                            <button type="button" id="reply-btn-{{ $ann->id }}" onclick="toggleReplyForm({{ $ann->id }})" class="annot-resolve-btn" style="background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.2);">
-                                                💬 {{ $ann->response_text ? 'Edit Reply' : 'Reply' }}
-                                            </button>
-                                            <button type="button" class="annot-resolve-btn {{ $ann->is_resolved ? 'unresolve' : 'resolve' }}" onclick="toggleResolve({{ $ann->id }}, this)">
-                                                {{ $ann->is_resolved ? '↩ Reopen' : '✓ Resolve' }}
-                                            </button>
-                                        </div>
+                                        @endforeach
                                     </div>
                                 @endforeach
                             </div>
                         @else
                             <div style="padding:16px; text-align:center; font-size:12px; color:var(--color-text-secondary);">
-                                No annotations submitted yet for this link.
+                                No annotations submitted yet on this deliverable.
                             </div>
                         @endif
                     </div>
-                @endforeach
+                </div>
             </div>
         </div>
     @endif
 </div>
 
 <script>
-function deleteAnnotationResponse(id) {
-    if (!confirm('Are you sure you want to delete this reply?')) return;
-
-    fetch(`/artwork-annotations/${id}/respond`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'application/json',
-        },
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            const box = document.getElementById('annot-response-box-' + id);
-            if (box) box.style.display = 'none';
-            const btn = document.getElementById('reply-btn-' + id);
-            if (btn) btn.innerHTML = '💬 Reply';
-            const input = document.getElementById('reply-input-' + id);
-            if (input) input.value = '';
-        } else if (data.error) {
-            alert(data.error);
-        }
-    })
-    .catch(err => console.error(err));
-}
-
-async function toggleReplyForm(id) {
+function toggleReplyForm(id) {
     const form = document.getElementById('reply-form-' + id);
     if (!form) return;
     if (form.style.display === 'none' || !form.style.display) {
         form.style.display = 'block';
         const input = document.getElementById('reply-input-' + id);
-        if (input) input.focus();
+        if (input) { input.value = ''; input.focus(); }
     } else {
         form.style.display = 'none';
     }
@@ -310,28 +387,67 @@ function submitAnnotationResponse(id) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
             'Accept': 'application/json',
         },
-        body: JSON.stringify({ response_text: text }),
+        body: JSON.stringify({ comment: text }),
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && data.comment) {
+            const list = document.getElementById('annot-comments-list-' + id);
+            if (list) {
+                const c = data.comment;
+                const commentHtml = `
+                    <div id="annot-comment-item-${c.id}" style="padding:8px 10px; border-radius:8px; background:rgba(0,85,212,0.06); border:1px solid rgba(0,85,212,0.18); font-size:11px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-weight:800; color:#0055D4; font-size:10px;">${escHtml(c.user_name)}</span>
+                                <span style="color:var(--color-text-secondary); font-size:9px;">${escHtml(c.created_at_human)}</span>
+                            </div>
+                            <button type="button" onclick="deleteAnnotationComment(${c.id})" title="Delete Comment" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#ef4444; cursor:pointer; font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; display:inline-flex; align-items:center; gap:3px; transition:all 0.15s;" onmouseover="this.style.background='#ef4444'; this.style.color='#fff';" onmouseout="this.style.background='rgba(239,68,68,0.15)'; this.style.color='#ef4444';">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                <span>Delete</span>
+                            </button>
+                        </div>
+                        <div style="color:var(--color-text-primary); font-size:11px; white-space:pre-wrap; word-break:break-word;">${escHtml(c.comment)}</div>
+                    </div>`;
+                list.insertAdjacentHTML('beforeend', commentHtml);
+            }
+            toggleReplyForm(id);
+        } else if (data.error) {
+            alert(data.error);
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+async function deleteAnnotationComment(commentId) {
+    if (!await window.customConfirm({ title: 'Delete Comment?', message: 'Are you sure you want to delete this comment?', isDanger: true })) return;
+
+    fetch(`/artwork-annotation-comments/${commentId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json',
+        },
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            const box = document.getElementById('annot-response-box-' + id);
-            const textEl = document.getElementById('annot-response-text-' + id);
-            const metaEl = document.getElementById('annot-response-meta-' + id);
-            if (box && textEl) {
-                textEl.textContent = data.response_text;
-                if (metaEl) {
-                    metaEl.textContent = `💬 Response by ${data.responded_by} · ${data.responded_at}`;
-                }
-                box.style.display = 'block';
-            }
-            toggleReplyForm(id);
+            const el = document.getElementById('annot-comment-item-' + commentId);
+            if (el) el.remove();
+        } else {
+            alert(data.error || 'Failed to delete comment.');
         }
     })
     .catch(err => console.error(err));
+}
+
+function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 async function toggleResolve(annotId, btn) {
@@ -382,7 +498,7 @@ async function toggleResolve(annotId, btn) {
 }
 
 async function deactivateReview(reviewId, btn) {
-    if (!confirm('Deactivate this review link? The client will no longer be able to use it.')) return;
+    if (!await window.customConfirm({ title: 'Deactivate Link?', message: 'Deactivate this review link? The client will no longer be able to use it.', isDanger: true })) return;
     btn.disabled = true;
     try {
         const resp = await fetch(`/artwork-reviews/${reviewId}`, {
@@ -407,32 +523,201 @@ async function deactivateReview(reviewId, btn) {
 }
 
 function copyReviewLink(url, btn) {
-    navigator.clipboard.writeText(url).then(() => {
-        const orig = btn.textContent;
-        btn.textContent = '✓ Copied!';
-        btn.style.background = 'rgba(34,197,94,0.1)';
+    if (!url) return;
+
+    function setSuccess() {
+        if (!btn) return;
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> <span>Copied!</span>';
+        btn.style.background = 'rgba(34,197,94,0.18)';
+        btn.style.borderColor = 'rgba(34,197,94,0.4)';
         btn.style.color = '#22c55e';
-        setTimeout(() => { btn.textContent = orig; btn.style.background = ''; btn.style.color = ''; }, 2000);
-    });
+        setTimeout(() => {
+            btn.innerHTML = origHtml;
+            btn.style.background = '';
+            btn.style.borderColor = '';
+            btn.style.color = '';
+        }, 2000);
+    }
+
+    if (navigator.clipboard && window.isSecureContext && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url)
+            .then(setSuccess)
+            .catch(() => fallbackCopyText(url, setSuccess));
+    } else {
+        fallbackCopyText(url, setSuccess);
+    }
+}
+
+function fallbackCopyText(text, onSuccess) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        const successful = document.execCommand('copy');
+        if (successful && onSuccess) {
+            onSuccess();
+        } else if (!successful) {
+            prompt("Copy this review link:", text);
+        }
+    } catch (err) {
+        prompt("Copy this review link:", text);
+    }
+    document.body.removeChild(textArea);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Team canvas drawing paths renderer
+// Team canvas drawing paths renderer & Multi-artwork Slide Switcher
 // ──────────────────────────────────────────────────────────────────────────────
 let teamCanvas = null;
+let currentTeamSlideIndex = 0;
+let currentTeamStatusFilter = 'all';
+const TEAM_ARTWORKS = @json($artworksList ?? []);
+
 @php
-$drawingsMapped = $allDrawings->map(function($d) {
+$drawingsList = $allDrawings ?? collect();
+$drawingsMapped = $drawingsList->map(function($d) {
     return [
-        'id' => $d->id,
-        'content' => $d->content,
-        'color' => $d->color,
-        'x_percent' => $d->x_percent,
-        'y_percent' => $d->y_percent,
-        'is_resolved' => (bool)$d->is_resolved
+        'id'            => $d->id,
+        'artwork_index' => (int)($d->artwork_index ?? 0),
+        'content'       => $d->content,
+        'color'         => $d->color,
+        'x_percent'     => $d->x_percent,
+        'y_percent'     => $d->y_percent,
+        'is_resolved'   => (bool)$d->is_resolved
     ];
 })->values();
 @endphp
 const drawingsData = @json($drawingsMapped);
+
+function teamFilterStatus(status) {
+    currentTeamStatusFilter = status;
+    document.querySelectorAll('.team-status-btn').forEach(b => {
+        b.style.borderColor = 'var(--color-border-primary)';
+        b.style.background = 'transparent';
+        b.style.color = 'var(--color-text-secondary)';
+    });
+    const clicked = document.getElementById('team-status-btn-' + status);
+    if (clicked) {
+        clicked.style.borderColor = '#0055D4';
+        clicked.style.background = 'rgba(0,85,212,0.1)';
+        clicked.style.color = '#0055D4';
+    }
+
+    document.querySelectorAll('.team-note-card').forEach(card => {
+        const isResolved = card.getAttribute('data-resolved') === '1';
+        if (status === 'all') {
+            card.style.display = 'flex';
+        } else if (status === 'open') {
+            card.style.display = !isResolved ? 'flex' : 'none';
+        } else if (status === 'resolved') {
+            card.style.display = isResolved ? 'flex' : 'none';
+        }
+    });
+}
+
+function teamSwitchSlide(idx) {
+    if (idx < 0 || idx >= TEAM_ARTWORKS.length) return;
+    currentTeamSlideIndex = idx;
+
+    // Update slide indicator
+    const ind = document.getElementById('teamSlideIndicator');
+    if (ind) ind.textContent = `Slide ${idx + 1} of ${TEAM_ARTWORKS.length}`;
+
+    // Update thumbnail highlights
+    document.querySelectorAll('.team-thumb-card').forEach((el, i) => {
+        el.style.borderColor = (i === idx) ? '#0055D4' : 'transparent';
+    });
+
+    // Update main image/video
+    const img = document.getElementById('teamArtworkImg');
+    if (img) {
+        img.src = TEAM_ARTWORKS[idx];
+    }
+
+    // Toggle pins visibility for this slide
+    document.querySelectorAll('.team-pin-item').forEach(pin => {
+        const pinSlide = parseInt(pin.getAttribute('data-artwork-index') || '0');
+        pin.style.display = (pinSlide === idx) ? 'flex' : 'none';
+    });
+
+    // Highlight right-panel tab button for this slide
+    document.querySelectorAll('.team-tab-btn').forEach(btn => {
+        btn.style.borderColor = 'var(--color-border-primary)';
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--color-text-secondary)';
+    });
+    const activeTabBtn = document.getElementById(`team-tab-btn-${idx}`);
+    if (activeTabBtn) {
+        activeTabBtn.style.borderColor = '#0055D4';
+        activeTabBtn.style.background = 'rgba(0,85,212,0.1)';
+        activeTabBtn.style.color = '#0055D4';
+    }
+
+    // Show only this slide's annotations in the right panel
+    document.querySelectorAll('.team-slide-annot-group').forEach(grp => {
+        const grpIdx = parseInt(grp.getAttribute('data-slide-index') || '0');
+        grp.style.display = (grpIdx === idx) ? 'block' : 'none';
+    });
+
+    initTeamCanvas();
+}
+
+function teamFilterAnnotTab(filter) {
+    document.querySelectorAll('.team-tab-btn').forEach(btn => {
+        btn.style.borderColor = 'var(--color-border-primary)';
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--color-text-secondary)';
+    });
+
+    const clickedBtn = document.getElementById(`team-tab-btn-${filter}`);
+    if (clickedBtn) {
+        clickedBtn.style.borderColor = '#0055D4';
+        clickedBtn.style.background = 'rgba(0,85,212,0.1)';
+        clickedBtn.style.color = '#0055D4';
+    }
+
+    if (filter === 'all') {
+        document.querySelectorAll('.team-slide-annot-group').forEach(g => g.style.display = 'block');
+    } else {
+        document.querySelectorAll('.team-slide-annot-group').forEach(g => {
+            const gIdx = parseInt(g.getAttribute('data-slide-index') || '0');
+            g.style.display = (gIdx === filter) ? 'block' : 'none';
+        });
+        teamSwitchSlide(filter);
+    }
+}
+
+function teamPrevSlide() {
+    if (currentTeamSlideIndex > 0) {
+        teamSwitchSlide(currentTeamSlideIndex - 1);
+    }
+}
+
+function teamNextSlide() {
+    if (currentTeamSlideIndex < TEAM_ARTWORKS.length - 1) {
+        teamSwitchSlide(currentTeamSlideIndex + 1);
+    }
+}
+
+function flashTeamPin(id) {
+    const pin = document.getElementById(`tv-pin-${id}`);
+    if (pin) {
+        pin.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        pin.style.transform = 'translate(-50%, -100%) scale(1.5)';
+        pin.style.transition = 'transform 0.2s ease';
+        pin.style.zIndex = '999';
+        setTimeout(() => {
+            pin.style.transform = 'translate(-50%, -100%) scale(1)';
+            setTimeout(() => { pin.style.zIndex = '10'; }, 300);
+        }, 600);
+    }
+}
 
 function initTeamCanvas() {
     const img = document.getElementById('teamArtworkImg');
@@ -470,12 +755,16 @@ function initTeamCanvas() {
         });
     }
 
-    // Render each drawing
-    drawingsData.forEach(d => {
+    // Render drawings only for current slide and active round
+    const slideDrawings = drawingsData.filter(d => 
+        (d.artwork_index || 0) === currentTeamSlideIndex &&
+        (currentTeamRoundId === 'all' || d.review_id == currentTeamRoundId)
+    );
+
+    slideDrawings.forEach(d => {
         try {
             const pathObj = JSON.parse(d.content);
             
-            // Reconstruct fabric Path
             fabric.util.enlivenObjects([pathObj], function(objects) {
                 const path = objects[0];
                 if (!path) return;
@@ -487,11 +776,9 @@ function initTeamCanvas() {
                     opacity: d.is_resolved ? 0.75 : 1.0
                 });
 
-                // Calculate scaling factors based on original drawing percentage coordinates
                 const xPos = (d.x_percent / 100) * w;
                 const yPos = (d.y_percent / 100) * h;
                 
-                // Adjust position
                 path.set({
                     left: xPos,
                     top: yPos
