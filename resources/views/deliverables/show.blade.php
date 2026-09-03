@@ -749,6 +749,7 @@
                     </div>
 
                     {{-- ── Send Artwork to Client ────────────────────────────────────── --}}
+                    @if(\App\Services\FeatureManager::isClientReviewEnabled())
                     <div class="detail-item full" id="sendToClientSection">
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
                             <label class="detail-label" style="margin:0;">Client Artwork Review</label>
@@ -773,6 +774,7 @@
                             <div id="reviewLinksContent"></div>
                         </div>
                     </div>
+                    @endif
 
 
                     <div class="detail-item full hist-box" id="modalHistoryBox" style="display:none; border-top:1px solid var(--color-border-primary); margin-top:10px;">

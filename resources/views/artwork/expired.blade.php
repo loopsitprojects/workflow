@@ -45,8 +45,8 @@
 <body>
     <div class="card">
         <div class="icon">🔒</div>
-        <h1>This link is no longer active</h1>
-        <p>The review link you are trying to access has expired or has been deactivated by the team. Please contact them to get a new link.</p>
+        <h1>{{ $title ?? 'This link is no longer active' }}</h1>
+        <p>{{ $message ?? 'The review link you are trying to access has expired or has been deactivated by the team. Please contact them to get a new link.' }}</p>
     </div>
 </body>
 </html>

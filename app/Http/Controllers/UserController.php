@@ -136,7 +136,22 @@ class UserController extends Controller
     public function settings()
     {
         $maintenance = \App\Http\Controllers\Admin\MaintenanceController::getStatus();
-        return view('admin.settings', compact('maintenance'));
+        $clientReviewEnabled = \App\Services\FeatureManager::isClientReviewEnabled();
+        return view('admin.settings', compact('maintenance', 'clientReviewEnabled'));
+    }
+
+    public function toggleClientReview(Request $request)
+    {
+        $current = \App\Services\FeatureManager::isClientReviewEnabled();
+        $newStatus = !$current;
+
+        \App\Services\FeatureManager::setClientReviewEnabled($newStatus);
+
+        $msg = $newStatus
+            ? 'Send to Client feature has been ENABLED. Team members can now send artwork proofs to clients.'
+            : 'Send to Client feature has been DISABLED. External client review sessions are now paused.';
+
+        return redirect()->route('admin.settings')->with('success', $msg);
     }
 }
 

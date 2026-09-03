@@ -84,6 +84,13 @@
         </div>
     </div>
 
+    @if(!\App\Services\FeatureManager::isClientReviewEnabled())
+        <div style="margin-bottom:20px; padding:14px 20px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:14px; display:flex; align-items:center; gap:12px; color:#ef4444; font-size:13px; font-weight:700;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span>The "Send to Client" review portal is currently <strong>DISABLED</strong> in Admin Settings. External clients cannot access this proof.</span>
+        </div>
+    @endif
+
     @php
         $activeReview = isset($review) ? $review : (isset($reviews) ? $reviews->first() : null);
     @endphp

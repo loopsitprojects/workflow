@@ -20,6 +20,10 @@ class ArtworkReviewController extends Controller
      */
     public function show(string $token)
     {
+        if (!\App\Services\FeatureManager::isClientReviewEnabled()) {
+            return response()->view('artwork.expired', ['message' => 'The client review portal is currently disabled.'], 404);
+        }
+
         $review = ArtworkReview::where('token', $token)
             ->with(['deliverable.subtasks', 'annotations.comments.user', 'annotations.resolvedBy'])
             ->firstOrFail();
@@ -39,6 +43,10 @@ class ArtworkReviewController extends Controller
      */
     public function store(Request $request, string $token)
     {
+        if (!\App\Services\FeatureManager::isClientReviewEnabled()) {
+            return response()->json(['error' => 'The client review portal is currently disabled.'], 403);
+        }
+
         $review = ArtworkReview::where('token', $token)->firstOrFail();
 
         if (!$review->isAccessible()) {
@@ -113,6 +121,10 @@ class ArtworkReviewController extends Controller
      */
     public function approve(Request $request, string $token)
     {
+        if (!\App\Services\FeatureManager::isClientReviewEnabled()) {
+            return response()->json(['error' => 'The client review portal is currently disabled.'], 403);
+        }
+
         $review = ArtworkReview::where('token', $token)->firstOrFail();
 
         if (!$review->isAccessible()) {
@@ -140,6 +152,10 @@ class ArtworkReviewController extends Controller
      */
     public function create(Request $request, Deliverable $deliverable)
     {
+        if (!\App\Services\FeatureManager::isClientReviewEnabled()) {
+            return response()->json(['success' => false, 'message' => 'The Send to Client feature is disabled by administrator.'], 403);
+        }
+
         $review = ArtworkReview::firstOrCreate(
             ['deliverable_id' => $deliverable->id],
             [

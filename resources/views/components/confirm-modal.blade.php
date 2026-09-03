@@ -96,7 +96,7 @@ window.customConfirm = function(options = {}) {
     });
 };
 
-window.confirmAction = function(event, title = 'Delete Item?', message = 'Are you sure you want to proceed?', isDanger = true) {
+window.confirmAction = function(event, title = 'Delete Item?', message = 'Are you sure you want to proceed?', isDanger = true, confirmText = null) {
     if (event.datasetConfirmed === 'true') {
         delete event.datasetConfirmed;
         return true;
@@ -108,7 +108,7 @@ window.confirmAction = function(event, title = 'Delete Item?', message = 'Are yo
     window.customConfirm({
         title: title,
         message: message,
-        confirmText: isDanger ? 'Delete' : 'Confirm',
+        confirmText: confirmText || (isDanger ? 'Delete' : 'Confirm'),
         isDanger: isDanger
     }).then((confirmed) => {
         if (confirmed) {

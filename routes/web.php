@@ -81,6 +81,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/invite', [UserController::class, 'invite'])->name('admin.users.invite');
         Route::post('/maintenance/toggle', [MaintenanceController::class, 'toggle'])->name('admin.maintenance.toggle');
         Route::post('/maintenance/message', [MaintenanceController::class, 'updateMessage'])->name('admin.maintenance.message');
+        Route::post('/settings/toggle-client-review', [UserController::class, 'toggleClientReview'])->name('admin.features.toggle-client-review');
         Route::resource('users', UserController::class)->except(['show']);
         Route::resource('subtask-types', SubtaskTypeController::class)->only(['index', 'store', 'destroy']);
     });

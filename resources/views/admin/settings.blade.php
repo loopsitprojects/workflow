@@ -50,6 +50,51 @@
             </a>
         </div>
 
+        <!-- Client Review / Send to Client Section -->
+        <div class="bg-white dark:bg-[#0F172A] rounded-[32px] p-8 card-shadow border {{ ($clientReviewEnabled ?? true) ? 'border-blue-500/30 dark:border-blue-500/30' : 'border-gray-100 dark:border-slate-800' }}">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 {{ ($clientReviewEnabled ?? true) ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-500/10 text-slate-400' }} rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Send to Client (Client Review Portal)</h3>
+                            @if($clientReviewEnabled ?? true)
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                    <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                    FEATURE ENABLED
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                                    FEATURE DISABLED
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-sm text-gray-400 dark:text-slate-500 font-medium mt-1">
+                            Enable or disable tokenized proof links, client annotations, and the "Send to Client" button.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Sleek Toggle Switch -->
+                <form action="{{ route('admin.features.toggle-client-review') }}" method="POST" id="clientReviewToggleForm" class="flex-shrink-0 flex items-center gap-3">
+                    @csrf
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                        {{ ($clientReviewEnabled ?? true) ? 'ON' : 'OFF' }}
+                    </span>
+                    <button type="submit" onclick="return confirmAction(event, '{{ ($clientReviewEnabled ?? true) ? 'Disable Send to Client Feature?' : 'Enable Send to Client Feature?' }}', '{{ ($clientReviewEnabled ?? true) ? 'Hide Send to Client actions and pause external client review sessions?' : 'Allow teams to generate review links and send proofs to clients?' }}', false, '{{ ($clientReviewEnabled ?? true) ? 'Disable Feature' : 'Enable Feature' }}');"
+                        class="relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ ($clientReviewEnabled ?? true) ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-700' }}"
+                        role="switch" aria-checked="{{ ($clientReviewEnabled ?? true) ? 'true' : 'false' }}">
+                        <span class="pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ ($clientReviewEnabled ?? true) ? 'translate-x-6' : 'translate-x-0' }}"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- Maintenance Mode Section -->
         <div class="bg-white dark:bg-[#0F172A] rounded-[32px] p-8 card-shadow border {{ $maintenance['enabled'] ? 'border-amber-500/50 dark:border-amber-500/50' : 'border-gray-100 dark:border-slate-800' }}">
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
@@ -87,7 +132,7 @@
                     <span class="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-slate-500">
                         {{ $maintenance['enabled'] ? 'ON' : 'OFF' }}
                     </span>
-                    <button type="submit" onclick="return confirmAction(event, '{{ $maintenance['enabled'] ? 'Turn OFF Maintenance Mode?' : 'Turn ON Maintenance Mode?' }}', '{{ $maintenance['enabled'] ? 'Allow non-administrator users to access the system again?' : 'Restrict system access to administrators only while performing maintenance?' }}', {{ $maintenance['enabled'] ? 'false' : 'true' }});"
+                    <button type="submit" onclick="return confirmAction(event, '{{ $maintenance['enabled'] ? 'Turn OFF Maintenance Mode?' : 'Turn ON Maintenance Mode?' }}', '{{ $maintenance['enabled'] ? 'Allow non-administrator users to access the system again?' : 'Restrict system access to administrators only while performing maintenance?' }}', false, '{{ $maintenance['enabled'] ? 'Turn OFF' : 'Turn ON' }}');"
                         class="relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $maintenance['enabled'] ? 'bg-amber-500' : 'bg-gray-300 dark:bg-slate-700' }}"
                         role="switch" aria-checked="{{ $maintenance['enabled'] ? 'true' : 'false' }}">
                         <span class="pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $maintenance['enabled'] ? 'translate-x-6' : 'translate-x-0' }}"></span>
