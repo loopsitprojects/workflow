@@ -2839,7 +2839,14 @@
                         </div>
                     </div>
                 </div>
-                <div id="batchSubmitNotesGroup" style="display:none; margin-bottom:20px; padding:16px; border-radius:12px; border:1.5px solid rgba(0,0,0,0.1); background:rgba(0,0,0,0.02);">
+                <!-- Designer Deadline (optional, shown when advancing to Designer stage) -->
+                <div id="batchDesignerDeadlineGroup" style="display:none; margin-top:20px;">
+                    <label class="detail-label" style="margin-bottom:6px; color:#ec4899;">
+                        Designer Due Date <span style="font-size:10px; font-weight:500; color:var(--color-text-secondary); text-transform:none; letter-spacing:normal;">(optional)</span>
+                    </label>
+                    <input type="date" id="batchDesignerDeadlineInput" style="width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;" onfocus="this.style.borderColor='#ec4899'" onblur="this.style.borderColor='var(--color-border-primary)'">
+                </div>
+                <div id="batchSubmitNotesGroup" style="display:none; margin-top:20px;">
                     <label class="detail-label" style="margin-bottom:6px;">Submission Comment (Optional)</label>
                     <textarea id="batchSubmitNotes" placeholder="Add an optional comment for the next stage..." style="width:100%; height:80px; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); resize:vertical; outline:none; transition:border-color 0.15s;"></textarea>
                 </div>
@@ -2981,6 +2988,26 @@
                         opt.textContent = u.name;
                         furtherApproverSelect.appendChild(opt);
                     });
+                }
+            }
+
+            // Designer Deadline handling when advancing to Designer stage
+            const designerDeadlineGroup = document.getElementById('batchDesignerDeadlineGroup');
+            const designerDeadlineInput = document.getElementById('batchDesignerDeadlineInput');
+            if (designerDeadlineGroup) {
+                const showDesDeadline = (type === 'submit' && nextStage === 'Designer');
+                designerDeadlineGroup.style.display = showDesDeadline ? 'block' : 'none';
+                if (designerDeadlineInput) {
+                    let existingDeadline = '';
+                    if (showDesDeadline && isIndividual && currentBatchTask) {
+                        const taskObj = (typeof tasks !== 'undefined' && Array.isArray(tasks)) ? tasks.find(t => t.id == currentBatchTask) : null;
+                        if (taskObj && taskObj.designer_deadline) {
+                            const d = new Date(taskObj.designer_deadline);
+                            const pad = n => String(n).padStart(2,'0');
+                            existingDeadline = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+                        }
+                    }
+                    designerDeadlineInput.value = existingDeadline;
                 }
             }
 
@@ -3222,6 +3249,11 @@
             if (furtherApproverSelect && furtherApproverSelect.closest('#batchFurtherApproverGroup')?.style.display !== 'none' && furtherApproverSelect.value) {
                 payload.further_approver_id = furtherApproverSelect.value;
             }
+            // Include designer deadline if set
+            const desDeadlineVal = document.getElementById('batchDesignerDeadlineInput')?.value;
+            if (desDeadlineVal && currentBatchNextStage === 'Designer') {
+                payload.designer_deadline = desDeadlineVal;
+            }
 
             // Collect reference image files — switch to FormData if any are selected
             const refFiles = {};
@@ -3237,6 +3269,7 @@
                 fd.append('batch_data', JSON.stringify(batchData));
                 if (roleField && assigneeId && assigneeId !== 'individual') fd.append(roleField, assigneeId);
                 if (payload.further_approver_id) fd.append('further_approver_id', payload.further_approver_id);
+                if (payload.designer_deadline) fd.append('designer_deadline', payload.designer_deadline);
                 Object.entries(refFiles).forEach(([id, file]) => fd.append('reference_files[' + id + ']', file));
                 fetchOpts = { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }, body: fd };
             } else {
