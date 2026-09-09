@@ -48,9 +48,11 @@ class Deliverable extends Model
         'notes',
         'work_hours',
         'client_status',
+        'designer_deadline',
     ];
 
     protected $casts = [
+        'designer_deadline' => 'datetime',
     ];
 
     protected $appends = [

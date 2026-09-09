@@ -39,7 +39,7 @@ class DeliverableController extends Controller
         $coordinators = $users->whereIn('role', ['Coordinator', 'Approver Coordinator']);
         $designers = User::where('role', 'Designer')->get();
         
-        $stages = ['Writer', 'Writer Review', 'Approver', 'Approver Review', 'Further Approver', 'Brand Manager', 'Coordinator', 'Designer', 'AM/BD', 'Final Approval'];
+        $stages = ['Writer', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator', 'Designer', 'Writer Review', 'Approver Review', 'AM/BD', 'Final Approval'];
 
         // Get subtasks if it's a parent task
         if ($deliverable->task_type === 'Retainer' && $deliverable->post_type === 'Parent') {
@@ -378,6 +378,7 @@ class DeliverableController extends Controller
 
         $validated = $request->validate([
             'designer_id' => 'required|exists:users,id',
+            'designer_deadline' => 'nullable|date',
             'reason' => 'nullable|string|max:500',
         ]);
 
@@ -399,7 +400,11 @@ class DeliverableController extends Controller
         ]);
 
         // Update the deliverable
-        $deliverable->update(['designer_id' => $newDesignerId]);
+        $updatePayload = ['designer_id' => $newDesignerId];
+        if (array_key_exists('designer_deadline', $validated)) {
+            $updatePayload['designer_deadline'] = $validated['designer_deadline'] ?: null;
+        }
+        $deliverable->update($updatePayload);
 
         // Notify the new designer
         $newDesigner = User::find($newDesignerId);
@@ -419,15 +424,38 @@ class DeliverableController extends Controller
         $fromName = $oldDesignerId ? User::find($oldDesignerId)?->name : 'Unassigned';
         $toName = $newDesigner?->name ?? 'Unknown';
 
+        return response()->json([
+            'success' => true,
+            'message' => "Reassigned designer from {$fromName} to {$toName}.",
+            'designer_name' => $toName
+        ]);
+    }
+
+    public function updateDesignerDeadline(Request $request, Deliverable $deliverable)
+    {
+        $user = auth()->user();
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver Coordinator', 'Operations Manager'])) {
+            abort(403, 'Unauthorized to update designer deadline.');
+        }
+
+        $validated = $request->validate([
+            'designer_deadline' => 'nullable|date',
+        ]);
+
+        $deliverable->update([
+            'designer_deadline' => $validated['designer_deadline'] ?: null,
+        ]);
+
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => "Designer reassigned from {$fromName} to {$toName}.",
-                'new_designer_name' => $toName,
+                'message' => 'Designer deadline updated successfully.',
+                'designer_deadline' => $deliverable->designer_deadline ? $deliverable->designer_deadline->format('Y-m-d') : null,
+                'designer_deadline_formatted' => $deliverable->designer_deadline ? $deliverable->designer_deadline->format('d M Y') : '—',
             ]);
         }
 
-        return redirect()->back()->with('success', 'Designer reassigned successfully.');
+        return redirect()->back()->with('success', 'Designer deadline updated successfully.');
     }
 
     public function updateChecklist(Request $request, Deliverable $deliverable)
@@ -1060,6 +1088,9 @@ class DeliverableController extends Controller
         if (isset($data['brand_manager_id'])) $deliverable->brand_manager_id = $data['brand_manager_id'];
         if (isset($data['coordinator_id'])) $deliverable->coordinator_id = $data['coordinator_id'];
         if (isset($data['designer_id'])) $deliverable->designer_id = $data['designer_id'];
+        if (array_key_exists('designer_deadline', $data)) {
+            $deliverable->designer_deadline = $data['designer_deadline'] ?: null;
+        }
 
         // Designer Delivery
         if ($oldStage === 'Designer') {

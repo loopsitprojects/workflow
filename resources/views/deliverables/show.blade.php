@@ -450,6 +450,16 @@
                             <button type="button" id="saveDeadlineBtn" style="display:none; padding:4px 8px; background:#3b82f6; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
                         </div>
                     </div>
+                    <div class="detail-item" id="modalDesignerDeadlineBox" style="display:flex; align-items:center; gap:8px; flex:1; min-width:180px; margin:0;">
+                        <label class="detail-label" style="color:#ec4899; margin:0; flex-shrink:0;">Designer Due:</label>
+                        <div style="display:flex; gap:6px; align-items:center; flex:1;">
+                            <input type="date" id="modalDesignerDeadlineInput" name="designer_deadline" form="submitStageForm"
+                                style="flex:1; padding:4px 8px; border:1.5px solid rgba(236,72,153,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#ec4899'" onblur="this.style.borderColor='rgba(236,72,153,0.25)'"
+                                onchange="showSaveDesignerDeadlineBtn()">
+                            <button type="button" id="saveDesignerDeadlineBtn" style="display:none; padding:4px 8px; background:#ec4899; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDesignerDeadline(this)">Save</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 3. Deliverable Name Field (Below Current Stage / Metadata Bar) -->
@@ -474,6 +484,10 @@
                                     <option value="{{ $designer->id }}" style="background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $designer->name }}</option>
                                 @endforeach
                             </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px;">Designer Due Date</label>
+                            <input type="date" id="reassignDesignerDeadline" style="width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
                         </div>
                         <div style="flex:1;">
                             <label style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px;">Reason (Optional)</label>
@@ -1085,6 +1099,54 @@
             });
         }
 
+        function showSaveDesignerDeadlineBtn() {
+            const btn = document.getElementById('saveDesignerDeadlineBtn');
+            if (btn) btn.style.display = 'inline-block';
+        }
+
+        function saveDesignerDeadline(btn) {
+            const box = document.getElementById('modalDesignerDeadlineBox');
+            const taskId = currentTaskData ? currentTaskData.id : (box ? box.getAttribute('data-task-id') : null);
+            const input = document.getElementById('modalDesignerDeadlineInput');
+            if (!taskId || !input) return;
+
+            const deadlineVal = input.value;
+            const originalText = btn.textContent;
+            btn.textContent = 'Saving...';
+            btn.style.opacity = '0.7';
+            fetch(`/deliverables/${taskId}/designer-deadline`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ designer_deadline: deadlineVal })
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    btn.textContent = 'Saved!';
+                    btn.style.background = '#10b981';
+                    btn.style.opacity = '1';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    alert(data.message || 'Error updating designer deadline');
+                    btn.textContent = 'Save';
+                    btn.style.opacity = '1';
+                }
+            }).catch(err => {
+                console.error(err);
+                btn.textContent = 'Error';
+                btn.style.background = '#ef4444';
+                setTimeout(() => {
+                    btn.textContent = 'Save';
+                    btn.style.background = '#ec4899';
+                    btn.style.opacity = '1';
+                }, 2000);
+            });
+        }
+
         function addReferenceInputRow(type) {
             if (type === 'file') {
                 const container = document.getElementById('modalReferenceFilesContainer') || document.getElementById('modalReferenceFilesContainerPrj');
@@ -1398,6 +1460,16 @@
                         dueBadge.textContent = `Due: ${dateStr}`;
                         topDeadlinesEl.appendChild(dueBadge);
                     }
+
+                    // 2. Designer Due Date
+                    if (task.designer_deadline) {
+                        const desDate = new Date(task.designer_deadline);
+                        const desDateStr = desDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                        const desBadge = document.createElement('div');
+                        desBadge.style.cssText = 'background: rgba(236, 72, 153, 0.08); color: #ec4899; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(236, 72, 153, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
+                        desBadge.textContent = `Designer Due: ${desDateStr}`;
+                        topDeadlinesEl.appendChild(desBadge);
+                    }
                 }
 
                 // Deliverable Deadline Input Population
@@ -1421,7 +1493,29 @@
                     } else {
                         delDeadlineInput.style.opacity = '1';
                         delDeadlineInput.style.pointerEvents = 'auto';
-                        if (saveBtn) saveBtn.style.display = 'block';
+                    }
+                }
+
+                // Designer Deadline Input Population
+                const desDeadlineInput = document.getElementById('modalDesignerDeadlineInput');
+                if (desDeadlineInput) {
+                    let desDateStr = '';
+                    if (task.designer_deadline) {
+                        const desDate = new Date(task.designer_deadline);
+                        const pad = n => String(n).padStart(2,'0');
+                        desDateStr = `${desDate.getFullYear()}-${pad(desDate.getMonth()+1)}-${pad(desDate.getDate())}`;
+                    }
+                    desDeadlineInput.value = desDateStr;
+                    const canEditDesDeadline = isAdmin || ['brandmanager', 'coordinator', 'approvercoordinator', 'operationsmanager'].includes(userRole);
+                    desDeadlineInput.readOnly = !canEditDesDeadline;
+                    const saveDesBtn = document.getElementById('saveDesignerDeadlineBtn');
+                    if (saveDesBtn) saveDesBtn.style.display = 'none';
+                    if (!canEditDesDeadline) {
+                        desDeadlineInput.style.opacity = '0.7';
+                        desDeadlineInput.style.pointerEvents = 'none';
+                    } else {
+                        desDeadlineInput.style.opacity = '1';
+                        desDeadlineInput.style.pointerEvents = 'auto';
                     }
                 }
 
@@ -2417,6 +2511,7 @@ async function reassignDesigner(btn) {
     const area = document.getElementById('reassignDesignerArea');
     const taskId = area?.getAttribute('data-task-id');
     const designerId = document.getElementById('reassignDesignerSelect').value;
+    const designerDeadline = document.getElementById('reassignDesignerDeadline')?.value || '';
     const reason = document.getElementById('reassignDesignerReason').value;
 
     if (!designerId) {
@@ -2439,7 +2534,7 @@ async function reassignDesigner(btn) {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ designer_id: designerId, reason: reason })
+            body: JSON.stringify({ designer_id: designerId, designer_deadline: designerDeadline, reason: reason })
         });
 
         const result = await response.json();
