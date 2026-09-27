@@ -39,7 +39,9 @@ class DeliverableController extends Controller
         $coordinators = $users->whereIn('role', ['Coordinator', 'Approver Coordinator']);
         $designers = User::where('role', 'Designer')->get();
         
-        $stages = ['Writer', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator', 'Designer', 'Writer Review', 'Approver Review', 'AM/BD', 'Final Approval'];
+        $stages = ($deliverable->project?->workflow_type === 'retainer')
+            ? Deliverable::STAGES
+            : ($deliverable->isOtherDeliverable() ? Deliverable::OTHER_DELIVERABLE_STAGES : Deliverable::CAMPAIGN_STAGES);
 
         // Get subtasks if it's a parent task
         if ($deliverable->task_type === 'Retainer' && $deliverable->post_type === 'Parent') {
@@ -128,8 +130,14 @@ class DeliverableController extends Controller
             $taskData['deadline']  = $sub['deadline'] ?? ($taskData['deadline'] ?? null);
             $taskData['priority']  = $sub['priority'] ?? ($taskData['priority'] ?? 'Medium');
             $project = Project::find($taskData['project_id']);
-            $stages = ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) ? Deliverable::CAMPAIGN_STAGES : Deliverable::STAGES;
-            $taskData['approval_stage'] = $stages[0]; 
+            if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
+                $pType = strtolower(trim($taskData['post_type'] ?? ''));
+                $taskData['approval_stage'] = ($pType === 'outlines' || $pType === 'outline')
+                    ? Deliverable::CAMPAIGN_STAGES[0]
+                    : Deliverable::OTHER_DELIVERABLE_STAGES[0];
+            } else {
+                $taskData['approval_stage'] = Deliverable::STAGES[0];
+            } 
             
             if (!empty($sub['writer_id'])) {
                 $taskData['writer_id'] = $sub['writer_id'];
@@ -191,7 +199,9 @@ class DeliverableController extends Controller
                     'reference_file' => $refFile,
                     'deadline' => $sub['deadline'] ?? $parentTask->deadline,
                     'priority' => $sub['priority'] ?? ($parentTask->priority ?? 'Medium'),
-                    'approval_stage' => ($parentTask->project && in_array($parentTask->project->workflow_type, ['campaign', 'pitch'])) ? Deliverable::CAMPAIGN_STAGES[0] : Deliverable::STAGES[0],
+                    'approval_stage' => ($parentTask->project && in_array($parentTask->project->workflow_type, ['campaign', 'pitch']))
+                        ? ((strtolower(trim($sub['post_type'] ?? ($parentTask->post_type ?? ''))) === 'outlines' || strtolower(trim($sub['post_type'] ?? ($parentTask->post_type ?? ''))) === 'outline') ? Deliverable::CAMPAIGN_STAGES[0] : Deliverable::OTHER_DELIVERABLE_STAGES[0])
+                        : Deliverable::STAGES[0],
                     'writer_id' => $writerId,
                     'assignee_name' => $writerName,
                     'revisions' => 0,
@@ -233,15 +243,16 @@ class DeliverableController extends Controller
         if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Writer'])) abort(403);
         if ($deliverable->parent_deliverable_id) abort(403); // must be a parent
 
-        $project = $deliverable->project;
-        $firstStage = in_array($project->workflow_type, ['campaign', 'pitch'])
-            ? Deliverable::CAMPAIGN_STAGES[0]
-            : Deliverable::STAGES[0];
-
         $postType = $request->input('post_type');
         if (empty($postType)) {
             $postType = $deliverable->post_type ?? $deliverable->title;
         }
+
+        $project = $deliverable->project;
+        $pType = strtolower(trim($postType ?? ''));
+        $firstStage = in_array($project?->workflow_type, ['campaign', 'pitch'])
+            ? (($pType === 'outlines' || $pType === 'outline') ? Deliverable::CAMPAIGN_STAGES[0] : Deliverable::OTHER_DELIVERABLE_STAGES[0])
+            : Deliverable::STAGES[0];
 
         $title = $request->input('title');
         if (empty($title)) {

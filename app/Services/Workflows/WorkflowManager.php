@@ -18,17 +18,38 @@ class WorkflowManager
     public static function for(Deliverable $deliverable): WorkflowInterface
     {
         $type = $deliverable->project?->workflow_type ?? 'retainer';
-        return self::forType($type);
+        if ($type === 'retainer') {
+            return app(RetainerWorkflowService::class);
+        }
+
+        // For campaign and pitch projects:
+        // Outlines use CampaignWorkflowService
+        // Other deliverable types use OtherDeliverableWorkflowService (Assign -> Approve -> Close)
+        $postType = $deliverable->post_type ?? $deliverable->parent?->post_type;
+        $normType = strtolower(trim($postType ?? ''));
+        if ($normType === 'outlines' || $normType === 'outline') {
+            return app(CampaignWorkflowService::class);
+        }
+
+        return app(OtherDeliverableWorkflowService::class);
     }
 
     /**
-     * Resolve the workflow service for a given workflow type string.
+     * Resolve the workflow service for a given workflow type string and optional post type.
      */
-    public static function forType(?string $type): WorkflowInterface
+    public static function forType(?string $type, ?string $postType = null): WorkflowInterface
     {
-        return match ($type) {
-            'campaign', 'pitch' => app(CampaignWorkflowService::class),
-            default             => app(RetainerWorkflowService::class),
-        };
+        if ($type === 'campaign' || $type === 'pitch') {
+            $normType = strtolower(trim($postType ?? ''));
+            if ($normType === 'outlines' || $normType === 'outline') {
+                return app(CampaignWorkflowService::class);
+            }
+            if (!empty($normType)) {
+                return app(OtherDeliverableWorkflowService::class);
+            }
+            return app(CampaignWorkflowService::class);
+        }
+
+        return app(RetainerWorkflowService::class);
     }
 }

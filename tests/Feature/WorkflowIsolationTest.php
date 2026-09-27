@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Deliverable;
 use App\Services\Workflows\RetainerWorkflowService;
 use App\Services\Workflows\CampaignWorkflowService;
+use App\Services\Workflows\OtherDeliverableWorkflowService;
 use App\Services\Workflows\WorkflowManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -38,27 +39,39 @@ test('deliverable correctly resolves isolated workflow strategy based on project
         'approval_stage' => 'Writer',
     ]);
 
-    $campaignTask = Deliverable::create([
+    $campaignOutlineTask = Deliverable::create([
         'project_id' => $campaignProject->id,
-        'title' => 'Campaign Task',
+        'title' => 'Campaign Outline Task',
+        'post_type' => 'Outlines',
         'approval_stage' => 'Assignee',
+    ]);
+
+    $campaignOtherTask = Deliverable::create([
+        'project_id' => $campaignProject->id,
+        'title' => 'Campaign Other Task',
+        'post_type' => 'Reels',
+        'approval_stage' => 'Assign',
     ]);
 
     $pitchTask = Deliverable::create([
         'project_id' => $pitchProject->id,
         'title' => 'Pitch Task',
+        'post_type' => 'Outlines',
         'approval_stage' => 'Assignee',
     ]);
 
     expect($retainerTask->getWorkflow())->toBeInstanceOf(RetainerWorkflowService::class)
-        ->and($campaignTask->getWorkflow())->toBeInstanceOf(CampaignWorkflowService::class)
+        ->and($campaignOutlineTask->getWorkflow())->toBeInstanceOf(CampaignWorkflowService::class)
+        ->and($campaignOtherTask->getWorkflow())->toBeInstanceOf(OtherDeliverableWorkflowService::class)
         ->and($pitchTask->getWorkflow())->toBeInstanceOf(CampaignWorkflowService::class);
 
     // Verify stage isolation
     expect($retainerTask->getStages())->toBe(RetainerWorkflowService::STAGES)
         ->and(count($retainerTask->getStages()))->toBe(11)
-        ->and($campaignTask->getStages())->toBe(CampaignWorkflowService::STAGES)
-        ->and(count($campaignTask->getStages()))->toBe(4);
+        ->and($campaignOutlineTask->getStages())->toBe(CampaignWorkflowService::STAGES)
+        ->and(count($campaignOutlineTask->getStages()))->toBe(11)
+        ->and($campaignOtherTask->getStages())->toBe(OtherDeliverableWorkflowService::STAGES)
+        ->and(count($campaignOtherTask->getStages()))->toBe(3);
 });
 
 test('retainer workflow accurately calculates 11-stage progress milestones', function () {
@@ -87,7 +100,7 @@ test('retainer workflow accurately calculates 11-stage progress milestones', fun
     expect($deliverable->getStageProgress())->toBe(100);
 });
 
-test('campaign workflow accurately calculates 4-stage progress milestones', function () {
+test('campaign outline workflow accurately calculates 11-stage progress milestones', function () {
     $brand = Brand::create(['name' => 'Brand C', 'slug' => 'brand-c']);
     $project = Project::create([
         'brand_id' => $brand->id,
@@ -98,18 +111,49 @@ test('campaign workflow accurately calculates 4-stage progress milestones', func
     $deliverable = Deliverable::create([
         'project_id' => $project->id,
         'title' => 'Campaign Milestone Test',
-        'approval_stage' => 'Assignee',
+        'post_type' => 'Outlines',
+        'approval_stage' => 'Writer',
     ]);
 
+    expect($deliverable->getStageProgress())->toBe(0);
+
+    $deliverable->approval_stage = 'Approver';
     expect($deliverable->getStageProgress())->toBe(10);
 
-    $deliverable->approval_stage = 'AM/BD';
+    $deliverable->approval_stage = 'Designer';
     expect($deliverable->getStageProgress())->toBe(50);
+
+    $deliverable->approval_stage = 'AM/BD';
+    expect($deliverable->getStageProgress())->toBe(80);
 
     $deliverable->approval_stage = 'Final Approval';
     expect($deliverable->getStageProgress())->toBe(90);
 
     $deliverable->approval_stage = 'Closed';
+    expect($deliverable->getStageProgress())->toBe(100);
+});
+
+test('other deliverables workflow accurately calculates 3-stage progress milestones', function () {
+    $brand = Brand::create(['name' => 'Brand C2', 'slug' => 'brand-c2']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Campaign Project',
+        'workflow_type' => 'campaign',
+    ]);
+
+    $deliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Other Deliverable Milestone Test',
+        'post_type' => 'Radio script',
+        'approval_stage' => 'Assign',
+    ]);
+
+    expect($deliverable->getStageProgress())->toBe(10);
+
+    $deliverable->approval_stage = 'Approve';
+    expect($deliverable->getStageProgress())->toBe(50);
+
+    $deliverable->approval_stage = 'Close';
     expect($deliverable->getStageProgress())->toBe(100);
 });
 
@@ -211,7 +255,7 @@ test('campaign deliverable can be created without top fields and inherits title 
     $deliverable = Deliverable::where('project_id', $project->id)->first();
     expect($deliverable)->not->toBeNull()
         ->and($deliverable->title)->toBe('Teaser Video Post')
-        ->and($deliverable->approval_stage)->toBe('Assignee')
+        ->and($deliverable->approval_stage)->toBe('Assign')
         ->and($deliverable->status)->toBe('To Do');
 });
 
@@ -247,6 +291,7 @@ test('campaign deliverable with outlines stores concept, caption, and post copy'
     expect($deliverable)->not->toBeNull()
         ->and($deliverable->title)->toBe('Outline Post #1')
         ->and($deliverable->post_type)->toBe('Outlines')
+        ->and($deliverable->approval_stage)->toBe('Writer')
         ->and($deliverable->concept)->toBe('Brand narrative concept')
         ->and($deliverable->caption)->toBe('Exciting caption for outline')
         ->and($deliverable->post_copy)->toContain('Body copy outline')

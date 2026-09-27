@@ -60,6 +60,7 @@ class Deliverable extends Model
         'reference_urls_list',
         'final_designs_list',
         'final_designs_urls_list',
+        'workflow_stages',
     ];
 
     public function getReferenceFilesArray(): array
@@ -208,11 +209,32 @@ class Deliverable extends Model
     ];
 
     const CAMPAIGN_STAGES = [
-        'Assignee',
+        'Writer',
+        'Approver',
+        'Further Approver',
+        'Brand Manager',
+        'Coordinator',
+        'Designer',
+        'Writer Review',
+        'Approver Review',
         'AM/BD',
-        'Final Approval',
-        'Closed'
+        'Final Approval'
     ];
+
+    const OTHER_DELIVERABLE_STAGES = [
+        'Assign',
+        'Approve',
+        'Close'
+    ];
+
+    public function isOtherDeliverable(): bool
+    {
+        $projectType = $this->project?->workflow_type ?? 'retainer';
+        if ($projectType === 'retainer') return false;
+        $postType = $this->post_type ?? $this->parent?->post_type;
+        $normType = strtolower(trim($postType ?? ''));
+        return !empty($normType) && !in_array($normType, ['outlines', 'outline']);
+    }
 
     public function getWorkflow(): \App\Services\Workflows\WorkflowInterface
     {
@@ -222,6 +244,11 @@ class Deliverable extends Model
     public function getStages()
     {
         return $this->getWorkflow()->getStages();
+    }
+
+    public function getWorkflowStagesAttribute(): array
+    {
+        return $this->getStages();
     }
 
     public function getStageProgress()
@@ -407,12 +434,16 @@ class Deliverable extends Model
         // In this workspace, if the user is testing alone, they might expect to notify themselves.
         // Or at least ensure someone gets notified.
         if ($target) {
-            $target->notify(new \App\Notifications\DeliverableUpdated(
-                $this, 
-                "advanced the deliverable from **{$oldStage}** to **{$newStage}**", 
-                'stage_update', 
-                $actor
-            ));
+            try {
+                $target->notify(new \App\Notifications\DeliverableUpdated(
+                    $this, 
+                    "advanced the deliverable from **{$oldStage}** to **{$newStage}**", 
+                    'stage_update', 
+                    $actor
+                ));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to send DeliverableUpdated notification: ' . $e->getMessage());
+            }
         }
     }
 

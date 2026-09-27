@@ -1343,14 +1343,22 @@
                 
                 document.getElementById('modalSubtaskCopy').value = task.subtask_copy || task.post_copy || '';
                 quillCopy.clipboard.dangerouslyPasteHTML(task.subtask_copy || task.post_copy || '');
+                const projectWorkflowType = task.project?.workflow_type || '{{ $deliverable->project?->workflow_type ?? "" }}';
+                const postTypeNorm = (task.post_type || '').toLowerCase().trim();
+                const isOtherDeliverable = projectWorkflowType !== 'retainer' && (task.workflow_stages?.length === 3 || (!['outlines', 'outline'].includes(postTypeNorm)));
+
                 if (document.getElementById('modalStage')) {
-                    const stage = task.approval_stage || 'Writer';
+                    let stage = task.approval_stage || (isOtherDeliverable ? 'Assign' : 'Writer');
+                    if (isOtherDeliverable) {
+                        if (stage === 'Assignee' || !stage) stage = 'Assign';
+                        else if (stage === 'Closed') stage = 'Close';
+                    }
                     let stageText = stage;
                     
                     let assignedUser = null;
-                    if (stage === 'Writer' || stage === 'Writer Review') assignedUser = task.writer?.name;
+                    if (stage === 'Writer' || stage === 'Writer Review' || stage === 'Assign' || stage === 'Assignee') assignedUser = task.writer?.name || task.assignee_name;
                     else if (stage === 'Designer') assignedUser = task.designer?.name;
-                    else if (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval') assignedUser = task.brandManager?.name;
+                    else if (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval' || stage === 'Approve') assignedUser = task.brandManager?.name;
                     else if (stage === 'Coordinator') assignedUser = task.coordinator?.name;
                     else if (stage === 'Approver' || stage === 'Approver Review') assignedUser = task.approver?.name;
                     else if (stage === 'Further Approver') assignedUser = task.furtherApprover?.name;
@@ -1400,7 +1408,7 @@
                 // Reassign Designer Area visibility
                 const reassignArea = document.getElementById('reassignDesignerArea');
                 if (reassignArea) {
-                    if (task.approval_stage === 'Designer') {
+                    if (!isOtherDeliverable && task.approval_stage === 'Designer') {
                         reassignArea.style.display = 'block';
                         const currentDesignerName = task.designer?.name || 'Unassigned';
                         document.getElementById('reassignDesignerCurrentName').textContent = `Current designer: ${currentDesignerName}`;
@@ -1462,7 +1470,7 @@
                     }
 
                     // 2. Designer Due Date
-                    if (task.designer_deadline) {
+                    if (task.designer_deadline && !isOtherDeliverable) {
                         const desDate = new Date(task.designer_deadline);
                         const desDateStr = desDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
                         const desBadge = document.createElement('div');
@@ -1470,6 +1478,12 @@
                         desBadge.textContent = `Designer Due: ${desDateStr}`;
                         topDeadlinesEl.appendChild(desBadge);
                     }
+                }
+
+                // Hide designer deadline box for Other Deliverables (no designer stage)
+                const desDeadlineBox = document.getElementById('modalDesignerDeadlineBox');
+                if (desDeadlineBox) {
+                    desDeadlineBox.style.display = isOtherDeliverable ? 'none' : 'flex';
                 }
 
                 // Deliverable Deadline Input Population
@@ -1921,12 +1935,46 @@
                 } else revAlert.style.display = 'none';
 
                 // Workflow Tracker dots
-                const currentStageIdx = WORKFLOW_STAGES.indexOf(task.approval_stage);
-                document.querySelectorAll('.step-item').forEach((item, idx) => {
-                    item.classList.remove('active', 'completed');
-                    if (idx < currentStageIdx) item.classList.add('completed');
-                    else if (idx === currentStageIdx) item.classList.add('active');
-                });
+                let taskStages;
+                if (isOtherDeliverable) {
+                    taskStages = ['Assign', 'Approve', 'Close'];
+                } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
+                    taskStages = ['Writer', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator', 'Designer', 'Writer Review', 'Approver Review', 'AM/BD', 'Final Approval'];
+                } else {
+                    taskStages = (task.workflow_stages || WORKFLOW_STAGES).filter(s => s !== 'Closed');
+                }
+
+                let currentStageIdx = taskStages.indexOf(task.approval_stage);
+                if (currentStageIdx === -1) {
+                    if (task.approval_stage === 'Assignee') currentStageIdx = taskStages.indexOf('Writer') !== -1 ? taskStages.indexOf('Writer') : taskStages.indexOf('Assign');
+                    if (task.approval_stage === 'Assign') currentStageIdx = taskStages.indexOf('Assignee');
+                    if (task.approval_stage === 'Closed') currentStageIdx = taskStages.length;
+                    if (task.approval_stage === 'Close') currentStageIdx = taskStages.indexOf('Closed');
+                }
+
+                const modalStepsEl = document.getElementById('modalWorkflowSteps');
+                if (modalStepsEl) {
+                    modalStepsEl.innerHTML = taskStages.map((stg, idx) => {
+                        let cls = 'step-item';
+                        if (idx < currentStageIdx) cls += ' completed';
+                        else if (idx === currentStageIdx) cls += ' active';
+                        return `<div class="${cls}" data-stage="${stg}"><div class="step-dot">${idx + 1}</div><div class="step-label">${stg}</div></div>`;
+                    }).join('');
+                }
+
+                // Adjust fields for Other Deliverables (hide caption/copy, show brief)
+                const captionItem = document.getElementById('quillCaption')?.closest('.detail-item');
+                const copyItem = document.getElementById('quillCopy')?.closest('.detail-item');
+                const conceptLabel = document.getElementById('quillConcept')?.closest('.detail-item')?.querySelector('.detail-label');
+                if (isOtherDeliverable) {
+                    if (captionItem) captionItem.style.display = 'none';
+                    if (copyItem) copyItem.style.display = 'none';
+                    if (conceptLabel) conceptLabel.textContent = 'Brief';
+                } else {
+                    if (captionItem) captionItem.style.display = '';
+                    if (copyItem) copyItem.style.display = '';
+                    if (conceptLabel) conceptLabel.textContent = 'Concept';
+                }
 
                 // Action Buttons
                 const submitBtnForm = document.getElementById('submitStageForm');
@@ -1957,11 +2005,17 @@
                 dArea.querySelector('select').disabled = true;
                 delArea.style.display = 'none';
 
+                if (isOtherDeliverable) {
+                    if (stage === 'Assignee') stage = 'Assign';
+                    else if (stage === 'Closed') stage = 'Close';
+                }
+
                 // Normalize role for comparison (already computed above)
 
                 const canAct = isAdmin ||
                     (stage === 'Writer'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
                     (stage === 'Assignee'        && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                    (stage === 'Assign'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
                     (stage === 'Writer Review'   && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
                     (stage === 'Approver'          && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
                     (stage === 'Approver Review'   && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
@@ -1969,6 +2023,7 @@
                     (stage === 'Brand Manager'   && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                     (stage === 'AM/BD'           && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                     (stage === 'Final Approval'  && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                    (stage === 'Approve'         && (userRole === 'brandmanager' || userRole === 'operationsmanager') && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                     (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
                     (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner));
 
@@ -1979,9 +2034,9 @@
 
                 // Check if the current user is specifically assigned to handle this current stage
                 const isCurrentStageAssignee = 
-                    (stage === 'Writer' || stage === 'Assignee' || stage === 'Writer Review') ? isAssignedWriter :
+                    (stage === 'Writer' || stage === 'Assignee' || stage === 'Assign' || stage === 'Writer Review') ? isAssignedWriter :
                     (stage === 'Approver' || stage === 'Approver Review' || stage === 'Further Approver') ? isAssignedApprover :
-                    (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval') ? isAssignedBrandMgr :
+                    (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval' || stage === 'Approve') ? isAssignedBrandMgr :
                     (stage === 'Coordinator') ? isAssignedCoordinator :
                     (stage === 'Designer') ? isAssignedDesigner : false;
 
@@ -1991,7 +2046,7 @@
                 if (canAct && submitBtnForm) {
                     submitBtnForm.style.display = 'flex';
                     const nextBtn = document.getElementById('submitStageBtn');
-                    const isLastStage = WORKFLOW_STAGES.indexOf(stage) >= WORKFLOW_STAGES.length - 2;
+                    const isLastStage = (taskStages.indexOf(stage) >= taskStages.length - 1) || stage === 'Final Approval' || stage === 'Approve';
 
                     if (nextBtn) {
                         if (isWaitingForDifferentPerson) {
@@ -2006,13 +2061,25 @@
                             nextBtn.style.opacity = '1';
                             nextBtn.style.cursor = 'pointer';
                             nextBtn.style.boxShadow = '0 4px 12px rgba(0,85,212,0.4)';
-                            if (stage === 'Designer') nextBtn.textContent = 'Request for Approval';
-                            else nextBtn.textContent = isLastStage ? 'Approve & Close' : 'Submit to Next';
+                            if (isOtherDeliverable) {
+                                if (stage === 'Assign' || stage === 'Assignee') nextBtn.textContent = 'Submit to Approve';
+                                else if (stage === 'Approve') nextBtn.textContent = 'Approve & Close';
+                                else nextBtn.textContent = 'Submit';
+                            } else {
+                                if (stage === 'Designer') nextBtn.textContent = 'Request for Approval';
+                                else nextBtn.textContent = isLastStage ? 'Approve & Close' : 'Submit to Next';
+                            }
                             nextBtn.title = '';
                         }
                     }
 
-                    if (stage === 'Writer' || stage === 'Assignee') {
+                    if (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee')) {
+                        if (!task.brand_manager_id && bmArea) {
+                            bmArea.style.display = 'block';
+                            const sel = bmArea.querySelector('select');
+                            if (sel) sel.disabled = false;
+                        }
+                    } else if (stage === 'Writer' || stage === 'Assignee') {
                         if (task.approver_id) {
                             if (apprArea) {
                                 apprArea.style.display = 'none';
@@ -2098,10 +2165,10 @@
                     saveContentBtn.style.display = 'block';
                 }
 
-                const isReviewStage = ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Writer Review', 'Approver Review'].includes(stage);
+                const isReviewStage = ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Writer Review', 'Approver Review', 'Approve'].includes(stage);
                 const isAuthorizedToReview = isAdmin ||
                     (stage === 'Approver' && (userRole === 'approver' || userRole === 'operationsmanager')) ||
-                    ((stage === 'Brand Manager' || stage === 'Final Approval') && userRole === 'brandmanager') ||
+                    ((stage === 'Brand Manager' || stage === 'Final Approval' || stage === 'Approve') && (userRole === 'brandmanager' || userRole === 'operationsmanager')) ||
                     (stage === 'Writer Review' && (userRole === 'writer' || userRole === 'assignee')) ||
                     (stage === 'Approver Review' && (userRole === 'approver' || userRole === 'operationsmanager'));
 

@@ -316,30 +316,30 @@
                             </td>
                             <td colspan="6" style="padding-right:15px;" onclick="event.stopPropagation()">
                                 @php
-                                    $stage = $task->approval_stage;
+                                    $stage = $task->approval_stage ?: 'Assign';
                                     $nextStage = $task->getNextStage();
                                     $canApproveBatch = $isAdmin || (
-                                        (($stage === 'Writer' || $stage === 'Assignee') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                        (($stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager')
+                                        (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Assign') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
+                                        (($stage === 'AM/BD' || $stage === 'Final Approval' || $stage === 'Approve') && ($userRole === 'brandmanager' || $userRole === 'operationsmanager'))
                                     );
                                     $subtasks = $task->subtasks;
                                     $totalInBatch = $subtasks->count();
-                                    $parentStageNorm = $stage ?: 'Assignee';
-                                    $readyInBatch = $subtasks->filter(fn($t) => ($t->approval_stage ?: 'Assignee') === $parentStageNorm)->count();
+                                    $parentStageNorm = $stage ?: 'Assign';
+                                    $readyInBatch = $subtasks->filter(fn($t) => ($t->approval_stage ?: 'Assign') === $parentStageNorm)->count();
                                     $allReady = $readyInBatch === $totalInBatch;
                                     $isGated = !$allReady;
                                     $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
                                 @endphp
                                 <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px;">
                                     <span style="font-size:10px; font-weight:700; color:#0ea5e9; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.2); padding:3px 9px; border-radius:6px;">
-                                        {{ $task->approval_stage ?: 'Assignee' }}
+                                        {{ $task->approval_stage ?: 'Assign' }}
                                     </span>
                                     <div style="display:flex; align-items:center; gap:6px;">
                                         <a href="{{ route('deliverables.showBatch', $task->id) }}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:7px;text-decoration:none;white-space:nowrap;">View</a>
                                         @if($canApproveBatch && $nextStage)
                                             <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }})"
                                                     style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; background:#0055D4; color:#fff; border:1px solid #0055D4; cursor:pointer;" {{ $isGated ? 'disabled' : '' }}>
-                                                Approve Batch
+                                                {{ $stage === 'Approve' ? 'Approve & Close' : 'Approve Batch' }}
                                             </button>
                                         @endif
                                     </div>
@@ -464,7 +464,7 @@
                             </td>
                             <td><span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span></td>
                             <td>
-                                <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->approval_stage }}</div>
+                                <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->approval_stage ?: 'Assign' }}</div>
                             </td>
                             <td>
                                 @if($isAdmin || $userRole === 'brandmanager')
@@ -484,18 +484,18 @@
                             <td style="text-align:center; padding: 12px 8px;">
                                 <div class="quick-actions-grid">
                                     @php
-                                        $stage = $task->approval_stage;
+                                        $stage = $task->approval_stage ?: 'Assign';
                                         $nextStage = $task->getNextStage();
                                         $canApprove = $isAdmin || (
-                                            (($stage === 'Writer' || $stage === 'Assignee') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                            (($stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager')
+                                            (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Assign') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
+                                            (($stage === 'AM/BD' || $stage === 'Final Approval' || $stage === 'Approve') && ($userRole === 'brandmanager' || $userRole === 'operationsmanager'))
                                         );
                                         $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
                                     @endphp
                                     @if($canApprove && $nextStage)
                                         <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick">
                                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            Submit
+                                            {{ $stage === 'Approve' ? 'Approve' : 'Submit' }}
                                         </button>
                                     @endif
                                     <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">View</a>

@@ -35,7 +35,7 @@ class DashboardController extends Controller
                     $sub->where('status', '!=', 'Done')
                         ->where(function($inner) use ($userId) {
                             $inner->where(function($w) use ($userId) {
-                                $w->whereIn('approval_stage', ['Writer', 'Assignee'])
+                                $w->whereIn('approval_stage', ['Writer', 'Assignee', 'Assign'])
                                   ->orWhereNull('approval_stage');
                             })->where('writer_id', $userId)
                             ->orWhere(function($a) use ($userId) {
@@ -43,7 +43,7 @@ class DashboardController extends Controller
                                   ->where('approver_id', $userId);
                             })
                             ->orWhere(function($b) use ($userId) {
-                                $b->whereIn('approval_stage', ['Brand Manager', 'AM/BD', 'Final Approval'])
+                                $b->whereIn('approval_stage', ['Brand Manager', 'AM/BD', 'Final Approval', 'Approve'])
                                   ->where('brand_manager_id', $userId);
                             })
                             ->orWhere(function($c) use ($userId) {

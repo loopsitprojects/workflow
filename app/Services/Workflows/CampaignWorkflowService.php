@@ -11,22 +11,44 @@ use Illuminate\Support\Facades\Log;
 /**
  * CampaignWorkflowService
  *
- * Encapsulates the 4-stage workflow pipeline for Campaign and Pitch projects.
- * Isolated from RetainerWorkflowService so changes here never affect retainer flows.
+ * Implements the 10-stage Outline pipeline for Campaign and Pitch projects:
+ * Writer → Approver → Further Approver → Brand Manager → Coordinator → Designer → Writer Review → Approver Review → AM/BD → Final Approval → Closed
+ *
+ * Completely isolated from RetainerWorkflowService so changes here never affect retainer flows.
  */
 class CampaignWorkflowService implements WorkflowInterface
 {
     use HandlesWorkflowUploads;
 
     public const STAGES = [
-        'Assignee',
+        'Writer',
+        'Approver',
+        'Further Approver',
+        'Brand Manager',
+        'Coordinator',
+        'Designer',
+        'Writer Review',
+        'Approver Review',
         'AM/BD',
         'Final Approval',
         'Closed'
     ];
 
+    public const STEPPER_STAGES = [
+        'Writer',
+        'Approver',
+        'Further Approver',
+        'Brand Manager',
+        'Coordinator',
+        'Designer',
+        'Writer Review',
+        'Approver Review',
+        'AM/BD',
+        'Final Approval'
+    ];
+
     /**
-     * Get the ordered stages for campaign/pitch workflow.
+     * Get the ordered stages for campaign/pitch outline workflow.
      */
     public function getStages(): array
     {
@@ -34,38 +56,59 @@ class CampaignWorkflowService implements WorkflowInterface
     }
 
     /**
-     * Calculate stage progress percentage for campaign/pitch workflow.
+     * Calculate stage progress percentage for campaign/pitch outline workflow.
      */
     public function getStageProgress(Deliverable $deliverable): int
     {
         $stages = $this->getStages();
-        $index = array_search($deliverable->approval_stage ?? $stages[0], $stages);
+        $stage = $deliverable->approval_stage ?? $stages[0];
+        if ($stage === 'Assignee') $stage = 'Writer';
+        
+        $index = array_search($stage, $stages);
         if ($index === false) return 0;
         
-        $milestones = [10, 50, 90, 100];
+        $milestones = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
         return $milestones[$index] ?? 0;
     }
 
     /**
-     * Determine next stage in campaign workflow.
+     * Determine next stage in campaign outline workflow.
      */
     public function getNextStage(Deliverable $deliverable, array $data = []): ?string
     {
         $stages = $this->getStages();
-        $currentIndex = array_search($deliverable->approval_stage ?? $stages[0], $stages);
-        if ($currentIndex !== false && $currentIndex < count($stages) - 1) {
-            return $stages[$currentIndex + 1];
+        $stage = $deliverable->approval_stage ?? $stages[0];
+        if ($stage === 'Assignee') $stage = 'Writer';
+
+        $currentIndex = array_search($stage, $stages);
+        if ($currentIndex === false || $currentIndex >= count($stages) - 1) {
+            return null;
         }
-        return null;
+
+        $nextStage = $stages[$currentIndex + 1];
+
+        // Route Approver → Further Approver stage when a further approver is selected.
+        $routingToFurtherApprover = ($stage === 'Approver' && !empty($data['further_approver_id']));
+        if ($routingToFurtherApprover) {
+            $nextStage = 'Further Approver';
+        } elseif ($nextStage === 'Further Approver') {
+            // Skip 'Further Approver' when no further approver is being assigned
+            $nextStage = 'Brand Manager';
+        }
+
+        return $nextStage;
     }
 
     /**
-     * Determine previous stage in campaign workflow.
+     * Determine previous stage in campaign outline workflow.
      */
     public function getPrevStage(Deliverable $deliverable): ?string
     {
         $stages = $this->getStages();
-        $currentIndex = array_search($deliverable->approval_stage ?? $stages[0], $stages);
+        $stage = $deliverable->approval_stage ?? $stages[0];
+        if ($stage === 'Assignee') $stage = 'Writer';
+
+        $currentIndex = array_search($stage, $stages);
         if ($currentIndex !== false && $currentIndex > 0) {
             return $stages[$currentIndex - 1];
         }
@@ -78,9 +121,13 @@ class CampaignWorkflowService implements WorkflowInterface
     public function getRequiredFieldForStage(string $stage): ?string
     {
         return match ($stage) {
-            'Assignee'                  => 'writer_id',
-            'AM/BD', 'Final Approval'   => 'brand_manager_id',
-            default                     => null,
+            'Writer', 'Writer Review'                  => 'writer_id',
+            'Approver', 'Approver Review'              => 'approver_id',
+            'Further Approver'                         => 'further_approver_id',
+            'Brand Manager', 'AM/BD', 'Final Approval' => 'brand_manager_id',
+            'Coordinator'                              => 'coordinator_id',
+            'Designer'                                 => 'designer_id',
+            default                                    => null,
         };
     }
 
@@ -90,9 +137,13 @@ class CampaignWorkflowService implements WorkflowInterface
     public function getNotifyTarget(Deliverable $deliverable, string $stage): ?User
     {
         $target = match ($stage) {
-            'AM/BD', 'Final Approval' => $deliverable->brandManager ?? $deliverable->project?->brandManager,
-            'Assignee', 'Closed'      => $deliverable->writer ?? $deliverable->project?->writer,
-            default                   => null,
+            'Approver', 'Approver Review'              => $deliverable->approver ?? $deliverable->project?->approver,
+            'Further Approver'                         => $deliverable->furtherApprover ?? $deliverable->approver ?? $deliverable->project?->approver,
+            'Brand Manager', 'AM/BD', 'Final Approval' => $deliverable->brandManager ?? $deliverable->project?->brandManager,
+            'Coordinator'                              => $deliverable->coordinator ?? $deliverable->project?->coordinator,
+            'Designer'                                 => $deliverable->designer ?? $deliverable->project?->designer,
+            'Writer Review', 'Closed', 'Writer'        => $deliverable->writer ?? $deliverable->project?->writer,
+            default                                    => null,
         };
 
         if (!$target) {
@@ -105,7 +156,7 @@ class CampaignWorkflowService implements WorkflowInterface
     }
 
     /**
-     * Validate prerequisites for advancing a Campaign deliverable.
+     * Validate prerequisites for advancing an Outline deliverable.
      */
     public function validateAdvance(Deliverable $deliverable, array $data, ?User $user): ?array
     {
@@ -117,9 +168,12 @@ class CampaignWorkflowService implements WorkflowInterface
         }
 
         $oldStage = $deliverable->approval_stage ?? $stages[0];
+        if ($oldStage === 'Assignee') $oldStage = 'Writer';
+
+        $hasFurtherApprover = !empty($data['further_approver_id']) && in_array($oldStage, ['Brand Manager', 'AM/BD', 'Final Approval']);
 
         $requiredField = $this->getRequiredFieldForStage($nextStage);
-        if ($requiredField) {
+        if ($requiredField && !$hasFurtherApprover) {
             $assignedId = $data[$requiredField] ?? $deliverable->{$requiredField};
             if (!$assignedId && $deliverable->project) {
                 $assignedId = $deliverable->project->{$requiredField};
@@ -138,9 +192,16 @@ class CampaignWorkflowService implements WorkflowInterface
         // Role authorization check (non-admin)
         if ($user && !$user->isAdmin()) {
             $stageFieldMap = [
-                'Assignee'       => 'writer_id',
-                'AM/BD'          => 'brand_manager_id',
-                'Final Approval' => 'brand_manager_id',
+                'Writer'           => 'writer_id',
+                'Writer Review'    => 'writer_id',
+                'Approver'         => 'approver_id',
+                'Approver Review'  => 'approver_id',
+                'Further Approver' => 'further_approver_id',
+                'Brand Manager'    => 'brand_manager_id',
+                'AM/BD'            => 'brand_manager_id',
+                'Final Approval'   => 'brand_manager_id',
+                'Coordinator'      => 'coordinator_id',
+                'Designer'         => 'designer_id',
             ];
             $field = $stageFieldMap[$oldStage] ?? null;
             $assignedId = $field ? $deliverable->{$field} : null;
@@ -154,11 +215,29 @@ class CampaignWorkflowService implements WorkflowInterface
             }
         }
 
+        // Designer upload gate
+        if ($oldStage === 'Designer') {
+            $hasUpload = isset($data['final_designs_file']) && $data['final_designs_file'] instanceof \Illuminate\Http\UploadedFile;
+            $hasDesigns = $deliverable->final_designs
+                || $deliverable->final_designs_link
+                || ($data['final_designs'] ?? null)
+                || ($data['final_designs_link'] ?? null)
+                || $hasUpload;
+
+            if (!$hasDesigns) {
+                return [
+                    'success' => false,
+                    'message' => 'Please upload the final artwork or provide an artwork link before submitting.',
+                    'code' => 422
+                ];
+            }
+        }
+
         return null;
     }
 
     /**
-     * Advance Campaign deliverable to next stage.
+     * Advance Campaign Outline deliverable to next stage.
      */
     public function advanceStage(Deliverable $deliverable, array $data, ?User $user, bool $dryRun = false): array
     {
@@ -169,6 +248,7 @@ class CampaignWorkflowService implements WorkflowInterface
 
         $stages = $this->getStages();
         $oldStage = $deliverable->approval_stage ?? $stages[0];
+        if ($oldStage === 'Assignee') $oldStage = 'Writer';
         $nextStage = $this->getNextStage($deliverable, $data);
 
         $hoursSpent = isset($data['hours_spent']) && is_numeric($data['hours_spent']) && $data['hours_spent'] > 0
@@ -176,6 +256,42 @@ class CampaignWorkflowService implements WorkflowInterface
 
         if ($dryRun) {
             return ['success' => true];
+        }
+
+        $routingToFurtherApprover = ($oldStage === 'Approver' && !empty($data['further_approver_id']));
+
+        // Brand Manager / AM/BD / Final Approval delegation
+        if (in_array($oldStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && !empty($data['further_approver_id'])) {
+            $furtherApproverId = (int) $data['further_approver_id'];
+            $deliverable->brand_manager_id = $furtherApproverId;
+            if ($hoursSpent) {
+                $deliverable->work_hours = ($deliverable->work_hours ?? 0) + $hoursSpent;
+            }
+            $deliverable->save();
+
+            $bmApprovalData = [
+                'user_id' => $user?->id ?? auth()->id(),
+                'stage' => $oldStage,
+                'notes' => ($data['submit_notes'] ?? null)
+            ];
+            if ($hoursSpent) $bmApprovalData['hours_spent'] = $hoursSpent;
+            $deliverable->approvalsHistory()->create($bmApprovalData);
+
+            $furtherApprover = User::find($furtherApproverId);
+            if ($furtherApprover) {
+                try {
+                    $furtherApprover->notify(new DeliverableUpdated(
+                        $deliverable,
+                        'sent **' . $deliverable->title . '** for your approval',
+                        'stage_update',
+                        $user ?? auth()->user()
+                    ));
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to send DeliverableUpdated notification: ' . $e->getMessage());
+                }
+            }
+
+            return ['success' => true, 'message' => 'Deliverable sent to ' . ($furtherApprover->name ?? 'further approver') . ' for additional approval.'];
         }
 
         // Record who performed current stage (if FK not already set)
@@ -186,14 +302,40 @@ class CampaignWorkflowService implements WorkflowInterface
 
         // Content updates
         if (isset($data['title'])) $deliverable->title = $data['title'];
+        if (isset($data['concept'])) $deliverable->concept = $data['concept'];
         if (isset($data['notes'])) $deliverable->notes = $data['notes'];
+        if (isset($data['caption'])) $deliverable->caption = $data['caption'];
+        if (isset($data['post_copy'])) $deliverable->post_copy = $data['post_copy'];
         if (isset($data['description'])) $deliverable->description = $data['description'];
         if (isset($data['reference'])) $deliverable->reference = $data['reference'];
         if (isset($data['reference_file'])) $deliverable->reference_file = $data['reference_file'];
 
         // Stakeholder updates
         if (isset($data['writer_id'])) $deliverable->writer_id = $data['writer_id'];
+        if (isset($data['approver_id'])) $deliverable->approver_id = $data['approver_id'];
+        if ($routingToFurtherApprover) {
+            $deliverable->further_approver_id = (int) $data['further_approver_id'];
+        }
         if (isset($data['brand_manager_id'])) $deliverable->brand_manager_id = $data['brand_manager_id'];
+        if (isset($data['coordinator_id'])) $deliverable->coordinator_id = $data['coordinator_id'];
+        if (isset($data['designer_id'])) $deliverable->designer_id = $data['designer_id'];
+        if (array_key_exists('designer_deadline', $data)) {
+            $deliverable->designer_deadline = $data['designer_deadline'] ?: null;
+        }
+
+        // Designer Delivery
+        if ($oldStage === 'Designer') {
+            if (isset($data['final_designs'])) $deliverable->final_designs = $data['final_designs'];
+            if (isset($data['final_designs_link'])) $deliverable->final_designs_link = $data['final_designs_link'];
+            
+            if (isset($data['final_designs_file'])) {
+                if (is_string($data['final_designs_file'])) {
+                    $deliverable->final_designs = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($data['final_designs_file'], '/'));
+                } elseif ($data['final_designs_file'] instanceof \Illuminate\Http\UploadedFile) {
+                    $deliverable->final_designs = $this->moveUploadedFile($data['final_designs_file'], 'artwork');
+                }
+            }
+        }
 
         // Reset client status when advancing
         $deliverable->client_status = null;
@@ -228,12 +370,12 @@ class CampaignWorkflowService implements WorkflowInterface
     }
 
     /**
-     * Handle revision request in Campaign workflow.
+     * Handle revision request in Campaign Outline workflow.
      */
     public function requestRevisions(Deliverable $deliverable, array $validatedData, ?string $imagePath, ?User $user): array
     {
         $stages = $this->getStages();
-        $firstStage = $stages[0]; // 'Assignee'
+        $firstStage = $stages[0]; // 'Writer'
 
         if ($deliverable->approval_stage === $firstStage) {
             return ['success' => false, 'message' => 'Cannot request revisions for this stage.', 'code' => 422];
@@ -241,8 +383,17 @@ class CampaignWorkflowService implements WorkflowInterface
 
         $oldStage = $deliverable->approval_stage;
 
-        // Reset back to first stage (Assignee)
-        $deliverable->approval_stage = $firstStage;
+        if (in_array($oldStage, ['Final Approval', 'AM/BD', 'Approver Review', 'Writer Review'])) {
+            $target = $validatedData['revision_target'] ?? 'designer';
+            if ($target === 'writer') {
+                $deliverable->approval_stage = $firstStage;
+            } else {
+                $deliverable->approval_stage = 'Designer';
+            }
+        } else {
+            $deliverable->approval_stage = $firstStage;
+        }
+
         $deliverable->status = 'To Do';
         $deliverable->progress_percent = $this->getStageProgress($deliverable);
         $deliverable->revisions += 1;
@@ -257,8 +408,11 @@ class CampaignWorkflowService implements WorkflowInterface
             'stage_at_revision' => $oldStage,
         ]);
 
-        // Notify Assignee
-        $notifyTarget = $deliverable->writer ?? $deliverable->project?->writer;
+        // Notify
+        $notifyTarget = ($deliverable->approval_stage === 'Designer')
+            ? ($deliverable->designer ?? $deliverable->project?->designer)
+            : ($deliverable->writer ?? $deliverable->project?->writer);
+
         if ($notifyTarget) {
             try {
                 $notifyTarget->notify(new DeliverableUpdated(
