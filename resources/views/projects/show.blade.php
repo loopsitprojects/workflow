@@ -458,6 +458,7 @@
             ];
         @endphp
 
+        @if($project->workflow_type === 'retainer')
         <div class="cd-table-wrap">
             <div class="cd-header">
                 <div class="cd-header-left">
@@ -473,7 +474,6 @@
 
             <div style="width:100%; overflow-x:auto;">
                 <table class="cd-table">
-                    @if($project->workflow_type === 'retainer')
                         <thead>
                             <tr>
                                 <th style="width:140px;">Deliverable</th>
@@ -1067,10 +1067,12 @@
                             </tr>
                             @endforelse
                         </tbody>
-                    @endif
                 </table>
             </div>
         </div>
+        @else
+            @include('projects.partials.campaign_deliverables')
+        @endif
 
 
         </div>

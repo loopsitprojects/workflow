@@ -214,59 +214,29 @@ class Deliverable extends Model
         'Closed'
     ];
 
+    public function getWorkflow(): \App\Services\Workflows\WorkflowInterface
+    {
+        return \App\Services\Workflows\WorkflowManager::for($this);
+    }
+
     public function getStages()
     {
-        if ($this->project && in_array($this->project->workflow_type, ['campaign', 'pitch'])) {
-            return self::CAMPAIGN_STAGES;
-        }
-        return self::STAGES;
+        return $this->getWorkflow()->getStages();
     }
 
     public function getStageProgress()
     {
-        $stages = $this->getStages();
-        $index = array_search($this->approval_stage ?? $stages[0], $stages);
-        if ($index === false) return 0;
-        
-        $count = count($stages);
-        if ($count === 4) {
-            $milestones = [10, 50, 90, 100];
-            return $milestones[$index] ?? 0;
-        }
-        
-        // 10-stage retainer workflow (with Further Approver)
-        if ($count === 10) {
-            $milestones = [0, 10, 20, 32, 47, 60, 72, 84, 93, 100];
-            return $milestones[$index] ?? 0;
-        }
-        // 11-stage standard workflow
-        if ($count === 11) {
-            $milestones = [0, 9, 18, 27, 36, 45, 54, 63, 72, 81, 100];
-            return $milestones[$index] ?? 0;
-        }
-
-        $milestones = [0, 10, 25, 40, 55, 68, 80, 92, 100];
-        return $milestones[$index] ?? 0;
+        return $this->getWorkflow()->getStageProgress($this);
     }
 
     public function getNextStage()
     {
-        $stages = $this->getStages();
-        $currentIndex = array_search($this->approval_stage ?? $stages[0], $stages);
-        if ($currentIndex !== false && $currentIndex < count($stages) - 1) {
-            return $stages[$currentIndex + 1];
-        }
-        return null;
+        return $this->getWorkflow()->getNextStage($this);
     }
 
     public function getPrevStage()
     {
-        $stages = $this->getStages();
-        $currentIndex = array_search($this->approval_stage ?? $stages[0], $stages);
-        if ($currentIndex !== false && $currentIndex > 0) {
-            return $stages[$currentIndex - 1];
-        }
-        return null;
+        return $this->getWorkflow()->getPrevStage($this);
     }
 
     public function approver()
@@ -416,15 +386,7 @@ class Deliverable extends Model
      */
     public function getRequiredFieldForStage($stage)
     {
-        return match ($stage) {
-            'Writer', 'Assignee', 'Writer Review', 'Scheduled' => 'writer_id',
-            'Approver', 'Approver Review'                  => 'approver_id',
-            'Further Approver'                             => 'further_approver_id',
-            'Brand Manager', 'AM/BD', 'Final Approval'     => 'brand_manager_id',
-            'Coordinator'        => 'coordinator_id',
-            'Designer'           => 'designer_id',
-            default              => null,
-        };
+        return $this->getWorkflow()->getRequiredFieldForStage($stage);
     }
 
     /**
@@ -432,30 +394,7 @@ class Deliverable extends Model
      */
     public function getNotifyTarget($stage)
     {
-        $target = match ($stage) {
-            'Approver', 'Approver Review' => $this->approver ?? $this->project?->approver,
-            'Further Approver' => $this->furtherApprover ?? $this->approver ?? $this->project?->approver,
-            'Brand Manager'  => $this->brandManager ?? $this->project?->brandManager,
-            'Coordinator'    => $this->coordinator ?? $this->project?->coordinator,
-            'Designer'       => $this->designer ?? $this->project?->designer,
-            'Final Approval' => $this->brandManager ?? $this->project?->brandManager,
-            'AM/BD'          => $this->brandManager ?? $this->project?->brandManager,
-            'Assignee', 'Writer Review' => $this->writer ?? $this->project?->writer,
-            'Closed'         => $this->writer ?? $this->project?->writer,
-            default          => null,
-        };
-
-        // Fallback to Project Lead if stage target is unassigned
-        if (!$target) {
-            $target = $this->project?->lead;
-        }
-
-        // Final fallback to any Admin/Owner if still no target
-        if (!$target) {
-            $target = \App\Models\User::where('role', 'Admin')->first();
-        }
-
-        return $target;
+        return $this->getWorkflow()->getNotifyTarget($this, $stage);
     }
 
     /**

@@ -82,15 +82,32 @@ class DeliverableController extends Controller
 
         $validated = $request->validated();
 
-        // Auto-assign the logged-in user as writer if they have the Writer role
-        $creator = auth()->user();
-        if ($creator->role === 'Writer' && empty($validated['writer_id'])) {
-            $validated['writer_id'] = $creator->id;
-            $validated['assignee_name'] = $creator->name;
-        }
-
         $subtasks = !empty($validated['subtasks']) ? $validated['subtasks'] : [];
         $parentId = $validated['parent_deliverable_id'] ?? null;
+        $project = Project::find($validated['project_id']);
+
+        // Auto-populate title from first subtask if omitted (e.g. Campaign/Pitch flow)
+        if (empty($validated['title'])) {
+            $firstSubTitle = !empty($subtasks[0]['title']) ? $subtasks[0]['title'] : null;
+            $validated['title'] = $firstSubTitle ?: ($project ? $project->name . ' Deliverable' : 'Deliverable');
+        }
+
+        // Auto-assign writer/assignee from project or creator if omitted
+        $creator = auth()->user();
+        if (empty($validated['writer_id'])) {
+            $validated['writer_id'] = $project?->writer_id ?? $creator->id;
+            $u = \App\Models\User::find($validated['writer_id']);
+            $validated['assignee_name'] = $u?->name ?? $creator->name;
+        }
+
+        // Auto-assign deadline from subtask or project if omitted
+        if (empty($validated['deadline'])) {
+            $validated['deadline'] = !empty($subtasks[0]['deadline']) 
+                ? $subtasks[0]['deadline'] 
+                : ($project?->deadline ?? now()->addDays(7)->toDateString());
+        }
+
+        $validated['priority'] = $validated['priority'] ?? (!empty($subtasks[0]['priority']) ? $subtasks[0]['priority'] : 'Medium');
 
         // If creating a NEW deliverable and exactly 1 subtask is defined, consolidate into a standalone deliverable
         if (!$parentId && count($subtasks) === 1) {
@@ -103,8 +120,8 @@ class DeliverableController extends Controller
                 $taskData['title'] = $sub['title'];
             }
             $taskData['post_type'] = $sub['post_type'] ?? null;
-            $taskData['concept']   = $sub['concept'] ?? null;
-            $taskData['notes']     = $sub['notes'] ?? null;
+            $taskData['concept']   = $sub['concept'] ?? ($sub['brief'] ?? null);
+            $taskData['notes']     = $sub['notes'] ?? ($sub['brief'] ?? null);
             $taskData['caption']   = $sub['caption'] ?? null;
             $taskData['post_copy'] = $sub['post_copy'] ?? null;
             $taskData['reference'] = $sub['reference'] ?? null;
@@ -166,8 +183,8 @@ class DeliverableController extends Controller
                     'task_type' => 'Deliverable',
                     'progress_percent' => 0,
                     'post_type' => $sub['post_type'] ?? null,
-                    'concept' => $sub['concept'] ?? null,
-                    'notes' => $sub['notes'] ?? null,
+                    'concept' => $sub['concept'] ?? ($sub['brief'] ?? null),
+                    'notes' => $sub['notes'] ?? ($sub['brief'] ?? null),
                     'caption' => $sub['caption'] ?? null,
                     'post_copy' => $sub['post_copy'] ?? null,
                     'reference' => $sub['reference'] ?? null,
@@ -942,194 +959,11 @@ class DeliverableController extends Controller
 
     /**
      * Centralized logic for advancing a deliverable stage.
+     * Delegates to the isolated workflow driver (RetainerWorkflowService or CampaignWorkflowService).
      */
     private function internallyAdvanceStage(Deliverable $deliverable, array $data, $dryRun = false)
     {
-        $stages = $deliverable->getStages();
-        $nextStage = $deliverable->getNextStage();
-
-        if (!$nextStage) {
-            return ['success' => false, 'message' => 'Deliverable is already at the final stage.', 'code' => 400];
-        }
-
-        $oldStage = $deliverable->approval_stage ?? $stages[0];
-
-        // Route Approver → Further Approver stage when a further approver is selected.
-        // This creates a real intermediate stage in the workflow timeline.
-        $routingToFurtherApprover = ($oldStage === 'Approver' && !empty($data['further_approver_id']));
-        if ($routingToFurtherApprover) {
-            $nextStage = 'Further Approver';
-        } elseif ($nextStage === 'Further Approver') {
-            // Skip 'Further Approver' when no further approver is being assigned
-            $nextStage = 'Brand Manager';
-        }
-
-        // Brand Manager further approver: re-assign and stay at same stage (no new stage)
-        $hasFurtherApprover = !empty($data['further_approver_id']) && in_array($oldStage, ['Brand Manager', 'AM/BD', 'Final Approval']);
-
-        $requiredField = $deliverable->getRequiredFieldForStage($nextStage);
-        if ($requiredField && !$hasFurtherApprover) {
-            $assignedId = $data[$requiredField] ?? $deliverable->{$requiredField};
-            if (!$assignedId && $deliverable->project) {
-                $assignedId = $deliverable->project->{$requiredField};
-            }
-
-            if (!$assignedId) {
-                $roleName = ucwords(str_replace(['_id', '_'], ['', ' '], $requiredField));
-                return [
-                    'success' => false,
-                    'message' => "Cannot move to **{$nextStage}**: Please assign a **{$roleName}** to this specific task first.",
-                    'code' => 422
-                ];
-            }
-        }
-
-        // Enforce: only the assigned person for the current stage (or admin) may submit
-        $user = auth()->user();
-        if ($user && !$user->isAdmin()) {
-            $stageFieldMap = [
-                'Writer'           => 'writer_id',
-                'Assignee'         => 'writer_id',
-                'Writer Review'    => 'writer_id',
-                'Approver'         => 'approver_id',
-                'Approver Review'  => 'approver_id',
-                'Further Approver' => 'further_approver_id',
-                'Brand Manager'    => 'brand_manager_id',
-                'AM/BD'            => 'brand_manager_id',
-                'Final Approval'   => 'brand_manager_id',
-                'Coordinator'      => 'coordinator_id',
-                'Designer'         => 'designer_id',
-                'Scheduled'        => 'writer_id',
-            ];
-            $field     = $stageFieldMap[$oldStage] ?? null;
-            $assignedId = $field ? $deliverable->{$field} : null;
-            if ($assignedId && $user->id != $assignedId) {
-                $stageLabel = $oldStage === 'AM/BD' ? 'AM/BD' : strtolower($oldStage);
-                return [
-                    'success' => false,
-                    'message' => "Only the assigned {$stageLabel} can submit this deliverable.",
-                    'code'    => 403,
-                ];
-            }
-        }
-
-        if ($oldStage === 'Designer') {
-            $hasUpload = isset($data['final_designs_file']) && $data['final_designs_file'] instanceof \Illuminate\Http\UploadedFile;
-            $hasDesigns = $deliverable->final_designs
-                || $deliverable->final_designs_link
-                || ($data['final_designs'] ?? null)
-                || ($data['final_designs_link'] ?? null)
-                || $hasUpload;
-
-            if (!$hasDesigns) {
-                return [
-                    'success' => false,
-                    'message' => 'Please upload the final artwork or provide an artwork link before submitting.',
-                    'code' => 422
-                ];
-            }
-        }
-
-        $hoursSpent = isset($data['hours_spent']) && is_numeric($data['hours_spent']) && $data['hours_spent'] > 0
-            ? (float) $data['hours_spent'] : null;
-
-        if ($dryRun) return ['success' => true];
-
-        // Brand Manager "Further Approval": re-assign brand manager and stay at the same stage
-        if (in_array($oldStage, ['Brand Manager', 'AM/BD', 'Final Approval']) && !empty($data['further_approver_id'])) {
-            $furtherApproverId = (int) $data['further_approver_id'];
-            $deliverable->brand_manager_id = $furtherApproverId;
-            if ($hoursSpent) {
-                $deliverable->work_hours = ($deliverable->work_hours ?? 0) + $hoursSpent;
-            }
-            $deliverable->save();
-
-            $bmApprovalData = ['user_id' => auth()->id(), 'stage' => $oldStage, 'notes' => ($data['submit_notes'] ?? null)];
-            if ($hoursSpent) $bmApprovalData['hours_spent'] = $hoursSpent;
-            $deliverable->approvalsHistory()->create($bmApprovalData);
-
-            $furtherApprover = \App\Models\User::find($furtherApproverId);
-            if ($furtherApprover) {
-                try {
-                    $furtherApprover->notify(new DeliverableUpdated(
-                        $deliverable,
-                        'sent **' . $deliverable->title . '** for your approval',
-                        'stage_update',
-                        auth()->user()
-                    ));
-                } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning('Failed to send DeliverableUpdated notification: ' . $e->getMessage());
-                }
-            }
-
-            return ['success' => true, 'message' => 'Deliverable sent to ' . ($furtherApprover->name ?? 'further approver') . ' for additional approval.'];
-        }
-
-        // Record who performed the current stage (if the FK isn't already set)
-        $currentStageField = $deliverable->getRequiredFieldForStage($oldStage);
-        if ($currentStageField && !$deliverable->{$currentStageField}) {
-            $deliverable->{$currentStageField} = auth()->id();
-        }
-
-        // Content updates
-        if (isset($data['concept'])) $deliverable->concept = $data['concept'];
-        if (isset($data['notes'])) $deliverable->notes = $data['notes'];
-        if (isset($data['caption'])) $deliverable->caption = $data['caption'];
-        if (isset($data['post_copy'])) $deliverable->post_copy = $data['post_copy'];
-        if (isset($data['reference'])) $deliverable->reference = $data['reference'];
-        if (isset($data['reference_file'])) $deliverable->reference_file = $data['reference_file'];
-
-        // Stakeholder updates
-        if (isset($data['approver_id'])) $deliverable->approver_id = $data['approver_id'];
-        // When routing to Further Approver stage, save the further approver ID
-        if ($routingToFurtherApprover) {
-            $deliverable->further_approver_id = (int) $data['further_approver_id'];
-        }
-        if (isset($data['brand_manager_id'])) $deliverable->brand_manager_id = $data['brand_manager_id'];
-        if (isset($data['coordinator_id'])) $deliverable->coordinator_id = $data['coordinator_id'];
-        if (isset($data['designer_id'])) $deliverable->designer_id = $data['designer_id'];
-        if (array_key_exists('designer_deadline', $data)) {
-            $deliverable->designer_deadline = $data['designer_deadline'] ?: null;
-        }
-
-        // Designer Delivery
-        if ($oldStage === 'Designer') {
-            if (isset($data['final_designs'])) $deliverable->final_designs = $data['final_designs'];
-            if (isset($data['final_designs_link'])) $deliverable->final_designs_link = $data['final_designs_link'];
-            
-            // Handle file upload if present in the data array
-            if (isset($data['final_designs_file'])) {
-                if (is_string($data['final_designs_file'])) {
-                    $deliverable->final_designs = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($data['final_designs_file'], '/'));
-                } elseif ($data['final_designs_file'] instanceof \Illuminate\Http\UploadedFile) {
-                    $deliverable->final_designs = $this->moveUploadedFile($data['final_designs_file'], 'artwork');
-                }
-            }
-        }
-
-        // Reset client_status when advancing to the next stage
-        $deliverable->client_status = null;
-
-        $deliverable->approval_stage = $nextStage;
-        $deliverable->progress_percent = $deliverable->getStageProgress();
-        $deliverable->revision_instructions = null;
-        $deliverable->status = ($nextStage === 'Closed' || $nextStage === 'closed') ? 'Done' : 'To Do';
-        $deliverable->is_ready = false;
-        if ($hoursSpent) {
-            $deliverable->work_hours = ($deliverable->work_hours ?? 0) + $hoursSpent;
-        }
-        $deliverable->save();
-
-        // History
-        $approvalData = ['user_id' => auth()->id(), 'stage' => $oldStage, 'notes' => $data['submit_notes'] ?? null];
-        if ($hoursSpent) $approvalData['hours_spent'] = $hoursSpent;
-        $deliverable->approvalsHistory()->create($approvalData);
-        $deliverable->revisionsHistory()->whereNull('fixed_by_user_id')->latest()->first()?->update(['fixed_by_user_id' => auth()->id(), 'fixed_at' => now()]);
-
-        // Notify
-        $deliverable->notifyStageChange($oldStage, $nextStage, auth()->user());
-
-        return ['success' => true, 'message' => "Deliverable submitted to {$nextStage} stage."];
+        return $deliverable->getWorkflow()->advanceStage($deliverable, $data, auth()->user(), (bool)$dryRun);
     }
 
     /**
@@ -1147,33 +981,6 @@ class DeliverableController extends Controller
                 'revision_image'        => 'nullable', // allow string or file
             ]);
 
-            $oldStage = $deliverable->approval_stage;
-            \Illuminate\Support\Facades\Log::info("Deliverable {$deliverable->id} requesting revision from stage: '{$oldStage}'");
-
-            if (in_array($oldStage, ['Final Approval', 'Writer Review', 'Approver Review'])) {
-                $target = $validated['revision_target'] ?? 'designer';
-                if ($target === 'writer' || !in_array('Designer', $stages)) {
-                    $deliverable->approval_stage = $firstStage;
-                } else {
-                    $deliverable->approval_stage = 'Designer';
-                }
-            } else {
-                $deliverable->approval_stage = $firstStage;
-            }
-
-            // Reset approver so the submitter can pick a fresh one on resubmission
-            if ($deliverable->approval_stage === $firstStage) {
-                $deliverable->approver_id = null;
-            }
-
-            // Revert status to "To Do" if moved back for revisions
-            $deliverable->status = 'To Do';
-
-            $deliverable->progress_percent = $deliverable->getStageProgress();
-            $deliverable->revisions += 1;
-            $deliverable->revision_instructions = $validated['revision_instructions'];
-            $deliverable->save();
-
             // Handle optional image upload
             $imagePath = null;
             if ($request->has('revision_image') && is_string($request->revision_image)) {
@@ -1185,32 +992,13 @@ class DeliverableController extends Controller
                 $imagePath = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
             }
 
-            // Record in history
-            $deliverable->revisionsHistory()->create([
-                'user_id' => auth()->id(),
-                'instructions' => $validated['revision_instructions'],
-                'image_path' => $imagePath,
-                'stage_at_revision' => $oldStage,
-            ]);
+            $result = $deliverable->getWorkflow()->requestRevisions($deliverable, $validated, $imagePath, auth()->user());
 
-            // Notify the person responsible for the target stage
-            $notifyTarget = $deliverable->approval_stage === 'Designer'
-                ? ($deliverable->designer ?? $deliverable->project?->designer)
-                : ($deliverable->writer ?? $deliverable->project?->writer);
-            if ($notifyTarget) {
-                try {
-                    $notifyTarget->notify(new \App\Notifications\DeliverableUpdated(
-                        $deliverable,
-                        "requested revisions at stage **{$oldStage}**",
-                        'revision_request',
-                        auth()->user()
-                    ));
-                } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning('Failed to send DeliverableUpdated notification: ' . $e->getMessage());
-                }
+            if (!$result['success']) {
+                return redirect()->back()->with('error', $result['message']);
             }
 
-            return redirect()->back()->with('success', 'Revision requested successfully.');
+            return redirect()->back()->with('success', $result['message']);
         }
         return redirect()->back()->with('error', 'Cannot request revisions for this stage.');
     }
@@ -1249,62 +1037,12 @@ class DeliverableController extends Controller
             }
         }
 
-        $revisionTarget = $validated['revision_target'] ?? 'designer';
         $allTasks = collect([$deliverable])->merge($deliverable->subtasks);
 
         \Illuminate\Support\Facades\DB::beginTransaction();
         try {
             foreach ($allTasks as $task) {
-                $stages = $task->getStages();
-                $firstStage = $stages[0];
-                $oldStage = $task->approval_stage;
-
-                if (in_array($oldStage, ['Final Approval', 'Writer Review', 'Approver Review'])) {
-                    if ($revisionTarget === 'writer' || !in_array('Designer', $stages)) {
-                        $task->approval_stage = $firstStage;
-                    } else {
-                        $task->approval_stage = 'Designer';
-                    }
-                } else {
-                    $task->approval_stage = $firstStage;
-                }
-
-                // Reset approver so the submitter can pick a fresh one on resubmission
-                if ($task->approval_stage === $firstStage) {
-                    $task->approver_id = null;
-                }
-
-                $task->status = 'To Do';
-                $task->progress_percent = $task->getStageProgress();
-                $task->revisions += 1;
-                $task->revision_instructions = $validated['revision_instructions'];
-                $task->is_ready = false;
-                $task->save();
-
-                // History
-                $task->revisionsHistory()->create([
-                    'user_id' => auth()->id(),
-                    'instructions' => $validated['revision_instructions'],
-                    'image_path' => $imagePath,
-                    'stage_at_revision' => $oldStage,
-                ]);
-
-                // Notify the person responsible for the target stage
-                $notifyTarget = $task->approval_stage === 'Designer'
-                    ? ($task->designer ?? $task->project?->designer)
-                    : ($task->writer ?? $task->project?->writer);
-                if ($notifyTarget) {
-                    try {
-                        $notifyTarget->notify(new \App\Notifications\DeliverableUpdated(
-                            $task,
-                            "requested revisions for batch **{$deliverable->title}**",
-                            'revision_request',
-                            auth()->user()
-                        ));
-                    } catch (\Throwable $e) {
-                        \Illuminate\Support\Facades\Log::warning('Failed to send DeliverableUpdated notification: ' . $e->getMessage());
-                    }
-                }
+                $task->getWorkflow()->requestRevisions($task, $validated, $imagePath, auth()->user());
             }
 
             \Illuminate\Support\Facades\DB::commit();

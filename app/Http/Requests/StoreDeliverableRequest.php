@@ -19,9 +19,9 @@ class StoreDeliverableRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'project_id' => 'required|exists:projects,id',
-            'title' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'status' => 'required|string',
             'priority' => 'nullable|string',
@@ -44,11 +44,20 @@ class StoreDeliverableRequest extends FormRequest
             'subtasks.*.caption' => 'nullable|string',
             'subtasks.*.post_copy' => 'nullable|string',
             'subtasks.*.reference' => 'nullable|string',
-            'subtasks.*.reference_file' => 'nullable|file|mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm|max:512000',
+            'subtasks.*.reference_file' => 'nullable|file|mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm,pdf,doc,docx,ppt,pptx,txt,zip|max:512000',
             'subtasks.*.deadline' => 'nullable|date',
             'subtasks.*.priority' => 'nullable|string',
             'subtasks.*.writer_id' => 'nullable|exists:users,id',
             'subtasks.*.notes' => 'nullable|string',
+            'subtasks.*.brief' => 'nullable|string',
         ];
+
+        // For retainer projects, ensure title is provided if not adding to an existing parent deliverable
+        $project = \App\Models\Project::find($this->input('project_id'));
+        if ($project && $project->workflow_type === 'retainer' && !$this->input('parent_deliverable_id')) {
+            $rules['title'] = 'required|string|max:255';
+        }
+
+        return $rules;
     }
 }

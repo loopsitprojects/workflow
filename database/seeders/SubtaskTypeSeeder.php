@@ -14,7 +14,7 @@ class SubtaskTypeSeeder extends Seeder
     {
         $retainerTypes = ['Static Post', 'Carousel', 'Reels'];
         $campaignTypes = [
-            'Radio script', 'Text field', 'Upload file', 'KV', 'Presentation',
+            'Outlines', 'Radio script', 'Text field', 'Upload file', 'KV', 'Presentation',
             'Video script', 'Ideation/Brainstorm', 'Review', 'Client meeting', 'Internal meeting'
         ];
 

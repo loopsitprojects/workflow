@@ -97,62 +97,70 @@
                 </div>
             @endif
 
-            {{-- ── Title ── --}}
-            <div class="form-section">
-                @if($selectedProjectId)
-                    <a href="{{ route('projects.show', $selectedProjectId) }}" class="form-close-btn">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </a>
-                @endif
-                <label
-                    class="field-label blue">{{ isset($parentId) ? 'Adding Subtasks to' : 'Deliverable Title' }}</label>
-                <input type="text" name="title" required placeholder="Name this deliverable..." class="massive-input"
-                    value="{{ old('title', $parentTask->title ?? '') }}" {{ isset($parentId) ? 'readonly' : '' }}>
-                @error('title') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:8px;">{{ $message }}</p> @enderror
-            </div>
+            @php
+                $isCampaignOrPitch = in_array($workflowType ?? '', ['campaign', 'pitch']);
+            @endphp
 
-            {{-- ── Global Orchestration (Writer, Date, Priority) ── --}}
-            <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-                <div class="grid-cell br">
-                    <label class="field-label">Assigned Writer</label>
-                    @if(auth()->user()->role === 'Writer')
-                        <input type="hidden" name="writer_id" value="{{ auth()->id() }}">
-                        <div class="styled-input" style="cursor:default;opacity:0.75;">{{ auth()->user()->name }}</div>
-                    @else
+            @if($selectedProjectId)
+                <a href="{{ route('projects.show', $selectedProjectId) }}" class="form-close-btn" style="z-index: 10;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </a>
+            @endif
+
+            {{-- ── Top Orchestration Fields (Title, Writer, Date, Priority) — Hidden for Campaign & Pitch ── --}}
+            <div id="top-orchestration-container" style="{{ $isCampaignOrPitch ? 'display:none;' : '' }}">
+                {{-- ── Title ── --}}
+                <div class="form-section">
+                    <label
+                        class="field-label blue">{{ isset($parentId) ? 'Adding Subtasks to' : 'Deliverable Title' }}</label>
+                    <input type="text" name="title" id="deliverable_title_input" {{ $isCampaignOrPitch ? '' : 'required' }} placeholder="Name this deliverable..." class="massive-input"
+                        value="{{ old('title', $parentTask->title ?? '') }}" {{ isset($parentId) ? 'readonly' : '' }}>
+                    @error('title') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:8px;">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- ── Global Orchestration (Writer, Date, Priority) ── --}}
+                <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="grid-cell br">
+                        <label class="field-label">Assigned Writer</label>
+                        @if(auth()->user()->role === 'Writer')
+                            <input type="hidden" name="writer_id" value="{{ auth()->id() }}">
+                            <div class="styled-input" style="cursor:default;opacity:0.75;">{{ auth()->user()->name }}</div>
+                        @else
+                            <div class="styled-input-wrapper">
+                                <select name="writer_id" id="deliverable_writer_select" class="styled-input" {{ $isCampaignOrPitch ? '' : 'required' }}>
+                                    <option value="">Select Writer...</option>
+                                    @foreach($users as $user)
+                                        <option value="{{ $user->id }}" {{ (old('writer_id', $parentTask->writer_id ?? '') == $user->id) ? 'selected' : '' }}>
+                                            {{ $user->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @error('writer_id') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:6px;">{{ $message }}</p> @enderror
+                        @endif
+                    </div>
+
+                    <div class="grid-cell br">
+                        <label class="field-label">Project Due Date</label>
                         <div class="styled-input-wrapper">
-                            <select name="writer_id" class="styled-input" required>
-                                <option value="">Select Writer...</option>
-                                @foreach($users as $user)
-                                    <option value="{{ $user->id }}" {{ (old('writer_id', $parentTask->writer_id ?? '') == $user->id) ? 'selected' : '' }}>
-                                        {{ $user->name }}
-                                    </option>
-                                @endforeach
+                            <input type="date" name="deadline" id="deadline" class="styled-input" min="{{ date('Y-m-d') }}"
+                                value="{{ old('deadline', $parentTask->deadline ?? '') }}" {{ $isCampaignOrPitch ? '' : 'required' }}>
+                        </div>
+                        @error('deadline') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:6px;">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="grid-cell br">
+                        <label class="field-label">Priority</label>
+                        <div class="styled-input-wrapper">
+                            <select name="priority" id="deliverable_priority_select" class="styled-input">
+                                <option value="High Priority" {{ old('priority', $parentTask->priority ?? '') == 'High Priority' ? 'selected' : '' }}>High Priority</option>
+                                <option value="Medium" {{ old('priority', $parentTask->priority ?? 'Medium') == 'Medium' ? 'selected' : '' }}>Medium</option>
+                                <option value="Low Priority" {{ old('priority', $parentTask->priority ?? '') == 'Low Priority' ? 'selected' : '' }}>Low Priority</option>
                             </select>
                         </div>
-                        @error('writer_id') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:6px;">{{ $message }}</p> @enderror
-                    @endif
-                </div>
-
-                <div class="grid-cell br">
-                    <label class="field-label">Project Due Date</label>
-                    <div class="styled-input-wrapper">
-                        <input type="date" name="deadline" id="deadline" class="styled-input" min="{{ date('Y-m-d') }}"
-                            value="{{ old('deadline', $parentTask->deadline ?? '') }}" required>
-                    </div>
-                    @error('deadline') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:6px;">{{ $message }}</p> @enderror
-                </div>
-
-                <div class="grid-cell br">
-                    <label class="field-label">Priority</label>
-                    <div class="styled-input-wrapper">
-                        <select name="priority" class="styled-input" required>
-                            <option value="High Priority" {{ old('priority', $parentTask->priority ?? '') == 'High Priority' ? 'selected' : '' }}>High Priority</option>
-                            <option value="Medium" {{ old('priority', $parentTask->priority ?? 'Medium') == 'Medium' ? 'selected' : '' }}>Medium</option>
-                            <option value="Low Priority" {{ old('priority', $parentTask->priority ?? '') == 'Low Priority' ? 'selected' : '' }}>Low Priority</option>
-                        </select>
                     </div>
                 </div>
             </div>
@@ -259,8 +267,35 @@
         const CAMPAIGN_TYPES = @json($subtaskTypes->where('workflow_type', 'campaign')->pluck('name'));
 
         let initialType = "{{ $workflowType ?? 'retainer' }}";
+        let currentWorkflow = initialType;
         let SUBTASK_TYPES = (initialType === 'campaign' || initialType === 'pitch') ? CAMPAIGN_TYPES : RETAINER_TYPES;
         let subtaskIndex = 0;
+
+        function isOutlinesType(type) {
+            if (currentWorkflow === 'retainer') return true;
+            if (!type) return true;
+            var t = type.toString().trim().toLowerCase();
+            return t === 'outlines' || t === 'outline';
+        }
+
+        function handlePostTypeChange(idx, val) {
+            const outlinesSec = document.getElementById('subtask-outlines-' + idx);
+            const briefSec = document.getElementById('subtask-brief-' + idx);
+            if (!outlinesSec || !briefSec) return;
+
+            const isOutlines = isOutlinesType(val);
+            if (isOutlines) {
+                outlinesSec.style.display = 'block';
+                briefSec.style.display = 'none';
+                outlinesSec.querySelectorAll('input, textarea, select').forEach(el => el.disabled = false);
+                briefSec.querySelectorAll('input, textarea, select').forEach(el => el.disabled = true);
+            } else {
+                outlinesSec.style.display = 'none';
+                briefSec.style.display = 'block';
+                outlinesSec.querySelectorAll('input, textarea, select').forEach(el => el.disabled = true);
+                briefSec.querySelectorAll('input, textarea, select').forEach(el => el.disabled = false);
+            }
+        }
 
         function buildOpts(items, valKey, labelKey, selected) {
             return items.map(function (i) {
@@ -277,6 +312,11 @@
             var card = document.createElement('div');
             card.className = 'subtask-block';
             card.id = 'subtask-' + idx;
+
+            var isCampaign = (currentWorkflow === 'campaign' || currentWorkflow === 'pitch');
+            var defaultPostType = isCampaign ? (CAMPAIGN_TYPES.includes('Outlines') ? 'Outlines' : (CAMPAIGN_TYPES[0] || '')) : (RETAINER_TYPES[0] || '');
+            var isOutlines = isOutlinesType(defaultPostType);
+
             card.innerHTML =
                 '<div class="subtask-header">' +
                 '<div class="subtask-tag"><span class="subtask-tag-dot"></span><span class="subtask-label">Post ' + (idx + 1) + '</span></div>' +
@@ -291,9 +331,9 @@
                 '</div>' +
                 '<div class="subtask-cell full">' +
                 '<label class="field-label blue">Post Type</label>' +
-                '<select name="subtasks[' + idx + '][post_type]" class="styled-input subtask-type-select">' +
+                '<select name="subtasks[' + idx + '][post_type]" class="styled-input subtask-type-select" data-idx="' + idx + '" onchange="handlePostTypeChange(' + idx + ', this.value)">' +
                 '<option value="">Select type...</option>' +
-                buildOpts(SUBTASK_TYPES, null, null, '') +
+                buildOpts(SUBTASK_TYPES, null, null, defaultPostType) +
                 '</select>' +
                 '</div>' +
                 '<div class="subtask-cell full">' +
@@ -304,6 +344,9 @@
                 '<option value="Low Priority">Low Priority (Paused)</option>' +
                 '</select>' +
                 '</div>' +
+
+                // Outlines section: Concept, Caption, Post Copy, Reference
+                '<div id="subtask-outlines-' + idx + '" style="' + (isOutlines ? 'display:block;' : 'display:none;') + '">' +
                 '<div class="subtask-cell full">' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">' +
                 '<label class="field-label" style="margin-bottom:0;">Concept</label>' +
@@ -311,7 +354,7 @@
                 '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4h4M4 4l5 5m11-1V4h-4m4 0l-5 5M4 16v4h4m-4 0l5-5m11 5v-4h-4m4 4l-5-5"/></svg>' +
                 '</span>' +
                 '</div>' +
-                '<textarea name="subtasks[' + idx + '][concept]" rows="2" placeholder="N/A" class="styled-textarea" style="min-height:60px;"></textarea>' +
+                '<textarea name="subtasks[' + idx + '][concept]" rows="2" placeholder="N/A" class="styled-textarea" style="min-height:60px;"' + (isOutlines ? '' : ' disabled') + '></textarea>' +
                 '</div>' +
                 '<div class="subtask-cell full">' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">' +
@@ -320,7 +363,7 @@
                 '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4h4M4 4l5 5m11-1V4h-4m4 0l-5 5M4 16v4h4m-4 0l5-5m11 5v-4h-4m4 4l-5-5"/></svg>' +
                 '</span>' +
                 '</div>' +
-                '<textarea name="subtasks[' + idx + '][caption]" rows="2" placeholder="N/A" class="styled-textarea" style="min-height:60px;"></textarea>' +
+                '<textarea name="subtasks[' + idx + '][caption]" rows="2" placeholder="N/A" class="styled-textarea" style="min-height:60px;"' + (isOutlines ? '' : ' disabled') + '></textarea>' +
                 '</div>' +
                 '<div class="subtask-cell full">' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">' +
@@ -329,21 +372,40 @@
                 '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4h4M4 4l5 5m11-1V4h-4m4 0l-5 5M4 16v4h4m-4 0l5-5m11 5v-4h-4m4 4l-5-5"/></svg>' +
                 '</span>' +
                 '</div>' +
-                '<textarea name="subtasks[' + idx + '][post_copy]" rows="3" placeholder="N/A" class="styled-textarea" style="min-height:70px;"></textarea>' +
+                '<textarea name="subtasks[' + idx + '][post_copy]" rows="3" placeholder="N/A" class="styled-textarea" style="min-height:70px;"' + (isOutlines ? '' : ' disabled') + '></textarea>' +
                 '</div>' +
                 '<div class="subtask-cell full" style="border-bottom:none;">' +
                 '<label class="field-label">Reference <span style="opacity:0.6;font-weight:400;font-size:11px;">(Link, Image/File, or Both)</span></label>' +
                 '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; align-items:start; margin-top:6px;">' +
                 '<div>' +
                 '<label style="display:block;font-size:10px;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;text-transform:uppercase;">Reference Link</label>' +
-                '<input type="url" name="subtasks[' + idx + '][reference]" placeholder="https://..." class="styled-input">' +
+                '<input type="url" name="subtasks[' + idx + '][reference]" placeholder="https://..." class="styled-input"' + (isOutlines ? '' : ' disabled') + '>' +
                 '</div>' +
                 '<div>' +
                 '<label style="display:block;font-size:10px;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;text-transform:uppercase;">Reference Image / File</label>' +
-                '<input type="file" name="subtasks[' + idx + '][reference_file]" accept="image/*,video/*" class="styled-input" style="padding:9px 14px;cursor:pointer;">' +
+                '<input type="file" name="subtasks[' + idx + '][reference_file]" accept="image/*,video/*" class="styled-input" style="padding:9px 14px;cursor:pointer;"' + (isOutlines ? '' : ' disabled') + '>' +
                 '</div>' +
                 '</div>' +
                 '</div>' +
+                '</div>' +
+
+                // Brief and File Upload section: for other post types
+                '<div id="subtask-brief-' + idx + '" style="' + (!isOutlines ? 'display:block;' : 'display:none;') + '">' +
+                '<div class="subtask-cell full">' +
+                '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">' +
+                '<label class="field-label" style="margin-bottom:0;">Brief</label>' +
+                '<span class="expand-trigger" onclick="openFocusModal(\'subtasks[' + idx + '][brief]\', \'Post \' + (idx + 1) + \' Brief\')">' +
+                '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4h4M4 4l5 5m11-1V4h-4m4 0l-5 5M4 16v4h4m-4 0l5-5m11 5v-4h-4m4 4l-5-5"/></svg>' +
+                '</span>' +
+                '</div>' +
+                '<textarea name="subtasks[' + idx + '][brief]" rows="3" placeholder="Enter brief or details..." class="styled-textarea" style="min-height:80px;"' + (!isOutlines ? '' : ' disabled') + '></textarea>' +
+                '</div>' +
+                '<div class="subtask-cell full" style="border-bottom:none;">' +
+                '<label class="field-label">File Upload <span style="opacity:0.6;font-weight:400;font-size:11px;">(Documents, Media, Assets)</span></label>' +
+                '<input type="file" name="subtasks[' + idx + '][reference_file]" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,image/*,video/*" class="styled-input" style="padding:9px 14px;cursor:pointer;margin-top:6px;"' + (!isOutlines ? '' : ' disabled') + '>' +
+                '</div>' +
+                '</div>' +
+
                 '</div>';
             container.appendChild(card);
             renumber();
@@ -382,8 +444,16 @@
         // Initial subtask
         addSubtask();
 
-        // Loading state on form submit
+        // Loading state and fallback title on form submit
         document.querySelector('form').addEventListener('submit', function() {
+            const titleInput = document.getElementById('deliverable_title_input');
+            if (titleInput && !titleInput.value.trim()) {
+                const firstPostTitle = document.querySelector('input[name="subtasks[0][title]"]');
+                if (firstPostTitle && firstPostTitle.value.trim()) {
+                    titleInput.value = firstPostTitle.value.trim();
+                }
+            }
+
             const btn = document.getElementById('createDeliverableBtn');
             const overlay = document.getElementById('dlvLoadingOverlay');
             btn.disabled = true;
@@ -391,18 +461,35 @@
             overlay.style.display = 'flex';
         });
 
-        // Handle Dynamic Types on Project Change
+        // Handle Dynamic Types & Top Fields on Project Change
         const projectSelect = document.querySelector('select[name="project_id"]');
         if (projectSelect) {
             projectSelect.addEventListener('change', function () {
                 const pid = this.value;
                 const flow = PROJECT_WORKFLOWS[pid] || 'retainer';
-                SUBTASK_TYPES = (flow === 'campaign' || flow === 'pitch') ? CAMPAIGN_TYPES : RETAINER_TYPES;
+                currentWorkflow = flow;
+                const isCampaign = (flow === 'campaign' || flow === 'pitch');
+
+                const topContainer = document.getElementById('top-orchestration-container');
+                const titleInput = document.getElementById('deliverable_title_input');
+                const writerSelect = document.getElementById('deliverable_writer_select');
+                const deadlineInput = document.getElementById('deadline');
+
+                if (topContainer) {
+                    topContainer.style.display = isCampaign ? 'none' : '';
+                }
+                if (titleInput) titleInput.required = !isCampaign;
+                if (writerSelect) writerSelect.required = !isCampaign;
+                if (deadlineInput) deadlineInput.required = !isCampaign;
+
+                SUBTASK_TYPES = isCampaign ? CAMPAIGN_TYPES : RETAINER_TYPES;
 
                 // Refresh existing dropdowns
-                document.querySelectorAll('select.subtask-type-select').forEach(sel => {
-                    const currentVal = sel.value;
-                    sel.innerHTML = '<option value="">Select type...</option>' + buildOpts(SUBTASK_TYPES, null, null, currentVal);
+                document.querySelectorAll('select.subtask-type-select').forEach((sel, i) => {
+                    const defaultVal = isCampaign ? (CAMPAIGN_TYPES.includes('Outlines') ? 'Outlines' : (CAMPAIGN_TYPES[0] || '')) : (RETAINER_TYPES[0] || '');
+                    sel.innerHTML = '<option value="">Select type...</option>' + buildOpts(SUBTASK_TYPES, null, null, defaultVal);
+                    sel.value = defaultVal;
+                    handlePostTypeChange(sel.dataset.idx || i, defaultVal);
                 });
             });
         }
