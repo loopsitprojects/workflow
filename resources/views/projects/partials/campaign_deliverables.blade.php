@@ -15,6 +15,7 @@
     });
 @endphp
 
+@if($outlineTasks->count() > 0)
 {{-- ========================================================= --}}
 {{-- 1. SECTION: OUTLINES                                     --}}
 {{-- ========================================================= --}}
@@ -368,6 +369,7 @@
         </table>
     </div>
 </div>
+@endif
 
 {{-- ========================================================= --}}
 {{-- 2. SECTION: OTHER DELIVERABLES                            --}}
@@ -375,7 +377,7 @@
 <div class="cd-table-wrap">
     <div class="cd-header">
         <div class="cd-header-left" style="display:flex; align-items:center; gap:10px;">
-            <h2 style="margin:0;">Other Deliverables</h2>
+            <h2 style="margin:0;">{{ $outlineTasks->count() > 0 ? 'Other Deliverables' : 'Deliverables' }}</h2>
             <span style="font-size:11px; font-weight:700; color:#0ea5e9; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.25); padding:2px 8px; border-radius:6px;">
                 {{ $otherTasks->count() }} {{ \Illuminate\Support\Str::plural('deliverable', $otherTasks->count()) }}
             </span>
@@ -383,7 +385,7 @@
         <div class="cd-header-right">
             <div style="position:relative;">
                 <svg style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--color-text-secondary);" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                <input type="text" placeholder="Search other deliverables..." onkeyup="searchDeliverables(this.value)" style="padding:6px 12px 6px 30px; border-radius:8px; border:1px solid var(--color-border-primary); background:var(--color-bg-primary); color:var(--color-text-primary); font-size:12px; outline:none; transition:border-color 0.2s; width: 220px;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor='var(--color-border-primary)'">
+                <input type="text" placeholder="Search {{ $outlineTasks->count() > 0 ? 'other deliverables' : 'deliverables' }}..." onkeyup="searchDeliverables(this.value)" style="padding:6px 12px 6px 30px; border-radius:8px; border:1px solid var(--color-border-primary); background:var(--color-bg-primary); color:var(--color-text-primary); font-size:12px; outline:none; transition:border-color 0.2s; width: 220px;" onfocus="this.style.borderColor='#0055D4'" onblur="this.style.borderColor='var(--color-border-primary)'">
             </div>
         </div>
     </div>
@@ -394,8 +396,8 @@
                 <tr>
                     <th style="width:170px;">Deliverable</th>
                     <th style="width:80px;">Due</th>
-                    <th style="width:100px;">Type</th>
-                    <th style="width:240px;">Brief</th>
+                    <th style="width:130px;">Type</th>
+                    <th style="width:210px;">Brief</th>
                     <th style="width:100px;">File / Ref</th>
                     <th style="width:90px;">Artwork</th>
                     <th style="width:70px;">Rev</th>
@@ -472,9 +474,9 @@
                                     @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
                                     <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                 </td>
-                                <td>
+                                <td style="overflow:hidden;">
                                     @php $colors = $subtaskTypeColors[$subtask->subtask_type ?: ($subtask->post_type ?: 'default')] ?? $subtaskTypeColors['default']; @endphp
-                                    <span class="subtask-pill" style="background:{{ $colors['bg'] }}; color:{{ $colors['text'] }}; border-color:{{ $colors['border'] }}; font-size:10px; font-weight:700;">
+                                    <span class="subtask-pill" style="background:{{ $colors['bg'] }}; color:{{ $colors['text'] }}; border-color:{{ $colors['border'] }}; font-size:9.5px; font-weight:800; letter-spacing:0.04em; padding:3px 8px;">
                                         {{ $subtask->subtask_type ?: ($subtask->post_type ?: 'Standard') }}
                                     </span>
                                 </td>
@@ -581,9 +583,9 @@
                                 @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
                                 <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                             </td>
-                            <td>
+                            <td style="overflow:hidden;">
                                 @php $colors = $subtaskTypeColors[$task->subtask_type ?: ($task->post_type ?: 'default')] ?? $subtaskTypeColors['default']; @endphp
-                                <span class="subtask-pill" style="background:{{ $colors['bg'] }}; color:{{ $colors['text'] }}; border-color:{{ $colors['border'] }}; font-size:10px; font-weight:700;">
+                                <span class="subtask-pill" style="background:{{ $colors['bg'] }}; color:{{ $colors['text'] }}; border-color:{{ $colors['border'] }}; font-size:9.5px; font-weight:800; letter-spacing:0.04em; padding:3px 8px;">
                                     {{ $task->subtask_type ?: ($task->post_type ?: 'Standard') }}
                                 </span>
                             </td>
@@ -720,8 +722,8 @@
                                     <svg width="18" height="18" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                                 </div>
                                 <div>
-                                    <div style="font-size:13px;font-weight:800;color:var(--color-text-primary);">No other deliverables yet</div>
-                                    <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);">Create Radio script, KV, Presentation, or other deliverable types</div>
+                                    <div style="font-size:13px;font-weight:800;color:var(--color-text-primary);">{{ $outlineTasks->count() > 0 ? 'No other deliverables yet' : 'No deliverables yet' }}</div>
+                                    <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);">{{ $outlineTasks->count() > 0 ? 'Create Radio script, KV, Presentation, or other deliverable types' : 'Create an Outline, Radio script, KV, Presentation, or other deliverable types above to get started' }}</div>
                                 </div>
                             </div>
                         </td>

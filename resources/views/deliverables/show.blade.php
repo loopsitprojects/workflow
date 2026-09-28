@@ -23,7 +23,7 @@
         .cd-table tbody tr:last-child { border-bottom:none; }
         .cd-table tbody tr:hover { background:rgba(59,130,246,0.03); }
         .cd-table td { padding:14px 10px; vertical-align:middle; font-size:12px; color:var(--color-text-primary); }
-        .subtask-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:8px; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:0.15em; border:1px solid; }
+        .subtask-pill { display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; border:1px solid; white-space:nowrap; max-width:100%; box-sizing:border-box; }
         .subtask-copy-box { background:var(--color-bg-secondary); border-radius:12px; padding:10px 14px; font-size:12px; color:var(--color-text-secondary); font-weight:500; line-height:1.5; border:1px solid var(--color-border-primary); max-height:70px; overflow:hidden; }
         .ref-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:rgba(37,99,235,0.1); border:1px solid rgba(37,99,235,0.2); border-radius:10px; font-size:11px; font-weight:700; color:#2563eb; text-decoration:none; transition:all 0.15s; }
         .ref-chip:hover { background:rgba(37,99,235,0.15); }

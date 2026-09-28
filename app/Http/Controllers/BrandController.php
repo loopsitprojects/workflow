@@ -101,10 +101,11 @@ class BrandController extends Controller
         }
 
         $brand->load(['projects' => function($q) {
-            $q->orderBy('type', 'desc'); // primary first
+            $q->with(['brandManager', 'lead', 'deliverables'])
+              ->orderBy('type', 'desc'); // primary first
         }]);
         
-        $pendingDeliverables = $brand->deliverables()->doesntHave('subtasks')->where('deliverables.status', '!=', 'Done')->with('project')->get();
+        $pendingDeliverables = collect();
         
         return view('brands.show', compact('brand', 'pendingDeliverables'));
     }

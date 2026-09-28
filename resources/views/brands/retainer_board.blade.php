@@ -27,7 +27,7 @@
             scrollbar-width: thin;
         }
 
-        .subtask-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 8px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; border: 1px solid; }
+        .subtask-pill { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; border: 1px solid; white-space: nowrap; max-width: 100%; box-sizing: border-box; }
         
         .ref-preview { display: block; width: 100%; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid var(--color-border-primary); transition: transform 0.2s; }
         .ref-preview:hover { transform: scale(1.1); }
