@@ -157,10 +157,13 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
         // Role authorization check (non-admin)
         if ($user && !$user->isAdmin()) {
             if ($oldStage === 'Assign') {
-                if ($deliverable->writer_id && $user->id != $deliverable->writer_id && !in_array($user->role, ['Operations Manager', 'Brand Manager'])) {
+                $isAssigned = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
+                              ($deliverable->designer_id && $user->id == $deliverable->designer_id);
+                $isManager = in_array($user->role, ['Operations Manager', 'Brand Manager']);
+                if ($deliverable->writer_id && !$isAssigned && !$isManager) {
                     return [
                         'success' => false,
-                        'message' => 'Only the assigned user can submit this deliverable.',
+                        'message' => 'Only the assigned team member or manager can submit this deliverable for approval.',
                         'code'    => 403,
                     ];
                 }
@@ -168,7 +171,7 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
                 if (!in_array($user->role, ['Brand Manager', 'Operations Manager'])) {
                     return [
                         'success' => false,
-                        'message' => 'Only the Brand Manager can approve this deliverable.',
+                        'message' => 'Only the Brand Manager can approve and close this deliverable.',
                         'code'    => 403,
                     ];
                 }
@@ -248,7 +251,12 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
         // Notify
         $deliverable->notifyStageChange($oldStage, $nextStage, $user ?? auth()->user());
 
-        return ['success' => true, 'message' => "Deliverable advanced to {$nextStage} stage."];
+        $msg = match ($nextStage) {
+            'Approve' => 'Deliverable sent to Brand Manager for approval.',
+            'Close'   => 'Deliverable approved and closed.',
+            default   => "Deliverable advanced to {$nextStage} stage.",
+        };
+        return ['success' => true, 'message' => $msg];
     }
 
     /**

@@ -233,7 +233,7 @@ class Deliverable extends Model
         if ($projectType === 'retainer') return false;
         $postType = $this->post_type ?? $this->parent?->post_type;
         $normType = strtolower(trim($postType ?? ''));
-        return !empty($normType) && !in_array($normType, ['outlines', 'outline']);
+        return !in_array($normType, ['outlines', 'outline']);
     }
 
     public function getWorkflow(): \App\Services\Workflows\WorkflowInterface

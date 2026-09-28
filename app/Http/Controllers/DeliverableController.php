@@ -61,14 +61,17 @@ class DeliverableController extends Controller
         \Illuminate\Support\Facades\Gate::authorize('create-deliverable');
         
         $projects = Project::with('brand')->get();
-        $users = \App\Models\User::where('role', 'Writer')->get();
         $selectedProjectId = $request->query('project_id');
         $parentId = $request->query('parent_id');
         $progressPercent = $request->query('progress_percent', 0);
         
         $parentTask = $parentId ? Deliverable::find($parentId) : null;
         $project = $selectedProjectId ? Project::find($selectedProjectId) : null;
-        $workflowType = $project ? $project->workflow_type : 'retainer';
+        $workflowType = $project ? $project->workflow_type : ($parentTask?->project?->workflow_type ?? 'retainer');
+
+        $users = ($workflowType === 'retainer')
+            ? \App\Models\User::where('role', 'Writer')->orderBy('name')->get()
+            : \App\Models\User::whereIn('role', ['Writer', 'Designer', 'Assignee', 'Coordinator', 'Brand Manager', 'Operations Manager', 'Admin'])->orderBy('name')->get();
 
         $subtaskTypes = \App\Models\SubtaskType::all();
         
@@ -582,12 +585,13 @@ class DeliverableController extends Controller
             $user = auth()->user();
             $userRole = strtolower(str_replace(' ', '', $user->role));
 
-            $isWriterStage = in_array($deliverable->approval_stage, ['Writer', 'Assignee', 'Writer Review']);
+            $isWriterStage = in_array($deliverable->approval_stage, ['Writer', 'Assignee', 'Writer Review', 'Assign']);
             $hasWriterRole = in_array($userRole, ['writer', 'assignee']);
             $isAssignedWriter = ($deliverable->writer_id && $user->id == $deliverable->writer_id);
             $isUnassignedWriter = (!$deliverable->writer_id && $hasWriterRole);
+            $isBrandManagerOrAdmin = $user->isAdmin() || in_array($userRole, ['brandmanager', 'operationsmanager']);
             
-            $canEditContent = $user->isAdmin() || ($isWriterStage && ($isAssignedWriter || $isUnassignedWriter));
+            $canEditContent = $isBrandManagerOrAdmin || ($isWriterStage && ($isAssignedWriter || $isUnassignedWriter));
 
             if ($canEditContent) {
                 if ($request->has('title')) $deliverable->title = $request->title;

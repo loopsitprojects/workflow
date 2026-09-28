@@ -143,74 +143,179 @@ class ProjectController extends Controller
                 $subtaskTypeModels = \App\Models\SubtaskType::whereIn('id', array_unique($typeIds))->get()->keyBy('id');
             }
 
+            $isCampaignOrPitch = in_array($project->workflow_type, ['campaign', 'pitch']);
+
             foreach ($batches as $batch) {
                 $batchName = $batch['name'] ?? 'Batch';
                 $batchDeadline = !empty($batch['deadline']) ? $batch['deadline'] : $project->deadline;
                 $postTypes = $batch['post_types'] ?? [];
 
-                // Create the parent deliverable (the batch itself)
-                $parent = \App\Models\Deliverable::create(array_merge($baseRow, [
-                    'title'     => $batchName,
-                    'post_type' => null,
-                    'deadline'  => $batchDeadline,
-                ]));
+                if ($isCampaignOrPitch) {
+                    $outlineItems = [];
+                    $otherItems = [];
 
-                $children = [];
+                    foreach ($postTypes as $typeId => $typeData) {
+                        if (is_array($typeData)) {
+                            $count = (int)($typeData['count'] ?? 0);
+                            $typeDeadline = !empty($typeData['deadline']) ? $typeData['deadline'] : null;
+                            $itemDates = $typeData['dates'] ?? [];
+                        } else {
+                            $count = (int)$typeData;
+                            $typeDeadline = null;
+                            $itemDates = [];
+                        }
 
-                foreach ($postTypes as $typeId => $typeData) {
-                    if (is_array($typeData)) {
-                        $count = (int)($typeData['count'] ?? 0);
-                        $typeDeadline = !empty($typeData['deadline']) ? $typeData['deadline'] : null;
-                        $itemDates = $typeData['dates'] ?? [];
-                    } else {
-                        $count = (int)$typeData;
-                        $typeDeadline = null;
-                        $itemDates = [];
+                        if ($count <= 0) continue;
+
+                        $typeName = $subtaskTypeModels[$typeId]->name ?? 'Post';
+                        $normType = strtolower(trim($typeName));
+                        $isOutline = ($normType === 'outlines' || $normType === 'outline');
+
+                        for ($i = 1; $i <= $count; $i++) {
+                            $deliverableDeadline = !empty($itemDates[$i])
+                                ? $itemDates[$i]
+                                : ($typeDeadline ?: $batchDeadline);
+
+                            $itemData = [
+                                'title'     => $typeName . ' ' . $i,
+                                'post_type' => $isOutline ? 'Outlines' : $typeName,
+                                'deadline'  => $deliverableDeadline,
+                            ];
+
+                            if ($isOutline) {
+                                $outlineItems[] = $itemData;
+                            } else {
+                                $otherItems[] = $itemData;
+                            }
+                        }
                     }
 
-                    if ($count <= 0) continue;
+                    $bPostsCount = is_array($batch['posts_count'] ?? null) 
+                        ? (int)($batch['posts_count']['count'] ?? 0) 
+                        : (int)($batch['posts_count'] ?? 0);
+                    $bPostsDeadline = is_array($batch['posts_count'] ?? null) && !empty($batch['posts_count']['deadline'])
+                        ? $batch['posts_count']['deadline']
+                        : $batchDeadline;
 
-                    $typeName = $subtaskTypeModels[$typeId]->name ?? 'Post';
-
-                    for ($i = 1; $i <= $count; $i++) {
-                        $deliverableDeadline = !empty($itemDates[$i])
-                            ? $itemDates[$i]
-                            : ($typeDeadline ?: $batchDeadline);
-
-                        $children[] = array_merge($baseRow, [
-                            'parent_deliverable_id' => $parent->id,
-                            'title'                 => $typeName . ' ' . $i,
-                            'post_type'             => $typeName,
-                            'deadline'              => $deliverableDeadline,
-                        ]);
+                    if ($bPostsCount > 0) {
+                        for ($i = 1; $i <= $bPostsCount; $i++) {
+                            $otherItems[] = [
+                                'title'     => 'Post ' . $i,
+                                'post_type' => null,
+                                'deadline'  => $bPostsDeadline,
+                            ];
+                        }
                     }
-                }
 
-                $bPostsCount = is_array($batch['posts_count'] ?? null) 
-                    ? (int)($batch['posts_count']['count'] ?? 0) 
-                    : (int)($batch['posts_count'] ?? 0);
-                $bPostsDeadline = is_array($batch['posts_count'] ?? null) && !empty($batch['posts_count']['deadline'])
-                    ? $batch['posts_count']['deadline']
-                    : $batchDeadline;
+                    // 1. Create Outline parent and children if outline items exist
+                    if (!empty($outlineItems)) {
+                        $outlineParent = \App\Models\Deliverable::create(array_merge($baseRow, [
+                            'title'          => $batchName,
+                            'post_type'      => 'Outlines',
+                            'deadline'       => $batchDeadline,
+                            'approval_stage' => \App\Models\Deliverable::CAMPAIGN_STAGES[0],
+                        ]));
 
-                if ($bPostsCount > 0) {
-                    for ($i = 1; $i <= $bPostsCount; $i++) {
-                        $children[] = array_merge($baseRow, [
-                            'parent_deliverable_id' => $parent->id,
-                            'title'                 => 'Post ' . $i,
-                            'post_type'             => null,
-                            'deadline'              => $bPostsDeadline,
-                        ]);
+                        $outlineChildren = [];
+                        foreach ($outlineItems as $item) {
+                            $outlineChildren[] = array_merge($baseRow, [
+                                'parent_deliverable_id' => $outlineParent->id,
+                                'title'                 => $item['title'],
+                                'post_type'             => $item['post_type'],
+                                'deadline'              => $item['deadline'],
+                                'approval_stage'        => \App\Models\Deliverable::CAMPAIGN_STAGES[0],
+                            ]);
+                        }
+                        \App\Models\Deliverable::insert($outlineChildren);
                     }
-                }
 
-                if (!empty($children)) {
-                    \App\Models\Deliverable::insert($children);
+                    // 2. Create Other Deliverables parent and children if other items exist
+                    if (!empty($otherItems)) {
+                        $otherParent = \App\Models\Deliverable::create(array_merge($baseRow, [
+                            'title'          => $batchName,
+                            'post_type'      => 'Batch',
+                            'deadline'       => $batchDeadline,
+                            'approval_stage' => \App\Models\Deliverable::OTHER_DELIVERABLE_STAGES[0],
+                        ]));
+
+                        $otherChildren = [];
+                        foreach ($otherItems as $item) {
+                            $otherChildren[] = array_merge($baseRow, [
+                                'parent_deliverable_id' => $otherParent->id,
+                                'title'                 => $item['title'],
+                                'post_type'             => $item['post_type'],
+                                'deadline'              => $item['deadline'],
+                                'approval_stage'        => \App\Models\Deliverable::OTHER_DELIVERABLE_STAGES[0],
+                            ]);
+                        }
+                        \App\Models\Deliverable::insert($otherChildren);
+                    }
+                } else {
+                    // Retainer workflow: original single-batch parent preserved 100%
+                    $parent = \App\Models\Deliverable::create(array_merge($baseRow, [
+                        'title'     => $batchName,
+                        'post_type' => null,
+                        'deadline'  => $batchDeadline,
+                    ]));
+
+                    $children = [];
+
+                    foreach ($postTypes as $typeId => $typeData) {
+                        if (is_array($typeData)) {
+                            $count = (int)($typeData['count'] ?? 0);
+                            $typeDeadline = !empty($typeData['deadline']) ? $typeData['deadline'] : null;
+                            $itemDates = $typeData['dates'] ?? [];
+                        } else {
+                            $count = (int)$typeData;
+                            $typeDeadline = null;
+                            $itemDates = [];
+                        }
+
+                        if ($count <= 0) continue;
+
+                        $typeName = $subtaskTypeModels[$typeId]->name ?? 'Post';
+
+                        for ($i = 1; $i <= $count; $i++) {
+                            $deliverableDeadline = !empty($itemDates[$i])
+                                ? $itemDates[$i]
+                                : ($typeDeadline ?: $batchDeadline);
+
+                            $children[] = array_merge($baseRow, [
+                                'parent_deliverable_id' => $parent->id,
+                                'title'                 => $typeName . ' ' . $i,
+                                'post_type'             => $typeName,
+                                'deadline'              => $deliverableDeadline,
+                            ]);
+                        }
+                    }
+
+                    $bPostsCount = is_array($batch['posts_count'] ?? null) 
+                        ? (int)($batch['posts_count']['count'] ?? 0) 
+                        : (int)($batch['posts_count'] ?? 0);
+                    $bPostsDeadline = is_array($batch['posts_count'] ?? null) && !empty($batch['posts_count']['deadline'])
+                        ? $batch['posts_count']['deadline']
+                        : $batchDeadline;
+
+                    if ($bPostsCount > 0) {
+                        for ($i = 1; $i <= $bPostsCount; $i++) {
+                            $children[] = array_merge($baseRow, [
+                                'parent_deliverable_id' => $parent->id,
+                                'title'                 => 'Post ' . $i,
+                                'post_type'             => null,
+                                'deadline'              => $bPostsDeadline,
+                            ]);
+                        }
+                    }
+
+                    if (!empty($children)) {
+                        \App\Models\Deliverable::insert($children);
+                    }
                 }
             }
         } else {
             $hasTypeCounts = !empty(array_filter($postTypeCounts, fn($v) => (is_array($v) ? (int)($v['count'] ?? 0) : (int)$v) > 0));
             $postTypeDates = $request->input('post_type_dates', []);
+            $isCampaignOrPitch = in_array($project->workflow_type, ['campaign', 'pitch']);
 
             if ($hasTypeCounts) {
                 $subtaskTypeModels = \App\Models\SubtaskType::all()->keyBy('id');
@@ -229,10 +334,17 @@ class ProjectController extends Controller
                     $typeName = $subtaskTypeModels[$typeId]->name ?? 'Post';
                     $itemDeadline = $typeDeadline ?: $project->deadline;
 
+                    $normTypeName = strtolower(trim($typeName));
+                    $isOutline = ($normTypeName === 'outlines' || $normTypeName === 'outline');
+                    $stage = $isCampaignOrPitch
+                        ? ($isOutline ? \App\Models\Deliverable::CAMPAIGN_STAGES[0] : \App\Models\Deliverable::OTHER_DELIVERABLE_STAGES[0])
+                        : \App\Models\Deliverable::STAGES[0];
+
                     $parent = \App\Models\Deliverable::create(array_merge($baseRow, [
-                        'title'     => $typeName,
-                        'post_type' => $typeName,
-                        'deadline'  => $itemDeadline,
+                        'title'          => $typeName,
+                        'post_type'      => $typeName,
+                        'deadline'       => $itemDeadline,
+                        'approval_stage' => $stage,
                     ]));
 
                     $children = [];
@@ -242,15 +354,21 @@ class ProjectController extends Controller
                             'title'                 => $typeName . ' ' . $i,
                             'post_type'             => $typeName,
                             'deadline'              => $itemDeadline,
+                            'approval_stage'        => $stage,
                         ]);
                     }
                     \App\Models\Deliverable::insert($children);
                 }
             } elseif ($postsCount > 0) {
+                $stage = $isCampaignOrPitch
+                    ? \App\Models\Deliverable::OTHER_DELIVERABLE_STAGES[0]
+                    : \App\Models\Deliverable::STAGES[0];
+
                 for ($i = 1; $i <= $postsCount; $i++) {
                     $deliverables[] = array_merge($baseRow, [
-                        'title'    => 'Post ' . $i,
-                        'deadline' => $project->deadline,
+                        'title'          => 'Post ' . $i,
+                        'deadline'       => $project->deadline,
+                        'approval_stage' => $stage,
                     ]);
                 }
             }

@@ -1218,15 +1218,15 @@
                         <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
                     <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 40px;">
-                        <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Caption</div>
-                        <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
-                        <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
-                    </div>
-                    <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 40px;">
                         <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Copy</div>
                         <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
                         <input type="hidden" id="deleteReferenceFile" name="delete_reference_file" value="0" form="submitStageForm">
                         <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:180px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
+                    </div>
+                    <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 40px;">
+                        <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Caption</div>
+                        <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
+                        <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
                     <div class="detail-item full">
                         <label class="detail-label">Reference</label>
@@ -1747,6 +1747,9 @@
                 const userRole = rawRole.toLowerCase().replace(/\s+/g, '');
                 const isAdmin = userRole === 'admin';
                 const stage = task.approval_stage;
+                const projectWorkflowType = task.project?.workflow_type || '{{ $project->workflow_type ?? "" }}';
+                const postTypeNorm = (task.post_type || '').toLowerCase().trim();
+                const isOtherDeliverable = projectWorkflowType !== 'retainer' && (task.workflow_stages?.length === 3 || (!['outlines', 'outline'].includes(postTypeNorm)));
                 const isAssignedWriter      = AUTH_USER_ID == task.writer_id;
                 const isAssignedApprover    = AUTH_USER_ID == task.approver_id;
                 const isAssignedBrandMgr    = AUTH_USER_ID == task.brand_manager_id;
@@ -1754,11 +1757,13 @@
                 const isAssignedDesigner    = AUTH_USER_ID == task.designer_id;
                 const hasWriterRole = userRole === 'writer' || userRole === 'assignee';
                 const hasDesignerRole = userRole === 'designer';
-                const isWriterStage = ['Writer', 'Assignee', 'Writer Review'].includes(task.approval_stage || 'Writer');
-                const writerEditPermission = isAdmin || (hasWriterRole && (!task.writer_id || AUTH_USER_ID == task.writer_id) && isWriterStage);
+                const isWriterStage = ['Writer', 'Assignee', 'Writer Review', 'Assign'].includes(task.approval_stage || 'Writer');
+                const isOtherAssignStage = isOtherDeliverable && (task.approval_stage === 'Assign' || task.approval_stage === 'Assignee' || !task.approval_stage);
+                const writerEditPermission = isAdmin || (hasWriterRole && (!task.writer_id || AUTH_USER_ID == task.writer_id) && isWriterStage) ||
+                    (isOtherAssignStage && (!task.writer_id || AUTH_USER_ID == task.writer_id || AUTH_USER_ID == task.designer_id || hasWriterRole || hasDesignerRole || userRole === 'brandmanager' || userRole === 'operationsmanager'));
                 // Allow any designer to upload when no designer is assigned (matches PHP logic)
                 const designerEditPermission = isAssignedDesigner || (hasDesignerRole && !task.designer_id);
-                const canDesignerEdit = (designerEditPermission && stage === 'Designer') || isAdmin;
+                const canDesignerEdit = (designerEditPermission && stage === 'Designer') || (isOtherDeliverable && isOtherAssignStage) || isAdmin;
 
                 const overlay = document.getElementById('taskModalOverlay');
                 const modal = overlay.querySelector('.cd-modal');
@@ -1782,9 +1787,6 @@
                 
                 document.getElementById('modalSubtaskCopy').value = task.subtask_copy || task.post_copy || '';
                 quillCopy.clipboard.dangerouslyPasteHTML(task.subtask_copy || task.post_copy || '');
-                const projectWorkflowType = task.project?.workflow_type || '{{ $project->workflow_type ?? "" }}';
-                const postTypeNorm = (task.post_type || '').toLowerCase().trim();
-                const isOtherDeliverable = projectWorkflowType !== 'retainer' && (task.workflow_stages?.length === 3 || (!['outlines', 'outline'].includes(postTypeNorm)));
 
                 if (document.getElementById('modalStage')) {
                     let stage = task.approval_stage || (isOtherDeliverable ? 'Assign' : 'Writer');
@@ -2302,21 +2304,27 @@
                 }
 
                 // Normalize role for comparison (already computed above)
+                const isAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || (task.designer_id && AUTH_USER_ID == task.designer_id);
+                const isManager = isAdmin || userRole === 'brandmanager' || userRole === 'operationsmanager';
 
                 const canAct = isAdmin ||
-                    (stage === 'Writer'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                    (stage === 'Assignee'        && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                    (stage === 'Assign'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                    (stage === 'Writer Review'   && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                    (stage === 'Approver'          && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
-                    (stage === 'Approver Review'   && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
-                    (stage === 'Further Approver'  && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
-                    (stage === 'Brand Manager'   && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                    (stage === 'AM/BD'           && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                    (stage === 'Final Approval'  && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                    (stage === 'Approve'         && (userRole === 'brandmanager' || userRole === 'operationsmanager') && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                    (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
-                    (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner));
+                    (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee') && (isAssignedPerson || !task.writer_id || hasWriterRole || hasDesignerRole || isManager)) ||
+                    (isOtherDeliverable && stage === 'Approve' && isManager) ||
+                    (!isOtherDeliverable && (
+                        (stage === 'Writer'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                        (stage === 'Assignee'        && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                        (stage === 'Assign'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                        (stage === 'Writer Review'   && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                        (stage === 'Approver'          && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
+                        (stage === 'Approver Review'   && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
+                        (stage === 'Further Approver'  && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
+                        (stage === 'Brand Manager'   && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                        (stage === 'AM/BD'           && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                        (stage === 'Final Approval'  && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                        (stage === 'Approve'         && isManager && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                        (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
+                        (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner))
+                    ));
 
                 // Check if current user was the last person who submitted/approved this deliverable
                 const approvals = task.approvals_history || task.approvalsHistory || [];
@@ -2324,17 +2332,21 @@
                 const isLastSubmitter = latestApproval && (latestApproval.user_id == AUTH_USER_ID);
 
                 // Check if the current user is specifically assigned to handle this current stage
-                const isCurrentStageAssignee = 
+                const isCurrentStageAssignee = isOtherDeliverable ? (
+                    (stage === 'Assign' || stage === 'Assignee') ? (isAssignedPerson || isManager) :
+                    (stage === 'Approve') ? isManager : false
+                ) : (
                     (stage === 'Writer' || stage === 'Assignee' || stage === 'Assign' || stage === 'Writer Review') ? isAssignedWriter :
                     (stage === 'Approver' || stage === 'Approver Review' || stage === 'Further Approver') ? isAssignedApprover :
                     (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval' || stage === 'Approve') ? isAssignedBrandMgr :
                     (stage === 'Coordinator') ? isAssignedCoordinator :
-                    (stage === 'Designer') ? isAssignedDesigner : false;
+                    (stage === 'Designer') ? isAssignedDesigner : false
+                );
 
                 // If the user was the one who submitted the previous stage, and is not assigned to this next stage, disable the button
-                const isWaitingForDifferentPerson = isLastSubmitter && !isCurrentStageAssignee;
+                const isWaitingForDifferentPerson = isLastSubmitter && !isCurrentStageAssignee && !isAdmin;
 
-                if (canAct) {
+                if (canAct && submitBtnForm) {
                     submitBtnForm.style.display = 'flex';
                     const nextBtn = document.getElementById('submitStageBtn');
                     const isLastStage = (taskStages.indexOf(stage) >= taskStages.length - 1) || stage === 'Final Approval' || stage === 'Approve';
@@ -2353,9 +2365,15 @@
                             nextBtn.style.cursor = 'pointer';
                             nextBtn.style.boxShadow = '0 4px 12px rgba(0,85,212,0.4)';
                             if (isOtherDeliverable) {
-                                if (stage === 'Assign' || stage === 'Assignee') nextBtn.textContent = 'Submit to Approve';
-                                else if (stage === 'Approve') nextBtn.textContent = 'Approve & Close';
-                                else nextBtn.textContent = 'Submit';
+                                if (stage === 'Assign' || stage === 'Assignee') {
+                                    nextBtn.textContent = 'Send for Approval';
+                                    nextBtn.style.background = '#0055D4';
+                                } else if (stage === 'Approve') {
+                                    nextBtn.textContent = 'Approve & Close';
+                                    nextBtn.style.background = '#10b981';
+                                } else {
+                                    nextBtn.textContent = 'Submit';
+                                }
                             } else {
                                 if (stage === 'Designer') nextBtn.textContent = 'Request for Approval';
                                 else nextBtn.textContent = isLastStage ? 'Approve & Close' : 'Submit to Next';
@@ -2372,32 +2390,54 @@
                         }
                     } else if (stage === 'Writer' || stage === 'Assignee') {
                         if (task.approver_id) {
-                            apprArea.style.display = 'none';
-                            apprArea.querySelector('select').disabled = true;
+                            if (apprArea) {
+                                apprArea.style.display = 'none';
+                                const sel = apprArea.querySelector('select');
+                                if (sel) sel.disabled = true;
+                            }
                         } else {
-                            apprArea.style.display = 'block';
-                            apprArea.querySelector('select').disabled = false;
+                            if (apprArea) {
+                                apprArea.style.display = 'block';
+                                const sel = apprArea.querySelector('select');
+                                if (sel) sel.disabled = false;
+                            }
                         }
                     }
                     if (stage === 'Approver') {
-                        bmArea.style.display = 'block';
-                        bmArea.querySelector('select').disabled = false;
+                        if (bmArea) {
+                            bmArea.style.display = 'block';
+                            const sel = bmArea.querySelector('select');
+                            if (sel) sel.disabled = false;
+                        }
                         
                         const faArea = document.getElementById('modalFurtherApproverGroup');
                         if (faArea) {
                             faArea.style.display = 'block';
-                            faArea.querySelector('select').disabled = false;
+                            const sel = faArea.querySelector('select');
+                            if (sel) sel.disabled = false;
                         }
                     }
                     if (stage === 'Brand Manager' || stage === 'AM/BD') {
-                        coordArea.style.display = 'block';
-                        coordArea.querySelector('select').disabled = false;
+                        if (coordArea) {
+                            coordArea.style.display = 'block';
+                            const sel = coordArea.querySelector('select');
+                            if (sel) sel.disabled = false;
+                        }
                     }
                     if (stage === 'Coordinator') {
-                        dArea.style.display = 'block';
-                        dArea.querySelector('select').disabled = false;
+                        if (dArea) {
+                            dArea.style.display = 'block';
+                            const sel = dArea.querySelector('select');
+                            if (sel) sel.disabled = false;
+                        }
                     }
-                    if (stage === 'Designer') delArea.style.display = 'block';
+                    if ((stage === 'Designer' || (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee' || stage === 'Approve'))) && delArea) {
+                        delArea.style.display = 'block';
+                        const titleEl = delArea.querySelector('.detail-label');
+                        if (titleEl) {
+                            titleEl.textContent = isOtherDeliverable ? 'Upload Final Artwork & Media' : 'Deliver Final Artwork';
+                        }
+                    }
                 }
 
                 // Edit Permissions (already computed above)
@@ -3380,7 +3420,7 @@
         <div class="cd-modal" style="max-width: 600px;" onclick="event.stopPropagation()">
             <div class="cd-modal-header" style="padding: 20px 32px; background: var(--color-bg-secondary);">
                 <div>
-                    <h2 id="cellEditorTitle" style="font-size: 16px; font-weight: 900; color: var(--color-text-primary); margin: 0;">View Field</h2>
+                    <h2 id="cellEditorTitle" style="font-size: 16px; font-weight: 900; color: var(--color-text-primary); margin: 0;">Edit Field</h2>
                     <p id="cellEditorSubtitle" style="font-size: 10px; color: var(--color-text-secondary); margin: 4px 0 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;"></p>
                 </div>
                 <button onclick="closeCellEditor()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer;">
@@ -3388,10 +3428,11 @@
                 </button>
             </div>
             <div class="cd-modal-body" style="padding: 24px;">
-                <textarea id="cellEditorTextarea" readonly style="width: 100%; min-height: 300px; padding: 20px; border-radius: 16px; border: 1.5px solid var(--color-border-primary); background: var(--color-bg-secondary); color: var(--color-text-primary); font-size: 14px; line-height: 1.6; font-family: inherit; outline: none; transition: border-color 0.2s; resize: vertical;"></textarea>
+                <textarea id="cellEditorTextarea" style="width: 100%; min-height: 300px; padding: 20px; border-radius: 16px; border: 1.5px solid var(--color-border-primary); background: var(--color-bg-primary); color: var(--color-text-primary); font-size: 14px; line-height: 1.6; font-family: inherit; outline: none; transition: border-color 0.2s; resize: vertical;"></textarea>
             </div>
-            <div class="cd-modal-footer" style="padding: 16px 24px;">
-                <button onclick="closeCellEditor()" class="cd-btn cd-btn-outline" style="width:100%; justify-content:center;">Close</button>
+            <div class="cd-modal-footer" style="padding: 16px 24px; display:flex; gap:12px; justify-content:flex-end;">
+                <button onclick="closeCellEditor()" class="cd-btn cd-btn-outline" style="min-width:100px; justify-content:center;">Close</button>
+                <button id="cellEditorSaveBtn" onclick="saveCellEditor()" class="cd-btn cd-btn-primary" style="min-width:120px; justify-content:center;">Save Changes</button>
             </div>
         </div>
     </div>
@@ -3475,27 +3516,48 @@
             }
         }
 
-        function openCellEditor(e) {
-            e.stopPropagation();
-            activeTextarea = e.target;
+        function openCellEditor(e, elOverride) {
+            if (e && e.stopPropagation) e.stopPropagation();
+            activeTextarea = elOverride || (e ? e.target : null);
+            if (!activeTextarea) return;
             
-            const fieldName = activeTextarea.getAttribute('data-field');
-            const titleEl = activeTextarea.closest('tr').querySelector('.deliverable-name-cell span');
+            const fieldName = activeTextarea.getAttribute('data-field') || 'field';
+            const tr = activeTextarea.closest('tr');
+            const titleEl = tr ? tr.querySelector('.deliverable-name-cell span') : null;
             const taskTitle = titleEl ? titleEl.textContent : 'Deliverable Field';
             
-            document.getElementById('cellEditorTitle').textContent = `View ${fieldName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+            const isReadOnly = activeTextarea.readOnly || !activeTextarea.classList.contains('batch-field');
+            
+            document.getElementById('cellEditorTitle').textContent = `${isReadOnly ? 'View' : 'Edit'} ${fieldName.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
             document.getElementById('cellEditorSubtitle').textContent = taskTitle;
-            document.getElementById('cellEditorTextarea').value = activeTextarea.value;
+            
+            const modalTextarea = document.getElementById('cellEditorTextarea');
+            modalTextarea.value = activeTextarea.value;
+            modalTextarea.readOnly = isReadOnly;
+            modalTextarea.style.background = isReadOnly ? 'var(--color-bg-secondary)' : 'var(--color-bg-primary)';
+            
+            const saveBtn = document.getElementById('cellEditorSaveBtn');
+            if (saveBtn) {
+                saveBtn.style.display = isReadOnly ? 'none' : 'inline-flex';
+            }
             
             const overlay = document.getElementById('cellEditorOverlay');
             overlay.style.display = 'flex';
             setTimeout(() => {
                 overlay.style.opacity = '1';
                 overlay.querySelector('.cd-modal').classList.add('active');
+                if (!isReadOnly) modalTextarea.focus();
             }, 10);
         }
 
-        // Save logic removed since we are in readonly preview mode
+        function saveCellEditor() {
+            if (!activeTextarea) return;
+            const modalTextarea = document.getElementById('cellEditorTextarea');
+            activeTextarea.value = modalTextarea.value;
+            activeTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+            activeTextarea.dispatchEvent(new Event('change', { bubbles: true }));
+            closeCellEditor();
+        }
 
         function closeCellEditor(e) {
             if (e && e.target !== document.getElementById('cellEditorOverlay')) return;
@@ -3520,16 +3582,34 @@
                 modal.onclick = closeMediaGallery;
                 modal.innerHTML = `
                     <div class="cd-modal" style="width:90%; max-width:680px; max-height:85vh; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,0.3); display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
-                        <div style="padding:16px 20px; border-bottom:1px solid var(--color-border-primary); display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-secondary);">
+                        <div style="padding:14px 20px; border-bottom:1px solid var(--color-border-primary); display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-secondary);">
                             <h3 id="mediaGalleryTitle" style="margin:0; font-size:15px; font-weight:800; color:var(--color-text-primary); display:flex; align-items:center; gap:8px;"></h3>
-                            <button onclick="closeMediaGallery()" style="background:rgba(255,255,255,0.08); border:none; color:var(--color-text-secondary); width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.color='var(--color-text-primary)';this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.color='var(--color-text-secondary)';this.style.background='rgba(255,255,255,0.08)'">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                            </button>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div id="mediaGalleryHeaderActions"></div>
+                                <button onclick="closeMediaGallery()" style="background:rgba(255,255,255,0.08); border:none; color:var(--color-text-secondary); width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.color='var(--color-text-primary)';this.style.background='rgba(255,255,255,0.15)'" onmouseout="this.style.color='var(--color-text-secondary)';this.style.background='rgba(255,255,255,0.08)'">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
                         </div>
                         <div id="mediaGalleryContent" style="padding:20px; overflow-y:auto; flex:1; display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; align-content:start;"></div>
                     </div>
                 `;
                 document.body.appendChild(modal);
+            }
+
+            window._currentGalleryFiles = files || [];
+            const headerActionsEl = document.getElementById('mediaGalleryHeaderActions');
+            if (headerActionsEl) {
+                if (files && files.length > 1) {
+                    headerActionsEl.innerHTML = `
+                        <button type="button" onclick="downloadAllGalleryFiles(event)" style="display:inline-flex; align-items:center; gap:5px; padding:5px 12px; font-size:11px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:7px; cursor:pointer; transition:all 0.15s;" title="Download all ${files.length} files">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Download All (${files.length})
+                        </button>
+                    `;
+                } else {
+                    headerActionsEl.innerHTML = '';
+                }
             }
 
             const titleEl = document.getElementById('mediaGalleryTitle');
@@ -3569,10 +3649,16 @@
                     html += `
                         <div style="width:100%; padding:8px 10px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary);">
                             <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">Item ${idx + 1}</span>
-                            <a href="${fileUrl}" target="_blank" download style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:5px; text-decoration:none;" onclick="event.stopPropagation();">
-                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                Open
-                            </a>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <a href="${fileUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); border-radius:5px; text-decoration:none;" onclick="event.stopPropagation();" title="Open in new tab">
+                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                    Open
+                                </a>
+                                <button type="button" onclick="event.stopPropagation(); downloadMedia(event, '${fileUrl}')" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:5px; cursor:pointer;" title="Download file">
+                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    Download
+                                </button>
+                            </div>
                         </div>
                     </div>`;
                 });
@@ -3603,6 +3689,46 @@
                 modal.style.opacity = '1';
                 modal.querySelector('.cd-modal').classList.add('active');
             }, 10);
+        }
+
+        function downloadAllGalleryFiles(event) {
+            if (!window._currentGalleryFiles || window._currentGalleryFiles.length === 0) return;
+            const btn = event ? event.currentTarget : null;
+            const origText = btn ? btn.innerHTML : '';
+            if (btn) { btn.innerHTML = 'Downloading...'; btn.style.pointerEvents = 'none'; }
+            
+            window._currentGalleryFiles.forEach((fileUrl, index) => {
+                setTimeout(() => {
+                    fetch(fileUrl)
+                        .then(r => {
+                            if (!r.ok) throw new Error();
+                            return r.blob();
+                        })
+                        .then(blob => {
+                            const blobUrl = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = blobUrl;
+                            a.download = fileUrl.split('/').pop().split('?')[0] || ('item_' + (index + 1));
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(blobUrl);
+                            a.remove();
+                        })
+                        .catch(() => {
+                            const a = document.createElement('a');
+                            a.href = fileUrl;
+                            a.download = fileUrl.split('/').pop().split('?')[0] || ('item_' + (index + 1));
+                            a.target = '_blank';
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                        });
+                }, index * 350);
+            });
+
+            setTimeout(() => {
+                if (btn) { btn.innerHTML = origText; btn.style.pointerEvents = 'auto'; }
+            }, (window._currentGalleryFiles.length * 350) + 600);
         }
 
         function closeMediaGallery(e) {

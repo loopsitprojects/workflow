@@ -526,21 +526,21 @@
                 </div>
 
                 <div class="detail-grid">
-                    <div class="detail-item">
+                    <div class="detail-item full">
                         <label class="detail-label">Concept</label>
                         <input type="hidden" id="modalConcept" name="concept" form="submitStageForm">
                         <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px;"></div>
-                    </div>
-                    <div class="detail-item">
-                        <label class="detail-label">Caption</label>
-                        <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
-                        <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px;"></div>
                     </div>
                     <div class="detail-item full">
                         <label class="detail-label">Copy</label>
                         <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
                         <input type="hidden" id="deleteReferenceFile" name="delete_reference_file" value="0" form="submitStageForm">
                         <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:140px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
+                    </div>
+                    <div class="detail-item full">
+                        <label class="detail-label">Caption</label>
+                        <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
+                        <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px;"></div>
                     </div>
                     <div class="detail-item full" style="clear:both; position:relative; z-index:10;">
                         <label class="detail-label">Reference</label>
@@ -1308,6 +1308,9 @@
                 const userRole = rawRole.toLowerCase().replace(/\s+/g, '');
                 const isAdmin = userRole === 'admin';
                 const stage = task.approval_stage;
+                const projectWorkflowType = task.project?.workflow_type || '{{ $deliverable->project?->workflow_type ?? "" }}';
+                const postTypeNorm = (task.post_type || '').toLowerCase().trim();
+                const isOtherDeliverable = projectWorkflowType !== 'retainer' && (task.workflow_stages?.length === 3 || (!['outlines', 'outline'].includes(postTypeNorm)));
                 const isAssignedWriter      = AUTH_USER_ID == task.writer_id;
                 const isAssignedApprover    = AUTH_USER_ID == task.approver_id;
                 const isAssignedBrandMgr    = AUTH_USER_ID == task.brand_manager_id;
@@ -1315,11 +1318,13 @@
                 const isAssignedDesigner    = AUTH_USER_ID == task.designer_id;
                 const hasWriterRole = userRole === 'writer' || userRole === 'assignee';
                 const hasDesignerRole = userRole === 'designer';
-                const isWriterStage = ['Writer', 'Assignee', 'Writer Review'].includes(task.approval_stage || 'Writer');
-                const writerEditPermission = isAdmin || (hasWriterRole && (!task.writer_id || AUTH_USER_ID == task.writer_id) && isWriterStage);
+                const isWriterStage = ['Writer', 'Assignee', 'Writer Review', 'Assign'].includes(task.approval_stage || 'Writer');
+                const isOtherAssignStage = isOtherDeliverable && (task.approval_stage === 'Assign' || task.approval_stage === 'Assignee' || !task.approval_stage);
+                const writerEditPermission = isAdmin || (hasWriterRole && (!task.writer_id || AUTH_USER_ID == task.writer_id) && isWriterStage) ||
+                    (isOtherAssignStage && (!task.writer_id || AUTH_USER_ID == task.writer_id || AUTH_USER_ID == task.designer_id || hasWriterRole || hasDesignerRole || userRole === 'brandmanager' || userRole === 'operationsmanager'));
                 // Allow any designer to upload when no designer is assigned (matches PHP logic)
                 const designerEditPermission = isAssignedDesigner || (hasDesignerRole && !task.designer_id);
-                const canDesignerEdit = (designerEditPermission && stage === 'Designer') || isAdmin;
+                const canDesignerEdit = (designerEditPermission && stage === 'Designer') || (isOtherDeliverable && isOtherAssignStage) || isAdmin;
 
                 const overlay = document.getElementById('taskModalOverlay');
                 const modal = overlay.querySelector('.cd-modal');
@@ -1343,9 +1348,6 @@
                 
                 document.getElementById('modalSubtaskCopy').value = task.subtask_copy || task.post_copy || '';
                 quillCopy.clipboard.dangerouslyPasteHTML(task.subtask_copy || task.post_copy || '');
-                const projectWorkflowType = task.project?.workflow_type || '{{ $deliverable->project?->workflow_type ?? "" }}';
-                const postTypeNorm = (task.post_type || '').toLowerCase().trim();
-                const isOtherDeliverable = projectWorkflowType !== 'retainer' && (task.workflow_stages?.length === 3 || (!['outlines', 'outline'].includes(postTypeNorm)));
 
                 if (document.getElementById('modalStage')) {
                     let stage = task.approval_stage || (isOtherDeliverable ? 'Assign' : 'Writer');
@@ -2012,20 +2014,27 @@
 
                 // Normalize role for comparison (already computed above)
 
+                const isAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || (task.designer_id && AUTH_USER_ID == task.designer_id);
+                const isManager = isAdmin || userRole === 'brandmanager' || userRole === 'operationsmanager';
+
                 const canAct = isAdmin ||
-                    (stage === 'Writer'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                    (stage === 'Assignee'        && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                    (stage === 'Assign'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                    (stage === 'Writer Review'   && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                    (stage === 'Approver'          && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
-                    (stage === 'Approver Review'   && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
-                    (stage === 'Further Approver'  && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
-                    (stage === 'Brand Manager'   && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                    (stage === 'AM/BD'           && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                    (stage === 'Final Approval'  && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                    (stage === 'Approve'         && (userRole === 'brandmanager' || userRole === 'operationsmanager') && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                    (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
-                    (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner));
+                    (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee') && (isAssignedPerson || !task.writer_id || hasWriterRole || hasDesignerRole || isManager)) ||
+                    (isOtherDeliverable && stage === 'Approve' && isManager) ||
+                    (!isOtherDeliverable && (
+                        (stage === 'Writer'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                        (stage === 'Assignee'        && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                        (stage === 'Assign'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                        (stage === 'Writer Review'   && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                        (stage === 'Approver'          && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
+                        (stage === 'Approver Review'   && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
+                        (stage === 'Further Approver'  && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
+                        (stage === 'Brand Manager'   && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                        (stage === 'AM/BD'           && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                        (stage === 'Final Approval'  && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                        (stage === 'Approve'         && isManager && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                        (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
+                        (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner))
+                    ));
 
                 // Check if current user was the last person who submitted/approved this deliverable
                 const approvals = task.approvals_history || task.approvalsHistory || [];
@@ -2033,15 +2042,19 @@
                 const isLastSubmitter = latestApproval && (latestApproval.user_id == AUTH_USER_ID);
 
                 // Check if the current user is specifically assigned to handle this current stage
-                const isCurrentStageAssignee = 
+                const isCurrentStageAssignee = isOtherDeliverable ? (
+                    (stage === 'Assign' || stage === 'Assignee') ? (isAssignedPerson || isManager) :
+                    (stage === 'Approve') ? isManager : false
+                ) : (
                     (stage === 'Writer' || stage === 'Assignee' || stage === 'Assign' || stage === 'Writer Review') ? isAssignedWriter :
                     (stage === 'Approver' || stage === 'Approver Review' || stage === 'Further Approver') ? isAssignedApprover :
                     (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval' || stage === 'Approve') ? isAssignedBrandMgr :
                     (stage === 'Coordinator') ? isAssignedCoordinator :
-                    (stage === 'Designer') ? isAssignedDesigner : false;
+                    (stage === 'Designer') ? isAssignedDesigner : false
+                );
 
                 // If the user was the one who submitted the previous stage, and is not assigned to this next stage, disable the button
-                const isWaitingForDifferentPerson = isLastSubmitter && !isCurrentStageAssignee;
+                const isWaitingForDifferentPerson = isLastSubmitter && !isCurrentStageAssignee && !isAdmin;
 
                 if (canAct && submitBtnForm) {
                     submitBtnForm.style.display = 'flex';
@@ -2062,9 +2075,15 @@
                             nextBtn.style.cursor = 'pointer';
                             nextBtn.style.boxShadow = '0 4px 12px rgba(0,85,212,0.4)';
                             if (isOtherDeliverable) {
-                                if (stage === 'Assign' || stage === 'Assignee') nextBtn.textContent = 'Submit to Approve';
-                                else if (stage === 'Approve') nextBtn.textContent = 'Approve & Close';
-                                else nextBtn.textContent = 'Submit';
+                                if (stage === 'Assign' || stage === 'Assignee') {
+                                    nextBtn.textContent = 'Send for Approval';
+                                    nextBtn.style.background = '#0055D4';
+                                } else if (stage === 'Approve') {
+                                    nextBtn.textContent = 'Approve & Close';
+                                    nextBtn.style.background = '#10b981';
+                                } else {
+                                    nextBtn.textContent = 'Submit';
+                                }
                             } else {
                                 if (stage === 'Designer') nextBtn.textContent = 'Request for Approval';
                                 else nextBtn.textContent = isLastStage ? 'Approve & Close' : 'Submit to Next';
@@ -2122,7 +2141,13 @@
                             if (sel) sel.disabled = false;
                         }
                     }
-                    if (stage === 'Designer' && delArea) delArea.style.display = 'block';
+                    if ((stage === 'Designer' || (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee' || stage === 'Approve'))) && delArea) {
+                        delArea.style.display = 'block';
+                        const titleEl = delArea.querySelector('.detail-label');
+                        if (titleEl) {
+                            titleEl.textContent = isOtherDeliverable ? 'Upload Final Artwork & Media' : 'Deliver Final Artwork';
+                        }
+                    }
                 }
 
                 // Edit Permissions (already computed above)
