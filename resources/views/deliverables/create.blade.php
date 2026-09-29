@@ -1,6 +1,12 @@
 <x-layout title="New Deliverable">
     <style>
-        .form-container{max-width:640px;margin:24px auto;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:14px;overflow:hidden;font-family:'Inter',sans-serif;}
+        .create-page-wrapper{max-width:640px;margin:24px auto 48px;padding:0 12px;box-sizing:border-box;}
+        .create-breadcrumb{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:12px;flex-wrap:wrap;}
+        .create-bc-link{text-decoration:none;color:inherit;transition:color 0.15s;}
+        .create-bc-link:hover{color:var(--color-text-primary);}
+        .create-bc-sep{opacity:0.35;}
+        .create-bc-current{color:var(--color-text-primary);}
+        .form-container{width:100%;margin:0 auto;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:14px;overflow:hidden;font-family:'Inter',sans-serif;}
         .form-section{padding:20px 24px;border-bottom:1px solid var(--color-border-primary);position:relative;}
         .form-close-btn{position:absolute;top:16px;right:20px;width:30px;height:30px;border-radius:8px;background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);display:flex;align-items:center;justify-content:center;color:var(--color-text-secondary);text-decoration:none;transition:all 0.15s;}
         .form-close-btn:hover{color:var(--color-text-primary);background:var(--color-border-primary);transform:scale(1.05);}
@@ -60,12 +66,32 @@
     </style>
 
     {{-- Pass PHP data to JS safely via data attributes --}}
-    <div id="app-data" data-users="{{ json_encode($users->map(fn($u) => ['id' => $u->id, 'name' => $u->name])) }}"
+    <div id="app-data" data-users="{{ json_encode(($allUsers ?? $users)->map(fn($u) => ['id' => $u->id, 'name' => $u->name])) }}"
         data-is-admin="{{ (auth()->check() && strtolower(auth()->user()->role ?? '') === 'admin') ? 'true' : 'false' }}"
         style="display:none;"></div>
 
-    <div class="form-container">
-        <form action="{{ route('deliverables.store') }}" method="POST" enctype="multipart/form-data">
+    <div class="create-page-wrapper">
+        {{-- Breadcrumb Navigation --}}
+        <nav id="create-breadcrumb" class="create-breadcrumb">
+            <a href="{{ route('brands.index') }}" class="create-bc-link">Brands</a>
+            @if(isset($project) && $project && $project->brand)
+                <span class="create-bc-sep">/</span>
+                <a href="{{ route('brands.show', $project->brand) }}" class="create-bc-link">{{ $project->brand->name }}</a>
+            @endif
+            @if(isset($project) && $project)
+                <span class="create-bc-sep">/</span>
+                <a href="{{ route('projects.show', $project) }}" class="create-bc-link">{{ $project->name }}</a>
+            @endif
+            @if(isset($parentTask) && $parentTask)
+                <span class="create-bc-sep">/</span>
+                <a href="{{ route('deliverables.show', $parentTask) }}" class="create-bc-link">{{ $parentTask->title }}</a>
+            @endif
+            <span class="create-bc-sep">/</span>
+            <span class="create-bc-current">{{ isset($parentId) ? 'Add Subtasks' : 'New Deliverable' }}</span>
+        </nav>
+
+        <div class="form-container">
+            <form action="{{ route('deliverables.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             @if ($errors->any())
                 <div
@@ -195,6 +221,7 @@
             </div>
         </form>
     </div>
+</div>
 
     {{-- Full-page loading overlay --}}
     <div id="dlvLoadingOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);flex-direction:column;align-items:center;justify-content:center;gap:16px;">
@@ -263,6 +290,7 @@
 
 
         const PROJECT_WORKFLOWS = @json($projects->pluck('workflow_type', 'id'));
+        const PROJECT_DETAILS = @json($projects->mapWithKeys(fn($p) => [$p->id => ['name' => $p->name, 'brand_name' => $p->brand->name ?? '', 'brand_slug' => $p->brand->slug ?? '']]));
         const RETAINER_TYPES = @json($subtaskTypes->where('workflow_type', 'retainer')->pluck('name'));
         const CAMPAIGN_TYPES = @json($subtaskTypes->where('workflow_type', 'campaign')->pluck('name'));
 
@@ -273,7 +301,7 @@
 
         function isOutlinesType(type) {
             if (currentWorkflow === 'retainer') return true;
-            if (!type) return true;
+            if (!type) return false;
             var t = type.toString().trim().toLowerCase();
             return t === 'outlines' || t === 'outline';
         }
@@ -283,17 +311,30 @@
             const briefSec = document.getElementById('subtask-brief-' + idx);
             if (!outlinesSec || !briefSec) return;
 
+            const assigneeSelect = briefSec.querySelector('.subtask-assignee-select');
+
+            if (!val && currentWorkflow !== 'retainer') {
+                outlinesSec.style.display = 'none';
+                briefSec.style.display = 'none';
+                outlinesSec.querySelectorAll('input, textarea, select').forEach(el => el.disabled = true);
+                briefSec.querySelectorAll('input, textarea, select').forEach(el => el.disabled = true);
+                if (assigneeSelect) assigneeSelect.required = false;
+                return;
+            }
+
             const isOutlines = isOutlinesType(val);
             if (isOutlines) {
                 outlinesSec.style.display = 'block';
                 briefSec.style.display = 'none';
                 outlinesSec.querySelectorAll('input, textarea, select').forEach(el => el.disabled = false);
                 briefSec.querySelectorAll('input, textarea, select').forEach(el => el.disabled = true);
+                if (assigneeSelect) assigneeSelect.required = false;
             } else {
                 outlinesSec.style.display = 'none';
                 briefSec.style.display = 'block';
                 outlinesSec.querySelectorAll('input, textarea, select').forEach(el => el.disabled = true);
                 briefSec.querySelectorAll('input, textarea, select').forEach(el => el.disabled = false);
+                if (assigneeSelect) assigneeSelect.required = true;
             }
         }
 
@@ -314,8 +355,10 @@
             card.id = 'subtask-' + idx;
 
             var isCampaign = (currentWorkflow === 'campaign' || currentWorkflow === 'pitch');
-            var defaultPostType = isCampaign ? (CAMPAIGN_TYPES.includes('Outlines') ? 'Outlines' : (CAMPAIGN_TYPES[0] || '')) : (RETAINER_TYPES[0] || '');
+            var defaultPostType = isCampaign ? '' : (RETAINER_TYPES[0] || '');
             var isOutlines = isOutlinesType(defaultPostType);
+            var showOutlines = isCampaign ? (defaultPostType && isOutlines) : true;
+            var showBrief = isCampaign ? (defaultPostType && !isOutlines) : false;
 
             card.innerHTML =
                 '<div class="subtask-header">' +
@@ -331,8 +374,8 @@
                 '</div>' +
                 '<div class="subtask-cell full">' +
                 '<label class="field-label blue">Post Type</label>' +
-                '<select name="subtasks[' + idx + '][post_type]" class="styled-input subtask-type-select" data-idx="' + idx + '" onchange="handlePostTypeChange(' + idx + ', this.value)">' +
-                '<option value="">Select type...</option>' +
+                '<select name="subtasks[' + idx + '][post_type]" class="styled-input subtask-type-select" data-idx="' + idx + '" onchange="handlePostTypeChange(' + idx + ', this.value)" required>' +
+                '<option value=""' + (!defaultPostType ? ' selected' : '') + '>Select type...</option>' +
                 buildOpts(SUBTASK_TYPES, null, null, defaultPostType) +
                 '</select>' +
                 '</div>' +
@@ -346,7 +389,7 @@
                 '</div>' +
 
                 // Outlines section: Concept, Caption, Post Copy, Reference
-                '<div id="subtask-outlines-' + idx + '" style="' + (isOutlines ? 'display:block;' : 'display:none;') + '">' +
+                '<div id="subtask-outlines-' + idx + '" style="' + (showOutlines ? 'display:block;' : 'display:none;') + '">' +
                 '<div class="subtask-cell full">' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">' +
                 '<label class="field-label" style="margin-bottom:0;">Concept</label>' +
@@ -354,7 +397,7 @@
                 '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4h4M4 4l5 5m11-1V4h-4m4 0l-5 5M4 16v4h4m-4 0l5-5m11 5v-4h-4m4 4l-5-5"/></svg>' +
                 '</span>' +
                 '</div>' +
-                '<textarea name="subtasks[' + idx + '][concept]" rows="2" placeholder="N/A" class="styled-textarea" style="min-height:60px;"' + (isOutlines ? '' : ' disabled') + '></textarea>' +
+                '<textarea name="subtasks[' + idx + '][concept]" rows="2" placeholder="N/A" class="styled-textarea" style="min-height:60px;"' + (showOutlines ? '' : ' disabled') + '></textarea>' +
                 '</div>' +
                 '<div class="subtask-cell full">' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">' +
@@ -363,7 +406,7 @@
                 '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4h4M4 4l5 5m11-1V4h-4m4 0l-5 5M4 16v4h4m-4 0l5-5m11 5v-4h-4m4 4l-5-5"/></svg>' +
                 '</span>' +
                 '</div>' +
-                '<textarea name="subtasks[' + idx + '][caption]" rows="2" placeholder="N/A" class="styled-textarea" style="min-height:60px;"' + (isOutlines ? '' : ' disabled') + '></textarea>' +
+                '<textarea name="subtasks[' + idx + '][caption]" rows="2" placeholder="N/A" class="styled-textarea" style="min-height:60px;"' + (showOutlines ? '' : ' disabled') + '></textarea>' +
                 '</div>' +
                 '<div class="subtask-cell full">' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">' +
@@ -372,25 +415,32 @@
                 '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4h4M4 4l5 5m11-1V4h-4m4 0l-5 5M4 16v4h4m-4 0l5-5m11 5v-4h-4m4 4l-5-5"/></svg>' +
                 '</span>' +
                 '</div>' +
-                '<textarea name="subtasks[' + idx + '][post_copy]" rows="3" placeholder="N/A" class="styled-textarea" style="min-height:70px;"' + (isOutlines ? '' : ' disabled') + '></textarea>' +
+                '<textarea name="subtasks[' + idx + '][post_copy]" rows="3" placeholder="N/A" class="styled-textarea" style="min-height:70px;"' + (showOutlines ? '' : ' disabled') + '></textarea>' +
                 '</div>' +
                 '<div class="subtask-cell full" style="border-bottom:none;">' +
                 '<label class="field-label">Reference <span style="opacity:0.6;font-weight:400;font-size:11px;">(Link, Image/File, or Both)</span></label>' +
                 '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; align-items:start; margin-top:6px;">' +
                 '<div>' +
                 '<label style="display:block;font-size:10px;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;text-transform:uppercase;">Reference Link</label>' +
-                '<input type="url" name="subtasks[' + idx + '][reference]" placeholder="https://..." class="styled-input"' + (isOutlines ? '' : ' disabled') + '>' +
+                '<input type="url" name="subtasks[' + idx + '][reference]" placeholder="https://..." class="styled-input"' + (showOutlines ? '' : ' disabled') + '>' +
                 '</div>' +
                 '<div>' +
                 '<label style="display:block;font-size:10px;font-weight:700;color:var(--color-text-secondary);margin-bottom:4px;text-transform:uppercase;">Reference Image / File</label>' +
-                '<input type="file" name="subtasks[' + idx + '][reference_file]" accept="image/*,video/*" class="styled-input" style="padding:9px 14px;cursor:pointer;"' + (isOutlines ? '' : ' disabled') + '>' +
+                '<input type="file" name="subtasks[' + idx + '][reference_file]" accept="image/*,video/*" class="styled-input" style="padding:9px 14px;cursor:pointer;"' + (showOutlines ? '' : ' disabled') + '>' +
                 '</div>' +
                 '</div>' +
                 '</div>' +
                 '</div>' +
 
-                // Brief and File Upload section: for other post types
-                '<div id="subtask-brief-' + idx + '" style="' + (!isOutlines ? 'display:block;' : 'display:none;') + '">' +
+                // Brief, Assign Person and File Upload section: for other post types
+                '<div id="subtask-brief-' + idx + '" style="' + (showBrief ? 'display:block;' : 'display:none;') + '">' +
+                '<div class="subtask-cell full">' +
+                '<label class="field-label blue">Assign Person</label>' +
+                '<select name="subtasks[' + idx + '][writer_id]" class="styled-input subtask-assignee-select" style="width:100%; border-radius:8px;"' + (showBrief ? ' required' : ' disabled') + '>' +
+                '<option value="">Select person...</option>' +
+                buildOpts(USERS, 'id', 'name') +
+                '</select>' +
+                '</div>' +
                 '<div class="subtask-cell full">' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">' +
                 '<label class="field-label" style="margin-bottom:0;">Brief</label>' +
@@ -398,11 +448,11 @@
                 '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4h4M4 4l5 5m11-1V4h-4m4 0l-5 5M4 16v4h4m-4 0l5-5m11 5v-4h-4m4 4l-5-5"/></svg>' +
                 '</span>' +
                 '</div>' +
-                '<textarea name="subtasks[' + idx + '][brief]" rows="3" placeholder="Enter brief or details..." class="styled-textarea" style="min-height:80px;"' + (!isOutlines ? '' : ' disabled') + '></textarea>' +
+                '<textarea name="subtasks[' + idx + '][brief]" rows="3" placeholder="Enter brief or details..." class="styled-textarea" style="min-height:80px;"' + (showBrief ? '' : ' disabled') + '></textarea>' +
                 '</div>' +
                 '<div class="subtask-cell full" style="border-bottom:none;">' +
                 '<label class="field-label">File Upload <span style="opacity:0.6;font-weight:400;font-size:11px;">(Documents, Media, Assets)</span></label>' +
-                '<input type="file" name="subtasks[' + idx + '][reference_file]" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,image/*,video/*" class="styled-input" style="padding:9px 14px;cursor:pointer;margin-top:6px;"' + (!isOutlines ? '' : ' disabled') + '>' +
+                '<input type="file" name="subtasks[' + idx + '][reference_file]" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip,image/*,video/*" class="styled-input" style="padding:9px 14px;cursor:pointer;margin-top:6px;"' + (showBrief ? '' : ' disabled') + '>' +
                 '</div>' +
                 '</div>' +
 
@@ -484,10 +534,25 @@
 
                 SUBTASK_TYPES = isCampaign ? CAMPAIGN_TYPES : RETAINER_TYPES;
 
+                // Update breadcrumb dynamically
+                const bcEl = document.getElementById('create-breadcrumb');
+                if (bcEl) {
+                    const pInfo = PROJECT_DETAILS[pid];
+                    let html = '<a href="/brands" class="create-bc-link">Brands</a>';
+                    if (pInfo) {
+                        if (pInfo.brand_name) {
+                            html += '<span class="create-bc-sep">/</span><a href="/brands/' + encodeURIComponent(pInfo.brand_slug) + '" class="create-bc-link">' + pInfo.brand_name + '</a>';
+                        }
+                        html += '<span class="create-bc-sep">/</span><a href="/projects/' + pid + '" class="create-bc-link">' + pInfo.name + '</a>';
+                    }
+                    html += '<span class="create-bc-sep">/</span><span class="create-bc-current">' + ({{ isset($parentId) ? 'true' : 'false' }} ? 'Add Subtasks' : 'New Deliverable') + '</span>';
+                    bcEl.innerHTML = html;
+                }
+
                 // Refresh existing dropdowns
                 document.querySelectorAll('select.subtask-type-select').forEach((sel, i) => {
-                    const defaultVal = isCampaign ? (CAMPAIGN_TYPES.includes('Outlines') ? 'Outlines' : (CAMPAIGN_TYPES[0] || '')) : (RETAINER_TYPES[0] || '');
-                    sel.innerHTML = '<option value="">Select type...</option>' + buildOpts(SUBTASK_TYPES, null, null, defaultVal);
+                    const defaultVal = isCampaign ? '' : (RETAINER_TYPES[0] || '');
+                    sel.innerHTML = '<option value=""' + (!defaultVal ? ' selected' : '') + '>Select type...</option>' + buildOpts(SUBTASK_TYPES, null, null, defaultVal);
                     sel.value = defaultVal;
                     handlePostTypeChange(sel.dataset.idx || i, defaultVal);
                 });

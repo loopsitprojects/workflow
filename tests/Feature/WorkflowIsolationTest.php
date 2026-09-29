@@ -336,3 +336,138 @@ test('campaign deliverable with non-outlines post type stores brief and referenc
         ->and($deliverable->reference_file)->not->toBeNull();
 });
 
+test('campaign deliverable with non-outlines post type assigns designated person', function () {
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $designer = User::factory()->create(['name' => 'Sara Designer', 'role' => 'Designer']);
+    $brand = Brand::create(['name' => 'Brand Assignee', 'slug' => 'brand-assignee']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Assignee Campaign',
+        'workflow_type' => 'campaign',
+    ]);
+
+    $response = $this->actingAs($admin)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 0,
+        'subtasks' => [
+            [
+                'title' => 'KV Key Visual',
+                'post_type' => 'KV',
+                'brief' => 'Design hero key visual for outdoor billboard.',
+                'writer_id' => $designer->id,
+            ]
+        ]
+    ]);
+
+    $response->assertRedirect();
+
+    $deliverable = Deliverable::where('project_id', $project->id)->first();
+    expect($deliverable)->not->toBeNull()
+        ->and($deliverable->title)->toBe('KV Key Visual')
+        ->and($deliverable->post_type)->toBe('KV')
+        ->and($deliverable->writer_id)->toBe($designer->id)
+        ->and($deliverable->assignee_name)->toBe('Sara Designer')
+        ->and($deliverable->approval_stage)->toBe('Assign');
+});
+
+test('other deliverables in assign stage can only be submitted by the assigned person', function () {
+    $assignedUser = User::factory()->create(['name' => 'Assigned Person', 'role' => 'Writer']);
+    $otherUser = User::factory()->create(['name' => 'Other Person', 'role' => 'Writer']);
+    $manager = User::factory()->create(['name' => 'Brand Mgr', 'role' => 'Brand Manager']);
+    $admin = User::factory()->create(['name' => 'Admin User', 'role' => 'Admin']);
+
+    $brand = Brand::create(['name' => 'Test Brand', 'slug' => 'test-brand']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Other Deliverables Project',
+        'workflow_type' => 'campaign',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $deliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'KV Billboard Design',
+        'post_type' => 'KV',
+        'approval_stage' => 'Assign',
+        'writer_id' => $assignedUser->id,
+        'assignee_name' => $assignedUser->name,
+        'status' => 'To Do',
+    ]);
+
+    // Another user tries to submit -> Forbidden (403)
+    $responseOther = $this->actingAs($otherUser)->post(route('deliverables.submit', $deliverable));
+    $responseOther->assertSessionHas('error', 'Other deliverables can only be submitted by the assigned person.');
+    expect($deliverable->fresh()->approval_stage)->toBe('Assign');
+
+    // Manager who is not assigned tries to submit -> Forbidden (403)
+    $responseMgr = $this->actingAs($manager)->post(route('deliverables.submit', $deliverable));
+    $responseMgr->assertSessionHas('error', 'Other deliverables can only be submitted by the assigned person.');
+    expect($deliverable->fresh()->approval_stage)->toBe('Assign');
+
+    // Assigned person submits -> Success (moves to Approve)
+    $responseAssigned = $this->actingAs($assignedUser)->post(route('deliverables.submit', $deliverable));
+    $responseAssigned->assertSessionHas('success');
+    expect($deliverable->fresh()->approval_stage)->toBe('Approve');
+});
+
+test('other deliverables can only be edited by the assigned person', function () {
+    $assignedUser = User::factory()->create(['name' => 'Assigned Person', 'role' => 'Writer']);
+    $otherUser = User::factory()->create(['name' => 'Other Person', 'role' => 'Writer']);
+    $manager = User::factory()->create(['name' => 'Brand Mgr', 'role' => 'Brand Manager']);
+
+    $brand = Brand::create(['name' => 'Edit Brand', 'slug' => 'edit-brand']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Edit Other Deliverables Project',
+        'workflow_type' => 'campaign',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $deliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Initial Title',
+        'post_type' => 'KV',
+        'approval_stage' => 'Assign',
+        'writer_id' => $assignedUser->id,
+        'assignee_name' => $assignedUser->name,
+        'status' => 'To Do',
+    ]);
+
+    // 1. Non-assigned user tries to save content (action = save_only) -> 403
+    $responseOtherSave = $this->actingAs($otherUser)->post(route('deliverables.submit', $deliverable), [
+        'action' => 'save_only',
+        'title' => 'Hacked by Other',
+    ]);
+    $responseOtherSave->assertForbidden();
+    expect($deliverable->fresh()->title)->toBe('Initial Title');
+
+    // 2. Manager who is not assigned tries to save content -> 403
+    $responseMgrSave = $this->actingAs($manager)->post(route('deliverables.submit', $deliverable), [
+        'action' => 'save_only',
+        'title' => 'Edited by Manager',
+    ]);
+    $responseMgrSave->assertForbidden();
+    expect($deliverable->fresh()->title)->toBe('Initial Title');
+
+    // 3. Non-assigned user tries to access edit form -> 403
+    $responseOtherEdit = $this->actingAs($otherUser)->get(route('deliverables.edit', $deliverable));
+    $responseOtherEdit->assertForbidden();
+
+    // 4. Assigned user accesses edit form -> 200
+    $responseAssignedEdit = $this->actingAs($assignedUser)->get(route('deliverables.edit', $deliverable));
+    $responseAssignedEdit->assertOk();
+
+    // 5. Assigned user saves content -> Success
+    $responseAssignedSave = $this->actingAs($assignedUser)->post(route('deliverables.submit', $deliverable), [
+        'action' => 'save_only',
+        'title' => 'Updated by Assigned Person',
+    ]);
+    $responseAssignedSave->assertRedirect();
+    expect($deliverable->fresh()->title)->toBe('Updated by Assigned Person');
+});
+
+
+
+

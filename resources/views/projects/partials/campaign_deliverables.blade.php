@@ -437,9 +437,9 @@
                                     $stage = $task->approval_stage ?: 'Assign';
                                     $nextStage = $task->getNextStage();
                                     $isManager = $isAdmin || $userRole === 'brandmanager' || $userRole === 'operationsmanager';
-                                    $isAssigneePerson = (!$task->writer_id || $task->writer_id == $currentUserId || $task->designer_id == $currentUserId || in_array($userRole, ['writer', 'assignee', 'designer']));
-                                    $canApproveBatch = $isAdmin || (
-                                        (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Assign') && ($isAssigneePerson || $isManager)) ||
+                                    $isAssignedPerson = ($task->writer_id && $task->writer_id == $currentUserId) || ($task->designer_id && $task->designer_id == $currentUserId);
+                                    $canApproveBatch = (
+                                        (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Assign') && $isAssignedPerson) ||
                                         (($stage === 'AM/BD' || $stage === 'Final Approval' || $stage === 'Approve') && $isManager)
                                     );
                                     $subtasks = $otherSubtasks;
@@ -459,7 +459,7 @@
                                         @if($canApproveBatch && $nextStage)
                                             <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }})"
                                                     style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; background:#0055D4; color:#fff; border:1px solid #0055D4; cursor:pointer;" {{ $isGated ? 'disabled' : '' }}>
-                                                {{ $stage === 'Approve' ? 'Approve & Close' : 'Send for Approval' }}
+                                                {{ $stage === 'Approve' ? 'Approve & Close' : 'Submit' }}
                                             </button>
                                         @endif
                                     </div>
@@ -468,9 +468,8 @@
                         </tr>
                         @foreach($otherSubtasks as $subIndex => $subtask)
                             @php
-                                $isAssignedPerson = (!$subtask->writer_id || auth()->id() == $subtask->writer_id || auth()->id() == $subtask->designer_id || in_array($userRole, ['writer', 'assignee', 'designer']));
-                                $isSubManager = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']);
-                                $canEditInline = $isAdmin || (($subtask->approval_stage === 'Assignee' || $subtask->approval_stage === 'Writer' || $subtask->approval_stage === 'Assign' || !$subtask->approval_stage) && ($isAssignedPerson || $isSubManager));
+                                $isAssignedPerson = ($subtask->writer_id && auth()->id() == $subtask->writer_id) || ($subtask->designer_id && auth()->id() == $subtask->designer_id);
+                                $canEditInline = ($subtask->approval_stage === 'Assignee' || $subtask->approval_stage === 'Writer' || $subtask->approval_stage === 'Assign' || !$subtask->approval_stage) && $isAssignedPerson;
                             @endphp
                             <tr class="subtask-row rtb-subtask-row subtask-of-{{ $task->id }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                 <td>
@@ -578,9 +577,8 @@
                         {{-- Standalone Other Deliverable --}}
                         <tr class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                             @php
-                                $isAssignedStandalonePerson = (!$task->writer_id || auth()->id() == $task->writer_id || auth()->id() == $task->designer_id || in_array($userRole, ['writer', 'assignee', 'designer']));
-                                $isStandaloneManager = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']);
-                                $canEditOtherStandalone = $isAdmin || (($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer' || $task->approval_stage === 'Assign' || !$task->approval_stage) && ($isAssignedStandalonePerson || $isStandaloneManager));
+                                $isAssignedStandalonePerson = ($task->writer_id && auth()->id() == $task->writer_id) || ($task->designer_id && auth()->id() == $task->designer_id);
+                                $canEditOtherStandalone = ($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer' || $task->approval_stage === 'Assign' || !$task->approval_stage) && $isAssignedStandalonePerson;
                             @endphp
                             <td>
                                 <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
@@ -691,9 +689,9 @@
                                         $stage = $task->approval_stage ?: 'Assign';
                                         $nextStage = $task->getNextStage();
                                         $isStandaloneManager = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']);
-                                        $isStandaloneAssignee = (!$task->writer_id || $task->writer_id == $currentUserId || $task->designer_id == $currentUserId || in_array($userRole, ['writer', 'assignee', 'designer']));
-                                        $canApprove = $isAdmin || (
-                                            (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Assign') && ($isStandaloneAssignee || $isStandaloneManager)) ||
+                                        $isStandaloneAssigned = ($task->writer_id && $task->writer_id == $currentUserId) || ($task->designer_id && $task->designer_id == $currentUserId);
+                                        $canApprove = (
+                                            (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Assign') && $isStandaloneAssigned) ||
                                             (($stage === 'AM/BD' || $stage === 'Final Approval' || $stage === 'Approve') && $isStandaloneManager)
                                         );
                                         $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
@@ -701,7 +699,7 @@
                                     @if($canApprove && $nextStage)
                                         <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick">
                                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            {{ $stage === 'Approve' ? 'Approve & Close' : 'Send for Approval' }}
+                                            {{ $stage === 'Approve' ? 'Approve & Close' : 'Submit' }}
                                         </button>
                                     @endif
                                     @if($canEditOtherStandalone)

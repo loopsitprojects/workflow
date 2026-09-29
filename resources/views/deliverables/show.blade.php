@@ -378,7 +378,24 @@
     </style>
 
     <div class="container mx-auto px-4">
-        <div class="mb-6">
+        <div class="mb-6" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <nav style="display:flex; gap:6px; align-items:center; font-size:11px; font-weight:600; color:var(--color-text-secondary); flex-wrap:wrap;">
+                <a href="{{ route('brands.index') }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">Brands</a>
+                @if($deliverable->project && $deliverable->project->brand)
+                    <span style="opacity:0.35;">/</span>
+                    <a href="{{ route('brands.show', $deliverable->project->brand) }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">{{ $deliverable->project->brand->name }}</a>
+                @endif
+                @if($deliverable->project)
+                    <span style="opacity:0.35;">/</span>
+                    <a href="{{ route('projects.show', $deliverable->project) }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">{{ $deliverable->project->name }}</a>
+                @endif
+                @if($deliverable->parent)
+                    <span style="opacity:0.35;">/</span>
+                    <a href="{{ route('deliverables.show', $deliverable->parent) }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">{{ $deliverable->parent->title }}</a>
+                @endif
+                <span style="opacity:0.35;">/</span>
+                <span style="color:var(--color-text-primary);">{{ $deliverable->title }}</span>
+            </nav>
             <a href="{{ route('projects.show', $deliverable->project_id) }}" class="cd-btn" style="display:inline-flex; align-items:center; gap:8px; background:rgba(37,99,235,0.1); color:#2563eb; border:1px solid rgba(37,99,235,0.2); padding:10px 18px; font-size:13px; font-weight:800; border-radius:10px; transition:all 0.2s;" onmouseover="this.style.background='#2563eb'; this.style.color='#fff';" onmouseout="this.style.background='rgba(37,99,235,0.1)'; this.style.color='#2563eb';">
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Back to Project
@@ -1321,11 +1338,15 @@
                 const hasDesignerRole = userRole === 'designer';
                 const isWriterStage = ['Writer', 'Assignee', 'Writer Review', 'Assign'].includes(task.approval_stage || 'Writer');
                 const isOtherAssignStage = isOtherDeliverable && (task.approval_stage === 'Assign' || task.approval_stage === 'Assignee' || !task.approval_stage);
-                const writerEditPermission = isAdmin || (hasWriterRole && (!task.writer_id || AUTH_USER_ID == task.writer_id) && isWriterStage) ||
-                    (isOtherAssignStage && (!task.writer_id || AUTH_USER_ID == task.writer_id || AUTH_USER_ID == task.designer_id || hasWriterRole || hasDesignerRole || userRole === 'brandmanager' || userRole === 'operationsmanager'));
+                const isOtherAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || (task.designer_id && AUTH_USER_ID == task.designer_id);
+                const writerEditPermission = isOtherDeliverable
+                    ? (isOtherAssignStage && isOtherAssignedPerson)
+                    : (isAdmin || (hasWriterRole && (!task.writer_id || AUTH_USER_ID == task.writer_id) && isWriterStage));
                 // Allow any designer to upload when no designer is assigned (matches PHP logic)
                 const designerEditPermission = isAssignedDesigner || (hasDesignerRole && !task.designer_id);
-                const canDesignerEdit = (designerEditPermission && stage === 'Designer') || (isOtherDeliverable && isOtherAssignStage) || isAdmin;
+                const canDesignerEdit = isOtherDeliverable
+                    ? (isOtherAssignStage && isOtherAssignedPerson)
+                    : ((designerEditPermission && stage === 'Designer') || isAdmin);
 
                 const overlay = document.getElementById('taskModalOverlay');
                 const modal = overlay.querySelector('.cd-modal');
@@ -2017,24 +2038,27 @@
                 const isAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || (task.designer_id && AUTH_USER_ID == task.designer_id);
                 const isManager = isAdmin || userRole === 'brandmanager' || userRole === 'operationsmanager';
 
-                const canAct = isAdmin ||
-                    (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee') && (isAssignedPerson || !task.writer_id || hasWriterRole || hasDesignerRole || isManager)) ||
-                    (isOtherDeliverable && stage === 'Approve' && isManager) ||
-                    (!isOtherDeliverable && (
-                        (stage === 'Writer'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                        (stage === 'Assignee'        && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                        (stage === 'Assign'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                        (stage === 'Writer Review'   && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
-                        (stage === 'Approver'          && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
-                        (stage === 'Approver Review'   && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
-                        (stage === 'Further Approver'  && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
-                        (stage === 'Brand Manager'   && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                        (stage === 'AM/BD'           && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                        (stage === 'Final Approval'  && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                        (stage === 'Approve'         && isManager && (!task.brand_manager_id || isAssignedBrandMgr)) ||
-                        (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
-                        (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner))
-                    ));
+                const canAct = (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee'))
+                    ? isAssignedPerson
+                    : (
+                        isAdmin ||
+                        (isOtherDeliverable && stage === 'Approve' && isManager) ||
+                        (!isOtherDeliverable && (
+                            (stage === 'Writer'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                            (stage === 'Assignee'        && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                            (stage === 'Assign'          && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                            (stage === 'Writer Review'   && hasWriterRole             && (!task.writer_id         || isAssignedWriter)) ||
+                            (stage === 'Approver'          && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
+                            (stage === 'Approver Review'   && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
+                            (stage === 'Further Approver'  && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager')   && (!task.approver_id       || isAssignedApprover)) ||
+                            (stage === 'Brand Manager'   && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                            (stage === 'AM/BD'           && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                            (stage === 'Final Approval'  && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                            (stage === 'Approve'         && isManager && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                            (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
+                            (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner))
+                        ))
+                    );
 
                 // Check if current user was the last person who submitted/approved this deliverable
                 const approvals = task.approvals_history || task.approvalsHistory || [];
@@ -2043,7 +2067,7 @@
 
                 // Check if the current user is specifically assigned to handle this current stage
                 const isCurrentStageAssignee = isOtherDeliverable ? (
-                    (stage === 'Assign' || stage === 'Assignee') ? (isAssignedPerson || isManager) :
+                    (stage === 'Assign' || stage === 'Assignee') ? isAssignedPerson :
                     (stage === 'Approve') ? isManager : false
                 ) : (
                     (stage === 'Writer' || stage === 'Assignee' || stage === 'Assign' || stage === 'Writer Review') ? isAssignedWriter :
@@ -2076,7 +2100,7 @@
                             nextBtn.style.boxShadow = '0 4px 12px rgba(0,85,212,0.4)';
                             if (isOtherDeliverable) {
                                 if (stage === 'Assign' || stage === 'Assignee') {
-                                    nextBtn.textContent = 'Send for Approval';
+                                    nextBtn.textContent = 'Submit';
                                     nextBtn.style.background = '#0055D4';
                                 } else if (stage === 'Approve') {
                                     nextBtn.textContent = 'Approve & Close';
@@ -2141,7 +2165,10 @@
                             if (sel) sel.disabled = false;
                         }
                     }
-                    if ((stage === 'Designer' || (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee' || stage === 'Approve'))) && delArea) {
+                    const canShowArtworkUpload = isOtherDeliverable
+                        ? (isOtherAssignStage && isOtherAssignedPerson)
+                        : (stage === 'Designer');
+                    if (canShowArtworkUpload && delArea) {
                         delArea.style.display = 'block';
                         const titleEl = delArea.querySelector('.detail-label');
                         if (titleEl) {
@@ -2152,7 +2179,9 @@
 
                 // Edit Permissions (already computed above)
                 const mTitle = document.getElementById('modalTaskTitle');
-                const canEditTitle = writerEditPermission || isAdmin || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole);
+                const canEditTitle = isOtherDeliverable
+                    ? (isOtherAssignStage && isOtherAssignedPerson)
+                    : (writerEditPermission || isAdmin || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole));
                 if (mTitle) mTitle.readOnly = !canEditTitle;
                 if (typeof quillConcept !== 'undefined' && quillConcept) quillConcept.enable(writerEditPermission);
                 if (typeof quillCaption !== 'undefined' && quillCaption) quillCaption.enable(writerEditPermission);
@@ -2160,7 +2189,9 @@
                 
                 // Reference Edit Area
                 const refEditArea = document.getElementById('modalReferenceEditArea');
-                const canEditReference = writerEditPermission || isAdmin || hasWriterRole || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole);
+                const canEditReference = isOtherDeliverable
+                    ? (isOtherAssignStage && isOtherAssignedPerson)
+                    : (writerEditPermission || isAdmin || hasWriterRole || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole));
                 if (refEditArea) {
                     refEditArea.style.display = canEditReference ? 'grid' : 'none';
                     const linksContainer = document.getElementById('modalReferenceLinksContainer') || document.getElementById('modalReferenceLinksContainerPrj');
@@ -2185,7 +2216,11 @@
                     }
                 }
 
-                if (canEditReference || (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager') {
+                const canSaveContent = isOtherDeliverable
+                    ? (isOtherAssignStage && isOtherAssignedPerson)
+                    : (canEditReference || (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager');
+
+                if (canSaveContent) {
                     submitBtnForm.style.display = 'flex';
                     saveContentBtn.style.display = 'block';
                 }

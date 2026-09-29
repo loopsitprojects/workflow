@@ -63,17 +63,19 @@ class DeliverableController extends Controller
         $parentId = $request->query('parent_id');
         $progressPercent = $request->query('progress_percent', 0);
         
-        $parentTask = $parentId ? Deliverable::find($parentId) : null;
-        $project = $selectedProjectId ? Project::find($selectedProjectId) : null;
+        $parentTask = $parentId ? Deliverable::with('project.brand')->find($parentId) : null;
+        $project = $selectedProjectId ? Project::with('brand')->find($selectedProjectId) : ($parentTask?->project ?? null);
         $workflowType = $project ? $project->workflow_type : ($parentTask?->project?->workflow_type ?? 'retainer');
 
         $users = ($workflowType === 'retainer')
             ? \App\Models\User::where('role', 'Writer')->orderBy('name')->get()
             : \App\Models\User::whereIn('role', ['Writer', 'Designer', 'Assignee', 'Coordinator', 'Brand Manager', 'Operations Manager', 'Admin'])->orderBy('name')->get();
 
+        $allUsers = \App\Models\User::whereIn('role', ['Writer', 'Designer', 'Assignee', 'Coordinator', 'Brand Manager', 'Operations Manager', 'Admin'])->orderBy('name')->get();
+
         $subtaskTypes = \App\Models\SubtaskType::all();
         
-        return view('deliverables.create', compact('projects', 'users', 'selectedProjectId', 'progressPercent', 'parentId', 'parentTask', 'workflowType', 'subtaskTypes'));
+        return view('deliverables.create', compact('projects', 'project', 'users', 'allUsers', 'selectedProjectId', 'progressPercent', 'parentId', 'parentTask', 'workflowType', 'subtaskTypes'));
     }
 
     /**
@@ -290,7 +292,13 @@ class DeliverableController extends Controller
     public function edit(Deliverable $deliverable)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
+        if ($deliverable->isOtherDeliverable()) {
+            $isAssigned = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
+                          ($deliverable->designer_id && $user->id == $deliverable->designer_id);
+            if (!$isAssigned) abort(403, 'Other deliverables can only be edited by the assigned person.');
+        } else {
+            if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
+        }
         $projects = Project::all();
         $users = \App\Models\User::where('role', 'Writer')->get();
         $approvers = \App\Models\User::whereIn('role', ['Approver', 'Approver Coordinator', 'Admin'])->get();
@@ -301,7 +309,13 @@ class DeliverableController extends Controller
     public function update(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
+        if ($deliverable->isOtherDeliverable()) {
+            $isAssigned = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
+                          ($deliverable->designer_id && $user->id == $deliverable->designer_id);
+            if (!$isAssigned) abort(403, 'Other deliverables can only be edited by the assigned person.');
+        } else {
+            if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
+        }
         if ($request->has('toggle_status')) {
             // Manual toggle disabled as per new workflow-locked requirement
             return response()->json(['success' => false, 'message' => 'Manual completion disabled. Use the workflow stages instead.']);
@@ -583,13 +597,22 @@ class DeliverableController extends Controller
             $user = auth()->user();
             $userRole = strtolower(str_replace(' ', '', $user->role));
 
-            $isWriterStage = in_array($deliverable->approval_stage, ['Writer', 'Assignee', 'Writer Review', 'Assign']);
-            $hasWriterRole = in_array($userRole, ['writer', 'assignee']);
-            $isAssignedWriter = ($deliverable->writer_id && $user->id == $deliverable->writer_id);
-            $isUnassignedWriter = (!$deliverable->writer_id && $hasWriterRole);
-            $isBrandManagerOrAdmin = $user->isAdmin() || in_array($userRole, ['brandmanager', 'operationsmanager']);
-            
-            $canEditContent = $isBrandManagerOrAdmin || ($isWriterStage && ($isAssignedWriter || $isUnassignedWriter));
+            if ($deliverable->isOtherDeliverable()) {
+                $isAssigned = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
+                              ($deliverable->designer_id && $user->id == $deliverable->designer_id);
+                if (!$isAssigned) {
+                    abort(403, 'Other deliverables can only be edited by the assigned person.');
+                }
+                $canEditContent = true;
+            } else {
+                $isWriterStage = in_array($deliverable->approval_stage, ['Writer', 'Assignee', 'Writer Review', 'Assign']);
+                $hasWriterRole = in_array($userRole, ['writer', 'assignee']);
+                $isAssignedWriter = ($deliverable->writer_id && $user->id == $deliverable->writer_id);
+                $isUnassignedWriter = (!$deliverable->writer_id && $hasWriterRole);
+                $isBrandManagerOrAdmin = $user->isAdmin() || in_array($userRole, ['brandmanager', 'operationsmanager']);
+                
+                $canEditContent = $isBrandManagerOrAdmin || ($isWriterStage && ($isAssignedWriter || $isUnassignedWriter));
+            }
 
             if ($canEditContent) {
                 if ($request->has('title')) $deliverable->title = $request->title;

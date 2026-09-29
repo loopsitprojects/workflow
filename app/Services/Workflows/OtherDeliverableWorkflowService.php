@@ -136,6 +136,27 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
 
         $oldStage = $this->normalizeStage($deliverable->approval_stage);
 
+        // Role authorization check
+        if ($oldStage === 'Assign') {
+            $isAssigned = ($deliverable->writer_id && $user && $user->id == $deliverable->writer_id) ||
+                          ($deliverable->designer_id && $user && $user->id == $deliverable->designer_id);
+            if (!$isAssigned) {
+                return [
+                    'success' => false,
+                    'message' => 'Other deliverables can only be submitted by the assigned person.',
+                    'code'    => 403,
+                ];
+            }
+        } elseif ($oldStage === 'Approve') {
+            if ($user && !$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Operations Manager'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Only the Brand Manager can approve and close this deliverable.',
+                    'code'    => 403,
+                ];
+            }
+        }
+
         // Required field validation (only enforce if not resolvable from project/lead)
         $requiredField = $this->getRequiredFieldForStage($nextStage);
         if ($requiredField) {
@@ -151,32 +172,6 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
                     'message' => "Cannot move to **{$nextStage}**: Please assign a **{$roleName}** to this specific task first.",
                     'code' => 422
                 ];
-            }
-        }
-
-        // Role authorization check (non-admin)
-        if ($user && !$user->isAdmin()) {
-            if ($oldStage === 'Assign') {
-                $isAssigned = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
-                              ($deliverable->designer_id && $user->id == $deliverable->designer_id);
-                $isManager = in_array($user->role, ['Operations Manager', 'Brand Manager']);
-                $hasAssigneeRole = in_array($user->role, ['Writer', 'Designer', 'Assignee']);
-                if ((!$isManager && !$isAssigned && $deliverable->writer_id) ||
-                    (!$isManager && !$deliverable->writer_id && !$hasAssigneeRole)) {
-                    return [
-                        'success' => false,
-                        'message' => 'Only the assigned team member or manager can submit this deliverable for approval.',
-                        'code'    => 403,
-                    ];
-                }
-            } elseif ($oldStage === 'Approve') {
-                if (!in_array($user->role, ['Brand Manager', 'Operations Manager'])) {
-                    return [
-                        'success' => false,
-                        'message' => 'Only the Brand Manager can approve and close this deliverable.',
-                        'code'    => 403,
-                    ];
-                }
             }
         }
 
