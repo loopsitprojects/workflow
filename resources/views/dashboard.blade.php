@@ -126,6 +126,25 @@
                             'Low Priority'  => '#f59e0b',
                         ];
                         $prioFill = $priorityFills[$priority] ?? '#10b981';
+
+                        $deliverableType = null;
+                        if (!$isBatch && !empty($subtasks[0])) {
+                            $t = $subtasks[0];
+                            if (!empty($t->post_type)) {
+                                $deliverableType = $t->post_type . ($t->flow_type === 'direct_design' ? ' (Fast Track)' : '');
+                            } elseif ($t->flow_type === 'direct_design') {
+                                $deliverableType = 'Fast Track';
+                            } elseif (!empty($t->task_type) && $t->task_type !== 'Deliverable') {
+                                $deliverableType = $t->task_type;
+                            }
+                        } elseif ($isBatch && !empty($group['parent'])) {
+                            $p = $group['parent'];
+                            if (!empty($p->post_type)) {
+                                $deliverableType = $p->post_type . ($p->flow_type === 'direct_design' ? ' (Fast Track)' : '');
+                            } elseif ($p->flow_type === 'direct_design') {
+                                $deliverableType = 'Fast Track';
+                            }
+                        }
                     @endphp
                     <a href="{{ route('projects.show', $project->id) }}"
                        class="flex flex-col bg-white dark:bg-[#111827] rounded-xl px-5 py-4 border border-gray-100 dark:border-white/[0.05] card-shadow hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-md transition-all mb-2 group block">
@@ -138,17 +157,23 @@
                                     <h3 class="text-[13px] font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                         {{ $mainTitle }}
                                     </h3>
-                                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                        <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ $project->brand->name ?? '' }}</span>
+                                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap text-[10px]">
+                                        @if(!empty($project->brand->name))
+                                            <span class="text-gray-400 dark:text-slate-500">Brand: <span class="font-semibold text-gray-700 dark:text-slate-300">{{ $project->brand->name }}</span></span>
+                                        @endif
                                         @if($project)
                                             <span class="text-gray-200 dark:text-slate-700">·</span>
-                                            <span class="text-[10px] font-semibold text-gray-400 dark:text-slate-500">{{ $project->name }}</span>
+                                            <span class="text-gray-400 dark:text-slate-500">Project: <span class="font-semibold text-gray-700 dark:text-slate-300">{{ $project->name }}</span></span>
                                         @endif
-                                        @if(!$isBatch && $subtasks[0]->approval_stage)
+                                        @if($deliverableType)
                                             <span class="text-gray-200 dark:text-slate-700">·</span>
-                                            <span class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wide">{{ $subtasks[0]->approval_stage }}</span>
+                                            <span class="text-gray-400 dark:text-slate-500">Type: <span class="font-semibold text-gray-700 dark:text-slate-300">{{ $deliverableType }}</span></span>
                                         @endif
-                                        @if(!$isBatch && $subtasks[0]->client_status && $subtasks[0]->client_status !== 'Not Sent')
+                                        @if(!$isBatch && !empty($subtasks[0]->approval_stage))
+                                            <span class="text-gray-200 dark:text-slate-700">·</span>
+                                            <span class="text-gray-400 dark:text-slate-500">Stage: <span class="font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide">{{ $subtasks[0]->approval_stage }}</span></span>
+                                        @endif
+                                        @if(!$isBatch && !empty($subtasks[0]->client_status) && $subtasks[0]->client_status !== 'Not Sent')
                                             <span class="text-gray-200 dark:text-slate-700">·</span>
                                             <span class="text-[10px] font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wide bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 rounded">{{ $subtasks[0]->client_status }}</span>
                                         @endif
@@ -216,6 +241,25 @@
                         $mainTitle = $isBatch ? $group['parent']->title : $group['subtasks'][0]->title;
                         $project = $group['project'];
                         $subtasks = $group['subtasks'];
+
+                        $completedType = null;
+                        if (!$isBatch && !empty($subtasks[0])) {
+                            $t = $subtasks[0];
+                            if (!empty($t->post_type)) {
+                                $completedType = $t->post_type . ($t->flow_type === 'direct_design' ? ' (Fast Track)' : '');
+                            } elseif ($t->flow_type === 'direct_design') {
+                                $completedType = 'Fast Track';
+                            } elseif (!empty($t->task_type) && $t->task_type !== 'Deliverable') {
+                                $completedType = $t->task_type;
+                            }
+                        } elseif ($isBatch && !empty($group['parent'])) {
+                            $p = $group['parent'];
+                            if (!empty($p->post_type)) {
+                                $completedType = $p->post_type . ($p->flow_type === 'direct_design' ? ' (Fast Track)' : '');
+                            } elseif ($p->flow_type === 'direct_design') {
+                                $completedType = 'Fast Track';
+                            }
+                        }
                     @endphp
                     <a href="{{ route('projects.show', $project->id) }}"
                        class="flex flex-col bg-white dark:bg-[#111827] rounded-xl px-5 py-3.5 border border-gray-50 dark:border-white/[0.03] mb-2 opacity-60 hover:opacity-90 transition-opacity group block">
@@ -226,11 +270,17 @@
                                 </svg>
                                 <div class="min-w-0">
                                     <h3 class="text-[13px] font-bold text-gray-500 dark:text-slate-400 line-through">{{ $mainTitle }}</h3>
-                                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                        <span class="text-[10px] text-gray-400 dark:text-slate-600">{{ $project->brand->name ?? '' }}</span>
+                                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap text-[10px]">
+                                        @if(!empty($project->brand->name))
+                                            <span class="text-gray-400 dark:text-slate-600">Brand: <span class="font-medium text-gray-500 dark:text-slate-400">{{ $project->brand->name }}</span></span>
+                                        @endif
                                         @if($project)
                                             <span class="text-gray-200 dark:text-slate-700">·</span>
-                                            <span class="text-[10px] text-gray-400 dark:text-slate-600">{{ $project->name }}</span>
+                                            <span class="text-gray-400 dark:text-slate-600">Project: <span class="font-medium text-gray-500 dark:text-slate-400">{{ $project->name }}</span></span>
+                                        @endif
+                                        @if($completedType)
+                                            <span class="text-gray-200 dark:text-slate-700">·</span>
+                                            <span class="text-gray-400 dark:text-slate-600">Type: <span class="font-medium text-gray-500 dark:text-slate-400">{{ $completedType }}</span></span>
                                         @endif
                                     </div>
                                 </div>

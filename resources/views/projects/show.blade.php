@@ -30,6 +30,114 @@
         .ref-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:rgba(37,99,235,0.1); border:1px solid rgba(37,99,235,0.2); border-radius:10px; font-size:11px; font-weight:700; color:#2563eb; text-decoration:none; transition:all 0.15s; }
         .ref-chip:hover { background:rgba(37,99,235,0.15); }
 
+        /* Modern Segmented Board Tabs */
+        .board-tabs-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .board-tabs-wrapper {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--color-bg-secondary);
+            padding: 4px;
+            border-radius: 14px;
+            border: 1px solid var(--color-border-primary);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        .board-tab-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 16px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent;
+            color: var(--color-text-secondary);
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .board-tab-btn:focus,
+        .board-tab-btn:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        .board-tab-btn:hover:not(.is-active) {
+            color: var(--color-text-primary);
+            background: rgba(148, 163, 184, 0.08);
+        }
+        .board-tab-btn.is-active {
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-weight: 700;
+            border-color: var(--color-border-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .dark .board-tab-btn.is-active {
+            background: #1e293b;
+            color: #f8fafc;
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        }
+        .board-tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 2px 7.5px;
+            border-radius: 9999px;
+            line-height: 1;
+            background: rgba(148, 163, 184, 0.15);
+            color: var(--color-text-secondary);
+            transition: all 0.18s ease;
+        }
+        .board-tab-btn.is-active .board-tab-badge {
+            background: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+        }
+        .dark .board-tab-btn.is-active .board-tab-badge {
+            background: rgba(255, 255, 255, 0.12);
+            color: #f1f5f9;
+        }
+        .board-tab-btn.is-fasttrack {
+            color: #818cf8;
+        }
+        .board-tab-btn.is-fasttrack:hover:not(.is-active) {
+            color: #a5b4fc;
+            background: rgba(99, 102, 241, 0.12);
+        }
+        .board-tab-btn.is-fasttrack .board-tab-badge {
+            background: rgba(99, 102, 241, 0.16);
+            color: #818cf8;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+        }
+        .board-tab-btn.is-fasttrack.is-active {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: #ffffff !important;
+            border-color: #6366f1;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+        }
+        .board-tab-btn.is-fasttrack.is-active .board-tab-badge {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            border-color: transparent;
+        }
+        .board-tab-btn.is-fasttrack.is-active svg {
+            color: #ffffff;
+        }
+
         /* Modal Styles */
         .cd-modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(8px); display:none; justify-content:center; align-items:center; z-index:9999; opacity:0; transition:all 0.3s ease; }
         .cd-modal { background:var(--color-bg-primary); width:90%; max-width:800px; max-height:92vh; border-radius:32px; box-shadow:0 40px 100px rgba(0,0,0,0.2); overflow:hidden; transform:scale(0.95); transition:all 0.3s ease; position:relative; display:flex; flex-direction:column; }
@@ -394,7 +502,7 @@
                     <a href="{{ route('projects.edit', $project) }}"
                        style="padding: 8px 16px; background: var(--color-bg-primary); border: 1.5px solid var(--color-border-primary); border-radius: 9px; font-size: 12px; font-weight: 600; color: var(--color-text-secondary); text-decoration: none; transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                        Edit
+                        Edit Project
                     </a>
                     @endif
                     @can('create-deliverable')
@@ -461,10 +569,49 @@
                 'Text field'   => ['bg' => '#fffbeb', 'text' => '#d97706', 'border' => '#fef3c7'],
                 'default'     => ['bg' => '#f8fafc', 'text' => '#475569', 'border' => '#e2e8f0'],
             ];
+            $fastTrackTasks = $project->deliverables->whereNull('parent_deliverable_id')->where('flow_type', 'direct_design');
+            $contentTasks = $project->deliverables->whereNull('parent_deliverable_id')->filter(fn($t) => $t->flow_type !== 'direct_design');
+            $hasFastTrack = $fastTrackTasks->count() > 0;
         @endphp
 
-        @if($project->workflow_type === 'retainer')
-        <div class="cd-table-wrap">
+        <div x-data="{ activeBoardTab: 'all' }" style="margin-bottom: 24px;">
+            @if($hasFastTrack)
+            {{-- Modern Tab Filter Pill Bar (only shown when fast track deliverables exist) --}}
+            <div class="board-tabs-bar">
+                <div class="board-tabs-wrapper">
+                    <button type="button" 
+                            @click="activeBoardTab = 'all'"
+                            class="board-tab-btn"
+                            :class="activeBoardTab === 'all' ? 'is-active' : ''">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                        <span>All Deliverables</span>
+                        <span class="board-tab-badge">{{ $project->deliverables->whereNull('parent_deliverable_id')->count() }}</span>
+                    </button>
+
+                    <button type="button" 
+                            @click="activeBoardTab = 'content'"
+                            class="board-tab-btn"
+                            :class="activeBoardTab === 'content' ? 'is-active' : ''">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span>Content Deliverables</span>
+                        <span class="board-tab-badge">{{ $contentTasks->count() }}</span>
+                    </button>
+
+                    <button type="button" 
+                            @click="activeBoardTab = 'fasttrack'"
+                            class="board-tab-btn is-fasttrack"
+                            :class="activeBoardTab === 'fasttrack' ? 'is-active' : ''">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span>Fast Track Deliverables</span>
+                        <span class="board-tab-badge">{{ $fastTrackTasks->count() }}</span>
+                    </button>
+                </div>
+            </div>
+            @endif
+
+            <div @if($hasFastTrack) x-show="activeBoardTab === 'all' || activeBoardTab === 'content'" @endif>
+                @if($project->workflow_type === 'retainer')
+                <div class="cd-table-wrap">
             <div class="cd-header">
                 <div class="cd-header-left">
                     <h2>Content Deliverables</h2>
@@ -1076,9 +1223,15 @@
         @else
             @include('projects.partials.campaign_deliverables')
         @endif
+            </div>
 
-        {{-- Direct Design Batches Section (Available across all project types) --}}
-        @include('projects.partials.design_batches')
+            @if($hasFastTrack)
+            {{-- Fast Track Deliverables Section (Available across all project types) --}}
+            <div x-show="activeBoardTab === 'all' || activeBoardTab === 'fasttrack'">
+                @include('projects.partials.design_batches')
+            </div>
+            @endif
+        </div>
 
 
         </div>

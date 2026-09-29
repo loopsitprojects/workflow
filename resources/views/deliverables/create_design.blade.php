@@ -164,8 +164,8 @@
 
                     <div class="grid-cell">
                         <label class="field-label">Designer Deadline</label>
-                        <input type="datetime-local" name="designer_deadline" class="styled-input"
-                            value="{{ old('designer_deadline', isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d\TH:i') : '') }}">
+                        <input type="date" name="designer_deadline" class="styled-input"
+                            value="{{ old('designer_deadline', isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : '') }}">
                         @error('designer_deadline') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:6px;">{{ $message }}</p> @enderror
                     </div>
                 </div>

@@ -11,16 +11,16 @@
         <div class="cd-header-left" style="display:flex; align-items:center; gap:10px;">
             <div style="width:10px; height:10px; border-radius:50%; background:#6366f1;"></div>
             <h2 style="margin:0; font-size:15px; font-weight:800; color:var(--color-text-primary);">Fast Track Deliverables</h2>
-            <span style="font-size:11px; font-weight:700; color:#6366f1; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.25); padding:2px 8px; border-radius:6px;">
+            <span style="font-size:11px; font-weight:700; color:#818cf8; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); padding:2px 8px; border-radius:6px;">
                 {{ $designBatches->count() }} {{ \Illuminate\Support\Str::plural('deliverable', $designBatches->count()) }}
             </span>
         </div>
         <div class="cd-header-right">
             @can('create-deliverable')
             <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'flow' => 'design']) }}"
-               style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:#6366f1; border-radius:8px; font-size:11px; font-weight:700; color:#fff; text-decoration:none; transition:all 0.15s;">
+               style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:#6366f1; border-radius:8px; font-size:11px; font-weight:700; color:#fff; text-decoration:none; transition:all 0.15s; box-shadow: 0 2px 8px rgba(99,102,241,0.3);">
                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                + Add Fast Track Deliverable
+                Add Fast Track Deliverable
             </a>
             @endcan
         </div>
