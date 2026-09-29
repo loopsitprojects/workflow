@@ -22,6 +22,7 @@ class Deliverable extends Model
         'deadline',
         'image_url',
         'task_type',
+        'flow_type',
         'progress_percent',
         'is_ready',
         // Retainer / content fields
@@ -227,6 +228,17 @@ class Deliverable extends Model
         'Approve',
         'Close'
     ];
+
+    const DIRECT_DESIGN_STAGES = [
+        'Designer',
+        'Manager Review',
+        'Closed'
+    ];
+
+    public function isDirectDesign(): bool
+    {
+        return ($this->flow_type ?? null) === 'direct_design' || ($this->parent?->flow_type ?? null) === 'direct_design';
+    }
 
     public function isOtherDeliverable(): bool
     {

@@ -403,6 +403,11 @@
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         New Deliverable
                     </a>
+                    <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'flow' => 'design']) }}"
+                       style="padding: 8px 16px; background: #6366f1; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(99,102,241,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        Fast Track Deliverable
+                    </a>
                     @endcan
                 </div>
             </div>
@@ -491,7 +496,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($project->deliverables->whereNull('parent_deliverable_id') as $task)
+                            @forelse($project->deliverables->whereNull('parent_deliverable_id')->filter(fn($t) => $t->flow_type !== 'direct_design') as $task)
                                 @if($task->subtasks->count() > 0)
                                     <!-- Heading Row for Deliverable with Subtasks -->
                                     <tr class="rtb-heading-row" style="background:var(--color-bg-secondary); border-left:3px solid #3b82f6; cursor:pointer;" onclick="toggleSubtasks(event, {{ $task->id }})">
@@ -1071,6 +1076,9 @@
         @else
             @include('projects.partials.campaign_deliverables')
         @endif
+
+        {{-- Direct Design Batches Section (Available across all project types) --}}
+        @include('projects.partials.design_batches')
 
 
         </div>

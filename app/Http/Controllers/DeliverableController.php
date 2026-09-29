@@ -62,10 +62,17 @@ class DeliverableController extends Controller
         $selectedProjectId = $request->query('project_id');
         $parentId = $request->query('parent_id');
         $progressPercent = $request->query('progress_percent', 0);
+        $flow = $request->query('flow');
         
         $parentTask = $parentId ? Deliverable::with('project.brand')->find($parentId) : null;
         $project = $selectedProjectId ? Project::with('brand')->find($selectedProjectId) : ($parentTask?->project ?? null);
         $workflowType = $project ? $project->workflow_type : ($parentTask?->project?->workflow_type ?? 'retainer');
+
+        if ($flow === 'design' || ($parentTask && $parentTask->isDirectDesign())) {
+            $designers = \App\Models\User::where('role', 'Designer')->orderBy('name')->get();
+            $subtaskTypes = \App\Models\SubtaskType::all();
+            return view('deliverables.create_design', compact('projects', 'project', 'designers', 'selectedProjectId', 'parentId', 'parentTask', 'workflowType', 'subtaskTypes'));
+        }
 
         $users = ($workflowType === 'retainer')
             ? \App\Models\User::where('role', 'Writer')->orderBy('name')->get()
@@ -90,6 +97,10 @@ class DeliverableController extends Controller
         $subtasks = !empty($validated['subtasks']) ? $validated['subtasks'] : [];
         $parentId = $validated['parent_deliverable_id'] ?? null;
         $project = Project::find($validated['project_id']);
+
+        if (($validated['flow_type'] ?? null) === 'direct_design' || ($parentId && Deliverable::find($parentId)?->isDirectDesign())) {
+            return $this->storeDirectDesignDeliverable($request, $validated, $project, $parentId, $subtasks);
+        }
 
         // Auto-populate title from first subtask if omitted (e.g. Campaign/Pitch flow)
         if (empty($validated['title'])) {
@@ -215,6 +226,124 @@ class DeliverableController extends Controller
         return redirect()->route('projects.show', $parentTask->project_id)->with('success', 'Deliverables created.');
     }
 
+    /**
+     * Store Direct Design deliverable or batch (Manager -> Designer -> Manager Review -> Closed).
+     */
+    private function storeDirectDesignDeliverable(StoreDeliverableRequest $request, array $validated, ?Project $project, ?int $parentId, array $subtasks)
+    {
+        $creator = auth()->user();
+        $designerId = $validated['designer_id'] ?? null;
+        $designerUser = $designerId ? User::find($designerId) : null;
+        $designerName = $designerUser?->name ?? 'Unassigned';
+        $brandManagerId = $project?->brand_manager_id ?? $creator->id;
+
+        // Auto-populate title if omitted
+        if (empty($validated['title'])) {
+            $firstSubTitle = !empty($subtasks[0]['title']) ? $subtasks[0]['title'] : null;
+            $validated['title'] = $firstSubTitle ?: ($project ? $project->name . ' Fast Track Deliverable' : 'Fast Track Deliverable');
+        }
+
+        $taskData = Arr::except($validated, ['subtasks', 'parent_deliverable_id']);
+        $taskData['flow_type'] = 'direct_design';
+        $taskData['approval_stage'] = 'Designer';
+        $taskData['status'] = 'To Do';
+        $taskData['progress_percent'] = 20;
+        $taskData['brand_manager_id'] = $brandManagerId;
+        $taskData['designer_id'] = $designerId;
+        $taskData['assignee_name'] = $designerName;
+        $taskData['revisions'] = 0;
+        $taskData['priority'] = $taskData['priority'] ?? 'Medium';
+        $taskData['task_type'] = $taskData['task_type'] ?? 'Deliverable';
+        if (!empty($validated['designer_deadline'])) {
+            $taskData['designer_deadline'] = $validated['designer_deadline'];
+            $taskData['deadline'] = $taskData['deadline'] ?? $validated['designer_deadline'];
+        }
+
+        // If creating a NEW deliverable and exactly 1 subtask is defined, consolidate into a single standalone deliverable
+        if (!$parentId && count($subtasks) === 1) {
+            $sub = $subtasks[0];
+            if (!empty($sub['title'])) $taskData['title'] = $sub['title'];
+            $taskData['post_type'] = $sub['post_type'] ?? ($taskData['post_type'] ?? 'Graphic');
+            $taskData['concept']   = $sub['concept'] ?? ($sub['brief'] ?? ($taskData['concept'] ?? null));
+            $taskData['notes']     = $sub['notes'] ?? ($sub['brief'] ?? ($taskData['notes'] ?? null));
+            $taskData['reference'] = $sub['reference'] ?? ($taskData['reference'] ?? null);
+            if (!empty($sub['designer_id'])) {
+                $taskData['designer_id'] = $sub['designer_id'];
+                $d = User::find($sub['designer_id']);
+                if ($d) $taskData['assignee_name'] = $d->name;
+            }
+            if (!empty($sub['designer_deadline'])) {
+                $taskData['designer_deadline'] = $sub['designer_deadline'];
+                $taskData['deadline'] = $sub['designer_deadline'];
+            }
+            if ($request->hasFile("subtasks.0.reference_file")) {
+                $taskData['reference_file'] = $this->moveUploadedFile($request->file("subtasks.0.reference_file"), 'references');
+            } elseif ($request->hasFile("reference_file")) {
+                $taskData['reference_file'] = $this->moveUploadedFile($request->file("reference_file"), 'references');
+            }
+
+            $singleTask = Deliverable::create($taskData);
+            return redirect()->route('projects.show', $singleTask->project_id)->with('success', 'Fast track deliverable created and assigned to designer.');
+        }
+
+        // Parent deliverable + subtasks or adding to existing parent
+        if ($request->hasFile("reference_file")) {
+            $taskData['reference_file'] = $this->moveUploadedFile($request->file("reference_file"), 'references');
+        }
+
+        if ($parentId) {
+            $parentTask = Deliverable::findOrFail($parentId);
+        } else {
+            $parentTask = Deliverable::create($taskData);
+        }
+
+        if (!empty($subtasks)) {
+            $existingCount = $parentTask->subtasks()->count();
+            foreach ($subtasks as $index => $sub) {
+                $subDesignerId = $sub['designer_id'] ?? $parentTask->designer_id;
+                $subDesignerName = $parentTask->assignee_name;
+                if ($subDesignerId && $subDesignerId != $parentTask->designer_id) {
+                    $d = User::find($subDesignerId);
+                    if ($d) $subDesignerName = $d->name;
+                }
+
+                $subTitle = !empty($sub['title']) 
+                    ? $sub['title'] 
+                    : $parentTask->title . ' - Design ' . ($existingCount + $index + 1);
+
+                $refFile = null;
+                if ($request->hasFile("subtasks.{$index}.reference_file")) {
+                    $refFile = $this->moveUploadedFile($request->file("subtasks.{$index}.reference_file"), 'references');
+                }
+
+                Deliverable::create([
+                    'parent_deliverable_id' => $parentTask->id,
+                    'project_id'            => $parentTask->project_id,
+                    'flow_type'             => 'direct_design',
+                    'title'                 => $subTitle,
+                    'status'                => 'To Do',
+                    'task_type'             => 'Deliverable',
+                    'progress_percent'      => 20,
+                    'approval_stage'        => 'Designer',
+                    'post_type'             => $sub['post_type'] ?? 'Graphic',
+                    'concept'               => $sub['concept'] ?? ($sub['brief'] ?? null),
+                    'notes'                 => $sub['notes'] ?? ($sub['brief'] ?? null),
+                    'reference'             => $sub['reference'] ?? null,
+                    'reference_file'        => $refFile,
+                    'deadline'              => $sub['designer_deadline'] ?? ($sub['deadline'] ?? $parentTask->deadline),
+                    'designer_deadline'     => $sub['designer_deadline'] ?? $parentTask->designer_deadline,
+                    'priority'              => $sub['priority'] ?? ($parentTask->priority ?? 'Medium'),
+                    'designer_id'           => $subDesignerId,
+                    'brand_manager_id'      => $parentTask->brand_manager_id,
+                    'assignee_name'         => $subDesignerName,
+                    'revisions'             => 0,
+                ]);
+            }
+        }
+
+        return redirect()->route('projects.show', $parentTask->project_id)->with('success', 'Fast track deliverable created and assigned to designer.');
+    }
+
 
     public function showBatch(Deliverable $deliverable)
     {
@@ -253,11 +382,16 @@ class DeliverableController extends Controller
             $postType = $deliverable->post_type ?? $deliverable->title;
         }
 
+        $isDirectDesign = $deliverable->isDirectDesign();
         $project = $deliverable->project;
         $pType = strtolower(trim($postType ?? ''));
-        $firstStage = in_array($project?->workflow_type, ['campaign', 'pitch'])
-            ? (($pType === 'outlines' || $pType === 'outline') ? Deliverable::CAMPAIGN_STAGES[0] : Deliverable::OTHER_DELIVERABLE_STAGES[0])
-            : Deliverable::STAGES[0];
+        if ($isDirectDesign) {
+            $firstStage = 'Designer';
+        } else {
+            $firstStage = in_array($project?->workflow_type, ['campaign', 'pitch'])
+                ? (($pType === 'outlines' || $pType === 'outline') ? Deliverable::CAMPAIGN_STAGES[0] : Deliverable::OTHER_DELIVERABLE_STAGES[0])
+                : Deliverable::STAGES[0];
+        }
 
         $title = $request->input('title');
         if (empty($title)) {
@@ -268,21 +402,23 @@ class DeliverableController extends Controller
         Deliverable::create([
             'project_id'            => $deliverable->project_id,
             'parent_deliverable_id' => $deliverable->id,
+            'flow_type'             => $isDirectDesign ? 'direct_design' : null,
             'title'                 => $title,
             'post_type'             => $postType,
             'status'                => 'To Do',
             'task_type'             => 'Deliverable',
             'approval_stage'        => $firstStage,
             'priority'              => $deliverable->priority ?? 'Medium',
-            'progress_percent'      => 0,
+            'progress_percent'      => $isDirectDesign ? 20 : 0,
             'revisions'             => 0,
             'deadline'              => $deliverable->deadline,
+            'designer_deadline'     => $deliverable->designer_deadline,
             'writer_id'             => $deliverable->writer_id,
             'approver_id'           => $deliverable->approver_id,
             'brand_manager_id'      => $deliverable->brand_manager_id,
             'coordinator_id'        => $deliverable->coordinator_id,
             'designer_id'           => $deliverable->designer_id,
-            'assignee_name'         => $deliverable->writer?->name ?? 'Unassigned',
+            'assignee_name'         => $isDirectDesign ? ($deliverable->designer?->name ?? 'Unassigned') : ($deliverable->writer?->name ?? 'Unassigned'),
         ]);
 
         return redirect()->back()->with('success', 'Deliverable added to batch.');
@@ -294,7 +430,13 @@ class DeliverableController extends Controller
     public function edit(Deliverable $deliverable)
     {
         $user = auth()->user();
-        if ($deliverable->isOtherDeliverable()) {
+        if ($deliverable->isDirectDesign()) {
+            $isAssigned = ($deliverable->designer_id && $user->id == $deliverable->designer_id) ||
+                          ($deliverable->brand_manager_id && $user->id == $deliverable->brand_manager_id) ||
+                          $user->isAdmin() ||
+                          in_array($user->role, ['Brand Manager', 'Operations Manager']);
+            if (!$isAssigned) abort(403, 'Direct design deliverables can only be edited by the assigned designer or manager.');
+        } elseif ($deliverable->isOtherDeliverable()) {
             $isAssigned = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
                           ($deliverable->designer_id && $user->id == $deliverable->designer_id);
             if (!$isAssigned) abort(403, 'Other deliverables can only be edited by the assigned person.');
@@ -311,7 +453,13 @@ class DeliverableController extends Controller
     public function update(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if ($deliverable->isOtherDeliverable()) {
+        if ($deliverable->isDirectDesign()) {
+            $isAssigned = ($deliverable->designer_id && $user->id == $deliverable->designer_id) ||
+                          ($deliverable->brand_manager_id && $user->id == $deliverable->brand_manager_id) ||
+                          $user->isAdmin() ||
+                          in_array($user->role, ['Brand Manager', 'Operations Manager']);
+            if (!$isAssigned) abort(403, 'Direct design deliverables can only be edited by the assigned designer or manager.');
+        } elseif ($deliverable->isOtherDeliverable()) {
             $isAssigned = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
                           ($deliverable->designer_id && $user->id == $deliverable->designer_id);
             if (!$isAssigned) abort(403, 'Other deliverables can only be edited by the assigned person.');

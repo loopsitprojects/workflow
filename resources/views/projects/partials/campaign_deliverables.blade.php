@@ -5,11 +5,13 @@
     $currentUserIsAdmin = $isAdmin;
 
     $outlineTasks = $project->deliverables->whereNull('parent_deliverable_id')->filter(function($t) {
+        if ($t->flow_type === 'direct_design') return false;
         $type = strtolower(trim($t->post_type ?? ''));
         return $type === 'outlines' || $type === 'outline';
     });
 
     $otherTasks = $project->deliverables->whereNull('parent_deliverable_id')->filter(function($t) {
+        if ($t->flow_type === 'direct_design') return false;
         $type = strtolower(trim($t->post_type ?? ''));
         return $type !== 'outlines' && $type !== 'outline';
     });
