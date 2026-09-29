@@ -482,4 +482,37 @@ test('only designer or admin can edit work hours', function () {
     expect($deliverable->work_hours)->toEqual(15);
 });
 
+test('authenticated user can add deliverable to a batch', function () {
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $brand = Brand::create(['name' => 'Batch Brand', 'slug' => 'batch-brand']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Batch Test Project',
+        'workflow_type' => 'retainer',
+    ]);
+
+    $batch = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Batch 1',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'approval_stage' => 'Designer',
+    ]);
+
+    $response = $this->actingAs($designer)->post(route('deliverables.addToBatch', $batch), [
+        'title' => 'New Batch Subtask',
+        'post_type' => 'Carousel',
+    ]);
+
+    $response->assertRedirect();
+
+    $this->assertDatabaseHas('deliverables', [
+        'project_id' => $project->id,
+        'parent_deliverable_id' => $batch->id,
+        'title' => 'New Batch Subtask',
+        'post_type' => 'Carousel',
+    ]);
+});
+
+
 

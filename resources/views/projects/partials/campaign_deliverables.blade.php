@@ -96,6 +96,10 @@
                                     </span>
                                     <div style="display:flex; align-items:center; gap:6px;">
                                         <a href="{{ route('deliverables.showBatch', $task->id) }}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:7px;text-decoration:none;white-space:nowrap;">View</a>
+                                        <button type="button" onclick="openAddPostTypeModal(event, {{ $task->id }}, '{{ $project->workflow_type }}', '{{ $task->post_type }}')" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:7px;cursor:pointer;white-space:nowrap; outline:none;">
+                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                            Add Deliverable
+                                        </button>
                                         @if($canApproveBatch && $nextStage)
                                             <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }})"
                                                     style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; background:#0055D4; color:#fff; border:1px solid #0055D4; cursor:pointer;" {{ $isGated ? 'disabled' : '' }}>
@@ -456,6 +460,10 @@
                                     </span>
                                     <div style="display:flex; align-items:center; gap:6px;">
                                         <a href="{{ route('deliverables.showBatch', $task->id) }}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:7px;text-decoration:none;white-space:nowrap;">View</a>
+                                        <button type="button" onclick="openAddPostTypeModal(event, {{ $task->id }}, '{{ $project->workflow_type }}', '{{ $task->post_type }}')" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:7px;cursor:pointer;white-space:nowrap; outline:none;">
+                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                            Add Deliverable
+                                        </button>
                                         @if($canApproveBatch && $nextStage)
                                             <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }})"
                                                     style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; background:#0055D4; color:#fff; border:1px solid #0055D4; cursor:pointer;" {{ $isGated ? 'disabled' : '' }}>

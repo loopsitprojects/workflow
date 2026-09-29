@@ -584,12 +584,10 @@
                                                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                                         View
                                                     </a>
-                                                    @if(in_array(auth()->user()->role, ['Writer', 'Brand Manager']) || auth()->user()->isAdmin())
-                                                    <button type="button" onclick="openAddPostTypeModal(event, {{ $task->id }}, '{{ $project->workflow_type }}')" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:7px;cursor:pointer;white-space:nowrap; outline:none;">
+                                                    <button type="button" onclick="openAddPostTypeModal(event, {{ $task->id }}, '{{ $project->workflow_type }}', '{{ $task->post_type }}')" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:7px;cursor:pointer;white-space:nowrap; outline:none;">
                                                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                                                        Add Post
+                                                        Add Deliverable
                                                     </button>
-                                                    @endif
                                                     <a href="{{ route('deliverables.export-batch.ppt', $task->id) }}" onclick="event.stopPropagation()" class="cd-btn cd-btn-outline" title="Export Batch PPT" style="padding:6px 10px; border-radius:7px; font-size:11px; font-weight:600;">PPT</a>
                                                     @if($canReviseBatch)
                                                         <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $stage }}', {{ $totalInBatch }}, 'revision', {{ $batchStakeholders }})"
@@ -3871,7 +3869,7 @@
     <div id="addPostTypeOverlay" class="cd-modal-overlay" onclick="closeAddPostTypeModal(event)" style="z-index: 10000;">
         <div class="cd-modal" style="max-width: 400px; border-radius: 20px;" onclick="event.stopPropagation()">
             <div class="cd-modal-header" style="padding: 20px 24px; background: var(--color-bg-secondary); align-items: center;">
-                <h2 style="font-size: 15px; font-weight: 900; color: var(--color-text-primary); margin: 0;">Add New Post</h2>
+                <h2 style="font-size: 15px; font-weight: 900; color: var(--color-text-primary); margin: 0;">Add Deliverable to Batch</h2>
                 <button onclick="closeAddPostTypeModal()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer;">
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
@@ -3900,8 +3898,8 @@
 
     <script>
     const allSubtaskTypes = @json($allSubtaskTypes);
-    function openAddPostTypeModal(e, taskId, workflowType) {
-        e.stopPropagation();
+    function openAddPostTypeModal(e, taskId, workflowType, defaultPostType) {
+        if (e && e.stopPropagation) e.stopPropagation();
         
         const titleInput = document.getElementById('addPostTypeTitle');
         if (titleInput) titleInput.value = '';
@@ -3912,14 +3910,25 @@
         const activeWorkflow = (workflowType === 'retainer') ? 'retainer' : 'campaign';
         const filtered = allSubtaskTypes.filter(t => t.workflow_type === activeWorkflow);
         
+        let hasSelected = false;
         filtered.forEach(type => {
             const opt = document.createElement('option');
             opt.value = type.name;
             opt.textContent = type.name;
+            if (defaultPostType && type.name.toLowerCase() === defaultPostType.toLowerCase()) {
+                opt.selected = true;
+                hasSelected = true;
+            }
             select.appendChild(opt);
         });
         
-        if (filtered.length === 0) {
+        if (defaultPostType && !hasSelected) {
+            const opt = document.createElement('option');
+            opt.value = defaultPostType;
+            opt.textContent = defaultPostType;
+            opt.selected = true;
+            select.insertBefore(opt, select.firstChild);
+        } else if (filtered.length === 0) {
             const opt = document.createElement('option');
             opt.value = 'Post';
             opt.textContent = 'Post';

@@ -237,13 +237,15 @@ class DeliverableController extends Controller
             'subtasks.approvalsHistory.user',
         ]);
 
-        return view('deliverables.batch', compact('deliverable'));
+        $allSubtaskTypes = \App\Models\SubtaskType::all();
+
+        return view('deliverables.batch', compact('deliverable', 'allSubtaskTypes'));
     }
 
     public function addToBatch(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Writer'])) abort(403);
+        if (!$user) abort(401);
         if ($deliverable->parent_deliverable_id) abort(403); // must be a parent
 
         $postType = $request->input('post_type');
@@ -283,7 +285,7 @@ class DeliverableController extends Controller
             'assignee_name'         => $deliverable->writer?->name ?? 'Unassigned',
         ]);
 
-        return redirect()->route('projects.show', $deliverable->project_id)->with('success', 'Post added to batch.');
+        return redirect()->back()->with('success', 'Deliverable added to batch.');
     }
 
     /**
