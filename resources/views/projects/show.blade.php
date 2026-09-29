@@ -3016,7 +3016,7 @@
                 document.querySelector('#batchRevisionGroup textarea').placeholder = isIndividual ? "Describe what needs to be fixed..." : "Describe what needs to be fixed in this entire batch...";
 
                 // Show "send back to" toggle for post-designer review stages
-                const postDesignerStages = ['Writer Review', 'Approver Review', 'Final Approval'];
+                const postDesignerStages = ['Writer Review', 'Approver Review', 'AM/BD', 'Final Approval'];
                 const revisionTargetGroup = document.getElementById('batchRevisionTargetGroup');
                 const revisionNote = document.getElementById('batchRevisionNote');
                 if (postDesignerStages.includes(nextStage)) {
@@ -3130,7 +3130,7 @@
                 roleUsers = JSON.parse(document.getElementById('approvers-data').textContent);
                 label = "Select Approver";
                 stickyHint.style.display = 'block'; // As per user request "till its end"
-            } else if (nextStage === 'Brand Manager' || nextStage === 'Final Approval') {
+            } else if (nextStage === 'Brand Manager' || nextStage === 'Final Approval' || nextStage === 'AM/BD' || nextStage === 'Approve') {
                 roleToFill = 'brand_manager_id';
                 roleUsers = JSON.parse(document.getElementById('managers-data').textContent);
                 label = "Select Brand Manager";
@@ -3180,7 +3180,7 @@
                     let preSelectId = null;
                     if (nextStage === 'Approver') {
                         preSelectId = stakeholders.approver || {!! json_encode($project->approver_id) !!};
-                    } else if (nextStage === 'Brand Manager' || nextStage === 'Final Approval') {
+                    } else if (nextStage === 'Brand Manager' || nextStage === 'Final Approval' || nextStage === 'AM/BD' || nextStage === 'Approve') {
                         preSelectId = stakeholders.brand_manager || {!! json_encode($project->brand_manager_id) !!} || {!! json_encode($project->lead_id) !!};
                     } else if (nextStage === 'Coordinator') {
                         preSelectId = stakeholders.coordinator || {!! json_encode($project->coordinator_id) !!};
@@ -3326,7 +3326,7 @@
                 }
                 // Determine which role field to send
                 if (currentBatchNextStage === 'Approver') roleField = 'approver_id';
-                else if (currentBatchNextStage === 'Brand Manager' || currentBatchNextStage === 'Final Approval') roleField = 'brand_manager_id';
+                else if (currentBatchNextStage === 'Brand Manager' || currentBatchNextStage === 'Final Approval' || currentBatchNextStage === 'AM/BD' || currentBatchNextStage === 'Approve') roleField = 'brand_manager_id';
                 else if (currentBatchNextStage === 'Coordinator') roleField = 'coordinator_id';
                 else if (currentBatchNextStage === 'Designer') roleField = 'designer_id';
             }

@@ -75,8 +75,12 @@
                                     $stage = $task->approval_stage;
                                     $nextStage = $task->getNextStage();
                                     $canApproveBatch = $isAdmin || (
-                                        (($stage === 'Writer' || $stage === 'Assignee') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                        (($stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager')
+                                        (in_array($stage, ['Writer', 'Assignee', 'Writer Review']) && in_array($userRole, ['writer', 'assignee']) && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
+                                        (in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                        ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId)) ||
+                                        (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && in_array($userRole, ['brandmanager', 'operationsmanager']) && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
+                                        ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator', 'operationsmanager']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
+                                        ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                     );
                                     $subtasks = $outlineSubtasks;
                                     $totalInBatch = $subtasks->count();
@@ -321,8 +325,12 @@
                                         $stage = $task->approval_stage;
                                         $nextStage = $task->getNextStage();
                                         $canApprove = $isAdmin || (
-                                            (($stage === 'Writer' || $stage === 'Assignee') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                            (($stage === 'AM/BD' || $stage === 'Final Approval') && $userRole === 'brandmanager')
+                                            (in_array($stage, ['Writer', 'Assignee', 'Writer Review']) && in_array($userRole, ['writer', 'assignee']) && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
+                                            (in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
+                                            ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId)) ||
+                                            (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && in_array($userRole, ['brandmanager', 'operationsmanager']) && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
+                                            ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator', 'operationsmanager']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
+                                            ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                         );
                                         $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
                                     @endphp
@@ -475,7 +483,7 @@
                                     <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                 </td>
                                 <td style="overflow:hidden;">
-                                    @php $colors = $subtaskTypeColors[$subtask->subtask_type ?: ($subtask->post_type ?: 'default')] ?? $subtaskTypeColors['default']; @endphp
+                                    @php $colors = $subtaskTypeColors[$subtask->subtask_type ?: ($subtask->post_type ?: 'default')] ?? ($subtaskTypeColors['default'] ?? ['bg' => 'rgba(14,165,233,0.1)', 'text' => '#0ea5e9', 'border' => 'rgba(14,165,233,0.25)']); @endphp
                                     <span class="subtask-pill" style="background:{{ $colors['bg'] }}; color:{{ $colors['text'] }}; border-color:{{ $colors['border'] }}; font-size:9.5px; font-weight:800; letter-spacing:0.04em; padding:3px 8px;">
                                         {{ $subtask->subtask_type ?: ($subtask->post_type ?: 'Standard') }}
                                     </span>
@@ -584,7 +592,7 @@
                                 <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                             </td>
                             <td style="overflow:hidden;">
-                                @php $colors = $subtaskTypeColors[$task->subtask_type ?: ($task->post_type ?: 'default')] ?? $subtaskTypeColors['default']; @endphp
+                                @php $colors = $subtaskTypeColors[$task->subtask_type ?: ($task->post_type ?: 'default')] ?? ($subtaskTypeColors['default'] ?? ['bg' => 'rgba(14,165,233,0.1)', 'text' => '#0ea5e9', 'border' => 'rgba(14,165,233,0.25)']); @endphp
                                 <span class="subtask-pill" style="background:{{ $colors['bg'] }}; color:{{ $colors['text'] }}; border-color:{{ $colors['border'] }}; font-size:9.5px; font-weight:800; letter-spacing:0.04em; padding:3px 8px;">
                                     {{ $task->subtask_type ?: ($task->post_type ?: 'Standard') }}
                                 </span>

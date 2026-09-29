@@ -222,7 +222,8 @@ npm run build
 
 ## Code & Architecture Guidelines
 
-1. **Keep Workflow Logic Centralized**: When modifying workflow stages or progress calculation, update `app/Models/Deliverable.php` constants (`STAGES`, `CAMPAIGN_STAGES`) and `app/Http/Controllers/DeliverableController.php`.
-2. **Atomic Batch Operations**: Deliverable batch submissions and revisions must always be wrapped in database transactions (`DB::transaction`).
-3. **Preserve Fallbacks**: Keep S3 storage operations wrapped in `try-catch` blocks with local public disk fallback.
-4. **Real-time Synchronization**: Broadcast `DeliverablesUpdated` when modifying deliverable stage states to keep active team boards synchronized.
+1. **STRICT ISOLATION - DO NOT MODIFY RETAINER FLOW**: All current and upcoming development is strictly focused on **Campaign** and **Pitch** flows. The **Retainer workflow** (`RetainerWorkflowService`, retainer stages, retainer board, and retainer progression logic) is in active production/UAT and must **NEVER** be altered or have regressions introduced. Any new features, schema adjustments, or UI updates must be isolated specifically to `campaign` and `pitch` workflow types.
+2. **Keep Workflow Logic Centralized**: When modifying workflow stages or progress calculation, update `app/Models/Deliverable.php` constants (`STAGES`, `CAMPAIGN_STAGES`) and `app/Http/Controllers/DeliverableController.php`.
+3. **Atomic Batch Operations**: Deliverable batch submissions and revisions must always be wrapped in database transactions (`DB::transaction`).
+4. **Preserve Fallbacks**: Keep S3 storage operations wrapped in `try-catch` blocks with local public disk fallback.
+5. **Real-time Synchronization**: Broadcast `DeliverablesUpdated` when modifying deliverable stage states to keep active team boards synchronized.

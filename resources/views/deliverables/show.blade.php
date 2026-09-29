@@ -402,8 +402,9 @@
             </div>
             <div class="cd-modal-body">
                 <!-- 1. Workflow Progress Stepper (TOP) -->
+                @php $stages = $stages ?? ($deliverable->getStages() ?? []); @endphp
                 <div class="workflow-steps" id="modalWorkflowSteps" style="margin-top: 4px; margin-bottom: 20px;">
-                    @foreach($stages as $index => $stage)
+                    @foreach(collect($stages)->filter(fn($s) => !in_array($s, ['Closed', 'Close']))->values() as $index => $stage)
                         <div class="step-item" data-stage="{{ $stage }}">
                             <div class="step-dot">{{ $index + 1 }}</div>
                             <div class="step-label">{{ $stage }}</div>
@@ -1939,19 +1940,18 @@
                 // Workflow Tracker dots
                 let taskStages;
                 if (isOtherDeliverable) {
-                    taskStages = ['Assign', 'Approve', 'Close'];
+                    taskStages = ['Assign', 'Approve'];
                 } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
                     taskStages = ['Writer', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator', 'Designer', 'Writer Review', 'Approver Review', 'AM/BD', 'Final Approval'];
                 } else {
-                    taskStages = (task.workflow_stages || WORKFLOW_STAGES).filter(s => s !== 'Closed');
+                    taskStages = (task.workflow_stages || WORKFLOW_STAGES).filter(s => !['Closed', 'Close'].includes(s));
                 }
 
                 let currentStageIdx = taskStages.indexOf(task.approval_stage);
                 if (currentStageIdx === -1) {
                     if (task.approval_stage === 'Assignee') currentStageIdx = taskStages.indexOf('Writer') !== -1 ? taskStages.indexOf('Writer') : taskStages.indexOf('Assign');
                     if (task.approval_stage === 'Assign') currentStageIdx = taskStages.indexOf('Assignee');
-                    if (task.approval_stage === 'Closed') currentStageIdx = taskStages.length;
-                    if (task.approval_stage === 'Close') currentStageIdx = taskStages.indexOf('Closed');
+                    if (task.approval_stage === 'Closed' || task.approval_stage === 'Close') currentStageIdx = taskStages.length;
                 }
 
                 const modalStepsEl = document.getElementById('modalWorkflowSteps');
@@ -2127,7 +2127,7 @@
                             if (sel) sel.disabled = false;
                         }
                     }
-                    if (stage === 'Brand Manager' || stage === 'AM/BD') {
+                    if (stage === 'Brand Manager') {
                         if (coordArea) {
                             coordArea.style.display = 'block';
                             const sel = coordArea.querySelector('select');

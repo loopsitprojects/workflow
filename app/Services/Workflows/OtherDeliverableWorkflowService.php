@@ -160,7 +160,9 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
                 $isAssigned = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
                               ($deliverable->designer_id && $user->id == $deliverable->designer_id);
                 $isManager = in_array($user->role, ['Operations Manager', 'Brand Manager']);
-                if ($deliverable->writer_id && !$isAssigned && !$isManager) {
+                $hasAssigneeRole = in_array($user->role, ['Writer', 'Designer', 'Assignee']);
+                if ((!$isManager && !$isAssigned && $deliverable->writer_id) ||
+                    (!$isManager && !$deliverable->writer_id && !$hasAssigneeRole)) {
                     return [
                         'success' => false,
                         'message' => 'Only the assigned team member or manager can submit this deliverable for approval.',

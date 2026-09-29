@@ -143,7 +143,7 @@
 
         @php
             $total  = $deliverable->subtasks->count();
-            $closed = $deliverable->subtasks->where('approval_stage', 'Closed')->count();
+            $closed = $deliverable->subtasks->whereIn('approval_stage', ['Closed', 'Close'])->count();
             $pct    = $total > 0 ? round($closed / $total * 100) : 0;
             
             // Resolve parent revisions
@@ -194,34 +194,43 @@
     @php
         $stage     = $post->approval_stage ?? 'Writer';
         $nextStage = $post->getNextStage();
-        $stageClass = $stage === 'Closed' ? 'stage-done' : ($post->revisions > 0 && in_array($stage, ['Writer','Assignee']) ? 'stage-rev' : 'stage-open');
+        $isOtherDeliv = $post->isOtherDeliverable();
+        $stageClass = in_array($stage, ['Closed', 'Close']) ? 'stage-done' : ($post->revisions > 0 && in_array($stage, ['Writer','Assignee','Assign']) ? 'stage-rev' : 'stage-open');
         $revs      = $post->getRelation('revisionsHistory') ?? collect();
         $approvals = $post->getRelation('approvalsHistory') ?? collect();
         $isImg     = $post->final_designs && preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $post->final_designs);
 
         $canApprove = $isAdmin || (
-            (in_array($stage, ['Writer','Assignee','Writer Review']) && in_array($authRole, ['writer','assignee']) && (!$post->writer_id || $post->writer_id == $authId)) ||
-            ((in_array($stage, ['Approver', 'Approver Review']) && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->approver_id || $post->approver_id == $authId)) || ($stage === 'Further Approver' && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->further_approver_id || $post->further_approver_id == $authId))) ||
-            (in_array($stage, ['Brand Manager','AM/BD','Final Approval']) && $authRole === 'brandmanager' && (!$post->brand_manager_id || $post->brand_manager_id == $authId)) ||
-            ($stage === 'Coordinator' && in_array($authRole, ['coordinator', 'approvercoordinator']) && (!$post->coordinator_id || $post->coordinator_id == $authId)) ||
-            ($stage === 'Designer' && $authRole === 'designer' && (!$post->designer_id || $post->designer_id == $authId))
+            ($isOtherDeliv && in_array($stage, ['Assign', 'Assignee']) && (in_array($authRole, ['writer', 'assignee']) || (!$post->writer_id || $post->writer_id == $authId))) ||
+            ($isOtherDeliv && $stage === 'Approve' && in_array($authRole, ['brandmanager', 'operationsmanager'])) ||
+            (!$isOtherDeliv && (
+                (in_array($stage, ['Writer','Assignee','Writer Review']) && in_array($authRole, ['writer','assignee']) && (!$post->writer_id || $post->writer_id == $authId)) ||
+                ((in_array($stage, ['Approver', 'Approver Review']) && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->approver_id || $post->approver_id == $authId)) || ($stage === 'Further Approver' && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->further_approver_id || $post->further_approver_id == $authId))) ||
+                (in_array($stage, ['Brand Manager','AM/BD','Final Approval']) && $authRole === 'brandmanager' && (!$post->brand_manager_id || $post->brand_manager_id == $authId)) ||
+                ($stage === 'Coordinator' && in_array($authRole, ['coordinator', 'approvercoordinator']) && (!$post->coordinator_id || $post->coordinator_id == $authId)) ||
+                ($stage === 'Designer' && $authRole === 'designer' && (!$post->designer_id || $post->designer_id == $authId))
+            ))
         );
 
         $canRevise = $isAdmin || (
-            ($stage === 'Writer Review' && in_array($authRole, ['writer','assignee']) && (!$post->writer_id || $post->writer_id == $authId)) ||
-            ((in_array($stage, ['Approver', 'Approver Review']) && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->approver_id || $post->approver_id == $authId)) || ($stage === 'Further Approver' && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->further_approver_id || $post->further_approver_id == $authId))) ||
-            (in_array($stage, ['Brand Manager','AM/BD','Final Approval']) && $authRole === 'brandmanager' && (!$post->brand_manager_id || $post->brand_manager_id == $authId))
+            ($isOtherDeliv && $stage === 'Approve' && in_array($authRole, ['brandmanager', 'operationsmanager'])) ||
+            (!$isOtherDeliv && (
+                ($stage === 'Writer Review' && in_array($authRole, ['writer','assignee']) && (!$post->writer_id || $post->writer_id == $authId)) ||
+                ((in_array($stage, ['Approver', 'Approver Review']) && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->approver_id || $post->approver_id == $authId)) || ($stage === 'Further Approver' && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->further_approver_id || $post->further_approver_id == $authId))) ||
+                (in_array($stage, ['Brand Manager','AM/BD','Final Approval']) && $authRole === 'brandmanager' && (!$post->brand_manager_id || $post->brand_manager_id == $authId))
+            ))
         );
 
         $btnLabel = match(true) {
-            in_array($stage, ['Writer','Assignee']) => 'Submit',
-            $stage === 'Coordinator'                => 'Assign to Designer',
-            $stage === 'Designer'                   => 'Send Artwork',
-            $stage === 'Scheduled'                  => 'Scheduled',
-            default                                 => 'Approve',
+            in_array($stage, ['Writer','Assignee', 'Assign']) => 'Submit',
+            $stage === 'Coordinator'                          => 'Assign to Designer',
+            $stage === 'Designer'                             => 'Send Artwork',
+            $stage === 'Approve'                              => 'Approve & Close',
+            $stage === 'Scheduled'                            => 'Scheduled',
+            default                                           => 'Approve',
         };
 
-        $showTarget = in_array($stage, ['Final Approval','Writer Review','Approver Review']);
+        $showTarget = in_array($stage, ['Final Approval','Writer Review','Approver Review', 'AM/BD']);
     @endphp
 
     <div class="post-card">
@@ -249,7 +258,7 @@
                 @if($post->work_hours)
                     <span style="font-size:11px;font-weight:600;color:var(--color-text-secondary);">{{ number_format($post->work_hours, 1) }}h</span>
                 @endif
-                <span class="stage-badge {{ $stageClass }}">{{ $stage }}</span>
+                <span class="stage-badge {{ $stageClass }}">{{ $stage === 'Close' ? 'Closed' : $stage }}</span>
             </div>
         </div>
 
@@ -258,6 +267,14 @@
         {{-- Body --}}
         <div class="post-card-body">
 
+            @if($isOtherDeliv)
+            <div class="pc-field full">
+                <div class="pc-label">Brief</div>
+                @php $brief = $post->concept ?? $post->notes; @endphp
+                @if($brief)<div class="pc-val">{{ strip_tags($brief) }}</div>
+                @else<div class="pc-val pc-empty">No brief yet</div>@endif
+            </div>
+            @else
             <div class="pc-field">
                 <div class="pc-label">Concept</div>
                 @if($post->concept)<div class="pc-val">{{ strip_tags($post->concept) }}</div>
@@ -275,6 +292,7 @@
                 @if($post->post_copy)<div class="pc-val">{{ strip_tags($post->post_copy) }}</div>
                 @else<div class="pc-val pc-empty">No copy yet</div>@endif
             </div>
+            @endif
 
             <div class="pc-field">
                 <div class="pc-label">Reference</div>
@@ -347,7 +365,7 @@
         {{-- Action Footer --}}
         @if($canApprove || $canRevise)
         <div class="post-card-footer">
-            @if($canRevise && $stage !== 'Writer' && $stage !== 'Assignee')
+            @if($canRevise && !in_array($stage, ['Writer', 'Assignee', 'Assign']))
                 <button type="button" class="act-btn act-revise"
                     onclick="openReviseModal({{ $post->id }}, '{{ $stage }}', {{ $showTarget ? 'true' : 'false' }})">
                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
@@ -356,7 +374,7 @@
             @endif
             @if($canApprove && $nextStage)
                 <button type="button" class="act-btn act-approve"
-                    onclick="openSubmitModal({{ $post->id }}, '{{ $nextStage }}', '{{ $btnLabel }}')">
+                    onclick="openSubmitModal({{ $post->id }}, '{{ $nextStage }}', '{{ $btnLabel }}', '{{ $stage }}')">
                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                     {{ $btnLabel }}
                 </button>
@@ -426,11 +444,29 @@
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
-        <form id="submitForm" method="POST">
+        <form id="submitForm" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="bv-modal-body">
                 <p class="bv-confirm-text">You are about to advance this deliverable to:</p>
                 <p class="bv-confirm-next" id="submitNextStageLabel"></p>
+
+                {{-- Designer Artwork Delivery fields (visible when stage is Designer) --}}
+                <div id="bvDesignerArtworkFields" style="display:none; margin-top:16px; border-top:1.5px solid var(--color-border-primary); padding-top:14px;">
+                    <label class="pc-label" style="display:block; margin-bottom:6px; color:#10b981; font-weight:700;">Final Artwork File <span style="font-weight:400;opacity:0.7;">(or link below)</span></label>
+                    <input type="file" name="final_designs_file" id="bvArtworkFile" class="bv-textarea" style="min-height:auto; padding:8px;" accept="image/*,video/*">
+
+                    <label class="pc-label" style="display:block; margin-top:12px; margin-bottom:6px; color:#10b981; font-weight:700;">Final Artwork Link (Figma, Canva, Drive)</label>
+                    <input type="url" name="final_designs_link" id="bvArtworkLink" placeholder="https://www.figma.com/..." class="bv-textarea" style="min-height:auto; height:38px; padding:8px 12px;">
+
+                    <label class="pc-label" style="display:block; margin-top:12px; margin-bottom:6px; font-weight:700;">Hours Spent (optional)</label>
+                    <input type="number" step="0.25" min="0" name="hours_spent" id="bvWorkHours" placeholder="e.g. 2.5" class="bv-textarea" style="min-height:auto; height:38px; padding:8px 12px;">
+                </div>
+
+                {{-- Optional submit notes --}}
+                <div style="margin-top:14px;">
+                    <label class="pc-label" style="display:block; margin-bottom:6px;">Notes / Comments (optional)</label>
+                    <input type="text" name="submit_notes" id="bvSubmitNotes" placeholder="Add a note for the next reviewer..." class="bv-textarea" style="min-height:auto; height:38px; padding:8px 12px;">
+                </div>
             </div>
             <div class="bv-modal-foot">
                 <button type="button" class="btn-cancel" onclick="closeSubmitModal()">Cancel</button>
@@ -490,15 +526,38 @@ function closeReviseModal() {
     prev.src = ''; prev.style.display = 'none';
 }
 
-function openSubmitModal(postId, nextStage, btnLabel) {
+function openSubmitModal(postId, nextStage, btnLabel, currentStage = '') {
     document.getElementById('submitForm').action = `/deliverables/${postId}/submit`;
     document.getElementById('submitModalTitle').textContent = btnLabel;
     document.getElementById('submitNextStageLabel').textContent = nextStage;
     document.getElementById('submitConfirmBtn').textContent = btnLabel;
+
+    // Toggle artwork fields if at Designer stage
+    const artFields = document.getElementById('bvDesignerArtworkFields');
+    if (artFields) {
+        artFields.style.display = (currentStage === 'Designer' || btnLabel === 'Send Artwork') ? 'block' : 'none';
+        const fileInp = document.getElementById('bvArtworkFile');
+        const linkInp = document.getElementById('bvArtworkLink');
+        const hoursInp = document.getElementById('bvWorkHours');
+        if (fileInp) fileInp.value = '';
+        if (linkInp) linkInp.value = '';
+        if (hoursInp) hoursInp.value = '';
+    }
+    const notesInp = document.getElementById('bvSubmitNotes');
+    if (notesInp) notesInp.value = '';
+
     document.getElementById('submitOverlay').classList.add('open');
 }
 function closeSubmitModal() {
     document.getElementById('submitOverlay').classList.remove('open');
+    const fileInp = document.getElementById('bvArtworkFile');
+    const linkInp = document.getElementById('bvArtworkLink');
+    const hoursInp = document.getElementById('bvWorkHours');
+    if (fileInp) fileInp.value = '';
+    if (linkInp) linkInp.value = '';
+    if (hoursInp) hoursInp.value = '';
+    const notesInp = document.getElementById('bvSubmitNotes');
+    if (notesInp) notesInp.value = '';
 }
 
 document.addEventListener('keydown', e => {

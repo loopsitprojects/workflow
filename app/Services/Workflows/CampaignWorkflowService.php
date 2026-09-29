@@ -63,6 +63,7 @@ class CampaignWorkflowService implements WorkflowInterface
         $stages = $this->getStages();
         $stage = $deliverable->approval_stage ?? $stages[0];
         if ($stage === 'Assignee') $stage = 'Writer';
+        if ($stage === 'Close') $stage = 'Closed';
         
         $index = array_search($stage, $stages);
         if ($index === false) return 0;
@@ -79,6 +80,7 @@ class CampaignWorkflowService implements WorkflowInterface
         $stages = $this->getStages();
         $stage = $deliverable->approval_stage ?? $stages[0];
         if ($stage === 'Assignee') $stage = 'Writer';
+        if ($stage === 'Close') $stage = 'Closed';
 
         $currentIndex = array_search($stage, $stages);
         if ($currentIndex === false || $currentIndex >= count($stages) - 1) {

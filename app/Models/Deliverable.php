@@ -218,7 +218,8 @@ class Deliverable extends Model
         'Writer Review',
         'Approver Review',
         'AM/BD',
-        'Final Approval'
+        'Final Approval',
+        'Closed'
     ];
 
     const OTHER_DELIVERABLE_STAGES = [

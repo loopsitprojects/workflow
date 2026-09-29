@@ -39,12 +39,10 @@ class DeliverableController extends Controller
         $coordinators = $users->whereIn('role', ['Coordinator', 'Approver Coordinator']);
         $designers = User::where('role', 'Designer')->get();
         
-        $stages = ($deliverable->project?->workflow_type === 'retainer')
-            ? Deliverable::STAGES
-            : ($deliverable->isOtherDeliverable() ? Deliverable::OTHER_DELIVERABLE_STAGES : Deliverable::CAMPAIGN_STAGES);
+        $stages = $deliverable->getStages();
 
         // Get subtasks if it's a parent task
-        if ($deliverable->task_type === 'Retainer' && $deliverable->post_type === 'Parent') {
+        if (!$deliverable->parent_deliverable_id) {
             $deliverable->load('subtasks');
         }
 
