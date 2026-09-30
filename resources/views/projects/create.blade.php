@@ -100,11 +100,32 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
                         </span>
                     </div>
 
-                    {{-- CRM Job Dropdown --}}
-                    <div id="crm_job_dropdown_container" style="display:none; margin-bottom:8px;">
-                        <select id="crm_job_selector" onchange="applyCrmJob(this)" class="f-input" style="font-size:12px; font-weight:600; color:var(--color-text-primary); background:var(--color-bg-secondary); border:1.5px solid #0055D4; cursor:pointer;">
-                            <option value="">-- Select from CRM Jobs --</option>
-                        </select>
+                    {{-- CRM Job Searchable Selector --}}
+                    <div id="crm_job_dropdown_container" style="display:none; margin-bottom:8px; position:relative;">
+                        <div style="position:relative; display:flex; align-items:center;">
+                            <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--color-text-secondary); pointer-events:none; display:flex; align-items:center;">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                            </span>
+                            <input type="text" id="crm_search_input" 
+                                placeholder="Search by Job ID, last 4 digits (e.g. 0469), or Brand..." 
+                                autocomplete="off"
+                                onfocus="openCrmDropdown()"
+                                onclick="openCrmDropdown()"
+                                oninput="filterCrmJobs(this.value)"
+                                class="f-input" 
+                                style="font-size:11.5px; font-weight:600; padding-left:30px; padding-right:28px; color:var(--color-text-primary); background:var(--color-bg-secondary); border:1.5px solid #0055D4; cursor:text; width:100%; box-sizing:border-box;">
+                            
+                            <button type="button" id="crm_search_clear_btn" onclick="clearCrmSearch()" style="display:none; position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--color-text-secondary); cursor:pointer; font-size:15px; font-weight:bold; padding:2px 4px; line-height:1;">
+                                &times;
+                            </button>
+                        </div>
+
+                        {{-- Dropdown Results Panel --}}
+                        <div id="crm_results_panel" style="display:none; position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:999; background:var(--color-bg-primary); border:1.5px solid var(--color-border-primary); border-radius:8px; box-shadow:0 10px 25px -5px rgba(0,0,0,0.3); max-height:220px; overflow-y:auto; padding:4px;">
+                        </div>
                     </div>
 
                     <input type="text" id="project_job_number" name="job_number" placeholder="e.g. JN-2025-001" class="f-input" value="{{ old('job_number') }}" autocomplete="off">
@@ -213,76 +234,188 @@ const allBrandsList = @json($brands);
 const allTeamMembers = @json(($allUsers ?? $users)->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role]));
 let batchIndex = 0;
 
+let currentCrmQuery = '';
+
+function matchesCrmJob(j, q) {
+    if (!q) return true;
+    const cleanQ = q.trim().toLowerCase();
+    if (!cleanQ) return true;
+
+    const jobId = (j.crm_job_id || '').toLowerCase();
+    const brandName = (j.brand_name || '').toLowerCase();
+    const title = (j.title || '').toLowerCase();
+
+    // 1. Direct contains in Job ID (e.g. "loops", "2026", "0469")
+    if (jobId.includes(cleanQ)) return true;
+
+    // 2. Direct contains in Brand Name (e.g. "dove", "sampath")
+    if (brandName.includes(cleanQ)) return true;
+
+    // 3. Direct contains in Title
+    if (title.includes(cleanQ)) return true;
+
+    // 4. Last digits search (strip non-digits and test endsWith or includes)
+    const digitsOnlyQ = cleanQ.replace(/\D/g, '');
+    const digitsOnlyJob = jobId.replace(/\D/g, '');
+    if (digitsOnlyQ.length > 0 && (digitsOnlyJob.endsWith(digitsOnlyQ) || digitsOnlyJob.includes(digitsOnlyQ))) {
+        return true;
+    }
+
+    // 5. Slash / dash segmented parts
+    const segments = jobId.split(/[\/\-_]/);
+    if (segments.some(seg => seg.includes(cleanQ))) {
+        return true;
+    }
+
+    return false;
+}
+
+function highlightMatch(text, query) {
+    if (!query || !text) return text || '';
+    const cleanQ = query.trim();
+    if (!cleanQ) return text;
+    try {
+        const regex = new RegExp(`(${cleanQ.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return text.replace(regex, '<span style="background:rgba(0,85,212,0.25); color:#60a5fa; border-radius:3px; padding:0 3px;">$1</span>');
+    } catch(e) {
+        return text;
+    }
+}
+
+function openCrmDropdown() {
+    const panel = document.getElementById('crm_results_panel');
+    if (!panel) return;
+    renderCrmDropdownItems(currentCrmQuery);
+    panel.style.display = 'block';
+}
+
+function closeCrmDropdown() {
+    const panel = document.getElementById('crm_results_panel');
+    if (panel) panel.style.display = 'none';
+}
+
+function filterCrmJobs(query) {
+    currentCrmQuery = query;
+    const clearBtn = document.getElementById('crm_search_clear_btn');
+    if (clearBtn) {
+        clearBtn.style.display = query ? 'block' : 'none';
+    }
+    openCrmDropdown();
+}
+
+function clearCrmSearch() {
+    currentCrmQuery = '';
+    const searchInput = document.getElementById('crm_search_input');
+    if (searchInput) searchInput.value = '';
+    const clearBtn = document.getElementById('crm_search_clear_btn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    renderCrmDropdownItems('');
+    openCrmDropdown();
+    if (searchInput) searchInput.focus();
+}
+
+function selectCrmJob(jobId) {
+    const job = allAvailableCrmJobs.find(j => j.crm_job_id === jobId);
+    if (!job) return;
+
+    // Set search box text
+    const searchInput = document.getElementById('crm_search_input');
+    if (searchInput) {
+        searchInput.value = `${job.crm_job_id}${job.brand_name ? ' (' + job.brand_name + ')' : ''}`;
+    }
+
+    // Set project job number
+    const jobInput = document.getElementById('project_job_number');
+    if (jobInput) jobInput.value = job.crm_job_id;
+
+    // Auto-fill project title if empty
+    const titleInput = document.querySelector('input[name="name"]');
+    if (titleInput && (!titleInput.value || titleInput.value.trim() === '') && job.title) {
+        titleInput.value = job.title;
+    }
+
+    // Auto-fill deadline if empty
+    const deadlineInput = document.getElementById('project_deadline');
+    if (deadlineInput && (!deadlineInput.value || deadlineInput.value.trim() === '') && job.deadline) {
+        deadlineInput.value = job.deadline.substring(0, 10);
+    }
+
+    const clearBtn = document.getElementById('crm_search_clear_btn');
+    if (clearBtn) clearBtn.style.display = 'block';
+
+    closeCrmDropdown();
+}
+
+function renderCrmDropdownItems(query) {
+    const panel = document.getElementById('crm_results_panel');
+    if (!panel) return;
+
+    const filtered = allAvailableCrmJobs.filter(j => matchesCrmJob(j, query));
+
+    if (filtered.length === 0) {
+        panel.innerHTML = `
+            <div style="padding:12px; font-size:11.5px; color:var(--color-text-secondary); text-align:center;">
+                No CRM jobs found matching "<strong style="color:var(--color-text-primary);">${query}</strong>"
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    filtered.forEach(j => {
+        const highlightedId = highlightMatch(j.crm_job_id, query);
+        const highlightedBrand = j.brand_name ? highlightMatch(j.brand_name, query) : '';
+        const highlightedTitle = j.title ? highlightMatch(j.title, query) : '';
+
+        html += `
+            <div onclick="selectCrmJob('${j.crm_job_id}')"
+                style="padding:8px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:10px; transition:background 0.15s; margin-bottom:2px; border:1px solid transparent;"
+                onmouseover="this.style.background='rgba(0,85,212,0.12)'; this.style.borderColor='rgba(0,85,212,0.2)';"
+                onmouseout="this.style.background='transparent'; this.style.borderColor='transparent';">
+                <div style="display:flex; flex-direction:column; gap:2px; min-width:0; overflow:hidden;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-family:monospace; font-size:12px; font-weight:700; color:#0055D4;">${highlightedId}</span>
+                        ${j.brand_name ? `<span style="font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px; background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); color:var(--color-text-primary); white-space:nowrap;">${highlightedBrand}</span>` : ''}
+                    </div>
+                    ${j.title ? `<span style="font-size:11px; color:var(--color-text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${highlightedTitle}</span>` : ''}
+                </div>
+                ${j.deadline ? `<span style="font-size:10px; font-weight:600; color:var(--color-text-secondary); white-space:nowrap;">Due: ${j.deadline.substring(0, 10)}</span>` : ''}
+            </div>
+        `;
+    });
+
+    panel.innerHTML = html;
+}
+
 function updateCrmJobsForBrand(brandId) {
     refreshCrmJobsDropdown();
 }
 
 function refreshCrmJobsDropdown() {
-    const selector = document.getElementById('crm_job_selector');
     const container = document.getElementById('crm_job_dropdown_container');
     const badge = document.getElementById('crm_badge');
-    if (!selector || !container) return;
-
-    selector.innerHTML = '';
-    const defaultOpt = document.createElement('option');
-    defaultOpt.value = '';
-    defaultOpt.textContent = allAvailableCrmJobs.length > 0 
-        ? `-- Select from CRM Jobs (${allAvailableCrmJobs.length} available) --`
-        : '-- No CRM Jobs Available --';
-    selector.appendChild(defaultOpt);
+    if (!container) return;
 
     if (allAvailableCrmJobs.length > 0) {
-        allAvailableCrmJobs.forEach(j => {
-            const opt = document.createElement('option');
-            opt.value = j.crm_job_id;
-
-            let label = j.crm_job_id;
-            if (j.brand_name) {
-                label += ` (${j.brand_name})`;
-            }
-            if (j.title) {
-                label += ` — ${j.title}`;
-            }
-
-            opt.textContent = label;
-            opt.setAttribute('data-title', j.title || '');
-            opt.setAttribute('data-deadline', j.deadline ? j.deadline.substring(0, 10) : '');
-            opt.setAttribute('data-brand-id', j.brand_id || '');
-            opt.setAttribute('data-brand-name', j.brand_name || '');
-            selector.appendChild(opt);
-        });
-
         container.style.display = 'block';
         if (badge) {
             badge.textContent = `${allAvailableCrmJobs.length} CRM Job${allAvailableCrmJobs.length > 1 ? 's' : ''} Available`;
             badge.style.display = 'inline-block';
         }
+        renderCrmDropdownItems('');
     } else {
         container.style.display = 'none';
         if (badge) badge.style.display = 'none';
     }
 }
 
-function applyCrmJob(select) {
-    if (!select || !select.value) return;
-    const opt = select.options[select.selectedIndex];
-    const jobNum = opt.value;
-    const title = opt.getAttribute('data-title');
-    const deadline = opt.getAttribute('data-deadline');
-
-    const jobInput = document.getElementById('project_job_number');
-    if (jobInput) jobInput.value = jobNum;
-
-    const titleInput = document.querySelector('input[name="name"]');
-    if (titleInput && (!titleInput.value || titleInput.value.trim() === '') && title) {
-        titleInput.value = title;
+// Close dropdown panel when clicking outside
+document.addEventListener('click', (e) => {
+    const container = document.getElementById('crm_job_dropdown_container');
+    if (container && !container.contains(e.target)) {
+        closeCrmDropdown();
     }
-
-    const deadlineInput = document.getElementById('project_deadline');
-    if (deadlineInput && (!deadlineInput.value || deadlineInput.value.trim() === '') && deadline) {
-        deadlineInput.value = deadline;
-    }
-}
+});
 
 
 function addBatchCard(existingData = null) {
