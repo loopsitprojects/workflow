@@ -125,8 +125,10 @@ class DeliverableController extends Controller
 
         $validated['priority'] = $validated['priority'] ?? (!empty($subtasks[0]['priority']) ? $subtasks[0]['priority'] : 'Medium');
 
-        // If creating a NEW deliverable and exactly 1 subtask is defined, consolidate into a standalone deliverable
-        if (!$parentId && count($subtasks) === 1) {
+        // If creating a NEW deliverable and exactly 1 subtask is defined without a distinct batch title, consolidate into a standalone deliverable.
+        // If the user specified a distinct batch title and subtask title, keep as a Batch parent + Subtask deliverable.
+        $hasDistinctBatchTitle = !empty($validated['title']) && !empty($subtasks[0]['title']) && trim(strtolower($validated['title'])) !== trim(strtolower($subtasks[0]['title']));
+        if (!$parentId && count($subtasks) === 1 && !$hasDistinctBatchTitle) {
             $sub = $subtasks[0];
             $taskData = \Illuminate\Support\Arr::except($validated, ['subtasks', 'parent_deliverable_id']);
             
@@ -170,6 +172,16 @@ class DeliverableController extends Controller
         // Standard logic for 0 or 2+ subtasks, or adding to existing parent
         $parentData = \Illuminate\Support\Arr::except($validated, ['subtasks']);
         $parentData['priority'] = $parentData['priority'] ?? 'Medium';
+        if (empty($parentData['approval_stage'])) {
+            $pType = strtolower(trim($parentData['post_type'] ?? ''));
+            if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
+                $parentData['approval_stage'] = ($pType === 'outlines' || $pType === 'outline')
+                    ? Deliverable::CAMPAIGN_STAGES[0]
+                    : Deliverable::OTHER_DELIVERABLE_STAGES[0];
+            } else {
+                $parentData['approval_stage'] = Deliverable::STAGES[0];
+            }
+        }
         
         if ($parentId) {
             $parentTask = Deliverable::findOrFail($parentId);
@@ -232,7 +244,7 @@ class DeliverableController extends Controller
     private function storeDirectDesignDeliverable(StoreDeliverableRequest $request, array $validated, ?Project $project, ?int $parentId, array $subtasks)
     {
         $creator = auth()->user();
-        $designerId = $validated['designer_id'] ?? null;
+        $designerId = $validated['designer_id'] ?? (!empty($subtasks[0]['designer_id']) ? $subtasks[0]['designer_id'] : null);
         $designerUser = $designerId ? User::find($designerId) : null;
         $designerName = $designerUser?->name ?? 'Unassigned';
         $brandManagerId = $project?->brand_manager_id ?? $creator->id;
@@ -259,8 +271,10 @@ class DeliverableController extends Controller
             $taskData['deadline'] = $taskData['deadline'] ?? $validated['designer_deadline'];
         }
 
-        // If creating a NEW deliverable and exactly 1 subtask is defined, consolidate into a single standalone deliverable
-        if (!$parentId && count($subtasks) === 1) {
+        // If creating a NEW deliverable and exactly 1 subtask is defined without a distinct batch title, consolidate into a single standalone deliverable.
+        // If the user specified a distinct batch title and subtask title, keep as a Batch parent + Subtask deliverable.
+        $hasDistinctBatchTitle = !empty($taskData['title']) && !empty($subtasks[0]['title']) && trim(strtolower($taskData['title'])) !== trim(strtolower($subtasks[0]['title']));
+        if (!$parentId && count($subtasks) === 1 && !$hasDistinctBatchTitle) {
             $sub = $subtasks[0];
             if (!empty($sub['title'])) $taskData['title'] = $sub['title'];
             $taskData['post_type'] = $sub['post_type'] ?? ($taskData['post_type'] ?? 'Graphic');

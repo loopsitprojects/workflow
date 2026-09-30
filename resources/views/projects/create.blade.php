@@ -128,9 +128,14 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
                 <div x-ref="editor" class="f-input" style="min-height: 120px; border-top-left-radius: 0; border-top-right-radius: 0; padding: 0;"></div>
             </div>
             <div style="margin-top:16px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <label class="f-label" style="margin-bottom:0;font-size:12px;font-weight:700;">Project Batches</label>
-                    <button type="button" onclick="addBatchCard()" style="padding:6px 12px;background:#0055D4;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 6px rgba(0,85,212,0.15);">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+                    <div>
+                        <label class="f-label" style="margin-bottom:0;font-size:12px;font-weight:700;">Project Batches</label>
+                        <p style="font-size:11px;color:var(--color-text-secondary);margin:3px 0 0 0;font-weight:500;">
+                            Keep the default batch date, add a batch due date, or set individual due dates for each deliverable.
+                        </p>
+                    </div>
+                    <button type="button" onclick="addBatchCard()" style="padding:6px 12px;background:#0055D4;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 6px rgba(0,85,212,0.15);flex-shrink:0;">
                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         Add Batch
                     </button>

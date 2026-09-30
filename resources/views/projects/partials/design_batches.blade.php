@@ -66,6 +66,18 @@
                                 @if($hasSubtasks)
                                     <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle active" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:6px; outline:none;"></button>
                                 @endif
+                                @php
+                                    $taskPrio = $task->priority ?? 'Medium';
+                                    $taskPrioColor = $taskPrio === 'High Priority' ? '#ef4444' : '#10b981';
+                                @endphp
+                                <span onclick="event.stopPropagation(); openPriorityInlineEditor(event, {{ $task->id }}, '{{ $taskPrio }}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="{{ $taskPrio }} (Click to edit)">
+                                    <svg width="14" height="14" fill="{{ $taskPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
+                                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
+                                    </svg>
+                                    @if($taskPrio === 'High Priority')
+                                        <span style="font-size:9px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); padding:1px 5px; border-radius:4px; text-transform:uppercase; letter-spacing:0.04em;">High</span>
+                                    @endif
+                                </span>
                                 <div>
                                     <div style="font-weight:700; color:var(--color-text-primary);">{{ $task->title }}</div>
                                     @if($hasSubtasks)
@@ -198,34 +210,65 @@
                         </td>
 
                         {{-- Actions --}}
-                        <td style="text-align:center;" onclick="event.stopPropagation()">
-                            <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
-                                @if($hasSubtasks)
-                                    <a href="{{ route('deliverables.batch', $task->id) }}" class="cd-btn cd-btn-outline" style="padding:4px 8px; font-size:11px;">
-                                        Batch View
-                                    </a>
-                                @endif
-
+                        <td style="text-align:center; padding:8px 6px;" onclick="event.stopPropagation()">
+                            <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
+                                {{-- 1. Submit Button --}}
                                 @if($isDesignerStage && $canDesignerSubmit)
-                                    <button type="button" onclick="openTaskModal({{ $task->id }})"
-                                            style="padding:5px 10px; background:#6366f1; color:#fff; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">
-                                        Submit Artwork
+                                    <button type="button" onclick="openTaskModal({{ $task->id }})" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        Submit
                                     </button>
                                 @elseif($isManagerReviewStage && $canManagerReview)
-                                    <form action="{{ route('deliverables.submit', $task->id) }}" method="POST" style="display:inline;">
+                                    <form action="{{ route('deliverables.submit', $task->id) }}" method="POST" style="display:contents;">
                                         @csrf
-                                        <button type="submit" onclick="return confirm('Approve artwork and close this deliverable?')"
-                                                style="padding:5px 10px; background:#10b981; color:#fff; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">
-                                            Approve
+                                        <button type="submit" onclick="return confirm('Approve artwork and close this deliverable?')" class="quick-action-btn btn-approve-quick" title="Approve">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                            Submit
                                         </button>
                                     </form>
-                                    <button type="button" onclick="openDirectRevisionPrompt({{ $task->id }})"
-                                            style="padding:5px 10px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">
-                                        Revise
-                                    </button>
+                                @endif
+
+                                {{-- 2. View Button --}}
+                                @if($hasSubtasks)
+                                    <a href="{{ route('deliverables.showBatch', $task->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()" title="Batch View">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        View
+                                    </a>
                                 @else
-                                    <button type="button" onclick="openTaskModal({{ $task->id }})" class="cd-btn cd-btn-outline" style="padding:4px 8px; font-size:11px;">
-                                        Details
+                                    <button type="button" onclick="openTaskModal({{ $task->id }})" class="quick-action-btn btn-view-quick" title="View Details">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        View
+                                    </button>
+                                @endif
+
+                                {{-- 3. + Sub Button (Batches only) --}}
+                                @if($hasSubtasks)
+                                    @can('create-deliverable')
+                                        <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'flow' => 'design', 'parent_id' => $task->id]) }}"
+                                           class="quick-action-btn btn-edit-quick" style="text-decoration:none;"
+                                           title="Add Subtask">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                            Sub
+                                        </a>
+                                    @endcan
+                                @endif
+
+                                {{-- 4. Delete Button --}}
+                                @if($isAdmin || $userRole === 'brandmanager')
+                                    <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirmAction(event, 'Delete Deliverable?', 'Are you sure you want to delete this deliverable? This action cannot be undone.', true)" style="display:contents;" onclick="event.stopPropagation()">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="quick-action-btn btn-delete-quick" title="Delete Deliverable">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            Del
+                                        </button>
+                                    </form>
+                                @endif
+
+                                {{-- Revise Button (if Manager Review stage) --}}
+                                @if($isManagerReviewStage && $canManagerReview)
+                                    <button type="button" onclick="openDirectRevisionPrompt({{ $task->id }})" class="quick-action-btn btn-revise-quick" style="grid-column: span 2;" title="Request Revisions">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                        Revise
                                     </button>
                                 @endif
                             </div>
@@ -245,8 +288,21 @@
                                 
                                 {{-- Subtask Title & Format --}}
                                 <td>
-                                    <div style="padding-left:16px;">
-                                        <div style="font-weight:600; font-size:12px; color:var(--color-text-primary);">{{ $sub->title }}</div>
+                                    <div style="padding-left:16px; display:flex; align-items:center; gap:8px;">
+                                        @php
+                                            $subPrio = $sub->priority ?? 'Medium';
+                                            $subPrioColor = $subPrio === 'High Priority' ? '#ef4444' : '#10b981';
+                                        @endphp
+                                        <span onclick="event.stopPropagation(); openPriorityInlineEditor(event, {{ $sub->id }}, '{{ $subPrio }}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="{{ $subPrio }} (Click to edit)">
+                                            <svg width="14" height="14" fill="{{ $subPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
+                                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
+                                            </svg>
+                                            @if($subPrio === 'High Priority')
+                                                <span style="font-size:9px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); padding:1px 5px; border-radius:4px; text-transform:uppercase; letter-spacing:0.04em;">High</span>
+                                            @endif
+                                        </span>
+                                        <div>
+                                            <div style="font-weight:600; font-size:12px; color:var(--color-text-primary);">{{ $sub->title }}</div>
                                         @if($sub->post_type)
                                             <span class="subtask-pill" style="font-size:8px; background:rgba(99,102,241,0.06); color:#6366f1; border-color:rgba(99,102,241,0.2);">
                                                 {{ $sub->post_type }}
@@ -346,10 +402,23 @@
                                 </td>
 
                                 {{-- Action --}}
-                                <td style="text-align:center;" onclick="event.stopPropagation()">
-                                    <button type="button" onclick="openTaskModal({{ $sub->id }})" class="cd-btn cd-btn-outline" style="padding:3px 7px; font-size:10px;">
-                                        Open
-                                    </button>
+                                <td style="text-align:center; padding:6px 6px;" onclick="event.stopPropagation()">
+                                    <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
+                                        <button type="button" onclick="openTaskModal({{ $sub->id }})" class="quick-action-btn btn-view-quick" title="View Deliverable">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            View
+                                        </button>
+
+                                        @if($isAdmin || $userRole === 'brandmanager')
+                                            <form action="{{ route('deliverables.destroy', $sub) }}" method="POST" onsubmit="return confirmAction(event, 'Delete Subtask?', 'Are you sure you want to delete this subtask? This action cannot be undone.', true)" style="display:contents;" onclick="event.stopPropagation()">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="quick-action-btn btn-delete-quick" title="Delete Subtask">
+                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    Del
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

@@ -128,11 +128,6 @@
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-                <button type="button" onclick="openAddPostTypeModal(event, {{ $deliverable->id }}, '{{ $deliverable->project->workflow_type }}', '{{ $deliverable->post_type }}')"
-                   style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.08);border:1.5px solid rgba(16,185,129,0.25);cursor:pointer;white-space:nowrap;">
-                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                    Add Deliverable
-                </button>
                 <a href="{{ route('deliverables.export-batch.ppt', $deliverable->id) }}"
                    style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;color:#0055D4;background:rgba(0,85,212,0.06);border:1.5px solid rgba(0,85,212,0.2);text-decoration:none;white-space:nowrap;">
                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -780,93 +775,6 @@ document.addEventListener('keydown', e => {
                 modal.style.display = 'none';
             }, 200);
         }
-
-        const allSubtaskTypes = @json($allSubtaskTypes ?? []);
-        function openAddPostTypeModal(e, taskId, workflowType, defaultPostType) {
-            if (e && e.stopPropagation) e.stopPropagation();
-            
-            const titleInput = document.getElementById('addPostTypeTitle');
-            if (titleInput) titleInput.value = '';
-            
-            const select = document.getElementById('addPostTypeSelect');
-            select.innerHTML = '';
-            
-            const activeWorkflow = (workflowType === 'retainer') ? 'retainer' : 'campaign';
-            const filtered = allSubtaskTypes.filter(t => t.workflow_type === activeWorkflow);
-            
-            let hasSelected = false;
-            filtered.forEach(type => {
-                const opt = document.createElement('option');
-                opt.value = type.name;
-                opt.textContent = type.name;
-                if (defaultPostType && type.name.toLowerCase() === defaultPostType.toLowerCase()) {
-                    opt.selected = true;
-                    hasSelected = true;
-                }
-                select.appendChild(opt);
-            });
-            
-            if (defaultPostType && !hasSelected) {
-                const opt = document.createElement('option');
-                opt.value = defaultPostType;
-                opt.textContent = defaultPostType;
-                opt.selected = true;
-                select.insertBefore(opt, select.firstChild);
-            } else if (filtered.length === 0) {
-                const opt = document.createElement('option');
-                opt.value = 'Post';
-                opt.textContent = 'Post';
-                select.appendChild(opt);
-            }
-            
-            document.getElementById('addPostTypeForm').action = '/deliverables/' + taskId + '/add-to-batch';
-            
-            const overlay = document.getElementById('addPostTypeOverlay');
-            overlay.style.display = 'flex';
-            setTimeout(() => {
-                overlay.style.opacity = '1';
-                overlay.querySelector('.cd-modal').classList.add('active');
-            }, 10);
-        }
-
-        function closeAddPostTypeModal(e) {
-            if (e && e.target !== document.getElementById('addPostTypeOverlay')) return;
-            const overlay = document.getElementById('addPostTypeOverlay');
-            overlay.style.opacity = '0';
-            overlay.querySelector('.cd-modal').classList.remove('active');
-            setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 300);
-        }
     </script>
 
-    <!-- Add Deliverable to Batch Selection Modal -->
-    <div id="addPostTypeOverlay" class="cd-modal-overlay" onclick="closeAddPostTypeModal(event)" style="z-index: 10000;">
-        <div class="cd-modal" style="max-width: 400px; border-radius: 20px;" onclick="event.stopPropagation()">
-            <div class="cd-modal-header" style="padding: 20px 24px; background: var(--color-bg-secondary); align-items: center;">
-                <h2 style="font-size: 15px; font-weight: 900; color: var(--color-text-primary); margin: 0;">Add Deliverable to Batch</h2>
-                <button onclick="closeAddPostTypeModal()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer;">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <form id="addPostTypeForm" method="POST" style="margin: 0;">
-                @csrf
-                <div class="cd-modal-body" style="padding: 24px; display:flex; flex-direction:column; gap:16px;">
-                    <div>
-                        <label class="detail-label" style="margin-bottom: 8px;">Deliverable Name</label>
-                        <input type="text" name="title" id="addPostTypeTitle" placeholder="e.g. Carousel 1 (Leave blank to auto-generate)" style="width: 100%; padding: 10px 14px; font-size: 13px; font-weight: 500; border-radius: 10px; border: 1.5px solid var(--color-border-primary); background: var(--color-bg-secondary); color: var(--color-text-primary); outline: none;">
-                    </div>
-                    <div>
-                        <label class="detail-label" style="margin-bottom: 8px;">Select Post Type</label>
-                        <select name="post_type" id="addPostTypeSelect" required style="width: 100%; padding: 10px 14px; font-size: 13px; font-weight: 600; border-radius: 10px; border: 1.5px solid var(--color-border-primary); background: var(--color-bg-secondary); color: var(--color-text-primary); outline: none;">
-                            <!-- Dynamically filled options -->
-                        </select>
-                    </div>
-                </div>
-                <div class="cd-modal-footer" style="padding: 16px 24px;">
-                    <button type="button" onclick="closeAddPostTypeModal()" class="cd-btn cd-btn-outline">Cancel</button>
-                    <button type="submit" class="cd-btn cd-btn-primary" style="padding: 10px 20px; box-shadow:none;">Add to Batch</button>
-                </div>
-            </form>
-        </div>
-    </div>
+
