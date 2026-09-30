@@ -43,8 +43,14 @@ class ProjectController extends Controller
         
         $groupedUsers = $users->groupBy('role');
         $subtaskTypes = \App\Models\SubtaskType::orderBy('workflow_type')->orderBy('name')->get();
+        $selectedBrand = $brandId ? \App\Models\Brand::find($brandId) : $brands->first();
 
-        return view('projects.create', compact('brands', 'writers', 'approvers', 'managers', 'designers', 'users', 'groupedUsers', 'subtaskTypes'));
+        // Available CRM jobs mapped to brands
+        $allCrmJobs = \App\Models\CrmJob::where('status', 'available')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('projects.create', compact('brands', 'writers', 'approvers', 'managers', 'designers', 'users', 'groupedUsers', 'subtaskTypes', 'selectedBrand', 'allCrmJobs'));
     }
 
     public function store(Request $request)
@@ -101,6 +107,15 @@ class ProjectController extends Controller
         }
 
         $project = Project::create($validated);
+
+        if (!empty($project->job_number)) {
+            \App\Models\CrmJob::where('crm_job_id', $project->job_number)
+                ->where('status', 'available')
+                ->update([
+                    'status'     => 'assigned',
+                    'project_id' => $project->id,
+                ]);
+        }
 
         // Bulk-generate blank deliverable slots per post type (or by count if no types given)
         $firstStage = in_array($project->workflow_type, ['campaign', 'pitch'])

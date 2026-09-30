@@ -64,7 +64,20 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
     @endif
     <form id="createProjectForm" action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
-        <input type="hidden" name="brand_id" value="{{ request('brand_id', $brands->first()->id ?? '') }}">
+        @if(!request('brand_id') && $brands->count() > 1)
+            <div class="f-section">
+                <label class="f-label">Brand</label>
+                <select name="brand_id" id="project_brand_select" class="f-input" style="max-width:320px;" onchange="updateCrmJobsForBrand(this.value)">
+                    @foreach($brands as $b)
+                        <option value="{{ $b->id }}" {{ (old('brand_id', $selectedBrand->id ?? '') == $b->id) ? 'selected' : '' }}>
+                            {{ $b->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        @else
+            <input type="hidden" id="project_brand_select" name="brand_id" value="{{ request('brand_id', $selectedBrand->id ?? ($brands->first()->id ?? '')) }}">
+        @endif
         <input type="hidden" name="priority" value="Medium">
         <input type="hidden" name="status" value="To commence">
         <input type="hidden" name="type" value="primary">
@@ -80,12 +93,26 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
         <div class="f-section">
             <div class="f-grid">
                 <div>
-                    <label class="f-label">Job Number</label>
-                    <input type="text" name="job_number" placeholder="e.g. JN-2025-001" class="f-input" value="{{ old('job_number') }}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <label class="f-label" style="margin-bottom:0;">Job Number</label>
+                        <span id="crm_badge" style="display:none; font-size:10px; font-weight:700; color:#0055D4; background:rgba(0,85,212,0.08); border:1px solid rgba(0,85,212,0.2); padding:2px 7px; border-radius:5px;">
+                            CRM Jobs Available
+                        </span>
+                    </div>
+
+                    {{-- CRM Job Dropdown --}}
+                    <div id="crm_job_dropdown_container" style="display:none; margin-bottom:8px;">
+                        <select id="crm_job_selector" onchange="applyCrmJob(this)" class="f-input" style="font-size:12px; font-weight:600; color:var(--color-text-primary); background:var(--color-bg-secondary); border:1.5px solid #0055D4; cursor:pointer;">
+                            <option value="">-- Select from CRM Jobs --</option>
+                        </select>
+                    </div>
+
+                    <input type="text" id="project_job_number" name="job_number" placeholder="e.g. JN-2025-001" class="f-input" value="{{ old('job_number') }}">
+                    <span style="font-size:10px; color:var(--color-text-secondary); margin-top:3px; display:block;">Select an incoming CRM Job ID above or enter one manually.</span>
                 </div>
                 <div>
                     <label class="f-label">Due Date</label>
-                    <input type="date" name="deadline" class="f-input" min="{{ date('Y-m-d') }}" value="{{ old('deadline') }}">
+                    <input type="date" id="project_deadline" name="deadline" class="f-input" min="{{ date('Y-m-d') }}" value="{{ old('deadline') }}">
                 </div>
             </div>
         </div>
@@ -168,7 +195,62 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
 <script>
 const subtaskTypes = @json($subtaskTypes);
 const oldBatches = @json(old('batches', []));
+const allAvailableCrmJobs = @json($allCrmJobs ?? []);
 let batchIndex = 0;
+
+function refreshCrmJobsDropdown(brandId) {
+    const selector = document.getElementById('crm_job_selector');
+    const container = document.getElementById('crm_job_dropdown_container');
+    const badge = document.getElementById('crm_badge');
+    if (!selector || !container) return;
+
+    const matchingJobs = allAvailableCrmJobs.filter(j => j.brand_id == brandId);
+    selector.innerHTML = '<option value="">-- Select from CRM Jobs (' + matchingJobs.length + ' available) --</option>';
+
+    if (matchingJobs.length > 0) {
+        matchingJobs.forEach(j => {
+            const opt = document.createElement('option');
+            opt.value = j.crm_job_id;
+            opt.textContent = j.crm_job_id + (j.title ? ' — ' + j.title : '');
+            opt.setAttribute('data-title', j.title || '');
+            opt.setAttribute('data-deadline', j.deadline ? j.deadline.substring(0, 10) : '');
+            selector.appendChild(opt);
+        });
+        container.style.display = 'block';
+        if (badge) {
+            badge.textContent = matchingJobs.length + ' CRM ' + (matchingJobs.length === 1 ? 'Job' : 'Jobs') + ' Available';
+            badge.style.display = 'inline-block';
+        }
+    } else {
+        container.style.display = 'none';
+        if (badge) badge.style.display = 'none';
+    }
+}
+
+function applyCrmJob(select) {
+    if (!select || !select.value) return;
+    const opt = select.options[select.selectedIndex];
+    const jobNum = opt.value;
+    const title = opt.getAttribute('data-title');
+    const deadline = opt.getAttribute('data-deadline');
+
+    const jobInput = document.getElementById('project_job_number');
+    if (jobInput) jobInput.value = jobNum;
+
+    const titleInput = document.querySelector('input[name="name"]');
+    if (titleInput && (!titleInput.value || titleInput.value.trim() === '') && title) {
+        titleInput.value = title;
+    }
+
+    const deadlineInput = document.getElementById('project_deadline');
+    if (deadlineInput && (!deadlineInput.value || deadlineInput.value.trim() === '') && deadline) {
+        deadlineInput.value = deadline;
+    }
+}
+
+function updateCrmJobsForBrand(brandId) {
+    refreshCrmJobsDropdown(brandId);
+}
 
 function addBatchCard(existingData = null) {
     batchIndex++;
@@ -367,6 +449,12 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const [key, batch] of Object.entries(oldBatches)) {
             addBatchCard(batch); // We will pass 'batch' data to addBatchCard
         }
+    }
+
+    // Initialize CRM Jobs dropdown for currently active brand
+    const brandInput = document.getElementById('project_brand_select');
+    if (brandInput && brandInput.value) {
+        refreshCrmJobsDropdown(brandInput.value);
     }
 
     document.getElementById('createProjectForm').addEventListener('submit', function(e) {
