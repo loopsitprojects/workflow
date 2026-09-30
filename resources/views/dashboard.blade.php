@@ -14,27 +14,136 @@
 
         {{-- Stats --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white dark:bg-[#111827] rounded-2xl p-5 border border-gray-100 dark:border-white/[0.05] card-shadow">
-                <p class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">Assigned</p>
+            <div class="stat-card stat-assigned rounded-2xl p-5 card-shadow transition-all hover:shadow-md">
+                <p class="stat-label mb-2">Assigned</p>
                 <p class="text-3xl font-extrabold text-gray-900 dark:text-white">{{ $deliverables->count() }}</p>
-                <p class="text-[11px] text-gray-400 dark:text-slate-500 mt-1">deliverables</p>
+                <p class="stat-subtext mt-1">deliverables</p>
             </div>
-            <div class="bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl p-5 border border-emerald-100 dark:border-emerald-500/20">
-                <p class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-2">Completed</p>
+            <div class="stat-card stat-completed rounded-2xl p-5 card-shadow transition-all hover:shadow-md">
+                <p class="stat-label mb-2">Completed</p>
                 <p class="text-3xl font-extrabold text-gray-900 dark:text-white">{{ $deliverables->where('status', 'Done')->count() }}</p>
-                <p class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">closed out</p>
+                <p class="stat-subtext mt-1">closed out</p>
             </div>
-            <div class="bg-white dark:bg-[#111827] rounded-2xl p-5 border border-gray-100 dark:border-white/[0.05] card-shadow">
-                <p class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">Pending</p>
+            <div class="stat-card stat-pending rounded-2xl p-5 card-shadow transition-all hover:shadow-md">
+                <p class="stat-label mb-2">Pending</p>
                 <p class="text-3xl font-extrabold text-gray-900 dark:text-white">{{ $deliverables->where('status', '!=', 'Done')->count() }}</p>
-                <p class="text-[11px] text-gray-400 dark:text-slate-500 mt-1">in progress</p>
+                <p class="stat-subtext mt-1">in progress</p>
             </div>
-            <div class="bg-blue-50 dark:bg-blue-500/10 rounded-2xl p-5 border border-blue-100 dark:border-blue-500/20">
-                <p class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-2">Brands</p>
+            <div class="stat-card stat-brands rounded-2xl p-5 card-shadow transition-all hover:shadow-md">
+                <p class="stat-label mb-2">Brands</p>
                 <p class="text-3xl font-extrabold text-gray-900 dark:text-white">{{ $brandCount }}</p>
-                <p class="text-[11px] text-blue-600 dark:text-blue-400 mt-1">active workspaces</p>
+                <p class="stat-subtext mt-1">active workspaces</p>
             </div>
         </div>
+
+        <style>
+            .stat-card {
+                border-width: 1px;
+                border-style: solid;
+            }
+            /* Assigned Card */
+            .stat-assigned {
+                background-color: #ffffff;
+                border-color: #e2e8f0;
+            }
+            .stat-assigned .stat-label {
+                font-size: 10px;
+                font-weight: 700;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+            }
+            .stat-assigned .stat-subtext {
+                font-size: 11px;
+                font-weight: 500;
+                color: #64748b;
+            }
+
+            /* Completed Card (Green) */
+            .stat-completed {
+                background-color: #ecfdf5;
+                border-color: #a7f3d0;
+            }
+            .stat-completed .stat-label {
+                font-size: 10px;
+                font-weight: 700;
+                color: #059669;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+            }
+            .stat-completed .stat-subtext {
+                font-size: 11px;
+                font-weight: 500;
+                color: #059669;
+            }
+
+            /* Pending Card */
+            .stat-pending {
+                background-color: #ffffff;
+                border-color: #e2e8f0;
+            }
+            .stat-pending .stat-label {
+                font-size: 10px;
+                font-weight: 700;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+            }
+            .stat-pending .stat-subtext {
+                font-size: 11px;
+                font-weight: 500;
+                color: #64748b;
+            }
+
+            /* Brands Card (Blue) */
+            .stat-brands {
+                background-color: #eff6ff;
+                border-color: #bfdbfe;
+            }
+            .stat-brands .stat-label {
+                font-size: 10px;
+                font-weight: 700;
+                color: #2563eb;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+            }
+            .stat-brands .stat-subtext {
+                font-size: 11px;
+                font-weight: 500;
+                color: #2563eb;
+            }
+
+            /* Dark Mode Overrides */
+            .dark .stat-assigned,
+            .dark .stat-pending {
+                background-color: #111827;
+                border-color: rgba(255, 255, 255, 0.06);
+            }
+            .dark .stat-assigned .stat-label,
+            .dark .stat-assigned .stat-subtext,
+            .dark .stat-pending .stat-label,
+            .dark .stat-pending .stat-subtext {
+                color: #94a3b8;
+            }
+
+            .dark .stat-completed {
+                background-color: rgba(16, 185, 129, 0.12);
+                border-color: rgba(16, 185, 129, 0.25);
+            }
+            .dark .stat-completed .stat-label,
+            .dark .stat-completed .stat-subtext {
+                color: #34d399;
+            }
+
+            .dark .stat-brands {
+                background-color: rgba(59, 130, 246, 0.12);
+                border-color: rgba(59, 130, 246, 0.25);
+            }
+            .dark .stat-brands .stat-label,
+            .dark .stat-brands .stat-subtext {
+                color: #60a5fa;
+            }
+        </style>
 
         {{-- Brand quick-access --}}
         @if($brands->isNotEmpty())
