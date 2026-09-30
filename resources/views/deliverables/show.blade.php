@@ -1654,24 +1654,60 @@
                 const teamGrid = document.getElementById('modalTeamGrid');
                 teamGrid.innerHTML = '';
                 if (task.associates) {
-                    const roles = [
-                        {key: 'writer', label: 'Writer'},
-                        {key: 'approver', label: 'Approver'},
-                    ];
-                    if (task.associates.further_approver && task.associates.further_approver !== 'None') {
-                        roles.push({key: 'further_approver', label: 'Further Approver'});
+                    let roles = [];
+                    if (isOtherDeliverable || task.is_other_deliverable) {
+                        // Other Deliverables in Campaign / Pitch: Assign -> Approve -> Close
+                        roles = [
+                            {key: 'assignee', label: 'Assignee'},
+                            {key: 'brand_manager', label: 'Brand Manager'},
+                        ];
+                    } else if (task.flow_type === 'direct_design' || task.is_direct_design) {
+                        // Direct Design: Designer -> Manager Review -> Closed
+                        roles = [
+                            {key: 'designer', label: 'Designer'},
+                            {key: 'brand_manager', label: 'Brand Manager'},
+                        ];
+                    } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
+                        // Campaign / Pitch Outlines
+                        roles = [
+                            {key: 'assignee', label: 'Assignee'},
+                            {key: 'brand_manager', label: 'Brand Manager'},
+                        ];
+                        if (task.associates.approver && task.associates.approver !== 'None') {
+                            roles.push({key: 'approver', label: 'Approver'});
+                        }
+                        if (task.associates.further_approver && task.associates.further_approver !== 'None') {
+                            roles.push({key: 'further_approver', label: 'Further Approver'});
+                        }
+                        if (task.associates.coordinator && task.associates.coordinator !== 'None') {
+                            roles.push({key: 'coordinator', label: 'Coordinator'});
+                        }
+                        if (task.associates.designer && task.associates.designer !== 'None') {
+                            roles.push({key: 'designer', label: 'Designer'});
+                        }
+                    } else {
+                        // Standard Retainer Workflow
+                        roles = [
+                            {key: 'writer', label: 'Writer'},
+                            {key: 'approver', label: 'Approver'},
+                        ];
+                        if (task.associates.further_approver && task.associates.further_approver !== 'None') {
+                            roles.push({key: 'further_approver', label: 'Further Approver'});
+                        }
+                        roles.push(
+                            {key: 'brand_manager', label: 'Brand Manager'},
+                            {key: 'coordinator', label: 'Coordinator'},
+                            {key: 'designer', label: 'Designer'}
+                        );
                     }
-                    roles.push(
-                        {key: 'brand_manager', label: 'Brand Manager'},
-                        {key: 'coordinator', label: 'Coordinator'},
-                        {key: 'designer', label: 'Designer'}
-                    );
                     
                     roles.forEach(role => {
-                        const name = task.associates[role.key] || 'None';
+                        const name = task.associates[role.key]
+                            || (role.key === 'assignee' ? (task.assignee_name || task.writer?.name || task.associates.writer) : null)
+                            || 'None';
                         
                         let rCol = '100,116,139';
-                        if (role.key === 'writer') rCol = '59,130,246';
+                        if (role.key === 'writer' || role.key === 'assignee') rCol = '59,130,246';
                         else if (role.key === 'approver' || role.key === 'further_approver') rCol = '234,88,12';
                         else if (role.key === 'brand_manager') rCol = '37,99,235';
                         else if (role.key === 'coordinator') rCol = '14,165,233';

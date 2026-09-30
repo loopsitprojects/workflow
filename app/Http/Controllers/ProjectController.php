@@ -31,15 +31,23 @@ class ProjectController extends Controller
         
         if ($brandId) {
             $brand = \App\Models\Brand::with('members')->find($brandId);
-            $users = $brand ? $brand->members : collect();
+            $users = ($brand && $brand->members->isNotEmpty()) ? $brand->members : \App\Models\User::all();
         } else {
             $users = \App\Models\User::all();
         }
 
+        $allUsers = \App\Models\User::orderBy('name')->get();
         $writers = $users->where('role', 'Writer');
+        if ($writers->isEmpty()) $writers = $allUsers->where('role', 'Writer');
+
         $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator', 'Operations Manager']);
+        if ($approvers->isEmpty()) $approvers = $allUsers->whereIn('role', ['Approver', 'Approver Coordinator', 'Operations Manager']);
+
         $managers = $users->where('role', 'Brand Manager');
+        if ($managers->isEmpty()) $managers = $allUsers->where('role', 'Brand Manager');
+
         $designers = $users->where('role', 'Designer');
+        if ($designers->isEmpty()) $designers = $allUsers->where('role', 'Designer');
         
         $groupedUsers = $users->groupBy('role');
         $subtaskTypes = \App\Models\SubtaskType::orderBy('workflow_type')->orderBy('name')->get();
@@ -50,7 +58,7 @@ class ProjectController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('projects.create', compact('brands', 'writers', 'approvers', 'managers', 'designers', 'users', 'groupedUsers', 'subtaskTypes', 'selectedBrand', 'allCrmJobs'));
+        return view('projects.create', compact('brands', 'writers', 'approvers', 'managers', 'designers', 'users', 'allUsers', 'groupedUsers', 'subtaskTypes', 'selectedBrand', 'allCrmJobs'));
     }
 
     public function store(Request $request)
@@ -159,6 +167,10 @@ class ProjectController extends Controller
             }
 
             $isCampaignOrPitch = in_array($project->workflow_type, ['campaign', 'pitch']);
+            $allProjectAssigneeIds = [];
+            if (!empty($project->writer_id)) {
+                $allProjectAssigneeIds[] = (int)$project->writer_id;
+            }
 
             foreach ($batches as $batch) {
                 $batchName = $batch['name'] ?? 'Batch';
@@ -169,15 +181,36 @@ class ProjectController extends Controller
                     $outlineItems = [];
                     $otherItems = [];
 
+                    // Collect any assignees in this batch for preloading
+                    $batchAssigneeIds = [];
+                    foreach ($postTypes as $typeData) {
+                        if (is_array($typeData) && !empty($typeData['assignees'])) {
+                            foreach ($typeData['assignees'] as $aId) {
+                                if (!empty($aId)) {
+                                    $batchAssigneeIds[] = (int)$aId;
+                                    $allProjectAssigneeIds[] = (int)$aId;
+                                }
+                            }
+                        }
+                    }
+                    if (!empty($project->writer_id)) {
+                        $batchAssigneeIds[] = (int)$project->writer_id;
+                    }
+                    $assignedUsersMap = !empty($batchAssigneeIds)
+                        ? \App\Models\User::whereIn('id', array_unique($batchAssigneeIds))->get()->keyBy('id')
+                        : collect();
+
                     foreach ($postTypes as $typeId => $typeData) {
                         if (is_array($typeData)) {
                             $count = (int)($typeData['count'] ?? 0);
                             $typeDeadline = !empty($typeData['deadline']) ? $typeData['deadline'] : null;
                             $itemDates = $typeData['dates'] ?? [];
+                            $itemAssignees = $typeData['assignees'] ?? [];
                         } else {
                             $count = (int)$typeData;
                             $typeDeadline = null;
                             $itemDates = [];
+                            $itemAssignees = [];
                         }
 
                         if ($count <= 0) continue;
@@ -191,10 +224,19 @@ class ProjectController extends Controller
                                 ? $itemDates[$i]
                                 : ($typeDeadline ?: $batchDeadline);
 
+                            $assignedUserId = !empty($itemAssignees[$i])
+                                ? (int)$itemAssignees[$i]
+                                : ($project->writer_id ?? null);
+
+                            $assignedUser = $assignedUserId ? ($assignedUsersMap[$assignedUserId] ?? null) : null;
+                            $assignedName = $assignedUser?->name ?? ($project->writer?->name ?? 'Unassigned');
+
                             $itemData = [
-                                'title'     => $typeName . ' ' . $i,
-                                'post_type' => $isOutline ? 'Outlines' : $typeName,
-                                'deadline'  => $deliverableDeadline,
+                                'title'         => $typeName . ' ' . $i,
+                                'post_type'     => $isOutline ? 'Outlines' : $typeName,
+                                'deadline'      => $deliverableDeadline,
+                                'writer_id'     => $assignedUserId,
+                                'assignee_name' => $assignedName,
                             ];
 
                             if ($isOutline) {
@@ -215,20 +257,27 @@ class ProjectController extends Controller
                     if ($bPostsCount > 0) {
                         for ($i = 1; $i <= $bPostsCount; $i++) {
                             $otherItems[] = [
-                                'title'     => 'Post ' . $i,
-                                'post_type' => null,
-                                'deadline'  => $bPostsDeadline,
+                                'title'         => 'Post ' . $i,
+                                'post_type'     => null,
+                                'deadline'      => $bPostsDeadline,
+                                'writer_id'     => $project->writer_id,
+                                'assignee_name' => $project->writer?->name ?? 'Unassigned',
                             ];
                         }
                     }
 
                     // 1. Create Outline parent and children if outline items exist
                     if (!empty($outlineItems)) {
+                        $parentAssigneeId = $outlineItems[0]['writer_id'] ?? $project->writer_id;
+                        $parentAssigneeName = $outlineItems[0]['assignee_name'] ?? $writerName;
+
                         $outlineParent = \App\Models\Deliverable::create(array_merge($baseRow, [
                             'title'          => $batchName,
                             'post_type'      => 'Outlines',
                             'deadline'       => $batchDeadline,
                             'approval_stage' => \App\Models\Deliverable::CAMPAIGN_STAGES[0],
+                            'writer_id'      => $parentAssigneeId,
+                            'assignee_name'  => $parentAssigneeName,
                         ]));
 
                         $outlineChildren = [];
@@ -239,6 +288,8 @@ class ProjectController extends Controller
                                 'post_type'             => $item['post_type'],
                                 'deadline'              => $item['deadline'],
                                 'approval_stage'        => \App\Models\Deliverable::CAMPAIGN_STAGES[0],
+                                'writer_id'             => $item['writer_id'],
+                                'assignee_name'         => $item['assignee_name'],
                             ]);
                         }
                         \App\Models\Deliverable::insert($outlineChildren);
@@ -246,11 +297,16 @@ class ProjectController extends Controller
 
                     // 2. Create Other Deliverables parent and children if other items exist
                     if (!empty($otherItems)) {
+                        $parentAssigneeId = $otherItems[0]['writer_id'] ?? $project->writer_id;
+                        $parentAssigneeName = $otherItems[0]['assignee_name'] ?? $writerName;
+
                         $otherParent = \App\Models\Deliverable::create(array_merge($baseRow, [
                             'title'          => $batchName,
                             'post_type'      => 'Batch',
                             'deadline'       => $batchDeadline,
                             'approval_stage' => \App\Models\Deliverable::OTHER_DELIVERABLE_STAGES[0],
+                            'writer_id'      => $parentAssigneeId,
+                            'assignee_name'  => $parentAssigneeName,
                         ]));
 
                         $otherChildren = [];
@@ -261,6 +317,8 @@ class ProjectController extends Controller
                                 'post_type'             => $item['post_type'],
                                 'deadline'              => $item['deadline'],
                                 'approval_stage'        => \App\Models\Deliverable::OTHER_DELIVERABLE_STAGES[0],
+                                'writer_id'             => $item['writer_id'],
+                                'assignee_name'         => $item['assignee_name'],
                             ]);
                         }
                         \App\Models\Deliverable::insert($otherChildren);
@@ -405,7 +463,11 @@ class ProjectController extends Controller
                 });
             }
             
-            $project->members()->sync($membersToSync->pluck('id'));
+            $syncMemberIds = $membersToSync->pluck('id')->toArray();
+            if (!empty($allProjectAssigneeIds)) {
+                $syncMemberIds = array_unique(array_merge($syncMemberIds, $allProjectAssigneeIds));
+            }
+            $project->members()->sync($syncMemberIds);
         }
 
         // Notify all writers in the brand
@@ -418,9 +480,15 @@ class ProjectController extends Controller
                     $notifiedIds[] = $writer->id;
                 }
             }
-            // Also notify the specifically assigned writer if not already a brand member
-            if ($project->writer_id && !in_array($project->writer_id, $notifiedIds)) {
-                $project->writer->notify(new BriefUploaded($project, $actor));
+            // Also notify any specifically assigned team members if not already notified
+            if (!empty($allProjectAssigneeIds)) {
+                $usersToNotify = \App\Models\User::whereIn('id', array_unique($allProjectAssigneeIds))->get();
+                foreach ($usersToNotify as $assigneeUser) {
+                    if (!in_array($assigneeUser->id, $notifiedIds)) {
+                        $assigneeUser->notify(new BriefUploaded($project, $actor));
+                        $notifiedIds[] = $assigneeUser->id;
+                    }
+                }
             }
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Failed to send BriefUploaded notification: ' . $e->getMessage());

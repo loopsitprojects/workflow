@@ -2155,30 +2155,74 @@
                 const teamGrid = document.getElementById('modalTeamGrid');
                 teamGrid.innerHTML = '';
                 if (task.associates) {
-                    const roles = [
-                        {key: 'writer', label: 'Writer'},
-                        {key: 'approver', label: 'Approver'},
-                    ];
-                    if (task.associates.further_approver && task.associates.further_approver !== 'None') {
-                        roles.push({key: 'further_approver', label: 'Further Approver'});
+                    let roles = [];
+                    if (isOtherDeliverable || task.is_other_deliverable) {
+                        // Other Deliverables in Campaign / Pitch: Assign -> Approve -> Close
+                        roles = [
+                            {key: 'assignee', label: 'Assignee'},
+                            {key: 'brand_manager', label: 'Brand Manager'},
+                        ];
+                    } else if (task.flow_type === 'direct_design' || task.is_direct_design) {
+                        // Direct Design: Designer -> Manager Review -> Closed
+                        roles = [
+                            {key: 'designer', label: 'Designer'},
+                            {key: 'brand_manager', label: 'Brand Manager'},
+                        ];
+                    } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
+                        // Campaign / Pitch Outlines
+                        roles = [
+                            {key: 'assignee', label: 'Assignee'},
+                            {key: 'brand_manager', label: 'Brand Manager'},
+                        ];
+                        if (task.associates.approver && task.associates.approver !== 'None') {
+                            roles.push({key: 'approver', label: 'Approver'});
+                        }
+                        if (task.associates.further_approver && task.associates.further_approver !== 'None') {
+                            roles.push({key: 'further_approver', label: 'Further Approver'});
+                        }
+                        if (task.associates.coordinator && task.associates.coordinator !== 'None') {
+                            roles.push({key: 'coordinator', label: 'Coordinator'});
+                        }
+                        if (task.associates.designer && task.associates.designer !== 'None') {
+                            roles.push({key: 'designer', label: 'Designer'});
+                        }
+                    } else {
+                        // Standard Retainer Workflow
+                        roles = [
+                            {key: 'writer', label: 'Writer'},
+                            {key: 'approver', label: 'Approver'},
+                        ];
+                        if (task.associates.further_approver && task.associates.further_approver !== 'None') {
+                            roles.push({key: 'further_approver', label: 'Further Approver'});
+                        }
+                        roles.push(
+                            {key: 'brand_manager', label: 'Brand Manager'},
+                            {key: 'coordinator', label: 'Coordinator'},
+                            {key: 'designer', label: 'Designer'}
+                        );
                     }
-                    roles.push(
-                        {key: 'brand_manager', label: 'Brand Manager'},
-                        {key: 'coordinator', label: 'Coordinator'},
-                        {key: 'designer', label: 'Designer'}
-                    );
                     
                     roles.forEach(role => {
-                        const name = task.associates[role.key] || 'None';
+                        const name = task.associates[role.key]
+                            || (role.key === 'assignee' ? (task.assignee_name || task.writer?.name || task.associates.writer) : null)
+                            || 'None';
+
+                        let rCol = '100,116,139';
+                        if (role.key === 'writer' || role.key === 'assignee') rCol = '59,130,246';
+                        else if (role.key === 'approver' || role.key === 'further_approver') rCol = '234,88,12';
+                        else if (role.key === 'brand_manager') rCol = '37,99,235';
+                        else if (role.key === 'coordinator') rCol = '14,165,233';
+                        else if (role.key === 'designer') rCol = '139,92,246';
+
                         const item = document.createElement('div');
-                        item.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px; background:#f8fafc; border-radius:12px; border:1px solid #f1f5f9;';
+                        item.style.cssText = `display:flex; align-items:center; gap:10px; padding:10px; background:rgba(${rCol},0.05); border-radius:12px; border:1px solid rgba(${rCol},0.2);`;
                         item.innerHTML = `
-                            <div style="width:30px; height:30px; border-radius:50%; background:#e0e7ff; color:#4338ca; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; border:1.5px solid #c7d2fe;">
+                            <div style="width:30px; height:30px; border-radius:50%; background:rgba(${rCol},0.1); color:rgb(${rCol}); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; border:1.5px solid rgba(${rCol},0.25);">
                                 ${name !== 'None' ? name.charAt(0) : '?'}
                             </div>
                             <div style="overflow:hidden;">
-                                <div style="font-size:9px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.02em; margin-bottom:1px;">${role.label}</div>
-                                <div style="font-size:12px; font-weight:700; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
+                                <div style="font-size:9px; font-weight:800; color:rgb(${rCol}); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:1px; opacity:0.9;">${role.label}</div>
+                                <div style="font-size:12px; font-weight:700; color:var(--color-text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
                             </div>
                         `;
                         teamGrid.appendChild(item);

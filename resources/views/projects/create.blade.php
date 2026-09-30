@@ -107,7 +107,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
                         </select>
                     </div>
 
-                    <input type="text" id="project_job_number" name="job_number" placeholder="e.g. JN-2025-001" class="f-input" value="{{ old('job_number') }}">
+                    <input type="text" id="project_job_number" name="job_number" placeholder="e.g. JN-2025-001" class="f-input" value="{{ old('job_number') }}" autocomplete="off">
                     <span style="font-size:10px; color:var(--color-text-secondary); margin-top:3px; display:block;">Select an incoming CRM Job ID above or enter one manually.</span>
                 </div>
                 <div>
@@ -137,15 +137,28 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
             <input type="hidden" name="workflow_type" id="workflow_type" value="retainer">
         </div>
 
-        {{-- Brand Manager --}}
+        {{-- Brand Manager & Default Assignee --}}
         <div class="f-section">
-            <label class="f-label">Brand Manager <span style="opacity:0.5;font-weight:400;">(Defaults to Brand Creator if left empty)</span></label>
-            <select name="brand_manager_id" class="f-input" style="max-width:240px;">
-                <option value="">-- Auto-assign Brand Creator --</option>
-                @foreach($managers as $manager)
-                    <option value="{{ $manager->id }}" {{ old('brand_manager_id') == $manager->id ? 'selected' : '' }}>{{ $manager->name }}</option>
-                @endforeach
-            </select>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
+                <div>
+                    <label class="f-label">Brand Manager <span style="opacity:0.5;font-weight:400;">(Defaults to Brand Creator if empty)</span></label>
+                    <select name="brand_manager_id" class="f-input">
+                        <option value="">-- Auto-assign Brand Creator --</option>
+                        @foreach($managers as $manager)
+                            <option value="{{ $manager->id }}" {{ old('brand_manager_id') == $manager->id ? 'selected' : '' }}>{{ $manager->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="f-label">Default Assignee <span style="opacity:0.5;font-weight:400;">(Campaign & Pitch workflow default)</span></label>
+                    <select name="writer_id" id="project_default_assignee" class="f-input">
+                        <option value="">-- Select Default Assignee (Optional) --</option>
+                        @foreach($allUsers ?? $users as $u)
+                            <option value="{{ $u->id }}" {{ old('writer_id') == $u->id ? 'selected' : '' }}>{{ $u->name }} ({{ ucfirst($u->role) }})</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
         </div>
 
         <div class="f-section">
@@ -196,7 +209,13 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
 const subtaskTypes = @json($subtaskTypes);
 const oldBatches = @json(old('batches', []));
 const allAvailableCrmJobs = @json($allCrmJobs ?? []);
+const allBrandsList = @json($brands);
+const allTeamMembers = @json(($allUsers ?? $users)->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role]));
 let batchIndex = 0;
+
+function updateCrmJobsForBrand(brandId) {
+    refreshCrmJobsDropdown(brandId);
+}
 
 function refreshCrmJobsDropdown(brandId) {
     const selector = document.getElementById('crm_job_selector');
@@ -204,21 +223,61 @@ function refreshCrmJobsDropdown(brandId) {
     const badge = document.getElementById('crm_badge');
     if (!selector || !container) return;
 
-    const matchingJobs = allAvailableCrmJobs.filter(j => j.brand_id == brandId);
-    selector.innerHTML = '<option value="">-- Select from CRM Jobs (' + matchingJobs.length + ' available) --</option>';
+    const brand = (allBrandsList || []).find(b => b.id == brandId);
+    const brandName = brand ? brand.name.trim().toLowerCase() : '';
 
-    if (matchingJobs.length > 0) {
-        matchingJobs.forEach(j => {
+    // 1. Direct matched jobs for this brand (by brand_id or brand_name)
+    const brandJobs = allAvailableCrmJobs.filter(j => {
+        if (j.brand_id && j.brand_id == brandId) return true;
+        if (j.brand_name && brandName) {
+            const jName = j.brand_name.trim().toLowerCase();
+            if (jName === brandName || brandName.includes(jName) || jName.includes(brandName)) return true;
+        }
+        return false;
+    });
+
+    // 2. Other incoming CRM jobs (unmatched or from other brands)
+    const otherJobs = allAvailableCrmJobs.filter(j => !brandJobs.includes(j));
+
+    selector.innerHTML = '';
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = '-- Select from CRM Jobs --';
+    selector.appendChild(defaultOpt);
+
+    if (brandJobs.length > 0) {
+        const group = document.createElement('optgroup');
+        group.label = brand ? `Jobs for ${brand.name} (${brandJobs.length})` : `Matched Brand Jobs (${brandJobs.length})`;
+        brandJobs.forEach(j => {
             const opt = document.createElement('option');
             opt.value = j.crm_job_id;
             opt.textContent = j.crm_job_id + (j.title ? ' — ' + j.title : '');
             opt.setAttribute('data-title', j.title || '');
             opt.setAttribute('data-deadline', j.deadline ? j.deadline.substring(0, 10) : '');
-            selector.appendChild(opt);
+            group.appendChild(opt);
         });
+        selector.appendChild(group);
+    }
+
+    if (otherJobs.length > 0) {
+        const group = document.createElement('optgroup');
+        group.label = brandJobs.length > 0 ? `Other Incoming CRM Jobs (${otherJobs.length})` : `Incoming CRM Jobs (${otherJobs.length})`;
+        otherJobs.forEach(j => {
+            const opt = document.createElement('option');
+            opt.value = j.crm_job_id;
+            opt.textContent = j.crm_job_id + (j.brand_name ? ' (' + j.brand_name + ')' : '') + (j.title ? ' — ' + j.title : '');
+            opt.setAttribute('data-title', j.title || '');
+            opt.setAttribute('data-deadline', j.deadline ? j.deadline.substring(0, 10) : '');
+            group.appendChild(opt);
+        });
+        selector.appendChild(group);
+    }
+
+    const totalAvailable = brandJobs.length + otherJobs.length;
+    if (totalAvailable > 0) {
         container.style.display = 'block';
         if (badge) {
-            badge.textContent = matchingJobs.length + ' CRM ' + (matchingJobs.length === 1 ? 'Job' : 'Jobs') + ' Available';
+            badge.textContent = `${totalAvailable} CRM Job${totalAvailable > 1 ? 's' : ''} Available`;
             badge.style.display = 'inline-block';
         }
     } else {
@@ -270,7 +329,7 @@ function addBatchCard(existingData = null) {
 
     let typesHtml = '';
     if (filteredTypes.length > 0) {
-        typesHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">`;
+        typesHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;">`;
         filteredTypes.forEach(type => {
             let countValue = 0;
             let dateValue = '';
@@ -345,10 +404,12 @@ function addBatchCard(existingData = null) {
             const qtyInput = card.querySelector(`#qty-input-${batchIndex}-${type.id}`);
             if (qtyInput) {
                 let savedDates = null;
+                let savedAssignees = null;
                 if (existingData && existingData.post_types && existingData.post_types[type.id] && typeof existingData.post_types[type.id] === 'object') {
                     savedDates = existingData.post_types[type.id].dates || null;
+                    savedAssignees = existingData.post_types[type.id].assignees || null;
                 }
-                renderItemDates(qtyInput, batchIndex, type.id, type.name, savedDates);
+                renderItemDates(qtyInput, batchIndex, type.id, type.name, savedDates, savedAssignees);
             }
         });
     }
@@ -356,7 +417,7 @@ function addBatchCard(existingData = null) {
     reindexBatchNumbers();
 }
 
-function renderItemDates(input, batchIdx, typeId, typeName, savedDates = null) {
+function renderItemDates(input, batchIdx, typeId, typeName, savedDates = null, savedAssignees = null) {
     const qty = parseInt(input.value) || 0;
     const container = document.getElementById(`item-dates-${batchIdx}-${typeId}`);
     if (!container) return;
@@ -367,6 +428,16 @@ function renderItemDates(input, batchIdx, typeId, typeName, savedDates = null) {
             const match = el.name.match(/\[dates\]\[(\d+)\]/);
             if (match && match[1]) {
                 existingDates[match[1]] = el.value;
+            }
+        });
+    }
+
+    const existingAssignees = savedAssignees || {};
+    if (!savedAssignees) {
+        container.querySelectorAll('select[name*="[assignees]"]').forEach((el) => {
+            const match = el.name.match(/\[assignees\]\[(\d+)\]/);
+            if (match && match[1]) {
+                existingAssignees[match[1]] = el.value;
             }
         });
     }
@@ -388,12 +459,33 @@ function renderItemDates(input, batchIdx, typeId, typeName, savedDates = null) {
     let html = '';
     for (let i = 1; i <= qty; i++) {
         const dateVal = existingDates[i] || '';
-        const label = (qty === 1) ? `${typeName} Due Date` : `${typeName} ${i} Due Date`;
+        const currentAssigneeVal = existingAssignees[i] || '';
+        const label = (qty === 1) ? typeName : `${typeName} ${i}`;
+
+        let optionsHtml = '';
+        allTeamMembers.forEach(m => {
+            const isSel = (String(currentAssigneeVal) === String(m.id)) ? 'selected' : '';
+            optionsHtml += `<option value="${m.id}" ${isSel}>${m.name} (${m.role})</option>`;
+        });
+
         html += `
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-                <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);">${label}:</span>
-                <input type="date" name="batches[${batchIdx}][post_types][${typeId}][dates][${i}]" value="${dateVal}" min="${todayStr}"
-                    style="background:var(--color-bg-secondary);border:1.5px solid var(--color-border-primary);border-radius:6px;padding:3px 6px;font-size:11px;font-weight:600;color:var(--color-text-primary);outline:none;">
+            <div style="background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:5px;">
+                <div style="font-size:10px;font-weight:700;color:var(--color-text-primary);letter-spacing:-0.01em;">${label}</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center;">
+                    <div>
+                        <span style="font-size:9px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:2px;">Due:</span>
+                        <input type="date" name="batches[${batchIdx}][post_types][${typeId}][dates][${i}]" value="${dateVal}" min="${todayStr}"
+                            style="width:100%;box-sizing:border-box;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:5px;padding:2px 5px;font-size:10.5px;font-weight:600;color:var(--color-text-primary);outline:none;">
+                    </div>
+                    <div>
+                        <span style="font-size:9px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:2px;">Assignee:</span>
+                        <select name="batches[${batchIdx}][post_types][${typeId}][assignees][${i}]"
+                            style="width:100%;box-sizing:border-box;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:5px;padding:2px 4px;font-size:10.5px;font-weight:600;color:var(--color-text-primary);outline:none;text-overflow:ellipsis;">
+                            <option value="">-- Project Default --</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                </div>
             </div>
         `;
     }

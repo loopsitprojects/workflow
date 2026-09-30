@@ -468,6 +468,70 @@ test('other deliverables can only be edited by the assigned person', function ()
     expect($deliverable->fresh()->title)->toBe('Updated by Assigned Person');
 });
 
+test('campaign project creation assigns default and per-item assignees to deliverables', function () {
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $brand = Brand::create(['name' => 'Test Assignee Brand', 'slug' => 'test-assignee-brand']);
+    $defaultAssignee = User::factory()->create(['name' => 'Default Designer', 'role' => 'Designer']);
+    $specificAssignee = User::factory()->create(['name' => 'Specific Writer', 'role' => 'Writer']);
+    $presentationType = \App\Models\SubtaskType::create([
+        'name' => 'Presentation',
+        'workflow_type' => 'campaign',
+    ]);
+
+    $response = $this->actingAs($admin)->post(route('projects.store'), [
+        'brand_id' => $brand->id,
+        'name' => 'Summer Pitch Campaign',
+        'status' => 'To Do',
+        'priority' => 'Medium',
+        'type' => 'Campaign',
+        'workflow_type' => 'campaign',
+        'writer_id' => $defaultAssignee->id,
+        'batches' => [
+            1 => [
+                'name' => 'Batch 1',
+                'deadline' => '2026-10-15',
+                'post_types' => [
+                    $presentationType->id => [
+                        'count' => 2,
+                        'dates' => [
+                            1 => '2026-10-10',
+                            2 => '2026-10-12',
+                        ],
+                        'assignees' => [
+                            1 => $specificAssignee->id, // Specifically assigned
+                            2 => '', // Blank -> should fallback to project defaultAssignee
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $response->assertRedirect();
+    $project = Project::where('name', 'Summer Pitch Campaign')->first();
+    expect($project)->not->toBeNull();
+    expect($project->writer_id)->toBe($defaultAssignee->id);
+
+    // Parent Batch Deliverable
+    $batchParent = Deliverable::where('project_id', $project->id)->whereNull('parent_deliverable_id')->first();
+    expect($batchParent)->not->toBeNull();
+    expect($batchParent->writer_id)->toBe($specificAssignee->id);
+    expect($batchParent->assignee_name)->toBe('Specific Writer');
+
+    // Child subtasks
+    $children = Deliverable::where('parent_deliverable_id', $batchParent->id)->orderBy('id')->get();
+    expect($children)->toHaveCount(2);
+
+    // Subtask 1 has specific assignee
+    expect($children[0]->writer_id)->toBe($specificAssignee->id);
+    expect($children[0]->assignee_name)->toBe('Specific Writer');
+
+    // Subtask 2 inherited project default assignee
+    expect($children[1]->writer_id)->toBe($defaultAssignee->id);
+    expect($children[1]->assignee_name)->toBe('Default Designer');
+});
+
+
 
 
 

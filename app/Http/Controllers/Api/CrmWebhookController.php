@@ -65,11 +65,20 @@ class CrmWebhookController extends Controller
                 continue;
             }
 
-            // Find matching Brand by name (case-insensitive) or slug
+            // Find matching Brand by name (case-insensitive), slug, or partial match
             $cleanBrand = trim($brandName);
-            $matchedBrand = Brand::whereRaw('LOWER(name) = ?', [strtolower($cleanBrand)])
+            $lowerCleanBrand = strtolower($cleanBrand);
+            $matchedBrand = Brand::whereRaw('LOWER(name) = ?', [$lowerCleanBrand])
                 ->orWhere('slug', Str::slug($cleanBrand))
+                ->orWhereRaw('LOWER(name) LIKE ?', ['%' . $lowerCleanBrand . '%'])
                 ->first();
+
+            if (!$matchedBrand) {
+                $matchedBrand = Brand::all()->first(function ($b) use ($lowerCleanBrand) {
+                    $bName = strtolower(trim($b->name));
+                    return !empty($bName) && str_contains($lowerCleanBrand, $bName);
+                });
+            }
 
             $parsedDate = null;
             if (!empty($deadline)) {

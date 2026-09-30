@@ -411,14 +411,28 @@ class Deliverable extends Model
             }
         }
 
+        $assignedName = $this->assignee_name
+            ?: ($this->writer?->name ?: ($this->project?->writer?->name ?: ($historyNames['writer'] ?? 'None')));
+
         return [
             'writer'        => $this->writer?->name        ?: ($this->project?->writer?->name        ?: ($historyNames['writer']        ?? 'None')),
+            'assignee'      => $assignedName,
             'approver'      => $this->approver?->name      ?: ($this->project?->approver?->name      ?: ($historyNames['approver']      ?? 'None')),
             'further_approver' => $this->furtherApprover?->name ?: ($historyNames['further_approver'] ?? 'None'),
             'brand_manager' => $this->brandManager?->name  ?: ($this->project?->brandManager?->name  ?: ($historyNames['brand_manager'] ?? 'None')),
             'coordinator'   => $this->coordinator?->name   ?: ($this->project?->coordinator?->name   ?: ($historyNames['coordinator']   ?? 'None')),
             'designer'      => $this->designer?->name      ?: ($this->project?->designer?->name      ?: ($historyNames['designer']      ?? 'None')),
         ];
+    }
+
+    public function getIsOtherDeliverableAttribute(): bool
+    {
+        return $this->isOtherDeliverable();
+    }
+
+    public function getIsDirectDesignAttribute(): bool
+    {
+        return $this->isDirectDesign();
     }
 
     /**

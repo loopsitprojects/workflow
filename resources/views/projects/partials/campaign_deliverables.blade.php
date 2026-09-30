@@ -527,7 +527,7 @@
                         @foreach($otherSubtasks as $subIndex => $subtask)
                             @php
                                 $isAssignedPerson = ($subtask->writer_id && auth()->id() == $subtask->writer_id) || ($subtask->designer_id && auth()->id() == $subtask->designer_id);
-                                $canEditInline = ($subtask->approval_stage === 'Assignee' || $subtask->approval_stage === 'Writer' || $subtask->approval_stage === 'Assign' || !$subtask->approval_stage) && $isAssignedPerson;
+                                $canEditInline = $isAdmin || (($subtask->approval_stage === 'Assignee' || $subtask->approval_stage === 'Writer' || $subtask->approval_stage === 'Assign' || !$subtask->approval_stage) && $isAssignedPerson);
                             @endphp
                             <tr class="subtask-row rtb-subtask-row subtask-of-{{ $task->id }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                 <td>

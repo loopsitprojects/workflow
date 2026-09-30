@@ -46,7 +46,7 @@ class DeliverableController extends Controller
             $deliverable->load('subtasks');
         }
 
-        $deliverable->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history']);
+        $deliverable->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history', 'workflow_stages', 'is_other_deliverable', 'is_direct_design']);
 
         return view('deliverables.show', compact('deliverable', 'userRole', 'isAdmin', 'approvers', 'brandManagers', 'coordinators', 'designers', 'stages'));
     }
