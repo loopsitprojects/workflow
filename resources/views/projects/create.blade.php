@@ -214,70 +214,47 @@ const allTeamMembers = @json(($allUsers ?? $users)->map(fn($u) => ['id' => $u->i
 let batchIndex = 0;
 
 function updateCrmJobsForBrand(brandId) {
-    refreshCrmJobsDropdown(brandId);
+    refreshCrmJobsDropdown();
 }
 
-function refreshCrmJobsDropdown(brandId) {
+function refreshCrmJobsDropdown() {
     const selector = document.getElementById('crm_job_selector');
     const container = document.getElementById('crm_job_dropdown_container');
     const badge = document.getElementById('crm_badge');
     if (!selector || !container) return;
 
-    const brand = (allBrandsList || []).find(b => b.id == brandId);
-    const brandName = brand ? brand.name.trim().toLowerCase() : '';
-
-    // 1. Direct matched jobs for this brand (by brand_id or brand_name)
-    const brandJobs = allAvailableCrmJobs.filter(j => {
-        if (j.brand_id && j.brand_id == brandId) return true;
-        if (j.brand_name && brandName) {
-            const jName = j.brand_name.trim().toLowerCase();
-            if (jName === brandName || brandName.includes(jName) || jName.includes(brandName)) return true;
-        }
-        return false;
-    });
-
-    // 2. Other incoming CRM jobs (unmatched or from other brands)
-    const otherJobs = allAvailableCrmJobs.filter(j => !brandJobs.includes(j));
-
     selector.innerHTML = '';
     const defaultOpt = document.createElement('option');
     defaultOpt.value = '';
-    defaultOpt.textContent = '-- Select from CRM Jobs --';
+    defaultOpt.textContent = allAvailableCrmJobs.length > 0 
+        ? `-- Select from CRM Jobs (${allAvailableCrmJobs.length} available) --`
+        : '-- No CRM Jobs Available --';
     selector.appendChild(defaultOpt);
 
-    if (brandJobs.length > 0) {
-        const group = document.createElement('optgroup');
-        group.label = brand ? `Jobs for ${brand.name} (${brandJobs.length})` : `Matched Brand Jobs (${brandJobs.length})`;
-        brandJobs.forEach(j => {
+    if (allAvailableCrmJobs.length > 0) {
+        allAvailableCrmJobs.forEach(j => {
             const opt = document.createElement('option');
             opt.value = j.crm_job_id;
-            opt.textContent = j.crm_job_id + (j.title ? ' — ' + j.title : '');
+
+            let label = j.crm_job_id;
+            if (j.brand_name) {
+                label += ` (${j.brand_name})`;
+            }
+            if (j.title) {
+                label += ` — ${j.title}`;
+            }
+
+            opt.textContent = label;
             opt.setAttribute('data-title', j.title || '');
             opt.setAttribute('data-deadline', j.deadline ? j.deadline.substring(0, 10) : '');
-            group.appendChild(opt);
+            opt.setAttribute('data-brand-id', j.brand_id || '');
+            opt.setAttribute('data-brand-name', j.brand_name || '');
+            selector.appendChild(opt);
         });
-        selector.appendChild(group);
-    }
 
-    if (otherJobs.length > 0) {
-        const group = document.createElement('optgroup');
-        group.label = brandJobs.length > 0 ? `Other Incoming CRM Jobs (${otherJobs.length})` : `Incoming CRM Jobs (${otherJobs.length})`;
-        otherJobs.forEach(j => {
-            const opt = document.createElement('option');
-            opt.value = j.crm_job_id;
-            opt.textContent = j.crm_job_id + (j.brand_name ? ' (' + j.brand_name + ')' : '') + (j.title ? ' — ' + j.title : '');
-            opt.setAttribute('data-title', j.title || '');
-            opt.setAttribute('data-deadline', j.deadline ? j.deadline.substring(0, 10) : '');
-            group.appendChild(opt);
-        });
-        selector.appendChild(group);
-    }
-
-    const totalAvailable = brandJobs.length + otherJobs.length;
-    if (totalAvailable > 0) {
         container.style.display = 'block';
         if (badge) {
-            badge.textContent = `${totalAvailable} CRM Job${totalAvailable > 1 ? 's' : ''} Available`;
+            badge.textContent = `${allAvailableCrmJobs.length} CRM Job${allAvailableCrmJobs.length > 1 ? 's' : ''} Available`;
             badge.style.display = 'inline-block';
         }
     } else {
@@ -307,9 +284,6 @@ function applyCrmJob(select) {
     }
 }
 
-function updateCrmJobsForBrand(brandId) {
-    refreshCrmJobsDropdown(brandId);
-}
 
 function addBatchCard(existingData = null) {
     batchIndex++;
@@ -543,11 +517,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Initialize CRM Jobs dropdown for currently active brand
-    const brandInput = document.getElementById('project_brand_select');
-    if (brandInput && brandInput.value) {
-        refreshCrmJobsDropdown(brandInput.value);
-    }
+    // Initialize CRM Jobs dropdown showing all available jobs
+    refreshCrmJobsDropdown();
 
     document.getElementById('createProjectForm').addEventListener('submit', function(e) {
         const btn = document.getElementById('createProjectBtn');
