@@ -721,11 +721,11 @@
                                         <div class="form-grid-2" style="margin-bottom:12px;">
                                             <div>
                                                 <label class="field-label purple">Deliverable Name / Dimensions <span style="color:#ef4444;">*</span></label>
-                                                <input type="text" :name="`subtasks[${index}][title]`" x-model="subtask.title" placeholder="e.g. 1080x1080 Feed Post / Story Ad / YouTube Banner" class="styled-input" required>
+                                                <input type="text" :name="`subtasks[${index}][title]`" x-model="subtask.title" placeholder="e.g. 1080x1080 Feed Post / Story Ad / YouTube Banner" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
                                             </div>
                                             <div>
                                                 <label class="field-label">Deliverable Type <span style="color:#ef4444;">*</span></label>
-                                                <select :name="`subtasks[${index}][post_type]`" x-model="subtask.post_type" class="styled-input" required>
+                                                <select :name="`subtasks[${index}][post_type]`" x-model="subtask.post_type" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
                                                     <option value="">Select Type...</option>
                                                     <option value="Static Post">Static Post</option>
                                                     <option value="Carousel">Carousel</option>
@@ -743,7 +743,7 @@
                                         <div class="form-grid-2" style="margin-bottom:12px;">
                                             <div>
                                                 <label class="field-label purple">Assigned Designer <span style="color:#ef4444;">*</span></label>
-                                                <select :name="`subtasks[${index}][designer_id]`" x-model="subtask.designer_id" class="styled-input" required>
+                                                <select :name="`subtasks[${index}][designer_id]`" x-model="subtask.designer_id" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
                                                     <option value="">Select Designer...</option>
                                                     @foreach($designers as $d)
                                                         <option value="{{ $d->id }}">{{ $d->name }}</option>
@@ -752,7 +752,7 @@
                                             </div>
                                             <div>
                                                 <label class="field-label">Due Date <span style="font-size:10px;text-transform:none;opacity:0.6;font-weight:500;">(Defaults to batch date if blank)</span></label>
-                                                <input type="date" :name="`subtasks[${index}][designer_deadline]`" x-model="subtask.designer_deadline" class="styled-input">
+                                                <input type="date" :name="`subtasks[${index}][designer_deadline]`" x-model="subtask.designer_deadline" class="styled-input" :disabled="mode !== 'batch'">
                                             </div>
                                         </div>
 
@@ -761,7 +761,7 @@
                                             <label class="field-label">Creative Brief & Specific Notes</label>
                                             <div x-init="initQuill($refs.subtaskEditor, subtask.concept, (val) => { subtask.concept = val; }, 'Visual concept, color palette, dimensions, or specific design instructions for this deliverable...')">
                                                 <div x-ref="subtaskEditor"></div>
-                                                <input type="hidden" :name="`subtasks[${index}][concept]`" :value="subtask.concept">
+                                                <input type="hidden" :name="`subtasks[${index}][concept]`" :value="subtask.concept" :disabled="mode !== 'batch'">
                                             </div>
                                         </div>
 
@@ -769,11 +769,11 @@
                                         <div class="form-grid-2">
                                             <div>
                                                 <label class="field-label">Reference URL (Figma, Drive...)</label>
-                                                <input type="text" :name="`subtasks[${index}][reference]`" x-model="subtask.reference" placeholder="https://..." class="styled-input">
+                                                <input type="text" :name="`subtasks[${index}][reference]`" x-model="subtask.reference" placeholder="https://..." class="styled-input" :disabled="mode !== 'batch'">
                                             </div>
                                             <div>
                                                 <label class="field-label">Attach Reference File</label>
-                                                <input type="file" :name="`subtasks[${index}][reference_file]`" class="styled-input" style="padding:6px 10px;">
+                                                <input type="file" :name="`subtasks[${index}][reference_file]`" class="styled-input" style="padding:6px 10px;" :disabled="mode !== 'batch'">
                                             </div>
                                         </div>
                                     </div>

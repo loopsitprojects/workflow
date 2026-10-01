@@ -708,11 +708,11 @@
                                         <div class="form-grid-2" style="margin-bottom:12px;">
                                             <div>
                                                 <label class="field-label blue">Deliverable Name / Title <span style="color:#ef4444;">*</span></label>
-                                                <input type="text" :name="`subtasks[${index}][title]`" x-model="subtask.title" placeholder="e.g. Carousel Post 1 / Reel / Radio Script" class="styled-input" required>
+                                                <input type="text" :name="`subtasks[${index}][title]`" x-model="subtask.title" placeholder="e.g. Carousel Post 1 / Reel / Radio Script" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
                                             </div>
                                             <div>
                                                 <label class="field-label">Deliverable Type <span style="color:#ef4444;">*</span></label>
-                                                <select :name="`subtasks[${index}][post_type]`" x-model="subtask.post_type" class="styled-input" required>
+                                                <select :name="`subtasks[${index}][post_type]`" x-model="subtask.post_type" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
                                                     <option value="">Select Type...</option>
                                                     <template x-for="t in currentSubtaskTypes" :key="t">
                                                         <option :value="t" x-text="t"></option>
@@ -725,7 +725,7 @@
                                         <div class="form-grid-2" style="margin-bottom:12px;">
                                             <div>
                                                 <label class="field-label blue">Assigned Person <span style="color:#ef4444;">*</span></label>
-                                                <select :name="`subtasks[${index}][writer_id]`" x-model="subtask.writer_id" class="styled-input" required>
+                                                <select :name="`subtasks[${index}][writer_id]`" x-model="subtask.writer_id" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
                                                     <option value="">Select Assignee / Writer...</option>
                                                     @foreach($users as $user)
                                                         <option value="{{ $user->id }}">{{ $user->name }}</option>
@@ -734,7 +734,7 @@
                                             </div>
                                             <div>
                                                 <label class="field-label">Due Date <span style="font-size:10px;text-transform:none;opacity:0.6;font-weight:500;">(Defaults to batch date if blank)</span></label>
-                                                <input type="date" :name="`subtasks[${index}][deadline]`" x-model="subtask.deadline" class="styled-input">
+                                                <input type="date" :name="`subtasks[${index}][deadline]`" x-model="subtask.deadline" class="styled-input" :disabled="mode !== 'batch'">
                                             </div>
                                         </div>
 
@@ -744,21 +744,21 @@
                                                 <label class="field-label">Concept</label>
                                                 <div x-init="initQuill($refs.subConcept, subtask.concept, (v) => subtask.concept = v, 'Visual concept, storyline, or angle...')">
                                                     <div x-ref="subConcept"></div>
-                                                    <input type="hidden" :name="`subtasks[${index}][concept]`" :value="subtask.concept">
+                                                    <input type="hidden" :name="`subtasks[${index}][concept]`" :value="subtask.concept" :disabled="mode !== 'batch'">
                                                 </div>
                                             </div>
                                             <div class="form-field-group">
                                                 <label class="field-label">Caption</label>
                                                 <div x-init="initQuill($refs.subCaption, subtask.caption, (v) => subtask.caption = v, 'Caption or headline...')">
                                                     <div x-ref="subCaption"></div>
-                                                    <input type="hidden" :name="`subtasks[${index}][caption]`" :value="subtask.caption">
+                                                    <input type="hidden" :name="`subtasks[${index}][caption]`" :value="subtask.caption" :disabled="mode !== 'batch'">
                                                 </div>
                                             </div>
                                             <div class="form-field-group">
                                                 <label class="field-label">Post Copy</label>
                                                 <div x-init="initQuill($refs.subCopy, subtask.post_copy, (v) => subtask.post_copy = v, 'Script or copy lines...')">
                                                     <div x-ref="subCopy"></div>
-                                                    <input type="hidden" :name="`subtasks[${index}][post_copy]`" :value="subtask.post_copy">
+                                                    <input type="hidden" :name="`subtasks[${index}][post_copy]`" :value="subtask.post_copy" :disabled="mode !== 'batch'">
                                                 </div>
                                             </div>
                                         </div>
@@ -768,7 +768,7 @@
                                                 <label class="field-label">Brief / Specific Notes</label>
                                                 <div x-init="initQuill($refs.subBrief, subtask.brief, (v) => subtask.brief = v, 'Brief or specific notes for this deliverable...')">
                                                     <div x-ref="subBrief"></div>
-                                                    <input type="hidden" :name="`subtasks[${index}][brief]`" :value="subtask.brief">
+                                                    <input type="hidden" :name="`subtasks[${index}][brief]`" :value="subtask.brief" :disabled="mode !== 'batch'">
                                                 </div>
                                             </div>
                                         </div>
@@ -777,11 +777,11 @@
                                         <div class="form-grid-2">
                                             <div>
                                                 <label class="field-label">Reference URL (Drive, Figma...)</label>
-                                                <input type="url" :name="`subtasks[${index}][reference]`" x-model="subtask.reference" placeholder="https://..." class="styled-input">
+                                                <input type="url" :name="`subtasks[${index}][reference]`" x-model="subtask.reference" placeholder="https://..." class="styled-input" :disabled="mode !== 'batch'">
                                             </div>
                                             <div>
                                                 <label class="field-label">Attach Reference File</label>
-                                                <input type="file" :name="`subtasks[${index}][reference_file]`" class="styled-input" style="padding:6px 10px;">
+                                                <input type="file" :name="`subtasks[${index}][reference_file]`" class="styled-input" style="padding:6px 10px;" :disabled="mode !== 'batch'">
                                             </div>
                                         </div>
                                     </div>

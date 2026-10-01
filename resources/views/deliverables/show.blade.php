@@ -370,16 +370,71 @@
 </style>
 
     <style>
-        #taskModalOverlay.cd-modal-overlay, #taskModalOverlay { position: relative !important; display: block !important; opacity: 1 !important; z-index: 1 !important; background: transparent !important; backdrop-filter: none !important; padding: 0; }
-        #taskModalOverlay .cd-modal { max-width: 100% !important; width: 100% !important; margin: 0; transform: none !important; box-shadow: none !important; background: transparent !important; border-radius: 0 !important; border: none !important; overflow: visible !important; }
-        #taskModalOverlay .cd-modal-header { padding: 0 0 24px 0 !important; border-bottom: none !important; }
-        #taskModalOverlay .cd-modal-body { padding: 0 !important; overflow: visible !important; height: auto !important; flex: none !important; }
+        #taskModalOverlay.cd-modal-overlay, #taskModalOverlay { 
+            position: static !important; 
+            inset: auto !important;
+            top: auto !important;
+            bottom: auto !important;
+            left: auto !important;
+            right: auto !important;
+            display: block !important; 
+            opacity: 1 !important; 
+            z-index: 1 !important; 
+            background: transparent !important; 
+            backdrop-filter: none !important; 
+            padding: 0 !important; 
+            margin: 20px 0 0 0 !important;
+            clear: both !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            max-height: none !important;
+        }
+        #taskModalOverlay .cd-modal { 
+            position: static !important;
+            inset: auto !important;
+            top: auto !important;
+            bottom: auto !important;
+            left: auto !important;
+            right: auto !important;
+            max-width: 100% !important; 
+            width: 100% !important; 
+            height: auto !important;
+            max-height: none !important;
+            margin: 0 !important; 
+            transform: none !important; 
+            box-shadow: none !important; 
+            background: transparent !important; 
+            border-radius: 0 !important; 
+            border: none !important; 
+            overflow: visible !important; 
+            display: block !important;
+        }
+        #taskModalOverlay .cd-modal-header { 
+            position: static !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 0 0 16px 0 !important; 
+            border-bottom: none !important; 
+            height: auto !important;
+            max-height: none !important;
+        }
+        #taskModalOverlay .cd-modal-body { 
+            position: static !important;
+            padding: 0 !important; 
+            overflow: visible !important; 
+            height: auto !important; 
+            max-height: none !important;
+            flex: none !important; 
+            display: block !important;
+        }
         #modalTaskTitle { border: 1px solid var(--color-border-primary) !important; background: var(--color-bg-secondary) !important; }
     </style>
 
     <div class="container mx-auto px-4">
-        <div class="mb-6" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-            <nav style="display:flex; gap:6px; align-items:center; font-size:11px; font-weight:600; color:var(--color-text-secondary); flex-wrap:wrap;">
+        <div class="mb-6" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; position:relative; z-index:10; margin-bottom:24px; width:100%; border-bottom:1px solid var(--color-border-primary); padding-bottom:16px;">
+            <nav style="display:flex; gap:6px; align-items:center; font-size:12px; font-weight:600; color:var(--color-text-secondary); flex-wrap:wrap;">
                 <a href="{{ route('brands.index') }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">Brands</a>
                 @if($deliverable->project && $deliverable->project->brand)
                     <span style="opacity:0.35;">/</span>
@@ -394,24 +449,26 @@
                     <a href="{{ route('deliverables.show', $deliverable->parent) }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">{{ $deliverable->parent->title }}</a>
                 @endif
                 <span style="opacity:0.35;">/</span>
-                <span style="color:var(--color-text-primary);">{{ $deliverable->title }}</span>
+                <span style="color:var(--color-text-primary); font-weight:700;">{{ $deliverable->title }}</span>
             </nav>
-            <a href="{{ route('projects.show', $deliverable->project_id) }}" class="cd-btn" style="display:inline-flex; align-items:center; gap:8px; background:rgba(37,99,235,0.1); color:#2563eb; border:1px solid rgba(37,99,235,0.2); padding:10px 18px; font-size:13px; font-weight:800; border-radius:10px; transition:all 0.2s;" onmouseover="this.style.background='#2563eb'; this.style.color='#fff';" onmouseout="this.style.background='rgba(37,99,235,0.1)'; this.style.color='#2563eb';">
-                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                Back to Project
-            </a>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <a href="{{ route('projects.show', $deliverable->project_id) }}" class="cd-btn" style="display:inline-flex; align-items:center; gap:8px; background:rgba(37,99,235,0.1); color:#2563eb; border:1px solid rgba(37,99,235,0.2); padding:8px 16px; font-size:12px; font-weight:800; border-radius:8px; transition:all 0.2s;" onmouseover="this.style.background='#2563eb'; this.style.color='#fff';" onmouseout="this.style.background='rgba(37,99,235,0.1)'; this.style.color='#2563eb';">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    Back to Project
+                </a>
+            </div>
         </div>
 
         <!-- Detail Modal -->
     <div id="taskModalOverlay" class="cd-modal-overlay" >
         <div class="cd-modal" >
-            <div class="cd-modal-header" style="padding: 16px 32px; align-items: center; gap: 24px; justify-content: space-between;">
+            <div class="cd-modal-header" style="padding:0; margin-bottom:16px; align-items:center; gap:16px; justify-content:space-between;">
                 <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
                     <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:0; flex-shrink:0;"></div>
                     <div id="modalTopDeadlines" style="display:flex; align-items:center; gap:8px; flex-shrink:0;"></div>
                 </div>
                 <div style="display:flex; align-items:center; gap:12px;">
-                    <a id="btnExportPpt" href="#" class="cd-btn" style="padding:8px 14px; font-size:12px; background:#ea580c; color:#fff; border:none; box-shadow:0 4px 12px rgba(234,88,12,0.25); font-weight:800; border-radius:8px; transition:transform 0.15s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'" title="Download PPT">
+                    <a id="btnExportPpt" href="{{ route('deliverables.export.ppt', $deliverable) }}" class="cd-btn" style="padding:8px 14px; font-size:12px; background:#ea580c; color:#fff; border:none; box-shadow:0 4px 12px rgba(234,88,12,0.25); font-weight:800; border-radius:8px; transition:transform 0.15s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'" title="Download PPT">
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right:4px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                         Download PPT
                     </a>

@@ -138,13 +138,79 @@
             color: #ffffff;
         }
 
-        /* Modal Styles */
-        .cd-modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(8px); display:none; justify-content:center; align-items:center; z-index:9999; opacity:0; transition:all 0.3s ease; }
-        .cd-modal { background:var(--color-bg-primary); width:90%; max-width:800px; max-height:92vh; border-radius:32px; box-shadow:0 40px 100px rgba(0,0,0,0.2); overflow:hidden; transform:scale(0.95); transition:all 0.3s ease; position:relative; display:flex; flex-direction:column; }
-        .cd-modal.active { transform:scale(1); }
-        .cd-modal-header { padding:32px; border-bottom:1px solid var(--color-border-primary); display:flex; justify-content:space-between; align-items:flex-start; flex-shrink:0; }
-        .cd-modal-body { padding:32px; overflow-y:auto; flex:1; min-height:0; }
-        .cd-modal-footer { padding:24px 32px; background:var(--color-bg-secondary); border-top:1px solid var(--color-border-primary); display:flex; justify-content:flex-end; gap:12px; flex-shrink:0; }
+        /* Modal Styles - Fullscreen View */
+        .cd-modal-overlay { 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(15, 23, 42, 0.75); 
+            backdrop-filter: blur(8px); 
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 9999; 
+            opacity: 0; 
+            transition: opacity 0.2s ease; 
+        }
+        .cd-modal { 
+            background: var(--color-bg-primary); 
+            width: 100vw; 
+            max-width: 100vw; 
+            height: 100vh; 
+            max-height: 100vh; 
+            border-radius: 0; 
+            box-shadow: none; 
+            overflow: hidden; 
+            position: fixed; 
+            inset: 0; 
+            display: flex; 
+            flex-direction: column; 
+            transform: none;
+            transition: all 0.25s ease; 
+        }
+        .cd-modal.is-windowed {
+            position: relative;
+            inset: auto;
+            width: 92%;
+            max-width: 1000px;
+            height: auto;
+            max-height: 92vh;
+            border-radius: 24px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+        }
+        .cd-modal.active { }
+        .cd-modal-header { 
+            padding: 16px 32px; 
+            border-bottom: 1px solid var(--color-border-primary); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            flex-shrink: 0; 
+            background: var(--color-bg-primary); 
+        }
+        .cd-modal-body { 
+            padding: 28px 32px; 
+            overflow-y: auto; 
+            flex: 1; 
+            min-height: 0; 
+            scrollbar-width: thin; 
+        }
+        .cd-modal-footer { 
+            padding: 16px 32px; 
+            background: var(--color-bg-secondary); 
+            border-top: 1px solid var(--color-border-primary); 
+            display: flex; 
+            justify-content: center; 
+            flex-shrink: 0; 
+        }
+        .cd-modal-inner {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+        .cd-modal.is-windowed .cd-modal-inner {
+            max-width: 100%;
+        }
         .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
         .detail-item { margin-bottom:12px; }
         .detail-item.full { grid-column:span 2; }
@@ -1240,23 +1306,48 @@
     <!-- Detail Modal -->
     <div id="taskModalOverlay" class="cd-modal-overlay" onclick="closeTaskModal(event)">
         <div class="cd-modal" onclick="event.stopPropagation()">
-            <div class="cd-modal-header" style="padding: 20px 32px; align-items: center;">
-                <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
-                    <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" style="font-size:20px; font-weight:900; color:var(--color-text-primary); margin:0; border:1px solid transparent; background:transparent; width:auto; flex:1; min-width:0; outline:none; border-radius:8px; padding:4px 8px; margin-left:-8px; transition:all 0.2s;" onfocus="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-secondary)'" onblur="this.style.borderColor='transparent'; this.style.background='transparent'">
-                    <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:0; flex-shrink:0;"></div>
-                    <div id="modalTopDeadlines" style="display:flex; align-items:center; gap:8px; flex-shrink:0;"></div>
-                </div>
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <div style="display:flex; gap:8px; margin-right:12px; border-right:1px solid var(--color-border-primary); padding-right:12px;">
-                                        <a id="btnExportPpt" href="#" class="cd-btn cd-btn-outline" style="padding:6px 10px; font-size:11px;" title="Download PPT">PPT</a>
-
-                                    </div>
-                    <button onclick="closeTaskModal()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer;">
-                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
+            <div class="cd-modal-header" style="padding: 16px 32px; align-items: center;">
+                <div class="cd-modal-inner" style="display:flex; align-items:center; justify-content:space-between; gap:20px;">
+                    <div style="display:flex; flex-direction:column; gap:4px; flex:1; min-width:0;">
+                        <!-- Breadcrumbs -->
+                        <nav style="display:flex; gap:6px; align-items:center; font-size:11px; font-weight:600; color:var(--color-text-secondary); flex-wrap:wrap;">
+                            <button type="button" onclick="closeTaskModal()" style="background:none; border:none; padding:0; display:inline-flex; align-items:center; color:var(--color-text-secondary); cursor:pointer; margin-right:2px;" title="Back to Project">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                            </button>
+                            <a href="{{ route('brands.index') }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">Brands</a>
+                            @if(isset($project) && $project->brand)
+                                <span style="opacity:0.35;">/</span>
+                                <a href="{{ route('brands.show', $project->brand) }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">{{ $project->brand->name }}</a>
+                            @endif
+                            @if(isset($project))
+                                <span style="opacity:0.35;">/</span>
+                                <a href="javascript:void(0)" onclick="closeTaskModal()" style="text-decoration:none; color:inherit; transition:color 0.15s;" title="Back to {{ $project->name }}">{{ $project->name }}</a>
+                            @endif
+                            <span style="opacity:0.35;">/</span>
+                            <span id="modalBreadcrumbDeliverableTitle" style="color:var(--color-text-primary); font-weight:700;">-</span>
+                        </nav>
+                        <!-- Title & Meta -->
+                        <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                            <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" style="font-size:20px; font-weight:900; color:var(--color-text-primary); margin:0; border:1px solid transparent; background:transparent; width:auto; flex:1; min-width:0; outline:none; border-radius:8px; padding:4px 8px; margin-left:-8px; transition:all 0.2s;" onfocus="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-secondary)'" onblur="this.style.borderColor='transparent'; this.style.background='transparent'" oninput="const b = document.getElementById('modalBreadcrumbDeliverableTitle'); if (b) b.textContent = this.value || '-';">
+                            <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:0; flex-shrink:0;"></div>
+                            <div id="modalTopDeadlines" style="display:flex; align-items:center; gap:8px; flex-shrink:0;"></div>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                        <div style="display:flex; gap:8px; margin-right:8px; border-right:1px solid var(--color-border-primary); padding-right:12px;">
+                            <a id="btnExportPpt" href="#" class="cd-btn cd-btn-outline" style="padding:6px 12px; font-size:11px; font-weight:800;" title="Download PPT">PPT</a>
+                        </div>
+                        <button type="button" id="modalToggleFullscreenBtn" onclick="toggleModalFullscreen()" style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:8px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); color:var(--color-text-secondary); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.color='var(--color-text-primary)'; this.style.borderColor='var(--color-text-secondary)';" onmouseout="this.style.color='var(--color-text-secondary)'; this.style.borderColor='var(--color-border-primary)';" title="Exit Fullscreen">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9L4 4m0 0v4m0-4h4m6 5l5-5m0 0v4m0-4h-4M9 15l-5 5m0 0v-4m0 4h4m6-5l5 5m0 0v-4m0 4h-4"/></svg>
+                        </button>
+                        <button type="button" onclick="closeTaskModal()" style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:8px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); color:var(--color-text-secondary); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.color='var(--color-text-primary)'; this.style.borderColor='var(--color-text-secondary)';" onmouseout="this.style.color='var(--color-text-secondary)'; this.style.borderColor='var(--color-border-primary)';" title="Close (Esc)">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="cd-modal-body">
+                <div class="cd-modal-inner">
                 <div style="display:flex; gap:16px; margin-bottom:24px; background:var(--color-bg-secondary); padding:16px; border-radius:12px; border:1px solid var(--color-border-primary);">
                     <div class="detail-item" style="flex:1; margin:0;">
                         <label class="detail-label">Current Stage</label>
@@ -1645,8 +1736,8 @@
                     </form>
                 </div>
             </div>
-            <div class="cd-modal-footer" style="flex-direction: column; align-items: stretch; gap: 12px;">
-                <div style="display:flex; align-items:center; gap:12px;">
+            <div class="cd-modal-footer">
+                <div class="cd-modal-inner" style="display:flex; align-items:center; justify-content:flex-start; gap:12px;">
                     <form id="submitStageForm" method="POST" enctype="multipart/form-data" style="display:none; align-items:center; gap:12px;">
                         @csrf
                         <button type="submit" name="action" value="save_only" class="cd-btn cd-btn-outline" id="saveContentBtn" style="color:#0055D4; border-color:#0055D4; display:none;">Save Content</button>
@@ -1934,6 +2025,8 @@
                 const titleEl = document.getElementById('modalTaskTitle');
                 titleEl.value = task.title || '';
                 titleEl.setAttribute('data-task-id', task.id);
+                const bcTitleEl = document.getElementById('modalBreadcrumbDeliverableTitle');
+                if (bcTitleEl) bcTitleEl.textContent = task.title || 'Untitled Deliverable';
                 const ptEl = document.getElementById('modalSubtaskType');
                 ptEl.textContent = task.subtask_type || 'Standard';
                 
@@ -2719,6 +2812,14 @@
 
                 // Mark as ready button removed
 
+                document.body.style.overflow = 'hidden';
+                modal.classList.remove('is-windowed');
+                const fsToggleBtn = document.getElementById('modalToggleFullscreenBtn');
+                if (fsToggleBtn) {
+                    fsToggleBtn.title = 'Exit Fullscreen';
+                    fsToggleBtn.innerHTML = `<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9L4 4m0 0v4m0-4h4m6 5l5-5m0 0v4m0-4h-4M9 15l-5 5m0 0v-4m0 4h4m6-5l5 5m0 0v-4m0 4h-4"/></svg>`;
+                }
+
                 overlay.style.display = 'flex';
                 setTimeout(() => { overlay.style.opacity = '1'; modal.classList.add('active'); }, 10);
             } catch (e) {
@@ -2729,11 +2830,34 @@
 
         // Ready button UI updates and toggle functions removed
 
+        function toggleModalFullscreen() {
+            const modal = document.querySelector('#taskModalOverlay .cd-modal');
+            if (!modal) return;
+            const isWindowed = modal.classList.toggle('is-windowed');
+            const btn = document.getElementById('modalToggleFullscreenBtn');
+            if (btn) {
+                btn.title = isWindowed ? 'Enter Fullscreen' : 'Exit Fullscreen';
+                btn.innerHTML = isWindowed 
+                    ? `<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>`
+                    : `<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9L4 4m0 0v4m0-4h4m6 5l5-5m0 0v4m0-4h-4M9 15l-5 5m0 0v-4m0 4h4m6-5l5 5m0 0v-4m0 4h-4"/></svg>`;
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const overlay = document.getElementById('taskModalOverlay');
+                if (overlay && overlay.style.display === 'flex' && overlay.style.opacity === '1') {
+                    closeTaskModal();
+                }
+            }
+        });
+
         function closeTaskModal(e) {
             if (e && e.target !== document.getElementById('taskModalOverlay')) return;
             const overlay = document.getElementById('taskModalOverlay');
             overlay.style.opacity = '0';
             overlay.querySelector('.cd-modal').classList.remove('active');
+            document.body.style.overflow = '';
             setTimeout(() => { overlay.style.display = 'none'; toggleRevisionInput(false); }, 300);
         }
 
