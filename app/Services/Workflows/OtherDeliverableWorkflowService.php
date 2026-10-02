@@ -139,8 +139,9 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
         // Role authorization check
         if ($oldStage === 'Assign') {
             $isAssigned = ($deliverable->writer_id && $user && $user->id == $deliverable->writer_id) ||
-                          ($deliverable->designer_id && $user && $user->id == $deliverable->designer_id);
-            if (!$isAssigned) {
+                          ($deliverable->designer_id && $user && $user->id == $deliverable->designer_id) ||
+                          ($deliverable->project?->writer_id && $user && $user->id == $deliverable->project->writer_id);
+            if (!$isAssigned && (!$user || !$user->isAdmin())) {
                 return [
                     'success' => false,
                     'message' => 'Other deliverables can only be submitted by the assigned person.',
@@ -154,6 +155,16 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
                     'message' => 'Only the Brand Manager can approve and close this deliverable.',
                     'code'    => 403,
                 ];
+            }
+            if ($user && !$user->isAdmin()) {
+                $assignedBmId = $deliverable->brand_manager_id ?? $deliverable->project?->brand_manager_id;
+                if ($assignedBmId && $user->id != $assignedBmId) {
+                    return [
+                        'success' => false,
+                        'message' => 'Only the assigned Brand Manager can approve and close this deliverable.',
+                        'code'    => 403,
+                    ];
+                }
             }
         }
 
@@ -209,10 +220,22 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
         if (isset($data['notes'])) $deliverable->notes = $data['notes'];
         if (isset($data['concept'])) $deliverable->concept = $data['concept'];
         if (isset($data['description'])) $deliverable->description = $data['description'];
-        if (isset($data['reference'])) $deliverable->reference = $data['reference'];
-        if (isset($data['reference_file'])) $deliverable->reference_file = $data['reference_file'];
-        if (isset($data['final_designs'])) $deliverable->final_designs = $data['final_designs'];
-        if (isset($data['final_designs_link'])) $deliverable->final_designs_link = $data['final_designs_link'];
+        if (isset($data['reference'])) {
+            $deliverable->reference = $data['reference'];
+            $deliverable->reference_uploaded_by = $user->id;
+        }
+        if (isset($data['reference_file'])) {
+            $deliverable->reference_file = $data['reference_file'];
+            $deliverable->reference_uploaded_by = $user->id;
+        }
+        if (isset($data['final_designs'])) {
+            $deliverable->final_designs = $data['final_designs'];
+            $deliverable->artwork_uploaded_by = $user->id;
+        }
+        if (isset($data['final_designs_link'])) {
+            $deliverable->final_designs_link = $data['final_designs_link'];
+            $deliverable->artwork_uploaded_by = $user->id;
+        }
 
         // Stakeholder updates
         if (isset($data['writer_id'])) $deliverable->writer_id = $data['writer_id'];

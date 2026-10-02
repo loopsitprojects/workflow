@@ -291,9 +291,19 @@ test('comprehensive end-to-end verification of all workflows and roles in a new 
 
     // =========================================================
     // FLOW 3: FAST TRACK DELIVERABLE FLOW (Designer -> Manager Review -> Closed)
+    // Fast Track is restricted to Retainer workflow
     // =========================================================
+    $retainerProject = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Q4 Retainer 2026',
+        'workflow_type' => 'retainer',
+        'type' => 'Retainer',
+        'status' => 'Active',
+        'brand_manager_id' => $brandManager->id,
+    ]);
+
     $fastTrackResponse = $this->actingAs($brandManager)->post(route('deliverables.store'), [
-        'project_id' => $project->id,
+        'project_id' => $retainerProject->id,
         'title' => 'Flash Sale Social Banners',
         'flow_type' => 'direct_design',
         'status' => 'To Do',
@@ -368,7 +378,7 @@ test('comprehensive end-to-end verification of all workflows and roles in a new 
 
     // Fast Track Deliverable revision test
     $ftRevItem = Deliverable::create([
-        'project_id' => $project->id,
+        'project_id' => $retainerProject->id,
         'title' => 'Display Banner Ad',
         'flow_type' => 'direct_design',
         'approval_stage' => 'Manager Review',

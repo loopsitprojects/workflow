@@ -203,22 +203,32 @@ class DirectDesignWorkflowService implements WorkflowInterface
         // Process file uploads if instances of UploadedFile
         if (isset($data['reference_file']) && $data['reference_file'] instanceof \Illuminate\Http\UploadedFile) {
             $deliverable->reference_file = $this->moveUploadedFile($data['reference_file'], 'references');
+            $deliverable->reference_uploaded_by = $user->id;
         } elseif (isset($data['reference_file'])) {
             $deliverable->reference_file = $data['reference_file'];
+            $deliverable->reference_uploaded_by = $user->id;
         }
 
         if (isset($data['final_designs']) && $data['final_designs'] instanceof \Illuminate\Http\UploadedFile) {
             $deliverable->final_designs = $this->moveUploadedFile($data['final_designs'], 'artwork');
+            $deliverable->artwork_uploaded_by = $user->id;
         } elseif (isset($data['final_designs'])) {
             $deliverable->final_designs = $data['final_designs'];
+            $deliverable->artwork_uploaded_by = $user->id;
         }
 
         // Content updates
         if (isset($data['title'])) $deliverable->title = $data['title'];
         if (isset($data['concept'])) $deliverable->concept = $data['concept'];
         if (isset($data['notes'])) $deliverable->notes = $data['notes'];
-        if (isset($data['reference'])) $deliverable->reference = $data['reference'];
-        if (isset($data['final_designs_link'])) $deliverable->final_designs_link = $data['final_designs_link'];
+        if (isset($data['reference'])) {
+            $deliverable->reference = $data['reference'];
+            $deliverable->reference_uploaded_by = $user->id;
+        }
+        if (isset($data['final_designs_link'])) {
+            $deliverable->final_designs_link = $data['final_designs_link'];
+            $deliverable->artwork_uploaded_by = $user->id;
+        }
         if (isset($data['designer_id'])) $deliverable->designer_id = $data['designer_id'];
         if (isset($data['brand_manager_id'])) $deliverable->brand_manager_id = $data['brand_manager_id'];
         if (isset($data['designer_deadline'])) $deliverable->designer_deadline = $data['designer_deadline'];

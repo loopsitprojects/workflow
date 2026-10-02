@@ -206,8 +206,27 @@ class CampaignWorkflowService implements WorkflowInterface
                 'Designer'         => 'designer_id',
             ];
             $field = $stageFieldMap[$oldStage] ?? null;
-            $assignedId = $field ? $deliverable->{$field} : null;
+            $assignedId = $field ? ($deliverable->{$field} ?? $deliverable->project?->{$field}) : null;
             if ($assignedId && $user->id != $assignedId) {
+                $stageLabel = $oldStage === 'AM/BD' ? 'AM/BD' : strtolower($oldStage);
+                return [
+                    'success' => false,
+                    'message' => "Only the assigned {$stageLabel} can submit this deliverable.",
+                    'code'    => 403,
+                ];
+            }
+
+            // Role type check: Even if not specifically assigned, ensure user has the appropriate role
+            $allowedRoles = match ($oldStage) {
+                'Writer', 'Writer Review'                  => ['Writer', 'Assignee'],
+                'Approver', 'Approver Review'              => ['Approver', 'Approver Coordinator', 'Operations Manager'],
+                'Further Approver'                         => ['Approver', 'Approver Coordinator', 'Operations Manager'],
+                'Brand Manager', 'AM/BD', 'Final Approval' => ['Brand Manager', 'Operations Manager'],
+                'Coordinator'                              => ['Coordinator', 'Operations Manager'],
+                'Designer'                                 => ['Designer'],
+                default                                    => [],
+            };
+            if (!empty($allowedRoles) && !in_array($user->role, $allowedRoles)) {
                 $stageLabel = $oldStage === 'AM/BD' ? 'AM/BD' : strtolower($oldStage);
                 return [
                     'success' => false,
@@ -327,15 +346,26 @@ class CampaignWorkflowService implements WorkflowInterface
 
         // Designer Delivery
         if ($oldStage === 'Designer') {
-            if (isset($data['final_designs'])) $deliverable->final_designs = $data['final_designs'];
-            if (isset($data['final_designs_link'])) $deliverable->final_designs_link = $data['final_designs_link'];
+            $artworkProvided = false;
+            if (isset($data['final_designs'])) {
+                $deliverable->final_designs = $data['final_designs'];
+                $artworkProvided = true;
+            }
+            if (isset($data['final_designs_link'])) {
+                $deliverable->final_designs_link = $data['final_designs_link'];
+                $artworkProvided = true;
+            }
             
             if (isset($data['final_designs_file'])) {
+                $artworkProvided = true;
                 if (is_string($data['final_designs_file'])) {
                     $deliverable->final_designs = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($data['final_designs_file'], '/'));
                 } elseif ($data['final_designs_file'] instanceof \Illuminate\Http\UploadedFile) {
                     $deliverable->final_designs = $this->moveUploadedFile($data['final_designs_file'], 'artwork');
                 }
+            }
+            if ($artworkProvided) {
+                $deliverable->artwork_uploaded_by = $user->id;
             }
         }
 

@@ -75,7 +75,7 @@ test('manager can create a direct design batch with subtasks', function () {
     $project = Project::create([
         'brand_id' => $brand->id,
         'name' => 'Project With Batch',
-        'workflow_type' => 'campaign',
+        'workflow_type' => 'retainer',
         'brand_manager_id' => $manager->id,
     ]);
 
@@ -223,3 +223,72 @@ test('manager can request revisions which returns deliverable to Designer stage'
     expect($task->revision_instructions)->toBe('Please increase logo contrast and adjust CTA button size.');
     expect($task->revisionsHistory)->toHaveCount(1);
 });
+
+test('fast track deliverable button is not displayed on campaign or pitch projects but shown on retainer', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-fasttrack-btn']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+
+    $retainerProject = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Retainer Proj',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $campaignProject = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Campaign Proj',
+        'workflow_type' => 'campaign',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $pitchProject = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Pitch Proj',
+        'workflow_type' => 'pitch',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $resRetainer = $this->actingAs($manager)->get(route('projects.show', $retainerProject->id));
+    $resRetainer->assertSee('Fast Track Deliverable');
+
+    $resCampaign = $this->actingAs($manager)->get(route('projects.show', $campaignProject->id));
+    $resCampaign->assertDontSee('Fast Track Deliverable');
+
+    $resPitch = $this->actingAs($manager)->get(route('projects.show', $pitchProject->id));
+    $resPitch->assertDontSee('Fast Track Deliverable');
+});
+
+test('cannot access fast track creation form or store direct design for campaign or pitch projects', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-fasttrack-block']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+
+    $campaignProject = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Campaign Proj',
+        'workflow_type' => 'campaign',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    // Attempt to access create_design form
+    $resGet = $this->actingAs($manager)->get(route('deliverables.create', ['project_id' => $campaignProject->id, 'flow' => 'design']));
+    $resGet->assertRedirect(route('deliverables.create', ['project_id' => $campaignProject->id]));
+
+    // Attempt to post direct_design deliverable to campaign project
+    $resPost = $this->actingAs($manager)->post(route('deliverables.store'), [
+        'project_id' => $campaignProject->id,
+        'flow_type' => 'direct_design',
+        'title' => 'Fast Track In Campaign Not Allowed',
+        'designer_id' => $designer->id,
+        'designer_deadline' => '2026-10-15 18:00',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 20,
+    ]);
+    $resPost->assertRedirect(route('projects.show', $campaignProject->id));
+    $resPost->assertSessionHas('error');
+
+    expect(Deliverable::where('title', 'Fast Track In Campaign Not Allowed')->exists())->toBeFalse();
+});
+

@@ -46,10 +46,12 @@ class Deliverable extends Model
         'revisions',
         'revision_instructions',
         'reference_file',
+        'reference_uploaded_by',
         'notes',
         'work_hours',
         'client_status',
         'designer_deadline',
+        'artwork_uploaded_by',
     ];
 
     protected $casts = [
@@ -62,6 +64,8 @@ class Deliverable extends Model
         'final_designs_list',
         'final_designs_urls_list',
         'workflow_stages',
+        'can_remove_reference',
+        'can_remove_artwork',
     ];
 
     public function getReferenceFilesArray(): array
@@ -480,5 +484,55 @@ class Deliverable extends Model
     public function artworkReviews()
     {
         return $this->hasMany(ArtworkReview::class, 'deliverable_id');
+    }
+
+    public function referenceUploader()
+    {
+        return $this->belongsTo(User::class, 'reference_uploaded_by');
+    }
+
+    public function artworkUploader()
+    {
+        return $this->belongsTo(User::class, 'artwork_uploaded_by');
+    }
+
+    public function canUserRemoveReference(?User $user = null): bool
+    {
+        $user = $user ?? auth()->user();
+        if (!$user) {
+            return false;
+        }
+        if ($user->isAdmin()) {
+            return true;
+        }
+        if ($this->reference_uploaded_by) {
+            return (int)$user->id === (int)$this->reference_uploaded_by;
+        }
+        return false;
+    }
+
+    public function canUserRemoveArtwork(?User $user = null): bool
+    {
+        $user = $user ?? auth()->user();
+        if (!$user) {
+            return false;
+        }
+        if ($user->isAdmin()) {
+            return true;
+        }
+        if ($this->artwork_uploaded_by) {
+            return (int)$user->id === (int)$this->artwork_uploaded_by;
+        }
+        return false;
+    }
+
+    public function getCanRemoveReferenceAttribute(): bool
+    {
+        return $this->canUserRemoveReference();
+    }
+
+    public function getCanRemoveArtworkAttribute(): bool
+    {
+        return $this->canUserRemoveArtwork();
     }
 }

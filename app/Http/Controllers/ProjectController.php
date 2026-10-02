@@ -66,6 +66,8 @@ class ProjectController extends Controller
         $user = auth()->user();
         if (!$user->isAdmin() && !in_array($user->role, ['Operations Manager', 'Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
 
+        $isCampaignOrPitch = in_array($request->input('workflow_type'), ['campaign', 'pitch']);
+
         $validated = $request->validate([
             'brand_id' => 'required|exists:brands,id',
             'job_number' => 'nullable|string|max:255',
@@ -77,7 +79,7 @@ class ProjectController extends Controller
             'priority' => 'required|string',
             'type' => 'required|string',
             'workflow_type' => 'required|string|in:retainer,campaign,pitch',
-            'writer_id' => 'nullable|exists:users,id',
+            'writer_id' => $isCampaignOrPitch ? 'required|exists:users,id' : 'nullable|exists:users,id',
             'approver_id' => 'nullable|exists:users,id',
             'brand_manager_id' => 'nullable|exists:users,id',
             'coordinator_id' => 'nullable|exists:users,id',
@@ -93,7 +95,13 @@ class ProjectController extends Controller
             'batches.*.deadline' => 'nullable',
             'batches.*.post_types' => 'nullable|array',
             'batches.*.posts_count' => 'nullable',
+        ], [
+            'writer_id.required' => 'Please select an assignee for Campaign or Pitch projects.',
         ]);
+
+        if (!$isCampaignOrPitch) {
+            $validated['writer_id'] = null;
+        }
 
         $postTypeCounts = $request->input('post_type_counts', []);
         $postsCount = (int) ($validated['posts_count'] ?? 0);
@@ -109,8 +117,13 @@ class ProjectController extends Controller
 
         if (empty($validated['brand_manager_id'])) {
             $brand = \App\Models\Brand::find($validated['brand_id']);
-            if ($brand && $brand->created_by) {
-                $validated['brand_manager_id'] = $brand->created_by;
+            if ($brand) {
+                if ($brand->created_by) {
+                    $validated['brand_manager_id'] = $brand->created_by;
+                } else {
+                    $bm = $brand->members()->where('role', 'Brand Manager')->first();
+                    $validated['brand_manager_id'] = $bm ? $bm->id : (\App\Models\User::where('role', 'Brand Manager')->value('id') ?? auth()->id());
+                }
             }
         }
 

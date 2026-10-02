@@ -16,6 +16,7 @@
             </span>
         </div>
         <div class="cd-header-right">
+            @if(!in_array($project->workflow_type, ['campaign', 'pitch']))
             @can('create-deliverable')
             <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'flow' => 'design']) }}"
                style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:#6366f1; border-radius:8px; font-size:11px; font-weight:700; color:#fff; text-decoration:none; transition:all 0.15s; box-shadow: 0 2px 8px rgba(99,102,241,0.3);">
@@ -23,6 +24,7 @@
                 Add Fast Track Deliverable
             </a>
             @endcan
+            @endif
         </div>
     </div>
 
@@ -30,7 +32,8 @@
         <table class="cd-table">
             <thead>
                 <tr>
-                    <th style="width:200px;">Deliverable / Batch</th>
+                    <th style="width:190px;">Deliverable / Batch</th>
+                    <th style="width:120px;">Post Type</th>
                     <th style="width:130px;">Designer</th>
                     <th style="width:120px;">Deadline</th>
                     <th style="width:150px;">Brief / Concept</th>
@@ -82,13 +85,20 @@
                                     <div style="font-weight:700; color:var(--color-text-primary);">{{ $task->title }}</div>
                                     @if($hasSubtasks)
                                         <div style="font-size:10px; font-weight:700; color:#6366f1;">{{ $subtasks->count() }} subtasks</div>
-                                    @elseif($task->post_type)
-                                        <span class="subtask-pill" style="margin-top:2px; font-size:8.5px; background:rgba(99,102,241,0.08); color:#6366f1; border-color:rgba(99,102,241,0.25);">
-                                            {{ $task->post_type }}
-                                        </span>
                                     @endif
                                 </div>
                             </div>
+                        </td>
+
+                        {{-- Post Type --}}
+                        <td>
+                            @if($task->post_type)
+                                <span class="subtask-pill" style="font-size:9.5px; font-weight:800; background:rgba(99,102,241,0.1); color:#818cf8; border-color:rgba(99,102,241,0.3);">
+                                    {{ $task->post_type }}
+                                </span>
+                            @else
+                                <span style="color:var(--color-text-secondary); opacity:0.5; font-size:12px;">—</span>
+                            @endif
                         </td>
 
                         {{-- Designer --}}
@@ -303,12 +313,19 @@
                                         </span>
                                         <div>
                                             <div style="font-weight:600; font-size:12px; color:var(--color-text-primary);">{{ $sub->title }}</div>
-                                        @if($sub->post_type)
-                                            <span class="subtask-pill" style="font-size:8px; background:rgba(99,102,241,0.06); color:#6366f1; border-color:rgba(99,102,241,0.2);">
-                                                {{ $sub->post_type }}
-                                            </span>
-                                        @endif
+                                        </div>
                                     </div>
+                                </td>
+
+                                {{-- Post Type --}}
+                                <td>
+                                    @if($sub->post_type)
+                                        <span class="subtask-pill" style="font-size:9px; font-weight:800; background:rgba(99,102,241,0.08); color:#818cf8; border-color:rgba(99,102,241,0.25);">
+                                            {{ $sub->post_type }}
+                                        </span>
+                                    @else
+                                        <span style="color:var(--color-text-secondary); opacity:0.5; font-size:12px;">—</span>
+                                    @endif
                                 </td>
 
                                 {{-- Designer --}}

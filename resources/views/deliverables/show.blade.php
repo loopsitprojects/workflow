@@ -1636,6 +1636,9 @@
                     const isVideo = fileUrl.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
                     const boxId = `modalRefFileBox_${index}`;
                     const labelText = refFiles.length > 1 ? `Reference File #${index + 1}` : 'Reference File';
+                    const removeBtnHtml = task.can_remove_reference ? `
+                        <button type="button" onclick="removeSpecificRefFile('${boxId}', ${index})" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
+                    ` : '';
                     if (isVideo) {
                         refParts.push(`
                         <div id="${boxId}" style="display:flex; align-items:flex-end; gap:12px; margin-bottom:8px;">
@@ -1643,7 +1646,7 @@
                                 <video controls src="${fileUrl}" style="width:100%; max-width:260px; max-height:160px; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:4px;"></video>
                                 <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">${labelText}</span>
                             </div>
-                            <button type="button" onclick="removeSpecificRefFile('${boxId}', ${index})" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
+                            ${removeBtnHtml}
                         </div>`);
                     } else {
                         refParts.push(`
@@ -1652,7 +1655,7 @@
                                 <img src="${fileUrl}" style="width:100%; max-width:180px; max-height:140px; height:auto; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:4px; object-fit:cover;">
                                 <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">${labelText}</span>
                             </div>
-                            <button type="button" onclick="removeSpecificRefFile('${boxId}', ${index})" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
+                            ${removeBtnHtml}
                         </div>`);
                     }
                 });
@@ -1674,13 +1677,16 @@
                     if (!url) return;
                     const label = refUrls.length > 1 ? `Visit Link #${index + 1}` : 'Visit Reference Link';
                     const linkBoxId = `modalRefUrlBox_${index}`;
+                    const removeLinkBtnHtml = task.can_remove_reference ? `
+                        <button type="button" onclick="removeSpecificRefUrl('${linkBoxId}', ${index})" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" title="Remove link">Remove</button>
+                    ` : '';
                     refParts.push(`
                     <div id="${linkBoxId}" style="display:inline-flex; align-items:center; gap:8px; margin-bottom:4px;">
                         <a href="${url}" target="_blank" class="ref-chip" style="display:inline-flex; align-items:center; gap:6px;">
                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                             ${label}
                         </a>
-                        <button type="button" onclick="removeSpecificRefUrl('${linkBoxId}', ${index})" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" title="Remove link">Remove</button>
+                        ${removeLinkBtnHtml}
                     </div>`);
                 });
 
@@ -1812,6 +1818,7 @@
                 }
 
                 let finalParts = [];
+                const canRemoveArt = Boolean(task.can_remove_artwork);
                 artFiles.forEach((fileUrl, index) => {
                     if (!fileUrl) return;
                     const isVideo = /\.(mp4|webm|ogg|mov)(?:$|\?)/i.test(fileUrl);
@@ -1819,11 +1826,11 @@
                     const labelText = artFiles.length > 1 ? `Artwork File #${index + 1}` : 'Preview Artwork';
                     finalParts.push(`
                         <div id="${boxId}" style="display:inline-block; margin-right:12px; margin-bottom:8px; vertical-align:top; text-align:center;">
-                            <div onclick="openImagePreview('${fileUrl}', ${canDesignerEdit}, ${task.id})" style="text-decoration:none; cursor:pointer;">
+                            <div onclick="openImagePreview('${fileUrl}', ${canRemoveArt}, ${task.id})" style="text-decoration:none; cursor:pointer;">
                                 ${isVideo ? `<video src="${fileUrl}" class="task-thumbnail" preload="metadata"></video>` : `<img src="${fileUrl}" class="task-thumbnail" alt="Final Design">`}
                                 <span style="display:block; font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; margin-top:6px; text-align:center;">${labelText}</span>
                             </div>
-                            ${canDesignerEdit ? `
+                            ${canRemoveArt ? `
                                 <button type="button" onclick="removeSpecificArtFile('${boxId}', ${index})" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
                                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     Remove
@@ -1842,7 +1849,7 @@
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                                 <span style="font-size:11px; font-weight:800; text-transform:uppercase;">${label}</span>
                             </a>
-                            ${canDesignerEdit ? `
+                            ${canRemoveArt ? `
                                 <button type="button" onclick="removeSpecificArtUrl('${linkBoxId}', ${index})" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
                                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     Remove Link
@@ -1866,9 +1873,12 @@
                             const row = document.createElement('div');
                             row.className = 'art-input-row';
                             row.style.cssText = 'display:flex; align-items:center; gap:10px; margin-top:8px;';
+                            const removeBtnHtml = task.can_remove_artwork ? `
+                                <button type="button" onclick="this.closest('.art-input-row').remove()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:8px; padding:8px 12px; font-weight:bold; cursor:pointer; font-size:11px;" title="Remove link input">✕ Remove</button>
+                            ` : '';
                             row.innerHTML = `
-                                <input type="url" name="final_designs_urls[]" value="${url}" form="artworkDeliveryForm" placeholder="https://drive.google.com/…" style="flex:1; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                                <button type="button" onclick="this.closest('.art-input-row').remove()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:8px; padding:8px 12px; font-weight:bold; cursor:pointer; font-size:11px;" title="Remove link input">✕ Remove</button>`;
+                                <input type="url" name="final_designs_urls[]" value="${url}" form="artworkDeliveryForm" ${task.can_remove_artwork ? '' : 'readonly'} placeholder="https://drive.google.com/…" style="flex:1; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                ${removeBtnHtml}`;
                             artLinksContainer.appendChild(row);
                         });
                     }
@@ -2300,9 +2310,12 @@
                                 const row = document.createElement('div');
                                 row.className = 'ref-input-row';
                                 row.style.cssText = 'display:flex; align-items:center; gap:10px; margin-top:8px;';
+                                const removeBtnHtml = task.can_remove_reference ? `
+                                    <button type="button" onclick="this.closest('.ref-input-row').remove()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:8px; padding:8px 12px; font-weight:bold; cursor:pointer; font-size:11px;" title="Remove link input">✕ Remove</button>
+                                ` : '';
                                 row.innerHTML = `
-                                    <input type="url" name="reference_urls[]" value="${url}" form="submitStageForm" placeholder="https://..." style="flex:1; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                                    <button type="button" onclick="this.closest('.ref-input-row').remove()" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; border-radius:8px; padding:8px 12px; font-weight:bold; cursor:pointer; font-size:11px;" title="Remove link input">✕ Remove</button>`;
+                                    <input type="url" name="reference_urls[]" value="${url}" form="submitStageForm" ${task.can_remove_reference ? '' : 'readonly'} placeholder="https://..." style="flex:1; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                    ${removeBtnHtml}`;
                                 linksContainer.appendChild(row);
                             });
                         }

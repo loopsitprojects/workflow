@@ -58,6 +58,34 @@
 /* Revision modal */
 .bv-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); z-index: 9000; display: none; align-items: center; justify-content: center; padding: 24px; }
 .bv-overlay.open { display: flex; }
+#mediaGalleryModal {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    display: none;
+    justify-content: center !important;
+    align-items: center !important;
+    z-index: 999999 !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    backdrop-filter: blur(8px) !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+}
+#mediaGalleryModal .cd-modal,
+#mediaGalleryModal .cd-modal-dialog {
+    position: relative !important;
+    inset: auto !important;
+    margin: auto !important;
+    width: 90% !important;
+    max-width: 680px !important;
+    max-height: 85vh !important;
+    height: auto !important;
+    border-radius: 16px !important;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5) !important;
+    transform: none !important;
+}
 .bv-modal { background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 14px; width: 100%; max-width: 480px; box-shadow: 0 30px 80px rgba(0,0,0,0.25); overflow: hidden; }
 .bv-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--color-border-primary); background: var(--color-bg-secondary); }
 .bv-modal-title { font-size: 16px; font-weight: 800; color: var(--color-text-primary); }
@@ -576,10 +604,10 @@ document.addEventListener('keydown', e => {
                 modal = document.createElement('div');
                 modal.id = 'mediaGalleryModal';
                 modal.className = 'cd-modal-overlay';
-                modal.style.cssText = 'z-index:999999; justify-content:center; align-items:center; opacity:0; transition:opacity 0.2s ease; display:none;';
+                modal.style.cssText = 'position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:999999 !important; display:none; justify-content:center !important; align-items:center !important; opacity:0; transition:opacity 0.2s ease; background:rgba(15,23,42,0.75) !important; backdrop-filter:blur(8px) !important; margin:0 !important; padding:20px !important; box-sizing:border-box !important;';
                 modal.onclick = closeMediaGallery;
                 modal.innerHTML = `
-                    <div class="cd-modal" style="width:90%; max-width:680px; max-height:85vh; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,0.3); display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
+                    <div class="cd-modal is-windowed cd-modal-dialog" style="position:relative !important; inset:auto !important; margin:auto !important; width:90% !important; max-width:680px !important; max-height:85vh !important; height:auto !important; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
                         <div style="padding:14px 20px; border-bottom:1px solid var(--color-border-primary); display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-secondary);">
                             <h3 id="mediaGalleryTitle" style="margin:0; font-size:15px; font-weight:800; color:var(--color-text-primary); display:flex; align-items:center; gap:8px;"></h3>
                             <div style="display:flex; align-items:center; gap:10px;">
@@ -645,18 +673,15 @@ document.addEventListener('keydown', e => {
                     }
 
                     html += `
-                        <div style="width:100%; padding:8px 10px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary);">
-                            <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">Item ${idx + 1}</span>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <a href="${fileUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); border-radius:5px; text-decoration:none;" onclick="event.stopPropagation();" title="Open in new tab">
-                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                                    Open
-                                </a>
-                                <button type="button" onclick="event.stopPropagation(); downloadMedia(event, '${fileUrl}')" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:5px; cursor:pointer;" title="Download file">
-                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                    Download
-                                </button>
-                            </div>
+                        <div style="width:100%; padding:8px 10px; display:flex; align-items:center; justify-content:flex-end; gap:6px; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary);">
+                            <a href="${fileUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); border-radius:5px; text-decoration:none;" onclick="event.stopPropagation();" title="Open in new tab">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                Open
+                            </a>
+                            <button type="button" onclick="event.stopPropagation(); downloadMedia(event, '${fileUrl}')" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:5px; cursor:pointer;" title="Download file">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Download
+                            </button>
                         </div>
                     </div>`;
                 });
@@ -770,7 +795,8 @@ document.addEventListener('keydown', e => {
             const modal = document.getElementById('mediaGalleryModal');
             if (!modal) return;
             modal.style.opacity = '0';
-            if (modal.querySelector('.cd-modal')) modal.querySelector('.cd-modal').classList.remove('active');
+            const inner = modal.querySelector('.cd-modal-dialog') || modal.querySelector('.cd-modal');
+            if (inner) inner.classList.remove('active');
             setTimeout(() => {
                 modal.style.display = 'none';
             }, 200);

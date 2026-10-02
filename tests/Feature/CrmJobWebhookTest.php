@@ -125,6 +125,7 @@ class CrmJobWebhookTest extends TestCase
             'priority'      => 'Medium',
             'type'          => 'primary',
             'workflow_type' => 'campaign',
+            'writer_id'     => $admin->id,
         ]);
 
         $response->assertSessionHasNoErrors();

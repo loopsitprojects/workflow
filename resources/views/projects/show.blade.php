@@ -177,6 +177,34 @@
             border-radius: 24px;
             box-shadow: 0 40px 100px rgba(0,0,0,0.3);
         }
+        #mediaGalleryModal {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            display: none;
+            justify-content: center !important;
+            align-items: center !important;
+            z-index: 999999 !important;
+            background: rgba(15, 23, 42, 0.75) !important;
+            backdrop-filter: blur(8px) !important;
+            margin: 0 !important;
+            padding: 20px !important;
+            box-sizing: border-box !important;
+        }
+        #mediaGalleryModal .cd-modal,
+        #mediaGalleryModal .cd-modal-dialog {
+            position: relative !important;
+            inset: auto !important;
+            margin: auto !important;
+            width: 90% !important;
+            max-width: 680px !important;
+            max-height: 85vh !important;
+            height: auto !important;
+            border-radius: 16px !important;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5) !important;
+            transform: none !important;
+        }
         .cd-modal.active { }
         .cd-modal-header { 
             padding: 16px 32px; 
@@ -577,11 +605,13 @@
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         New Deliverable
                     </a>
+                    @if(!in_array($project->workflow_type, ['campaign', 'pitch']))
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'flow' => 'design']) }}"
                        style="padding: 8px 16px; background: #6366f1; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(99,102,241,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         Fast Track Deliverable
                     </a>
+                    @endif
                     @endcan
                 </div>
             </div>
@@ -637,7 +667,7 @@
             ];
             $fastTrackTasks = $project->deliverables->whereNull('parent_deliverable_id')->where('flow_type', 'direct_design');
             $contentTasks = $project->deliverables->whereNull('parent_deliverable_id')->filter(fn($t) => $t->flow_type !== 'direct_design');
-            $hasFastTrack = $fastTrackTasks->count() > 0;
+            $hasFastTrack = !in_array($project->workflow_type, ['campaign', 'pitch']) && $fastTrackTasks->count() > 0;
         @endphp
 
         <div x-data="{ activeBoardTab: 'all' }" style="margin-bottom: 24px;">
@@ -2202,6 +2232,10 @@
 
                 document.getElementById('deleteReferenceFile').value = '0';
                 let refHtml = '';
+                const canRemoveRef = Boolean(task.can_remove_reference);
+                const removeRefBtnHtml = canRemoveRef ? `
+                    <button type="button" onclick="document.getElementById('modalReference').innerHTML='<span style=\\'color:#94a3b8; font-size:13px; font-weight:500;\\'>Reference will be removed on save</span>'; document.getElementById('deleteReferenceFile').value='1';" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
+                ` : '';
                 if (task.reference_file) {
                     const isVideo = task.reference_file.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
                     if (isVideo) {
@@ -2211,7 +2245,7 @@
                                 <video controls src="${task.reference_file}" style="width:100%; max-width:300px; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;"></video>
                                 <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">Reference Video</span>
                             </div>
-                            <button type="button" onclick="document.getElementById('modalReference').innerHTML='<span style=\\'color:#94a3b8; font-size:13px; font-weight:500;\\'>Reference will be removed on save</span>'; document.getElementById('deleteReferenceFile').value='1';" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
+                            ${removeRefBtnHtml}
                         </div>`;
                     } else {
                         refHtml = `
@@ -2220,7 +2254,7 @@
                                 <img src="${task.reference_file}" style="width:100%; max-width:200px; height:auto; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;">
                                 <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">View Reference Image</span>
                             </div>
-                            <button type="button" onclick="document.getElementById('modalReference').innerHTML='<span style=\\'color:#94a3b8; font-size:13px; font-weight:500;\\'>Reference will be removed on save</span>'; document.getElementById('deleteReferenceFile').value='1';" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
+                            ${removeRefBtnHtml}
                         </div>`;
                     }
                 } else if (task.reference) {
@@ -2323,17 +2357,18 @@
                 }
                 
                 let finalHtml = '';
+                const canRemoveArt = Boolean(task.can_remove_artwork);
                 if (task.final_designs) {
                     const isImage = /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i.test(task.final_designs);
                     if (isImage) {
                         const isVideo = /\.(mp4|webm|ogg|mov)(?:$|\?)/i.test(task.final_designs);
                         finalHtml += `
                             <div style="display:inline-block; margin-right:12px; vertical-align:top; text-align:center;">
-                                <div onclick="openImagePreview('${task.final_designs}', ${canDesignerEdit}, ${task.id})" style="text-decoration:none; cursor:pointer;">
+                                <div onclick="openImagePreview('${task.final_designs}', ${canRemoveArt}, ${task.id})" style="text-decoration:none; cursor:pointer;">
                                     ${isVideo ? `<video src="${task.final_designs}" class="task-thumbnail" preload="metadata"></video>` : `<img src="${task.final_designs}" class="task-thumbnail" alt="Final Design">`}
                                     <span style="display:block; font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; margin-top:6px; text-align:center;">Preview Artwork</span>
                                 </div>
-                                ${canDesignerEdit ? `
+                                ${canRemoveArt ? `
                                     <button type="submit" name="delete_final_designs" value="1" form="submitStageForm" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                         Remove
@@ -2344,7 +2379,7 @@
                         finalHtml += `
                             <div style="display:inline-block; margin-right:12px; vertical-align:top; text-align:center;">
                                 <a href="${task.final_designs}" target="_blank" style="color:#10b981; font-weight:700; display:block; margin-bottom:8px;">View Deliverable</a>
-                                ${canDesignerEdit ? `
+                                ${canRemoveArt ? `
                                     <button type="submit" name="delete_final_designs" value="1" form="submitStageForm" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                         Remove
@@ -2360,7 +2395,7 @@
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                                 <span style="font-size:11px; font-weight:800; text-transform:uppercase;">External Link</span>
                             </a>
-                            ${canDesignerEdit ? `
+                            ${canRemoveArt ? `
                                 <button type="submit" name="delete_final_designs_link" value="1" form="submitStageForm" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
                                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     Remove Link
@@ -3923,10 +3958,10 @@
                 modal = document.createElement('div');
                 modal.id = 'mediaGalleryModal';
                 modal.className = 'cd-modal-overlay';
-                modal.style.cssText = 'z-index:999999; justify-content:center; align-items:center; opacity:0; transition:opacity 0.2s ease; display:none;';
+                modal.style.cssText = 'position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:999999 !important; display:none; justify-content:center !important; align-items:center !important; opacity:0; transition:opacity 0.2s ease; background:rgba(15,23,42,0.75) !important; backdrop-filter:blur(8px) !important; margin:0 !important; padding:20px !important; box-sizing:border-box !important;';
                 modal.onclick = closeMediaGallery;
                 modal.innerHTML = `
-                    <div class="cd-modal" style="width:90%; max-width:680px; max-height:85vh; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,0.3); display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
+                    <div class="cd-modal is-windowed cd-modal-dialog" style="position:relative !important; inset:auto !important; margin:auto !important; width:90% !important; max-width:680px !important; max-height:85vh !important; height:auto !important; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
                         <div style="padding:14px 20px; border-bottom:1px solid var(--color-border-primary); display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-secondary);">
                             <h3 id="mediaGalleryTitle" style="margin:0; font-size:15px; font-weight:800; color:var(--color-text-primary); display:flex; align-items:center; gap:8px;"></h3>
                             <div style="display:flex; align-items:center; gap:10px;">
@@ -3992,18 +4027,15 @@
                     }
 
                     html += `
-                        <div style="width:100%; padding:8px 10px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary);">
-                            <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">Item ${idx + 1}</span>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <a href="${fileUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); border-radius:5px; text-decoration:none;" onclick="event.stopPropagation();" title="Open in new tab">
-                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                                    Open
-                                </a>
-                                <button type="button" onclick="event.stopPropagation(); downloadMedia(event, '${fileUrl}')" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:5px; cursor:pointer;" title="Download file">
-                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                    Download
-                                </button>
-                            </div>
+                        <div style="width:100%; padding:8px 10px; display:flex; align-items:center; justify-content:flex-end; gap:6px; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary);">
+                            <a href="${fileUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); border-radius:5px; text-decoration:none;" onclick="event.stopPropagation();" title="Open in new tab">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                Open
+                            </a>
+                            <button type="button" onclick="event.stopPropagation(); downloadMedia(event, '${fileUrl}')" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:5px; cursor:pointer;" title="Download file">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Download
+                            </button>
                         </div>
                     </div>`;
                 });
@@ -4081,7 +4113,8 @@
             const modal = document.getElementById('mediaGalleryModal');
             if (!modal) return;
             modal.style.opacity = '0';
-            if (modal.querySelector('.cd-modal')) modal.querySelector('.cd-modal').classList.remove('active');
+            const inner = modal.querySelector('.cd-modal-dialog') || modal.querySelector('.cd-modal');
+            if (inner) inner.classList.remove('active');
             setTimeout(() => {
                 modal.style.display = 'none';
             }, 200);
@@ -4173,7 +4206,7 @@
 
     <!-- Image Preview Modal -->
     <div id="imagePreviewOverlay" class="cd-modal-overlay" onclick="closeImagePreview(event)" style="z-index: 999999; justify-content: center; align-items: center;">
-        <div class="cd-modal" style="max-width: 90%; max-height: 90vh; background: transparent; border: none; box-shadow: none; display: flex; flex-direction: column; align-items: center; justify-content: center;" onclick="event.stopPropagation()">
+        <div class="cd-modal" style="position: relative !important; inset: auto !important; margin: auto !important; max-width: 90%; max-height: 90vh; background: transparent; border: none; box-shadow: none; display: flex; flex-direction: column; align-items: center; justify-content: center;" onclick="event.stopPropagation()">
             <div style="position: absolute; top: 16px; right: 16px; z-index: 10;">
                 <button onclick="closeImagePreview()" style="background: rgba(15, 23, 42, 0.6); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(4px);">
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>

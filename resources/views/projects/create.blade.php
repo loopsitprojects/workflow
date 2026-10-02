@@ -158,28 +158,16 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
             <input type="hidden" name="workflow_type" id="workflow_type" value="retainer">
         </div>
 
-        {{-- Brand Manager & Default Assignee --}}
-        <div class="f-section">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
-                <div>
-                    <label class="f-label">Brand Manager <span style="opacity:0.5;font-weight:400;">(Defaults to Brand Creator if empty)</span></label>
-                    <select name="brand_manager_id" class="f-input">
-                        <option value="">-- Auto-assign Brand Creator --</option>
-                        @foreach($managers as $manager)
-                            <option value="{{ $manager->id }}" {{ old('brand_manager_id') == $manager->id ? 'selected' : '' }}>{{ $manager->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="f-label">Default Assignee <span style="opacity:0.5;font-weight:400;">(Campaign & Pitch workflow default)</span></label>
-                    <select name="writer_id" id="project_default_assignee" class="f-input">
-                        <option value="">-- Select Default Assignee (Optional) --</option>
-                        @foreach($allUsers ?? $users as $u)
-                            <option value="{{ $u->id }}" {{ old('writer_id') == $u->id ? 'selected' : '' }}>{{ $u->name }} ({{ ucfirst($u->role) }})</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
+        {{-- Assignee (Only for Campaign & Pitch) --}}
+        <div class="f-section" id="default-assignee-section" style="display:none;">
+            <label class="f-label blue">Assignee <span style="color:#ef4444;font-weight:700;">*</span></label>
+            <select name="writer_id" id="project_default_assignee" class="f-input" style="max-width:480px;">
+                <option value="">-- Select Assignee --</option>
+                @foreach($allUsers ?? $users as $u)
+                    <option value="{{ $u->id }}" {{ old('writer_id') == $u->id ? 'selected' : '' }}>{{ $u->name }} ({{ ucfirst($u->role) }})</option>
+                @endforeach
+            </select>
+            @error('writer_id')<p style="color:#ef4444;font-size:11px;margin-top:6px;">{{ $message }}</p>@enderror
         </div>
 
         <div class="f-section">
@@ -188,7 +176,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
                 <textarea name="description" x-model="content" style="display:none;"></textarea>
                 <div x-ref="editor" class="f-input" style="min-height: 120px; border-top-left-radius: 0; border-top-right-radius: 0; padding: 0;"></div>
             </div>
-            <div style="margin-top:16px;">
+            <div id="project-batches-section" style="margin-top:16px;">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
                     <div>
                         <label class="f-label" style="margin-bottom:0;font-size:12px;font-weight:700;">Project Batches</label>
@@ -628,25 +616,45 @@ function setWorkflow(type) {
         document.getElementById('option-'+t).classList.toggle('active', t === type)
     );
 
+    const batchesSection = document.getElementById('project-batches-section');
+    const assigneeSection = document.getElementById('default-assignee-section');
+    const assigneeSelect = document.getElementById('project_default_assignee');
     const container = document.getElementById('batches-container');
-    container.innerHTML = '';
+    if (container) container.innerHTML = '';
     batchIndex = 0;
     
-    // Only auto-add an empty batch if there are NO old batches
-    if (!oldBatches || Object.keys(oldBatches).length === 0) {
-        addBatchCard();
+    if (type === 'campaign' || type === 'pitch') {
+        if (batchesSection) batchesSection.style.display = 'none';
+        if (assigneeSection) assigneeSection.style.display = 'block';
+        if (assigneeSelect) assigneeSelect.required = true;
+    } else {
+        if (batchesSection) batchesSection.style.display = 'block';
+        if (assigneeSection) {
+            assigneeSection.style.display = 'none';
+            if (assigneeSelect) {
+                assigneeSelect.required = false;
+                assigneeSelect.value = '';
+            }
+        }
+        // Only auto-add an empty batch if there are NO old batches
+        if (!oldBatches || Object.keys(oldBatches).length === 0) {
+            addBatchCard();
+        }
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     // Determine the workflow type (from old input, or default to retainer)
-    const oldWorkflowType = "{{ old('workflow_type', 'retainer') }}";
+    const oldWorkflowType = "{{ old('workflow_type', request('workflow_type', request('type', 'retainer'))) }}";
     setWorkflow(oldWorkflowType);
 
-    // If there are old batches from a validation error, reconstruct them
-    if (oldBatches && Object.keys(oldBatches).length > 0) {
+    // If there are old batches from a validation error and workflow is retainer, reconstruct them
+    if (oldWorkflowType === 'retainer' && oldBatches && Object.keys(oldBatches).length > 0) {
+        const container = document.getElementById('batches-container');
+        if (container) container.innerHTML = '';
+        batchIndex = 0;
         for (const [key, batch] of Object.entries(oldBatches)) {
-            addBatchCard(batch); // We will pass 'batch' data to addBatchCard
+            addBatchCard(batch);
         }
     }
 

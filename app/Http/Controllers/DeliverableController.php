@@ -69,6 +69,11 @@ class DeliverableController extends Controller
         $workflowType = $project ? $project->workflow_type : ($parentTask?->project?->workflow_type ?? 'retainer');
 
         if ($flow === 'design' || ($parentTask && $parentTask->isDirectDesign())) {
+            if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
+                return redirect()->route('deliverables.create', ['project_id' => $project->id])
+                    ->with('error', 'Fast Track deliverables are not available for Campaign and Pitch projects.');
+            }
+            $projects = Project::with('brand')->where('workflow_type', 'retainer')->get();
             $designers = \App\Models\User::where('role', 'Designer')->orderBy('name')->get();
             $subtaskTypes = \App\Models\SubtaskType::all();
             return view('deliverables.create_design', compact('projects', 'project', 'designers', 'selectedProjectId', 'parentId', 'parentTask', 'workflowType', 'subtaskTypes'));
@@ -163,6 +168,9 @@ class DeliverableController extends Controller
 
             if ($request->hasFile("subtasks.0.reference_file")) {
                 $taskData['reference_file'] = $this->moveUploadedFile($request->file("subtasks.0.reference_file"), 'references');
+                $taskData['reference_uploaded_by'] = auth()->id();
+            } elseif (!empty($taskData['reference'])) {
+                $taskData['reference_uploaded_by'] = auth()->id();
             }
 
             $singleTask = Deliverable::create($taskData);
@@ -183,6 +191,13 @@ class DeliverableController extends Controller
             }
         }
         
+        if ($request->hasFile("reference_file")) {
+            $parentData['reference_file'] = $this->moveUploadedFile($request->file("reference_file"), 'references');
+            $parentData['reference_uploaded_by'] = auth()->id();
+        } elseif (!empty($parentData['reference'])) {
+            $parentData['reference_uploaded_by'] = auth()->id();
+        }
+
         if ($parentId) {
             $parentTask = Deliverable::findOrFail($parentId);
         } else {
@@ -205,8 +220,12 @@ class DeliverableController extends Controller
                             : $parentTask->title . ' - Subtask ' . ($existingCount + $index + 1);
 
                 $refFile = null;
+                $refUploadedBy = null;
                 if ($request->hasFile("subtasks.{$index}.reference_file")) {
                     $refFile = $this->moveUploadedFile($request->file("subtasks.{$index}.reference_file"), 'references');
+                    $refUploadedBy = auth()->id();
+                } elseif (!empty($sub['reference'])) {
+                    $refUploadedBy = auth()->id();
                 }
 
                 Deliverable::create([
@@ -223,6 +242,7 @@ class DeliverableController extends Controller
                     'post_copy' => $sub['post_copy'] ?? null,
                     'reference' => $sub['reference'] ?? null,
                     'reference_file' => $refFile,
+                    'reference_uploaded_by' => $refUploadedBy,
                     'deadline' => $sub['deadline'] ?? $parentTask->deadline,
                     'priority' => $sub['priority'] ?? ($parentTask->priority ?? 'Medium'),
                     'approval_stage' => ($parentTask->project && in_array($parentTask->project->workflow_type, ['campaign', 'pitch']))
@@ -243,6 +263,11 @@ class DeliverableController extends Controller
      */
     private function storeDirectDesignDeliverable(StoreDeliverableRequest $request, array $validated, ?Project $project, ?int $parentId, array $subtasks)
     {
+        if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
+            return redirect()->route('projects.show', $project->id)
+                ->with('error', 'Fast Track deliverables are not available for Campaign and Pitch projects.');
+        }
+
         $creator = auth()->user();
         $designerId = $validated['designer_id'] ?? (!empty($subtasks[0]['designer_id']) ? $subtasks[0]['designer_id'] : null);
         $designerUser = $designerId ? User::find($designerId) : null;
@@ -292,8 +317,12 @@ class DeliverableController extends Controller
             }
             if ($request->hasFile("subtasks.0.reference_file")) {
                 $taskData['reference_file'] = $this->moveUploadedFile($request->file("subtasks.0.reference_file"), 'references');
+                $taskData['reference_uploaded_by'] = auth()->id();
             } elseif ($request->hasFile("reference_file")) {
                 $taskData['reference_file'] = $this->moveUploadedFile($request->file("reference_file"), 'references');
+                $taskData['reference_uploaded_by'] = auth()->id();
+            } elseif (!empty($taskData['reference'])) {
+                $taskData['reference_uploaded_by'] = auth()->id();
             }
 
             $singleTask = Deliverable::create($taskData);
@@ -303,6 +332,9 @@ class DeliverableController extends Controller
         // Parent deliverable + subtasks or adding to existing parent
         if ($request->hasFile("reference_file")) {
             $taskData['reference_file'] = $this->moveUploadedFile($request->file("reference_file"), 'references');
+            $taskData['reference_uploaded_by'] = auth()->id();
+        } elseif (!empty($taskData['reference'])) {
+            $taskData['reference_uploaded_by'] = auth()->id();
         }
 
         if ($parentId) {
@@ -326,8 +358,12 @@ class DeliverableController extends Controller
                     : $parentTask->title . ' - Design ' . ($existingCount + $index + 1);
 
                 $refFile = null;
+                $refUploadedBy = null;
                 if ($request->hasFile("subtasks.{$index}.reference_file")) {
                     $refFile = $this->moveUploadedFile($request->file("subtasks.{$index}.reference_file"), 'references');
+                    $refUploadedBy = auth()->id();
+                } elseif (!empty($sub['reference'])) {
+                    $refUploadedBy = auth()->id();
                 }
 
                 Deliverable::create([
@@ -344,6 +380,7 @@ class DeliverableController extends Controller
                     'notes'                 => $sub['notes'] ?? ($sub['brief'] ?? null),
                     'reference'             => $sub['reference'] ?? null,
                     'reference_file'        => $refFile,
+                    'reference_uploaded_by' => $refUploadedBy,
                     'deadline'              => $sub['designer_deadline'] ?? ($sub['deadline'] ?? $parentTask->deadline),
                     'designer_deadline'     => $sub['designer_deadline'] ?? $parentTask->designer_deadline,
                     'priority'              => $sub['priority'] ?? ($parentTask->priority ?? 'Medium'),
@@ -522,9 +559,20 @@ class DeliverableController extends Controller
         }
 
         if ($request->boolean('delete_reference_file')) {
+            if (!$deliverable->canUserRemoveReference()) {
+                abort(403, 'Unauthorized action: only the person who uploaded this reference can remove it.');
+            }
             $validated['reference_file'] = null;
+            if (empty($deliverable->reference)) {
+                $validated['reference_uploaded_by'] = null;
+            }
         } elseif ($request->hasFile('reference_file')) {
             $validated['reference_file'] = $this->moveUploadedFile($request->file('reference_file'), 'references');
+            $validated['reference_uploaded_by'] = auth()->id();
+        }
+
+        if ($request->has('reference') && !empty($request->reference) && $request->reference !== $deliverable->reference) {
+            $validated['reference_uploaded_by'] = auth()->id();
         }
 
         $oldStage = $deliverable->approval_stage;
@@ -714,12 +762,8 @@ class DeliverableController extends Controller
     {
         if ($request->has('delete_final_designs')) {
             $user = auth()->user();
-            $userRole = strtolower(str_replace(' ', '', $user->role));
-            $isAssignedDesigner = $user->id == $deliverable->designer_id;
-            $designerEditPermission = $isAssignedDesigner || ($userRole === 'designer' && !$deliverable->designer_id);
-            
-            if (!$user->isAdmin() && !($designerEditPermission && $deliverable->approval_stage === 'Designer')) {
-                abort(403, 'Unauthorized action.');
+            if (!$deliverable->canUserRemoveArtwork($user)) {
+                abort(403, 'Unauthorized action: only the person who uploaded this artwork can remove it.');
             }
             
             if ($deliverable->final_designs) {
@@ -731,6 +775,9 @@ class DeliverableController extends Controller
                     if (file_exists($fullPath)) @unlink($fullPath);
                 }
                 $deliverable->final_designs = null;
+                if (empty($deliverable->final_designs_link)) {
+                    $deliverable->artwork_uploaded_by = null;
+                }
                 $deliverable->save();
             }
             
@@ -741,15 +788,14 @@ class DeliverableController extends Controller
 
         if ($request->has('delete_final_designs_link')) {
             $user = auth()->user();
-            $userRole = strtolower(str_replace(' ', '', $user->role));
-            $isAssignedDesigner = $user->id == $deliverable->designer_id;
-            $designerEditPermission = $isAssignedDesigner || ($userRole === 'designer' && !$deliverable->designer_id);
-            
-            if (!$user->isAdmin() && !($designerEditPermission && $deliverable->approval_stage === 'Designer')) {
-                abort(403, 'Unauthorized action.');
+            if (!$deliverable->canUserRemoveArtwork($user)) {
+                abort(403, 'Unauthorized action: only the person who uploaded this artwork can remove it.');
             }
             
             $deliverable->final_designs_link = null;
+            if (empty($deliverable->final_designs)) {
+                $deliverable->artwork_uploaded_by = null;
+            }
             $deliverable->save();
             
             return $request->wantsJson()
@@ -788,6 +834,9 @@ class DeliverableController extends Controller
                 
                 // Handle deletion of specific reference URLs
                 if ($request->has('delete_reference_url_indices')) {
+                    if (!$deliverable->canUserRemoveReference()) {
+                        abort(403, 'Unauthorized action: only the person who uploaded this reference can remove it.');
+                    }
                     $delUrlIndices = (array)$request->input('delete_reference_url_indices');
                     $existingUrls = $deliverable->getReferenceUrlsArray();
                     foreach ($delUrlIndices as $idx) {
@@ -795,6 +844,9 @@ class DeliverableController extends Controller
                     }
                     $urlsList = array_values($existingUrls);
                     $deliverable->reference = empty($urlsList) ? null : (count($urlsList) === 1 ? $urlsList[0] : json_encode($urlsList));
+                    if (empty($deliverable->reference) && empty($deliverable->reference_file)) {
+                        $deliverable->reference_uploaded_by = null;
+                    }
                 } else {
                     // Combine reference URLs from single input or reference_urls[] array
                     $urlsList = [];
@@ -821,9 +873,21 @@ class DeliverableController extends Controller
                     }
                     $urlsList = array_values(array_unique(array_filter(array_map('trim', $urlsList))));
                     if (!empty($urlsList)) {
-                        $deliverable->reference = count($urlsList) === 1 ? $urlsList[0] : json_encode($urlsList);
+                        $newRef = count($urlsList) === 1 ? $urlsList[0] : json_encode($urlsList);
+                        if ($newRef !== $deliverable->reference) {
+                            $deliverable->reference = $newRef;
+                            $deliverable->reference_uploaded_by = auth()->id();
+                        }
                     } elseif ($request->has('reference') || $request->has('reference_urls')) {
-                        $deliverable->reference = null;
+                        if ($deliverable->reference !== null) {
+                            if (!$deliverable->canUserRemoveReference()) {
+                                abort(403, 'Unauthorized action: only the person who uploaded this reference can remove it.');
+                            }
+                            $deliverable->reference = null;
+                            if (empty($deliverable->reference_file)) {
+                                $deliverable->reference_uploaded_by = null;
+                            }
+                        }
                     }
                 }
             }
@@ -855,13 +919,22 @@ class DeliverableController extends Controller
             }
             
             if ($request->boolean('delete_reference_file')) {
+                if (!$deliverable->canUserRemoveReference()) {
+                    abort(403, 'Unauthorized action: only the person who uploaded this reference can remove it.');
+                }
                 foreach ($deliverable->getReferenceFilesArray() as $path) {
                     $this->deletePhysicalFile($path);
                 }
                 $deliverable->reference_file = null;
+                if (empty($deliverable->reference)) {
+                    $deliverable->reference_uploaded_by = null;
+                }
             }
 
             if ($request->has('delete_reference_file_indices') || $request->has('delete_reference_file_index')) {
+                if (!$deliverable->canUserRemoveReference()) {
+                    abort(403, 'Unauthorized action: only the person who uploaded this reference can remove it.');
+                }
                 $indices = $request->input('delete_reference_file_indices', [$request->input('delete_reference_file_index')]);
                 $existing = $deliverable->getReferenceFilesArray();
                 foreach ((array)$indices as $idx) {
@@ -873,6 +946,9 @@ class DeliverableController extends Controller
                 }
                 $existing = array_values($existing);
                 $deliverable->reference_file = empty($existing) ? null : (count($existing) === 1 ? $existing[0] : json_encode($existing));
+                if (empty($deliverable->reference_file) && empty($deliverable->reference)) {
+                    $deliverable->reference_uploaded_by = null;
+                }
             }
 
             $newRefFiles = [];
@@ -895,12 +971,17 @@ class DeliverableController extends Controller
                 $existing = $request->boolean('delete_reference_file') ? [] : $deliverable->getReferenceFilesArray();
                 $merged = array_merge($existing, $newRefFiles);
                 $deliverable->reference_file = count($merged) === 1 ? $merged[0] : json_encode($merged);
+                $deliverable->reference_uploaded_by = auth()->id();
             } elseif ($request->has('reference_file') && is_string($request->reference_file) && !empty($request->reference_file)) {
                 $deliverable->reference_file = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($request->reference_file, '/'));
+                $deliverable->reference_uploaded_by = auth()->id();
             }
             
             // Artwork URLs combining & index removal
             if ($request->has('delete_final_designs_url_indices')) {
+                if (!$deliverable->canUserRemoveArtwork()) {
+                    abort(403, 'Unauthorized action: only the person who uploaded this artwork can remove it.');
+                }
                 $delArtUrlIndices = (array)$request->input('delete_final_designs_url_indices');
                 $existingArtUrls = $deliverable->getFinalDesignsUrlsArray();
                 foreach ($delArtUrlIndices as $idx) {
@@ -908,6 +989,9 @@ class DeliverableController extends Controller
                 }
                 $artUrlsList = array_values($existingArtUrls);
                 $deliverable->final_designs_link = empty($artUrlsList) ? null : (count($artUrlsList) === 1 ? $artUrlsList[0] : json_encode($artUrlsList));
+                if (empty($deliverable->final_designs_link) && empty($deliverable->final_designs)) {
+                    $deliverable->artwork_uploaded_by = null;
+                }
             } elseif ($request->has('final_designs_link') || $request->has('final_designs_urls')) {
                 $artUrlsList = [];
                 $rawArtUrls = array_merge(
@@ -932,11 +1016,27 @@ class DeliverableController extends Controller
                     }
                 }
                 $artUrlsList = array_values(array_unique(array_filter(array_map('trim', $artUrlsList))));
-                $deliverable->final_designs_link = empty($artUrlsList) ? null : (count($artUrlsList) === 1 ? $artUrlsList[0] : json_encode($artUrlsList));
+                $newArtLink = empty($artUrlsList) ? null : (count($artUrlsList) === 1 ? $artUrlsList[0] : json_encode($artUrlsList));
+                if ($newArtLink !== $deliverable->final_designs_link) {
+                    if ($newArtLink === null && $deliverable->final_designs_link !== null) {
+                        if (!$deliverable->canUserRemoveArtwork()) {
+                            abort(403, 'Unauthorized action: only the person who uploaded this artwork can remove it.');
+                        }
+                    }
+                    $deliverable->final_designs_link = $newArtLink;
+                    if (!empty($artUrlsList)) {
+                        $deliverable->artwork_uploaded_by = auth()->id();
+                    } elseif (empty($deliverable->final_designs)) {
+                        $deliverable->artwork_uploaded_by = null;
+                    }
+                }
             }
 
             // Handle artwork file index deletion
             if ($request->has('delete_final_designs_file_indices') || $request->has('delete_final_designs_file_index')) {
+                if (!$deliverable->canUserRemoveArtwork()) {
+                    abort(403, 'Unauthorized action: only the person who uploaded this artwork can remove it.');
+                }
                 $artIndices = $request->input('delete_final_designs_file_indices', [$request->input('delete_final_designs_file_index')]);
                 $existingArt = $deliverable->getFinalDesignsArray();
                 foreach ((array)$artIndices as $idx) {
@@ -948,6 +1048,9 @@ class DeliverableController extends Controller
                 }
                 $existingArt = array_values($existingArt);
                 $deliverable->final_designs = empty($existingArt) ? null : (count($existingArt) === 1 ? $existingArt[0] : json_encode($existingArt));
+                if (empty($deliverable->final_designs) && empty($deliverable->final_designs_link)) {
+                    $deliverable->artwork_uploaded_by = null;
+                }
             }
 
             // Handle multi artwork file uploads
@@ -971,8 +1074,10 @@ class DeliverableController extends Controller
                 $existingArt = $request->boolean('delete_final_designs') ? [] : $deliverable->getFinalDesignsArray();
                 $mergedArt = array_merge($existingArt, $newArtFiles);
                 $deliverable->final_designs = count($mergedArt) === 1 ? $mergedArt[0] : json_encode($mergedArt);
+                $deliverable->artwork_uploaded_by = auth()->id();
             } elseif ($request->has('final_designs_file') && is_string($request->final_designs_file) && !empty($request->final_designs_file)) {
                 $deliverable->final_designs = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($request->final_designs_file, '/'));
+                $deliverable->artwork_uploaded_by = auth()->id();
             }
             
             $deliverable->save();

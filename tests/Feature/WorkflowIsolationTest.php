@@ -531,6 +531,73 @@ test('campaign project creation assigns default and per-item assignees to delive
     expect($children[1]->assignee_name)->toBe('Default Designer');
 });
 
+test('campaign or pitch project can be created initially without batches', function () {
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $brand = Brand::create(['name' => 'Blank Campaign Brand', 'slug' => 'blank-campaign-brand']);
+    $assignee = User::factory()->create(['name' => 'Campaign Lead', 'role' => 'Brand Manager']);
+
+    $response = $this->actingAs($admin)->post(route('projects.store'), [
+        'brand_id' => $brand->id,
+        'name' => 'Q4 Clean Campaign',
+        'status' => 'To commence',
+        'priority' => 'Medium',
+        'type' => 'primary',
+        'workflow_type' => 'campaign',
+        'writer_id' => $assignee->id,
+    ]);
+
+    $response->assertRedirect();
+    $project = Project::where('name', 'Q4 Clean Campaign')->first();
+    expect($project)->not->toBeNull();
+    expect($project->workflow_type)->toBe('campaign');
+    expect($project->writer_id)->toBe($assignee->id);
+
+    // Verify no deliverables were generated
+    $deliverables = Deliverable::where('project_id', $project->id)->get();
+    expect($deliverables)->toBeEmpty();
+});
+
+test('default assignee is required for campaign and pitch flow but not for retainer', function () {
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $brand = Brand::create(['name' => 'Assignee Test Brand', 'slug' => 'assignee-test-brand']);
+
+    // Attempt to create Campaign project without writer_id -> fails validation
+    $responseCampaign = $this->actingAs($admin)->post(route('projects.store'), [
+        'brand_id' => $brand->id,
+        'name' => 'Campaign Missing Assignee',
+        'status' => 'To commence',
+        'priority' => 'Medium',
+        'type' => 'primary',
+        'workflow_type' => 'campaign',
+    ]);
+    $responseCampaign->assertSessionHasErrors(['writer_id']);
+
+    // Attempt to create Pitch project without writer_id -> fails validation
+    $responsePitch = $this->actingAs($admin)->post(route('projects.store'), [
+        'brand_id' => $brand->id,
+        'name' => 'Pitch Missing Assignee',
+        'status' => 'To commence',
+        'priority' => 'Medium',
+        'type' => 'primary',
+        'workflow_type' => 'pitch',
+    ]);
+    $responsePitch->assertSessionHasErrors(['writer_id']);
+
+    // Attempt to create Retainer project without writer_id -> succeeds
+    $responseRetainer = $this->actingAs($admin)->post(route('projects.store'), [
+        'brand_id' => $brand->id,
+        'name' => 'Retainer No Assignee Needed',
+        'status' => 'To commence',
+        'priority' => 'Medium',
+        'type' => 'primary',
+        'workflow_type' => 'retainer',
+    ]);
+    $responseRetainer->assertRedirect();
+    $project = Project::where('name', 'Retainer No Assignee Needed')->first();
+    expect($project)->not->toBeNull();
+    expect($project->writer_id)->toBeNull();
+});
+
 
 
 
