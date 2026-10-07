@@ -158,17 +158,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
             <input type="hidden" name="workflow_type" id="workflow_type" value="retainer">
         </div>
 
-        {{-- Assignee (Only for Campaign & Pitch) --}}
-        <div class="f-section" id="default-assignee-section" style="display:none;">
-            <label class="f-label blue">Assignee <span style="color:#ef4444;font-weight:700;">*</span></label>
-            <select name="writer_id" id="project_default_assignee" class="f-input" style="max-width:480px;">
-                <option value="">-- Select Assignee --</option>
-                @foreach($allUsers ?? $users as $u)
-                    <option value="{{ $u->id }}" {{ old('writer_id') == $u->id ? 'selected' : '' }}>{{ $u->name }} ({{ ucfirst($u->role) }})</option>
-                @endforeach
-            </select>
-            @error('writer_id')<p style="color:#ef4444;font-size:11px;margin-top:6px;">{{ $message }}</p>@enderror
-        </div>
+        {{-- Project Brief --}}
 
         <div class="f-section">
             <label class="f-label">Project Brief</label>
@@ -617,25 +607,14 @@ function setWorkflow(type) {
     );
 
     const batchesSection = document.getElementById('project-batches-section');
-    const assigneeSection = document.getElementById('default-assignee-section');
-    const assigneeSelect = document.getElementById('project_default_assignee');
     const container = document.getElementById('batches-container');
     if (container) container.innerHTML = '';
     batchIndex = 0;
     
     if (type === 'campaign' || type === 'pitch') {
         if (batchesSection) batchesSection.style.display = 'none';
-        if (assigneeSection) assigneeSection.style.display = 'block';
-        if (assigneeSelect) assigneeSelect.required = true;
     } else {
         if (batchesSection) batchesSection.style.display = 'block';
-        if (assigneeSection) {
-            assigneeSection.style.display = 'none';
-            if (assigneeSelect) {
-                assigneeSelect.required = false;
-                assigneeSelect.value = '';
-            }
-        }
         // Only auto-add an empty batch if there are NO old batches
         if (!oldBatches || Object.keys(oldBatches).length === 0) {
             addBatchCard();
