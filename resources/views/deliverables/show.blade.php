@@ -632,14 +632,16 @@
                                 </div>
                                 <div id="modalReferenceFilesContainer" style="display:flex; flex-direction:column; gap:10px;">
                                     <div class="ref-input-row">
-                                        <input type="file" id="modalReferenceFileInput" name="reference_files[]" form="submitStageForm" accept="image/*,video/*" multiple style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                                        <input type="file" id="modalReferenceFileInput" name="reference_files[]" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" multiple style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
                                             const previewContainer = document.getElementById('modalReferenceMultiPreviews');
                                             if (previewContainer) {
                                                 previewContainer.innerHTML = '';
                                                 Array.from(this.files).forEach((file, idx) => {
                                                     const wrapper = document.createElement('div');
                                                     wrapper.style.cssText = 'position:relative; display:inline-block; margin-right:8px; margin-top:8px;';
-                                                    if (file.type.startsWith('image/')) {
+                                                    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                                                        wrapper.innerHTML = `<div style='display:flex; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:220px;'><svg width='24' height='24' fill='none' stroke='#ef4444' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'/><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M14 3v5h5M9 13h6M9 17h4'/></svg><span style='font-size:11px; font-weight:700; color:#ef4444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'>${file.name}</span></div>`;
+                                                    } else if (file.type.startsWith('image/')) {
                                                         const r = new FileReader();
                                                         r.onload = e => {
                                                             wrapper.innerHTML = `<img src='${e.target.result}' style='max-width:100px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:cover;'>`;
@@ -777,13 +779,15 @@
                                     <div id="modalArtworkFilesContainer" style="display:flex; flex-direction:column; gap:10px;">
                                         <div class="art-input-row" style="display:flex; flex-direction:column; gap:6px;">
                                             <div style="display:flex; align-items:center; gap:10px;">
-                                                <input type="file" id="modalArtworkFile" name="final_designs_files[]" form="artworkDeliveryForm" accept="image/*,video/*" multiple style="width:100%; padding:8px; border:1.5px dashed rgba(16,185,129,0.35); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                                                <input type="file" id="modalArtworkFile" name="final_designs_files[]" form="artworkDeliveryForm" accept="image/*,video/*,application/pdf,.pdf" multiple style="width:100%; padding:8px; border:1.5px dashed rgba(16,185,129,0.35); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
                                                     const prevDiv = document.getElementById('modalArtworkInitialPreview');
                                                     if (prevDiv) {
                                                         prevDiv.innerHTML = '';
                                                         Array.from(this.files).forEach(file => {
                                                             const wrapper = document.createElement('div');
-                                                            if (file.type.startsWith('image/')) {
+                                                            if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                                                                wrapper.innerHTML = `<div style='display:flex; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:220px;'><svg width='24' height='24' fill='none' stroke='#ef4444' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'/><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M14 3v5h5M9 13h6M9 17h4'/></svg><span style='font-size:11px; font-weight:700; color:#ef4444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'>${file.name}</span></div>`;
+                                                            } else if (file.type.startsWith('image/')) {
                                                                 const r = new FileReader();
                                                                 r.onload = (e) => {
                                                                     wrapper.innerHTML = `<img src='${e.target.result}' style='max-width:100px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:cover;'>`;
@@ -949,8 +953,9 @@
                     <form id="submitStageForm" method="POST" enctype="multipart/form-data" style="display:none; align-items:center; gap:12px;">
                         @csrf
                         <button type="submit" name="action" value="save_only" class="cd-btn" id="saveContentBtn" style="background:rgba(59,130,246,0.1); color:#3b82f6; border:1.5px solid rgba(59,130,246,0.4); display:none; padding:10px 20px; font-size:12px; transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.2)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'">Save Content</button>
-                        <button type="submit" name="action" value="submit" class="cd-btn cd-btn-primary" id="submitStageBtn" style="padding:10px 20px; font-size:12px; box-shadow:0 4px 12px rgba(0,85,212,0.4);">Submit to Next</button>
+                        <button type="submit" name="action" value="submit" class="cd-btn cd-btn-primary" id="submitStageBtn" style="display:none; padding:10px 20px; font-size:12px; box-shadow:0 4px 12px rgba(0,85,212,0.4);">Submit to Next</button>
                     </form>
+                    <button type="button" class="cd-btn cd-btn-outline" id="showRevisionBtn" style="color:#ef4444; border-color:rgba(239,68,68,0.4); background:rgba(239,68,68,0.1); display:none; padding:10px 20px; font-size:12px; font-weight:700;" onclick="toggleRevisionInput(true)">Request Revisions</button>
                     <button id="modalDeleteBtn" type="button" class="cd-btn" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1.5px solid rgba(239,68,68,0.4); display:none; padding:10px 20px; font-size:12px; transition:all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'" onclick="deleteTaskFromModal()">Delete</button>
                 </div>
             </div>
@@ -1136,6 +1141,7 @@
         });
 
         const AUTH_USER_ID = {{ auth()->id() }};
+        const AUTH_USER_NAME = @json(auth()->user()->name);
         const AUTH_USER_ROLE = "{{ auth()->user()->role }}";
         const WORKFLOW_STAGES = @json($stages);
         let currentTaskData = null;
@@ -1233,14 +1239,16 @@
                 const rowId = 'row_prev_' + Date.now() + Math.random().toString(36).substr(2, 4);
                 row.innerHTML = `
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="file" name="reference_files[]" form="submitStageForm" accept="image/*,video/*" multiple style="flex:1; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                        <input type="file" name="reference_files[]" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" multiple style="flex:1; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
                             const prevDiv = document.getElementById('${rowId}');
                             if (prevDiv) {
                                 prevDiv.innerHTML = '';
                                 Array.from(this.files).forEach(file => {
                                     const wrapper = document.createElement('div');
                                     wrapper.style.cssText = 'position:relative; display:inline-block; margin-right:8px; margin-top:8px;';
-                                    if (file.type.startsWith('image/')) {
+                                    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                                        wrapper.innerHTML = \`<div style='display:flex; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:220px;'><svg width='24' height='24' fill='none' stroke='#ef4444' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'/><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M14 3v5h5M9 13h6M9 17h4'/></svg><span style='font-size:11px; font-weight:700; color:#ef4444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'>\${file.name}</span></div>\`;
+                                    } else if (file.type.startsWith('image/')) {
                                         const r = new FileReader();
                                         r.onload = e => {
                                             wrapper.innerHTML = \`<img src='\${e.target.result}' style='max-width:100px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:cover;'>\`;
@@ -1299,30 +1307,42 @@
             }
         }
 
-        function removeSpecificArtFile(boxId, index) {
+        function removeSpecificArtFile(boxId, index, fileUrl = '') {
             const box = document.getElementById(boxId);
             if (box) box.style.display = 'none';
-            const form = document.getElementById('artworkDeliveryForm') || document.getElementById('submitStageForm');
-            if (form) {
-                let input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'delete_final_designs_file_indices[]';
-                input.value = index;
-                form.appendChild(input);
-            }
+            ['submitStageForm', 'artworkDeliveryForm'].forEach(fId => {
+                const form = document.getElementById(fId);
+                if (form) {
+                    let input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'delete_final_designs_file_indices[]';
+                    input.value = index;
+                    form.appendChild(input);
+
+                    if (fileUrl) {
+                        let targetInput = document.createElement('input');
+                        targetInput.type = 'hidden';
+                        targetInput.name = 'target_artwork_files[]';
+                        targetInput.value = fileUrl;
+                        form.appendChild(targetInput);
+                    }
+                }
+            });
         }
 
-        function removeSpecificArtUrl(boxId, index) {
+        function removeSpecificArtUrl(boxId, index, url = '') {
             const box = document.getElementById(boxId);
             if (box) box.style.display = 'none';
-            const form = document.getElementById('artworkDeliveryForm') || document.getElementById('submitStageForm');
-            if (form) {
-                let input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'delete_final_designs_url_indices[]';
-                input.value = index;
-                form.appendChild(input);
-            }
+            ['submitStageForm', 'artworkDeliveryForm'].forEach(fId => {
+                const form = document.getElementById(fId);
+                if (form) {
+                    let input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'delete_final_designs_url_indices[]';
+                    input.value = index;
+                    form.appendChild(input);
+                }
+            });
         }
 
         function addArtworkInputRow(type) {
@@ -1335,13 +1355,15 @@
                 row.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin-top:8px;';
                 row.innerHTML = `
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="file" name="final_designs_files[]" form="artworkDeliveryForm" accept="image/*,video/*" multiple style="flex:1; padding:8px; border:1.5px dashed rgba(16,185,129,0.35); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                        <input type="file" name="final_designs_files[]" form="artworkDeliveryForm" accept="image/*,video/*,application/pdf,.pdf" multiple style="flex:1; padding:8px; border:1.5px dashed rgba(16,185,129,0.35); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
                             const prevDiv = document.getElementById('${rowId}');
                             if (prevDiv) {
                                 prevDiv.innerHTML = '';
                                 Array.from(this.files).forEach(file => {
                                     const wrapper = document.createElement('div');
-                                    if (file.type.startsWith('image/')) {
+                                    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+                                        wrapper.innerHTML = \`<div style='display:flex; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:220px;'><svg width='24' height='24' fill='none' stroke='#ef4444' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z'/><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M14 3v5h5M9 13h6M9 17h4'/></svg><span style='font-size:11px; font-weight:700; color:#ef4444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'>\${file.name}</span></div>\`;
+                                    } else if (file.type.startsWith('image/')) {
                                         const r = new FileReader();
                                         r.onload = (e) => {
                                             wrapper.innerHTML = \`<img src='\${e.target.result}' style='max-width:100px; max-height:100px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:cover;'>\`;
@@ -1382,7 +1404,7 @@
                 const rawRole = AUTH_USER_ROLE;
                 const userRole = rawRole.toLowerCase().replace(/\s+/g, '');
                 const isAdmin = userRole === 'admin';
-                const stage = task.approval_stage;
+                let stage = task.approval_stage;
                 const projectWorkflowType = task.project?.workflow_type || '{{ $deliverable->project?->workflow_type ?? "" }}';
                 const postTypeNorm = (task.post_type || '').toLowerCase().trim();
                 const isOtherDeliverable = projectWorkflowType !== 'retainer' && (task.workflow_stages?.length === 3 || (!['outlines', 'outline'].includes(postTypeNorm)));
@@ -1394,8 +1416,11 @@
                 const hasWriterRole = userRole === 'writer' || userRole === 'assignee';
                 const hasDesignerRole = userRole === 'designer';
                 const isWriterStage = ['Writer', 'Assignee', 'Writer Review', 'Assign'].includes(task.approval_stage || 'Writer');
-                const isOtherAssignStage = isOtherDeliverable && (task.approval_stage === 'Assign' || task.approval_stage === 'Assignee' || !task.approval_stage);
-                const isOtherAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || (task.designer_id && AUTH_USER_ID == task.designer_id);
+                const isOtherAssignStage = isOtherDeliverable && (['Assign', 'Assignee', 'Writer'].includes(task.approval_stage) || !task.approval_stage);
+                const isOtherAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || 
+                                              (task.designer_id && AUTH_USER_ID == task.designer_id) || 
+                                              (task.associates && task.associates.assignee && task.associates.assignee === AUTH_USER_NAME) ||
+                                              (task.assignee_name && task.assignee_name === AUTH_USER_NAME);
                 const writerEditPermission = isOtherDeliverable
                     ? (isOtherAssignStage && isOtherAssignedPerson)
                     : (isAdmin || (hasWriterRole && (!task.writer_id || AUTH_USER_ID == task.writer_id) && isWriterStage));
@@ -1634,12 +1659,25 @@
                 refFiles.forEach((fileUrl, index) => {
                     if (!fileUrl) return;
                     const isVideo = fileUrl.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
+                    const isPdf = /\.pdf(?:$|\?)/i.test(fileUrl);
                     const boxId = `modalRefFileBox_${index}`;
                     const labelText = refFiles.length > 1 ? `Reference File #${index + 1}` : 'Reference File';
                     const removeBtnHtml = task.can_remove_reference ? `
                         <button type="button" onclick="removeSpecificRefFile('${boxId}', ${index})" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
                     ` : '';
-                    if (isVideo) {
+                    if (isPdf) {
+                        refParts.push(`
+                        <div id="${boxId}" style="display:flex; align-items:flex-end; gap:12px; margin-bottom:8px;">
+                            <div onclick="window.open('${fileUrl}', '_blank')" style="display:inline-block; cursor:pointer;">
+                                <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:12px; margin-bottom:4px;">
+                                    <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+                                    <span style="font-size:12px; font-weight:800; color:#ef4444;">VIEW PDF</span>
+                                </div>
+                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">${labelText}</span>
+                            </div>
+                            ${removeBtnHtml}
+                        </div>`);
+                    } else if (isVideo) {
                         refParts.push(`
                         <div id="${boxId}" style="display:flex; align-items:flex-end; gap:12px; margin-bottom:8px;">
                             <div style="display:inline-block;">
@@ -1822,16 +1860,28 @@
                 artFiles.forEach((fileUrl, index) => {
                     if (!fileUrl) return;
                     const isVideo = /\.(mp4|webm|ogg|mov)(?:$|\?)/i.test(fileUrl);
+                    const isPdf = /\.pdf(?:$|\?)/i.test(fileUrl);
                     const boxId = `modalArtFileBox_${index}`;
                     const labelText = artFiles.length > 1 ? `Artwork File #${index + 1}` : 'Preview Artwork';
+                    let thumbHtml = '';
+                    if (isPdf) {
+                        thumbHtml = `<div class="task-thumbnail" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25);">
+                            <svg width="28" height="28" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+                            <span style="font-size:10px; font-weight:800; color:#ef4444;">PDF</span>
+                        </div>`;
+                    } else if (isVideo) {
+                        thumbHtml = `<video src="${fileUrl}" class="task-thumbnail" preload="metadata"></video>`;
+                    } else {
+                        thumbHtml = `<img src="${fileUrl}" class="task-thumbnail" alt="Final Design">`;
+                    }
                     finalParts.push(`
                         <div id="${boxId}" style="display:inline-block; margin-right:12px; margin-bottom:8px; vertical-align:top; text-align:center;">
-                            <div onclick="openImagePreview('${fileUrl}', ${canRemoveArt}, ${task.id})" style="text-decoration:none; cursor:pointer;">
-                                ${isVideo ? `<video src="${fileUrl}" class="task-thumbnail" preload="metadata"></video>` : `<img src="${fileUrl}" class="task-thumbnail" alt="Final Design">`}
+                            <div onclick="${isPdf ? `window.open('${fileUrl}', '_blank')` : `openImagePreview('${fileUrl}', ${canRemoveArt}, ${task.id})`}" style="text-decoration:none; cursor:pointer;">
+                                ${thumbHtml}
                                 <span style="display:block; font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; margin-top:6px; text-align:center;">${labelText}</span>
                             </div>
                             ${canRemoveArt ? `
-                                <button type="button" onclick="removeSpecificArtFile('${boxId}', ${index})" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
+                                <button type="button" onclick="removeSpecificArtFile('${boxId}', ${index}, '${fileUrl}')" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
                                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     Remove
                                 </button>
@@ -1850,7 +1900,7 @@
                                 <span style="font-size:11px; font-weight:800; text-transform:uppercase;">${label}</span>
                             </a>
                             ${canRemoveArt ? `
-                                <button type="button" onclick="removeSpecificArtUrl('${linkBoxId}', ${index})" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
+                                <button type="button" onclick="removeSpecificArtUrl('${linkBoxId}', ${index}, '${url}')" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
                                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     Remove Link
                                 </button>
@@ -2092,14 +2142,17 @@
                 const captionItem = document.getElementById('quillCaption')?.closest('.detail-item');
                 const copyItem = document.getElementById('quillCopy')?.closest('.detail-item');
                 const conceptLabel = document.getElementById('quillConcept')?.closest('.detail-item')?.querySelector('.detail-label');
+                const submitNotesArea = document.getElementById('submitNotesArea');
                 if (isOtherDeliverable) {
                     if (captionItem) captionItem.style.display = 'none';
                     if (copyItem) copyItem.style.display = 'none';
                     if (conceptLabel) conceptLabel.textContent = 'Brief';
+                    if (submitNotesArea) submitNotesArea.style.display = 'none';
                 } else {
                     if (captionItem) captionItem.style.display = '';
                     if (copyItem) copyItem.style.display = '';
                     if (conceptLabel) conceptLabel.textContent = 'Concept';
+                    if (submitNotesArea) submitNotesArea.style.display = '';
                 }
 
                 // Action Buttons
@@ -2112,9 +2165,11 @@
                 const dArea = document.getElementById('designerSelectionArea');
                 const delArea = document.getElementById('designerDeliveryArea');
                 
+                const nextBtn = document.getElementById('submitStageBtn');
                 submitBtnForm.style.display = 'none';
                 submitBtnForm.style.alignItems = 'center';
                 submitBtnForm.style.gap = '12px';
+                if (nextBtn) nextBtn.style.display = 'none';
                 if (showRevisionBtn) showRevisionBtn.style.display = 'none';
                 saveContentBtn.style.display = 'none';
                 apprArea.style.display = 'none';
@@ -2132,16 +2187,19 @@
                 delArea.style.display = 'none';
 
                 if (isOtherDeliverable) {
-                    if (stage === 'Assignee') stage = 'Assign';
-                    else if (stage === 'Closed') stage = 'Close';
+                    if (stage === 'Assignee' || stage === 'Writer' || !stage) stage = 'Assign';
+                    else if (stage === 'Closed' || stage === 'Close') stage = 'Close';
                 }
 
                 // Normalize role for comparison (already computed above)
 
-                const isAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || (task.designer_id && AUTH_USER_ID == task.designer_id);
+                const isAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || 
+                                          (task.designer_id && AUTH_USER_ID == task.designer_id) || 
+                                          (task.associates && task.associates.assignee && task.associates.assignee === AUTH_USER_NAME) ||
+                                          (task.assignee_name && task.assignee_name === AUTH_USER_NAME);
                 const isManager = isAdmin || userRole === 'brandmanager' || userRole === 'operationsmanager';
 
-                const canAct = (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee'))
+                const canAct = (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee' || stage === 'Writer'))
                     ? isAssignedPerson
                     : (
                         isAdmin ||
@@ -2189,6 +2247,7 @@
                     const isLastStage = (taskStages.indexOf(stage) >= taskStages.length - 1) || stage === 'Final Approval' || stage === 'Approve';
 
                     if (nextBtn) {
+                        nextBtn.style.display = 'block';
                         if (isWaitingForDifferentPerson) {
                             nextBtn.disabled = true;
                             nextBtn.style.opacity = '0.5';
@@ -2206,7 +2265,7 @@
                                     nextBtn.textContent = 'Submit';
                                     nextBtn.style.background = '#0055D4';
                                 } else if (stage === 'Approve') {
-                                    nextBtn.textContent = 'Approve & Close';
+                                    nextBtn.textContent = 'Approve';
                                     nextBtn.style.background = '#10b981';
                                 } else {
                                     nextBtn.textContent = 'Submit';
@@ -2281,20 +2340,22 @@
                 }
 
                 // Edit Permissions (already computed above)
+                const canEditBriefAndRef = isOtherDeliverable
+                    ? (isAdmin || Boolean(task.can_remove_reference))
+                    : writerEditPermission;
+
                 const mTitle = document.getElementById('modalTaskTitle');
                 const canEditTitle = isOtherDeliverable
                     ? (isOtherAssignStage && isOtherAssignedPerson)
                     : (writerEditPermission || isAdmin || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole));
                 if (mTitle) mTitle.readOnly = !canEditTitle;
-                if (typeof quillConcept !== 'undefined' && quillConcept) quillConcept.enable(writerEditPermission);
+                if (typeof quillConcept !== 'undefined' && quillConcept) quillConcept.enable(canEditBriefAndRef);
                 if (typeof quillCaption !== 'undefined' && quillCaption) quillCaption.enable(writerEditPermission);
                 if (typeof quillCopy !== 'undefined' && quillCopy) quillCopy.enable(writerEditPermission);
                 
                 // Reference Edit Area
                 const refEditArea = document.getElementById('modalReferenceEditArea');
-                const canEditReference = isOtherDeliverable
-                    ? (isOtherAssignStage && isOtherAssignedPerson)
-                    : (writerEditPermission || isAdmin || hasWriterRole || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole));
+                const canEditReference = canEditBriefAndRef;
                 if (refEditArea) {
                     refEditArea.style.display = canEditReference ? 'grid' : 'none';
                     const linksContainer = document.getElementById('modalReferenceLinksContainer') || document.getElementById('modalReferenceLinksContainerPrj');
@@ -2323,7 +2384,7 @@
                 }
 
                 const canSaveContent = isOtherDeliverable
-                    ? (isOtherAssignStage && isOtherAssignedPerson)
+                    ? (isOtherAssignedPerson || canEditBriefAndRef || isManager)
                     : (canEditReference || (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager');
 
                 if (canSaveContent) {
@@ -2334,7 +2395,8 @@
                 const isReviewStage = ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Writer Review', 'Approver Review', 'Approve'].includes(stage);
                 const isAuthorizedToReview = isAdmin ||
                     (stage === 'Approver' && (userRole === 'approver' || userRole === 'operationsmanager')) ||
-                    ((stage === 'Brand Manager' || stage === 'Final Approval' || stage === 'Approve') && (userRole === 'brandmanager' || userRole === 'operationsmanager')) ||
+                    ((stage === 'Brand Manager' || stage === 'Final Approval') && (userRole === 'brandmanager' || userRole === 'operationsmanager')) ||
+                    (stage === 'Approve' && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isManager || canEditBriefAndRef)) ||
                     (stage === 'Writer Review' && (userRole === 'writer' || userRole === 'assignee')) ||
                     (stage === 'Approver Review' && (userRole === 'approver' || userRole === 'operationsmanager'));
 
@@ -2347,7 +2409,11 @@
                 const modalRevisionTargetGroup = document.getElementById('modalRevisionTargetGroup');
                 const modalRevisionTarget = document.getElementById('modalRevisionTarget');
                 if (modalRevisionTargetGroup) {
-                    if (postDesignerStages.includes(stage)) {
+                    if (isOtherDeliverable) {
+                        modalRevisionTargetGroup.style.display = 'none';
+                        modalRevisionTarget.value = 'writer';
+                        document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the assigned person.';
+                    } else if (postDesignerStages.includes(stage)) {
                         modalRevisionTargetGroup.style.display = 'block';
                         document.getElementById('modalReviseTargetDesigner').checked = true;
                         modalRevisionTarget.value = 'designer';
@@ -3072,6 +3138,10 @@ document.getElementById('sendArtworkModalOverlay').addEventListener('click', fun
 
 // Image Preview Functions
 function openImagePreview(url, canRemove = false, deliverableId = null) {
+    if (url.match(/\.pdf(?:$|\?)/i)) {
+        window.open(url, '_blank');
+        return;
+    }
     const isVideo = url.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
     if (isVideo) {
         document.getElementById('imagePreviewSrc').style.display = 'none';
@@ -3090,6 +3160,17 @@ function openImagePreview(url, canRemove = false, deliverableId = null) {
     if (removeBtn) {
         if (canRemove) {
             removeBtn.style.display = 'inline-flex';
+            removeBtn.value = url;
+            let targetInput = document.getElementById('imagePreviewTargetFile');
+            if (!targetInput) {
+                targetInput = document.createElement('input');
+                targetInput.type = 'hidden';
+                targetInput.name = 'target_artwork_file';
+                targetInput.id = 'imagePreviewTargetFile';
+                const targetForm = document.getElementById('submitStageForm') || document.querySelector('form');
+                if (targetForm) targetForm.appendChild(targetInput);
+            }
+            targetInput.value = url;
             if (deliverableId) {
                 document.getElementById('submitStageForm').action = `/deliverables/${deliverableId}/submit`;
             }

@@ -205,6 +205,56 @@
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5) !important;
             transform: none !important;
         }
+        #batchModalOverlay,
+        #cellEditorOverlay,
+        #addPostTypeOverlay {
+            display: none;
+            justify-content: center !important;
+            align-items: center !important;
+            padding: 20px !important;
+            box-sizing: border-box !important;
+        }
+        #batchModalOverlay .cd-modal,
+        #cellEditorOverlay .cd-modal,
+        #addPostTypeOverlay .cd-modal {
+            position: relative !important;
+            inset: auto !important;
+            margin: auto !important;
+            width: 92% !important;
+            height: auto !important;
+            max-height: 90vh !important;
+            border-radius: 20px !important;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5) !important;
+            border: 1px solid var(--color-border-primary) !important;
+            overflow: hidden !important;
+            transform: scale(0.96) !important;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease !important;
+        }
+        #batchModalOverlay .cd-modal.active,
+        #cellEditorOverlay .cd-modal.active,
+        #addPostTypeOverlay .cd-modal.active {
+            transform: scale(1) !important;
+        }
+        #batchModalOverlay .cd-modal {
+            max-width: 480px !important;
+        }
+        #cellEditorOverlay .cd-modal {
+            max-width: 600px !important;
+        }
+        #addPostTypeOverlay .cd-modal {
+            max-width: 420px !important;
+        }
+        #batchModalOverlay .cd-modal-header {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+        }
+        #batchModalOverlay .cd-modal-footer {
+            display: flex !important;
+            justify-content: flex-end !important;
+            gap: 12px !important;
+            padding: 16px 28px !important;
+        }
         .cd-modal.active { }
         .cd-modal-header { 
             padding: 16px 32px; 
@@ -470,6 +520,8 @@
         .btn-approve-quick:hover { background: #10b981; color: white; }
         .btn-revise-quick { background: rgba(239, 68, 68, 0.08); color: #ef4444; border-color: rgba(239, 68, 68, 0.1); }
         .btn-revise-quick:hover { background: #ef4444; color: white; }
+        .btn-revision-preview { background: rgba(239, 68, 68, 0.08); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+        .btn-revision-preview:hover { background: rgba(239, 68, 68, 0.16) !important; color: #dc2626 !important; border-color: rgba(239, 68, 68, 0.4) !important; }
         .btn-edit-quick { background: rgba(37, 99, 235, 0.08); color: #2563eb; border-color: rgba(37, 99, 235, 0.1); }
         .btn-edit-quick:hover { background: #2563eb; color: white; }
         .btn-delete-quick { background: rgba(100, 116, 139, 0.08); color: #64748b; border-color: rgba(100, 116, 139, 0.1); }
@@ -503,7 +555,7 @@
         .cell-text:hover { color: var(--color-text-primary); }
 
         /* Text preview popup */
-        #text-preview-modal { position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(6px); display:none; justify-content:center; align-items:center; z-index:10000; }
+        #text-preview-modal { position:fixed; inset:0; background:rgba(15,23,42,0.5); backdrop-filter:blur(6px); display:none; justify-content:center; align-items:center; z-index:9999999; }
         #text-preview-inner { background:var(--color-bg-primary); width:90%; max-width:560px; border-radius:16px; border:1px solid var(--color-border-primary); box-shadow:0 24px 60px rgba(0,0,0,0.2); overflow:hidden; }
         #text-preview-inner .tp-header { padding:16px 20px; border-bottom:1px solid var(--color-border-primary); display:flex; justify-content:space-between; align-items:center; }
         #text-preview-inner .tp-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--color-text-secondary); }
@@ -946,7 +998,7 @@
 
                                                 $isAssignedDesigner = $currentUserId == $subtask->designer_id;
                                                 $designerEditPermission = $isAssignedDesigner;
-                                                $canRemoveSubtask = ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
+                                                $canRemoveSubtask = $subtask->canUserRemoveArtwork() || ($designerEditPermission && $subtask->approval_stage === 'Designer') || $currentUserIsAdmin;
                                             @endphp
 
                                             @if($totalArt === 1 && $totalArtFiles === 1)
@@ -963,7 +1015,7 @@
                                             @elseif($totalArt === 1 && $totalArtUrls === 1)
                                                 <a href="{{ $artUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
                                             @elseif($totalArt > 1)
-                                                <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($artFiles) }}, {{ json_encode($artUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalArt }} artworks">
+                                                <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($artFiles) }}, {{ json_encode($artUrls) }}, {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalArt }} artworks">
                                                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                                     Artwork ({{ $totalArt }})
                                                 </button>
@@ -1107,6 +1159,8 @@
                                             @if($task->reference_file)
                                                   @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->reference_file))
                                                       <video src="{{ $task->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $task->reference_file }}', false)" title="View Video" preload="metadata"></video>
+                                                  @elseif(preg_match('/\.pdf(?:$|\?)/i', $task->reference_file))
+                                                      <div class="rtb-ref-preview" style="margin-bottom:0; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.3); color:#ef4444; font-size:9px; font-weight:800;" onclick="window.open('{{ $task->reference_file }}', '_blank')" title="View PDF">PDF</div>
                                                   @else
                                                       <img src="{{ $task->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $task->reference_file }}', false)" title="View Image">
                                                   @endif
@@ -1121,12 +1175,18 @@
                                         <td>
                                             @if($task->final_designs)
                                                 @php
+                                                    $isPdf = preg_match('/\.pdf(?:$|\?)/i', $task->final_designs);
                                                     $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $task->final_designs);
                                                     $isAssignedDesigner = $currentUserId == $task->designer_id;
                                                     $designerEditPermission = $isAssignedDesigner;
                                                     $canRemoveTask = ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
                                                 @endphp
-                                                @if($isImg)
+                                                @if($isPdf)
+                                                    <a href="{{ $task->final_designs }}" target="_blank" onclick="event.stopPropagation();" class="ref-chip" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.25); padding:4px 8px; font-size:9px; font-weight:800; display:inline-flex; align-items:center; gap:4px;">
+                                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                                        PDF
+                                                    </a>
+                                                @elseif($isImg)
                                                       @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->final_designs))
                                                           <video src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="View Video" preload="metadata"></video>
                                                       @else
@@ -1159,9 +1219,9 @@
                                                                     </div>
                                                                     <div>
                                                                         <div style="font-size:11px;font-weight:700;color:var(--color-text-primary);">Upload Media</div>
-                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP, MP4, WebM</div>
+                                                                        <div style="font-size:9px;color:var(--color-text-secondary);">PNG, JPG, GIF, WebP, MP4, WebM, PDF</div>
                                                                     </div>
-                                                                    <input type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="this.form.submit()">
+                                                                    <input type="file" name="final_designs_file" accept="image/*,video/*,application/pdf,.pdf" style="display:none;" onchange="this.form.submit()">
                                                                 </label>
                                                             </form>
                                                             <div style="display:flex;align-items:center;gap:6px;margin:4px 6px;">
@@ -1331,7 +1391,6 @@
 
 
         </div>
-    </div>
 
     <!-- Detail Modal -->
     <div id="taskModalOverlay" class="cd-modal-overlay" onclick="closeTaskModal(event)">
@@ -1514,27 +1573,41 @@
                         <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.1); border-radius:16px;">
                             <div>
                                 <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Upload New Reference File</div>
-                                <input type="file" id="modalReferenceFileInput" name="reference_file" form="submitStageForm" accept="image/*,video/*" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
+                                <input type="file" id="modalReferenceFileInput" name="reference_file" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
                                     const f = this.files[0];
                                     const prev = document.getElementById('modalReferenceImagePreview');
                                     const vidPrev = document.getElementById('modalReferenceVideoPreview');
+                                    const pdfPrev = document.getElementById('modalReferencePdfPreview');
                                     const clearBtn = document.getElementById('modalReferenceClearBtn');
-                                    if (f && f.type.startsWith('image/')) {
+                                    if (f && (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) {
+                                        if (pdfPrev) {
+                                            pdfPrev.style.display = 'flex';
+                                            document.getElementById('modalReferencePdfName').textContent = f.name;
+                                        }
+                                        if (prev) { prev.style.display='none'; prev.src=''; }
+                                        if (vidPrev) { vidPrev.style.display='none'; vidPrev.src=''; }
+                                        if (clearBtn) clearBtn.style.display = 'flex';
+                                    } else if (f && f.type.startsWith('image/')) {
                                         const r = new FileReader();
-                                        r.onload = e => { prev.src = e.target.result; prev.style.display='block'; vidPrev.style.display='none'; vidPrev.src=''; };
+                                        r.onload = e => { prev.src = e.target.result; prev.style.display='block'; vidPrev.style.display='none'; vidPrev.src=''; if (pdfPrev) pdfPrev.style.display='none'; };
                                         r.readAsDataURL(f);
                                         if (clearBtn) clearBtn.style.display = 'flex';
                                     } else if (f && f.type.startsWith('video/')) {
                                         const url = (window.URL || window.webkitURL).createObjectURL(f);
-                                        vidPrev.src = url; vidPrev.style.display='block'; prev.style.display='none'; prev.src='';
+                                        vidPrev.src = url; vidPrev.style.display='block'; prev.style.display='none'; prev.src=''; if (pdfPrev) pdfPrev.style.display='none';
                                         if (clearBtn) clearBtn.style.display = 'flex';
                                     } else {
-                                        prev.style.display='none'; prev.src='';
-                                        vidPrev.style.display='none'; vidPrev.src='';
+                                        if (prev) { prev.style.display='none'; prev.src=''; }
+                                        if (vidPrev) { vidPrev.style.display='none'; vidPrev.src=''; }
+                                        if (pdfPrev) { pdfPrev.style.display='none'; }
                                         if (clearBtn) clearBtn.style.display = 'none';
                                     }
                                 ">
                                 <div style="position:relative; display:inline-block; margin-top:10px;">
+                                    <div id="modalReferencePdfPreview" style="display:none; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:240px;">
+                                        <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+                                        <span id="modalReferencePdfName" style="font-size:11px; font-weight:700; color:#ef4444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                                    </div>
                                     <img id="modalReferenceImagePreview" src="" alt="Reference Preview" style="display:none; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
                                     <video id="modalReferenceVideoPreview" controls style="display:none; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary);"></video>
                                     <button type="button" id="modalReferenceClearBtn" onclick="
@@ -1543,6 +1616,7 @@
                                         document.getElementById('modalReferenceImagePreview').src='';
                                         document.getElementById('modalReferenceVideoPreview').style.display='none';
                                         document.getElementById('modalReferenceVideoPreview').src='';
+                                        const p = document.getElementById('modalReferencePdfPreview'); if(p) p.style.display='none';
                                         this.style.display='none';
                                     " style="display:none; position:absolute; top:-10px; right:-10px; background:#ef4444; color:#fff; border:none; border-radius:50%; width:24px; height:24px; font-weight:bold; cursor:pointer; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.2); z-index:10; font-size: 12px;">✕</button>
                                 </div>
@@ -1640,23 +1714,31 @@
                                         <svg width="16" height="16" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                                     </div>
                                     <div style="flex:1;min-width:0;">
-                                        <div style="font-size:12px;font-weight:700;color:#10b981;" id="artworkFileLabel">Choose image file…</div>
-                                        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:2px;">PNG, JPG, GIF, WebP, MP4, WebM</div>
+                                        <div style="font-size:12px;font-weight:700;color:#10b981;" id="artworkFileLabel">Choose file…</div>
+                                        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:2px;">PNG, JPG, GIF, WebP, MP4, WebM, PDF</div>
                                     </div>
-                                    <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*,video/*" style="display:none;" onchange="
+                                    <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*,video/*,application/pdf,.pdf" style="display:none;" onchange="
                                         const f = this.files[0];
-                                        document.getElementById('artworkFileLabel').textContent = f?.name || 'Choose image file…';
+                                        document.getElementById('artworkFileLabel').textContent = f?.name || 'Choose file…';
                                         const imgP = document.getElementById('modalArtworkPreview');
                                         const vidP = document.getElementById('modalArtworkVideoPreview');
+                                        const pdfP = document.getElementById('modalArtworkPdfPreview');
                                         if(imgP) imgP.style.display = 'none';
                                         if(vidP) vidP.style.display = 'none';
-                                        if (f && f.type.startsWith('image/')) {
+                                        if(pdfP) pdfP.style.display = 'none';
+                                        if (f && (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) {
+                                            if(pdfP) { pdfP.style.display = 'flex'; document.getElementById('modalArtworkPdfName').textContent = f.name; }
+                                        } else if (f && f.type.startsWith('image/')) {
                                             if(imgP) { imgP.src = URL.createObjectURL(f); imgP.style.display = 'block'; }
                                         } else if (f && f.type.startsWith('video/')) {
                                             if(vidP) { vidP.src = URL.createObjectURL(f); vidP.style.display = 'block'; }
                                         }
                                     ">
                                 </label>
+                                <div id="modalArtworkPdfPreview" style="display:none; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:240px; margin-top:10px;">
+                                    <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+                                    <span id="modalArtworkPdfName" style="font-size:11px; font-weight:700; color:#ef4444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                                </div>
                                 <img id="modalArtworkPreview" src="" style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
                                 <video id="modalArtworkVideoPreview" controls style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary);"></video>
                                 {{-- OR divider --}}
@@ -1771,12 +1853,14 @@
                     <form id="submitStageForm" method="POST" enctype="multipart/form-data" style="display:none; align-items:center; gap:12px;">
                         @csrf
                         <button type="submit" name="action" value="save_only" class="cd-btn cd-btn-outline" id="saveContentBtn" style="color:#0055D4; border-color:#0055D4; display:none;">Save Content</button>
-                        <button type="submit" name="action" value="submit" class="cd-btn cd-btn-primary" id="submitStageBtn">Submit to Next</button>
+                        <button type="submit" name="action" value="submit" class="cd-btn cd-btn-primary" id="submitStageBtn" style="display:none;">Submit to Next</button>
                     </form>
+                    <button type="button" class="cd-btn cd-btn-outline" id="showRevisionBtn" style="color:#ef4444; border-color:rgba(239,68,68,0.4); background:rgba(239,68,68,0.1); display:none; padding:10px 20px; font-size:12px; font-weight:700;" onclick="toggleRevisionInput(true)">Request Revisions</button>
                     <button id="modalDeleteBtn" type="button" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; display:none;" onclick="deleteTaskFromModal()">Delete</button>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Text Preview Popup -->
@@ -1972,14 +2056,19 @@
             document.getElementById('text-preview-modal').style.display = 'flex';
         }
         function closeTextPreview() {
-            document.getElementById('text-preview-modal').style.display = 'none';
-            document.getElementById('tp-body').innerHTML = '';
+            const modal = document.getElementById('text-preview-modal');
+            if (modal) modal.style.display = 'none';
+            const body = document.getElementById('tp-body');
+            if (body) body.innerHTML = '';
         }
+        window.openTextPreview = openTextPreview;
+        window.closeTextPreview = closeTextPreview;
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') closeTextPreview();
         });
 
         const AUTH_USER_ID = {{ auth()->id() }};
+        const AUTH_USER_NAME = @json(auth()->user()->name);
         const AUTH_USER_ROLE = "{{ auth()->user()->role }}";
         const WORKFLOW_STAGES = @json($stages);
         let currentTaskData = null;
@@ -2026,7 +2115,7 @@
                 const rawRole = AUTH_USER_ROLE;
                 const userRole = rawRole.toLowerCase().replace(/\s+/g, '');
                 const isAdmin = userRole === 'admin';
-                const stage = task.approval_stage;
+                let stage = task.approval_stage;
                 const projectWorkflowType = task.project?.workflow_type || '{{ $project->workflow_type ?? "" }}';
                 const postTypeNorm = (task.post_type || '').toLowerCase().trim();
                 const isOtherDeliverable = projectWorkflowType !== 'retainer' && (task.workflow_stages?.length === 3 || (!['outlines', 'outline'].includes(postTypeNorm)));
@@ -2038,8 +2127,11 @@
                 const hasWriterRole = userRole === 'writer' || userRole === 'assignee';
                 const hasDesignerRole = userRole === 'designer';
                 const isWriterStage = ['Writer', 'Assignee', 'Writer Review', 'Assign'].includes(task.approval_stage || 'Writer');
-                const isOtherAssignStage = isOtherDeliverable && (task.approval_stage === 'Assign' || task.approval_stage === 'Assignee' || !task.approval_stage);
-                const isOtherAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || (task.designer_id && AUTH_USER_ID == task.designer_id);
+                const isOtherAssignStage = isOtherDeliverable && (['Assign', 'Assignee', 'Writer'].includes(task.approval_stage) || !task.approval_stage);
+                const isOtherAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || 
+                                              (task.designer_id && AUTH_USER_ID == task.designer_id) || 
+                                              (task.associates && task.associates.assignee && task.associates.assignee === AUTH_USER_NAME) ||
+                                              (task.assignee_name && task.assignee_name === AUTH_USER_NAME);
                 const writerEditPermission = isOtherDeliverable
                     ? (isOtherAssignStage && isOtherAssignedPerson)
                     : (isAdmin || (hasWriterRole && (!task.writer_id || AUTH_USER_ID == task.writer_id) && isWriterStage));
@@ -2238,7 +2330,20 @@
                 ` : '';
                 if (task.reference_file) {
                     const isVideo = task.reference_file.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
-                    if (isVideo) {
+                    const isPdf = task.reference_file.match(/\.pdf(?:$|\?)/i);
+                    if (isPdf) {
+                        refHtml = `
+                        <div style="display:flex; align-items:flex-end; gap:16px;">
+                            <div onclick="window.open('${task.reference_file}', '_blank')" style="display:inline-block; cursor:pointer;">
+                                <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:12px; margin-bottom:8px;">
+                                    <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+                                    <span style="font-size:12px; font-weight:800; color:#ef4444;">VIEW PDF</span>
+                                </div>
+                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">Reference PDF</span>
+                            </div>
+                            ${removeRefBtnHtml}
+                        </div>`;
+                    } else if (isVideo) {
                         refHtml = `
                         <div style="display:flex; align-items:flex-end; gap:16px;">
                             <div style="display:inline-block;">
@@ -2358,36 +2463,57 @@
                 
                 let finalHtml = '';
                 const canRemoveArt = Boolean(task.can_remove_artwork);
-                if (task.final_designs) {
-                    const isImage = /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i.test(task.final_designs);
-                    if (isImage) {
-                        const isVideo = /\.(mp4|webm|ogg|mov)(?:$|\?)/i.test(task.final_designs);
-                        finalHtml += `
-                            <div style="display:inline-block; margin-right:12px; vertical-align:top; text-align:center;">
-                                <div onclick="openImagePreview('${task.final_designs}', ${canRemoveArt}, ${task.id})" style="text-decoration:none; cursor:pointer;">
-                                    ${isVideo ? `<video src="${task.final_designs}" class="task-thumbnail" preload="metadata"></video>` : `<img src="${task.final_designs}" class="task-thumbnail" alt="Final Design">`}
-                                    <span style="display:block; font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; margin-top:6px; text-align:center;">Preview Artwork</span>
-                                </div>
-                                ${canRemoveArt ? `
-                                    <button type="submit" name="delete_final_designs" value="1" form="submitStageForm" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
-                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                        Remove
-                                    </button>
-                                ` : ''}
-                            </div>`;
+                let artFiles = [];
+                if (task.final_designs_list && Array.isArray(task.final_designs_list)) {
+                    artFiles = task.final_designs_list;
+                } else if (task.final_designs) {
+                    if (typeof task.final_designs === 'string' && task.final_designs.startsWith('[')) {
+                        try { artFiles = JSON.parse(task.final_designs); } catch(e) { artFiles = [task.final_designs]; }
+                    } else if (Array.isArray(task.final_designs)) {
+                        artFiles = task.final_designs;
                     } else {
-                        finalHtml += `
-                            <div style="display:inline-block; margin-right:12px; vertical-align:top; text-align:center;">
-                                <a href="${task.final_designs}" target="_blank" style="color:#10b981; font-weight:700; display:block; margin-bottom:8px;">View Deliverable</a>
-                                ${canRemoveArt ? `
-                                    <button type="submit" name="delete_final_designs" value="1" form="submitStageForm" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
-                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                        Remove
-                                    </button>
-                                ` : ''}
-                            </div>`;
+                        artFiles = [task.final_designs];
                     }
                 }
+                artFiles.forEach((fileUrl, index) => {
+                    if (!fileUrl) return;
+                    const isPdf = /\.pdf(?:$|\?)/i.test(fileUrl);
+                    const isImage = /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i.test(fileUrl);
+                    const isVideo = /\.(mp4|webm|ogg|mov)(?:$|\?)/i.test(fileUrl);
+                    const labelText = artFiles.length > 1 ? `Artwork #${index + 1}` : 'Preview Artwork';
+                    
+                    let thumb = '';
+                    if (isPdf) {
+                        thumb = `
+                            <div onclick="window.open('${fileUrl}', '_blank')" style="text-decoration:none; cursor:pointer;">
+                                <div class="task-thumbnail" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25);">
+                                    <svg width="28" height="28" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+                                    <span style="font-size:10px; font-weight:800; color:#ef4444;">PDF</span>
+                                </div>
+                                <span style="display:block; font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; margin-top:6px; text-align:center;">${labelText}</span>
+                            </div>`;
+                    } else if (isImage) {
+                        thumb = `
+                            <div onclick="openImagePreview('${fileUrl}', ${canRemoveArt}, ${task.id})" style="text-decoration:none; cursor:pointer;">
+                                ${isVideo ? `<video src="${fileUrl}" class="task-thumbnail" preload="metadata"></video>` : `<img src="${fileUrl}" class="task-thumbnail" alt="Final Design">`}
+                                <span style="display:block; font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; margin-top:6px; text-align:center;">${labelText}</span>
+                            </div>`;
+                    } else {
+                        thumb = `
+                            <a href="${fileUrl}" target="_blank" style="color:#10b981; font-weight:700; display:block; margin-bottom:8px;">${labelText}</a>`;
+                    }
+
+                    finalHtml += `
+                        <div style="display:inline-block; margin-right:12px; margin-bottom:8px; vertical-align:top; text-align:center;">
+                            ${thumb}
+                            ${canRemoveArt ? `
+                                <button type="submit" name="delete_final_designs" value="${fileUrl}" form="submitStageForm" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;" onclick="let inp=document.getElementById('imagePreviewTargetFile'); if(!inp){inp=document.createElement('input');inp.type='hidden';inp.name='target_artwork_file';inp.id='imagePreviewTargetFile';document.getElementById('submitStageForm').appendChild(inp);} inp.value='${fileUrl}';">
+                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    Remove
+                                </button>
+                            ` : ''}
+                        </div>`;
+                });
                 if (task.final_designs_link) {
                     finalHtml += `
                         <div style="display:inline-block; vertical-align:top; text-align:center; margin-right:12px;">
@@ -2594,14 +2720,17 @@
                 const captionItem = document.getElementById('quillCaption')?.closest('.detail-item');
                 const copyItem = document.getElementById('quillCopy')?.closest('.detail-item');
                 const conceptLabel = document.getElementById('quillConcept')?.closest('.detail-item')?.querySelector('.detail-label');
+                const submitNotesArea = document.getElementById('submitNotesArea');
                 if (isOtherDeliverable) {
                     if (captionItem) captionItem.style.display = 'none';
                     if (copyItem) copyItem.style.display = 'none';
                     if (conceptLabel) conceptLabel.textContent = 'Brief';
+                    if (submitNotesArea) submitNotesArea.style.display = 'none';
                 } else {
                     if (captionItem) captionItem.style.display = '';
                     if (copyItem) copyItem.style.display = '';
                     if (conceptLabel) conceptLabel.textContent = 'Concept';
+                    if (submitNotesArea) submitNotesArea.style.display = '';
                 }
 
                 // Action Buttons
@@ -2614,9 +2743,11 @@
                 const dArea = document.getElementById('designerSelectionArea');
                 const delArea = document.getElementById('designerDeliveryArea');
                 
+                const nextBtn = document.getElementById('submitStageBtn');
                 submitBtnForm.style.display = 'none';
                 submitBtnForm.style.alignItems = 'center';
                 submitBtnForm.style.gap = '12px';
+                if (nextBtn) nextBtn.style.display = 'none';
                 if (showRevisionBtn) showRevisionBtn.style.display = 'none';
                 saveContentBtn.style.display = 'none';
                 apprArea.style.display = 'none';
@@ -2634,15 +2765,18 @@
                 delArea.style.display = 'none';
 
                 if (isOtherDeliverable) {
-                    if (stage === 'Assignee') stage = 'Assign';
-                    else if (stage === 'Closed') stage = 'Close';
+                    if (stage === 'Assignee' || stage === 'Writer' || !stage) stage = 'Assign';
+                    else if (stage === 'Closed' || stage === 'Close') stage = 'Close';
                 }
 
                 // Normalize role for comparison (already computed above)
-                const isAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || (task.designer_id && AUTH_USER_ID == task.designer_id);
+                const isAssignedPerson = (task.writer_id && AUTH_USER_ID == task.writer_id) || 
+                                          (task.designer_id && AUTH_USER_ID == task.designer_id) || 
+                                          (task.associates && task.associates.assignee && task.associates.assignee === AUTH_USER_NAME) ||
+                                          (task.assignee_name && task.assignee_name === AUTH_USER_NAME);
                 const isManager = isAdmin || userRole === 'brandmanager' || userRole === 'operationsmanager';
 
-                const canAct = (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee'))
+                const canAct = (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee' || stage === 'Writer'))
                     ? isAssignedPerson
                     : (
                         isAdmin ||
@@ -2690,6 +2824,7 @@
                     const isLastStage = (taskStages.indexOf(stage) >= taskStages.length - 1) || stage === 'Final Approval' || stage === 'Approve';
 
                     if (nextBtn) {
+                        nextBtn.style.display = 'block';
                         if (isWaitingForDifferentPerson) {
                             nextBtn.disabled = true;
                             nextBtn.style.opacity = '0.5';
@@ -2707,7 +2842,7 @@
                                     nextBtn.textContent = 'Submit';
                                     nextBtn.style.background = '#0055D4';
                                 } else if (stage === 'Approve') {
-                                    nextBtn.textContent = 'Approve & Close';
+                                    nextBtn.textContent = 'Approve';
                                     nextBtn.style.background = '#10b981';
                                 } else {
                                     nextBtn.textContent = 'Submit';
@@ -2782,20 +2917,21 @@
                 }
 
                 // Edit Permissions (already computed above)
+                const canEditBriefAndRef = isOtherDeliverable
+                    ? (isAdmin || Boolean(task.can_remove_reference))
+                    : writerEditPermission;
 
                 const canEditTitle = isOtherDeliverable
                     ? (isOtherAssignStage && isOtherAssignedPerson)
                     : (writerEditPermission || isAdmin || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole));
                 document.getElementById('modalTaskTitle').readOnly = !canEditTitle;
-                quillConcept.enable(writerEditPermission);
+                quillConcept.enable(canEditBriefAndRef);
                 quillCaption.enable(writerEditPermission);
                 quillCopy.enable(writerEditPermission);
                 
                 // Reference Edit Area
                 const refEditArea = document.getElementById('modalReferenceEditArea');
-                const canEditReference = isOtherDeliverable
-                    ? (isOtherAssignStage && isOtherAssignedPerson)
-                    : (writerEditPermission || isAdmin || hasWriterRole || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole));
+                const canEditReference = canEditBriefAndRef;
                 if (refEditArea) {
                     refEditArea.style.display = canEditReference ? 'flex' : 'none';
                     const refInput = document.getElementById('modalReferenceUrl');
@@ -2803,7 +2939,7 @@
                 }
 
                 const canSaveContent = isOtherDeliverable
-                    ? (isOtherAssignStage && isOtherAssignedPerson)
+                    ? (isOtherAssignedPerson || canEditBriefAndRef || isManager)
                     : (canEditReference || (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager');
 
                 if (canSaveContent) {
@@ -2814,7 +2950,8 @@
                 const isReviewStage = ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Writer Review', 'Approver Review', 'Approve'].includes(stage);
                 const isAuthorizedToReview = isAdmin ||
                     (stage === 'Approver' && (userRole === 'approver' || userRole === 'operationsmanager')) ||
-                    ((stage === 'Brand Manager' || stage === 'Final Approval' || stage === 'Approve') && (userRole === 'brandmanager' || userRole === 'operationsmanager')) ||
+                    ((stage === 'Brand Manager' || stage === 'Final Approval') && (userRole === 'brandmanager' || userRole === 'operationsmanager')) ||
+                    (stage === 'Approve' && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isManager || canEditBriefAndRef)) ||
                     (stage === 'Writer Review' && (userRole === 'writer' || userRole === 'assignee')) ||
                     (stage === 'Approver Review' && (userRole === 'approver' || userRole === 'operationsmanager'));
 
@@ -2827,7 +2964,11 @@
                 const modalRevisionTargetGroup = document.getElementById('modalRevisionTargetGroup');
                 const modalRevisionTarget = document.getElementById('modalRevisionTarget');
                 if (modalRevisionTargetGroup) {
-                    if (postDesignerStages.includes(stage)) {
+                    if (isOtherDeliverable) {
+                        modalRevisionTargetGroup.style.display = 'none';
+                        modalRevisionTarget.value = 'writer';
+                        document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the assigned person.';
+                    } else if (postDesignerStages.includes(stage)) {
                         modalRevisionTargetGroup.style.display = 'block';
                         document.getElementById('modalReviseTargetDesigner').checked = true;
                         modalRevisionTarget.value = 'designer';
@@ -3248,9 +3389,9 @@
     </script>
 
     <!-- Batch Action Modal -->
-    <div id="batchModalOverlay" class="cd-modal-overlay" onclick="closeBatchModal(event)">
-        <div class="cd-modal" style="max-width: 450px;" onclick="event.stopPropagation()">
-            <div class="cd-modal-header" style="background: var(--color-bg-secondary); padding: 24px 32px;">
+    <div id="batchModalOverlay" class="cd-modal-overlay" style="display:none; justify-content:center; align-items:center;" onclick="closeBatchModal(event)">
+        <div class="cd-modal" style="max-width: 480px; width: 92%; position: relative !important; inset: auto !important; margin: auto !important; height: auto !important; max-height: 90vh !important; border-radius: 20px !important; overflow: hidden !important; border: 1px solid var(--color-border-primary) !important; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.5) !important;" onclick="event.stopPropagation()">
+            <div class="cd-modal-header" style="background: var(--color-bg-secondary); padding: 20px 28px; display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
                     <h2 id="batchModalTitle" style="font-size: 18px; font-weight: 900; color: var(--color-text-primary);">Submit Batch</h2>
                     <p id="batchModalSubtitle" style="font-size: 11px; color: var(--color-text-secondary); margin: 4px 0 0; font-weight: 600;"></p>
@@ -3259,7 +3400,7 @@
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div class="cd-modal-body" style="padding: 32px;">
+            <div class="cd-modal-body" style="padding: 24px 28px;">
                 <div id="batchStakeholderGroup" style="display: none;">
                     <label id="batchStakeholderLabel" class="detail-label">Assign Next Stakeholder</label>
                     <div style="position: relative;">
@@ -3343,7 +3484,7 @@
                     Are you sure you want to advance this entire batch?
                 </div>
             </div>
-            <div class="cd-modal-footer">
+            <div class="cd-modal-footer" style="padding: 16px 28px; display: flex; justify-content: flex-end; gap: 12px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary);">
                 <button onclick="closeBatchModal()" class="cd-btn cd-btn-outline">Cancel</button>
                 <button id="batchConfirmBtn" onclick="executeBatchAction()" class="cd-btn cd-btn-primary">Confirm & Submit</button>
             </div>
@@ -3399,13 +3540,19 @@
                 const postDesignerStages = ['Writer Review', 'Approver Review', 'AM/BD', 'Final Approval'];
                 const revisionTargetGroup = document.getElementById('batchRevisionTargetGroup');
                 const revisionNote = document.getElementById('batchRevisionNote');
-                if (postDesignerStages.includes(nextStage)) {
-                    revisionTargetGroup.style.display = 'block';
-                    document.getElementById('reviseTargetDesigner').checked = true;
-                    revisionNote.textContent = isIndividual ? "The task will be sent back to the Designer." : "The batch will be sent back to the Designer.";
+                const projectWorkflow = '{{ $project->workflow_type }}';
+                if (projectWorkflow !== 'retainer') {
+                    if (revisionTargetGroup) revisionTargetGroup.style.display = 'none';
+                    if (revisionNote) revisionNote.textContent = isIndividual ? "The task will be sent back to the assigned person." : "The entire batch will be sent back to the assigned person.";
+                } else if (postDesignerStages.includes(nextStage)) {
+                    if (revisionTargetGroup) {
+                        revisionTargetGroup.style.display = 'block';
+                        document.getElementById('reviseTargetDesigner').checked = true;
+                    }
+                    if (revisionNote) revisionNote.textContent = isIndividual ? "The task will be sent back to the Designer." : "The batch will be sent back to the Designer.";
                 } else {
-                    revisionTargetGroup.style.display = 'none';
-                    revisionNote.textContent = isIndividual ? "The task will be sent back to the Writer." : "The entire batch will be sent back to the Writer.";
+                    if (revisionTargetGroup) revisionTargetGroup.style.display = 'none';
+                    if (revisionNote) revisionNote.textContent = isIndividual ? "The task will be sent back to the Writer." : "The entire batch will be sent back to the Writer.";
                 }
 
                 // Update note when radio changes
@@ -3796,8 +3943,8 @@
     </script>
 
     <!-- Cell Editor Modal -->
-    <div id="cellEditorOverlay" class="cd-modal-overlay" onclick="closeCellEditor(event)" style="z-index: 1000;">
-        <div class="cd-modal" style="max-width: 600px;" onclick="event.stopPropagation()">
+    <div id="cellEditorOverlay" class="cd-modal-overlay" onclick="closeCellEditor(event)" style="z-index: 1000; justify-content: center; align-items: center;">
+        <div class="cd-modal" style="max-width: 600px; width: 92%; position: relative !important; inset: auto !important; margin: auto !important; height: auto !important; max-height: 90vh !important; border-radius: 20px !important; overflow: hidden !important; border: 1px solid var(--color-border-primary) !important; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.5) !important;" onclick="event.stopPropagation()">
             <div class="cd-modal-header" style="padding: 20px 32px; background: var(--color-bg-secondary);">
                 <div>
                     <h2 id="cellEditorTitle" style="font-size: 16px; font-weight: 900; color: var(--color-text-primary); margin: 0;">Edit Field</h2>
@@ -3952,7 +4099,7 @@
 
         
         // Media Gallery Modal Functions
-        function openMediaGallery(title, files = [], urls = []) {
+        function openMediaGallery(title, files = [], urls = [], canRemove = false, deliverableId = null) {
             let modal = document.getElementById('mediaGalleryModal');
             if (!modal) {
                 modal = document.createElement('div');
@@ -4007,7 +4154,7 @@
                     
                     if (isVideo) {
                         html += `
-                            <div style="position:relative; width:100%; height:140px; background:#000; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="closeMediaGallery(); openImagePreview('${fileUrl}', false)">
+                            <div style="position:relative; width:100%; height:140px; background:#000; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="closeMediaGallery(); openImagePreview('${fileUrl}', ${canRemove ? 'true' : 'false'}, ${deliverableId || 'null'})">
                                 <video src="${fileUrl}" style="width:100%; height:100%; object-fit:cover;" preload="metadata"></video>
                                 <div style="position:absolute; background:rgba(0,0,0,0.6); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
                                     <svg width="16" height="16" fill="#fff" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -4015,12 +4162,12 @@
                             </div>`;
                     } else if (isImg) {
                         html += `
-                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="closeMediaGallery(); openImagePreview('${fileUrl}', false)">
+                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="closeMediaGallery(); openImagePreview('${fileUrl}', ${canRemove ? 'true' : 'false'}, ${deliverableId || 'null'})">
                                 <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                             </div>`;
                     } else {
                         html += `
-                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px; text-align:center;">
+                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px; text-align:center; cursor:pointer;" onclick="window.open('${fileUrl}', '_blank')">
                                 <svg width="28" height="28" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                                 <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary); word-break:break-all;">${fileUrl.split('/').pop()}</span>
                             </div>`;
@@ -4036,6 +4183,12 @@
                                 <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                                 Download
                             </button>
+                            ${canRemove && deliverableId ? `
+                                <button type="button" onclick="event.stopPropagation(); removeGalleryArtwork('${fileUrl}', ${deliverableId})" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:5px; cursor:pointer;" title="Remove this artwork file">
+                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    Remove
+                                </button>
+                            ` : ''}
                         </div>
                     </div>`;
                 });
@@ -4120,8 +4273,52 @@
             }, 200);
         }
 
+        function removeGalleryArtwork(fileUrl, deliverableId) {
+            if (!confirm('Are you sure you want to remove this artwork file?')) return;
+            let form = document.getElementById('submitStageForm');
+            if (!form) {
+                form = document.createElement('form');
+                form.method = 'POST';
+                form.style.display = 'none';
+                const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (csrf) {
+                    const cInp = document.createElement('input');
+                    cInp.type = 'hidden';
+                    cInp.name = '_token';
+                    cInp.value = csrf;
+                    form.appendChild(cInp);
+                }
+                document.body.appendChild(form);
+            }
+            form.action = `/deliverables/${deliverableId}/submit`;
+            let targetInput = document.getElementById('imagePreviewTargetFile');
+            if (!targetInput) {
+                targetInput = document.createElement('input');
+                targetInput.type = 'hidden';
+                targetInput.name = 'target_artwork_file';
+                targetInput.id = 'imagePreviewTargetFile';
+                form.appendChild(targetInput);
+            }
+            targetInput.value = fileUrl;
+            let delInput = document.getElementById('deleteFinalDesignsInput');
+            if (!delInput) {
+                delInput = document.createElement('input');
+                delInput.type = 'hidden';
+                delInput.name = 'delete_final_designs';
+                delInput.id = 'deleteFinalDesignsInput';
+                form.appendChild(delInput);
+            }
+            delInput.value = fileUrl;
+            form.submit();
+        }
+
         // Image Preview Functions
         function openImagePreview(url, canRemove = false, deliverableId = null) {
+            if (url.match(/\.pdf(?:$|\?)/i)) {
+                window.open(url, '_blank');
+                return;
+            }
+
             if (typeof closeMediaGallery === 'function') {
                 closeMediaGallery();
             }
@@ -4144,6 +4341,17 @@
             if (removeBtn) {
                 if (canRemove) {
                     removeBtn.style.display = 'inline-flex';
+                    removeBtn.value = url;
+                    let targetInput = document.getElementById('imagePreviewTargetFile');
+                    if (!targetInput) {
+                        targetInput = document.createElement('input');
+                        targetInput.type = 'hidden';
+                        targetInput.name = 'target_artwork_file';
+                        targetInput.id = 'imagePreviewTargetFile';
+                        const targetForm = document.getElementById('submitStageForm') || document.querySelector('form');
+                        if (targetForm) targetForm.appendChild(targetInput);
+                    }
+                    targetInput.value = url;
                     if (deliverableId) {
                         document.getElementById('submitStageForm').action = `/deliverables/${deliverableId}/submit`;
                     }
@@ -4228,8 +4436,8 @@
     </div>
 
     <!-- Add Post Type Selection Modal -->
-    <div id="addPostTypeOverlay" class="cd-modal-overlay" onclick="closeAddPostTypeModal(event)" style="z-index: 10000;">
-        <div class="cd-modal" style="max-width: 400px; border-radius: 20px;" onclick="event.stopPropagation()">
+    <div id="addPostTypeOverlay" class="cd-modal-overlay" onclick="closeAddPostTypeModal(event)" style="z-index: 10000; justify-content: center; align-items: center;">
+        <div class="cd-modal" style="max-width: 420px; width: 92%; position: relative !important; inset: auto !important; margin: auto !important; height: auto !important; max-height: 90vh !important; border-radius: 20px !important; overflow: hidden !important; border: 1px solid var(--color-border-primary) !important; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.5) !important;" onclick="event.stopPropagation()">
             <div class="cd-modal-header" style="padding: 20px 24px; background: var(--color-bg-secondary); align-items: center;">
                 <h2 style="font-size: 15px; font-weight: 900; color: var(--color-text-primary); margin: 0;">Add Deliverable to Batch</h2>
                 <button onclick="closeAddPostTypeModal()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer;">

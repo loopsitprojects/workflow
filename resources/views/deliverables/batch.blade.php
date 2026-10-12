@@ -253,7 +253,7 @@
             in_array($stage, ['Writer','Assignee', 'Assign']) => 'Submit',
             $stage === 'Coordinator'                          => 'Assign to Designer',
             $stage === 'Designer'                             => 'Send Artwork',
-            $stage === 'Approve'                              => 'Approve & Close',
+            $stage === 'Approve'                              => 'Approve',
             $stage === 'Scheduled'                            => 'Scheduled',
             default                                           => 'Approve',
         };
@@ -481,7 +481,7 @@
                 {{-- Designer Artwork Delivery fields (visible when stage is Designer) --}}
                 <div id="bvDesignerArtworkFields" style="display:none; margin-top:16px; border-top:1.5px solid var(--color-border-primary); padding-top:14px;">
                     <label class="pc-label" style="display:block; margin-bottom:6px; color:#10b981; font-weight:700;">Final Artwork File <span style="font-weight:400;opacity:0.7;">(or link below)</span></label>
-                    <input type="file" name="final_designs_file" id="bvArtworkFile" class="bv-textarea" style="min-height:auto; padding:8px;" accept="image/*,video/*">
+                    <input type="file" name="final_designs_file" id="bvArtworkFile" class="bv-textarea" style="min-height:auto; padding:8px;" accept="image/*,video/*,application/pdf,.pdf">
 
                     <label class="pc-label" style="display:block; margin-top:12px; margin-bottom:6px; color:#10b981; font-weight:700;">Final Artwork Link (Figma, Canva, Drive)</label>
                     <input type="url" name="final_designs_link" id="bvArtworkLink" placeholder="https://www.figma.com/..." class="bv-textarea" style="min-height:auto; height:38px; padding:8px 12px;">

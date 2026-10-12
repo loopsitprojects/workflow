@@ -200,6 +200,8 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
                                     <a href="{{ $erf }}" target="_blank" style="display:inline-block;">
                                         @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $erf))
                                             <video src="{{ $erf }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;" preload="metadata"></video>
+                                        @elseif(preg_match('/\.pdf(?:$|\?)/i', $erf))
+                                            <div style="width:40px;height:40px;border-radius:6px;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;color:#ef4444;font-size:10px;font-weight:800;border:1px solid rgba(239,68,68,0.25);">PDF</div>
                                         @else
                                             <img src="{{ $erf }}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">
                                         @endif

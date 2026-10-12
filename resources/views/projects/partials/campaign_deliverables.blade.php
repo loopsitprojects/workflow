@@ -224,11 +224,29 @@
                                         <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
                                     @endif
                                 </td>
-                                <td><span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span></td>
+                                <td>
+                                    @php
+                                        $subRevHistory = $subtask->getRelation('revisionsHistory') ?? $subtask->revisionsHistory ?? collect();
+                                        $subRevs = max((int)($subtask->revisions ?? 0), $subRevHistory->count());
+                                    @endphp
+                                    <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
+                                        @if($subRevs > 0)
+                                            <span @if($subtask->revision_instructions) onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" @endif style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;{{ $subtask->revision_instructions ? 'cursor:pointer;' : '' }}" title="{{ $subRevs }} Revision(s){{ $subtask->revision_instructions ? ' (Click to view)' : '' }}"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $subRevs }}</span>
+                                        @else
+                                            <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
+                                        @endif
+                                    </div>
+                                </td>
                                 <td><div class="rtb-stage-label">{{ $subtask->approval_stage ?: 'Assignee' }}</div></td>
                                 <td><div style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">{{ $subtask->client_status ?: 'Not Sent' }}</div></td>
                                 <td style="text-align:center;">
                                     <div class="quick-actions-grid">
+                                        @if($subtask->revision_instructions)
+                                            <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" class="quick-action-btn btn-revision-preview" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);cursor:pointer;">
+                                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
+                                                Revision Requested
+                                            </button>
+                                        @endif
                                         @if($canEditInline)
                                             <a href="{{ route('deliverables.show', $subtask->id) }}" class="quick-action-btn btn-edit-quick" onclick="event.stopPropagation()" style="text-decoration:none; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.25);">
                                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -342,7 +360,19 @@
                                         <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
                                     @endif
                                 </td>
-                            <td><span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span></td>
+                            <td>
+                                @php
+                                    $taskRevHistory = $task->getRelation('revisionsHistory') ?? $task->revisionsHistory ?? collect();
+                                    $taskRevs = max((int)($task->revisions ?? 0), $taskRevHistory->count());
+                                @endphp
+                                <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
+                                    @if($taskRevs > 0)
+                                        <span @if($task->revision_instructions) onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" @endif style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;{{ $task->revision_instructions ? 'cursor:pointer;' : '' }}" title="{{ $taskRevs }} Revision(s){{ $task->revision_instructions ? ' (Click to view)' : '' }}"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $taskRevs }}</span>
+                                    @else
+                                        <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
+                                    @endif
+                                </div>
+                            </td>
                             <td>
                                 <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->approval_stage }}</div>
                             </td>
@@ -374,12 +404,29 @@
                                             ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator', 'operationsmanager']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                             ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                         );
+                                        $canReviseOutline = $isAdmin || (
+                                            in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) &&
+                                            in_array($userRole, ['brandmanager', 'operationsmanager']) &&
+                                            (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)
+                                        );
                                         $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
                                     @endphp
+                                    @if($task->revision_instructions)
+                                        <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" class="quick-action-btn btn-revision-preview" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);cursor:pointer;">
+                                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
+                                            Revision Requested
+                                        </button>
+                                    @endif
                                     @if($canApprove && $nextStage)
                                         <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick">
                                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                             Submit
+                                        </button>
+                                    @endif
+                                    @if($canReviseOutline)
+                                        <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', 1, 'revision', {{ $taskStakeholders }})" class="quick-action-btn btn-revise-quick">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                            Revise
                                         </button>
                                     @endif
                                     @if($canEditStandalone)
@@ -514,10 +561,19 @@
                                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                                             Add Deliverable
                                         </button>
+                                        @php
+                                            $canReviseBatch = ($stage === 'Approve' || in_array($stage, ['AM/BD', 'Final Approval'])) && ($isManager || ($task->brand_manager_id && $task->brand_manager_id == $currentUserId));
+                                        @endphp
                                         @if($canApproveBatch && $nextStage)
                                             <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }})"
                                                     style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; background:#0055D4; color:#fff; border:1px solid #0055D4; cursor:pointer;" {{ $isGated ? 'disabled' : '' }}>
-                                                {{ $stage === 'Approve' ? 'Approve & Close' : 'Submit' }}
+                                                {{ $stage === 'Approve' ? 'Approve' : 'Submit' }}
+                                            </button>
+                                        @endif
+                                        @if($canReviseBatch)
+                                            <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $stage }}', {{ $totalInBatch }}, 'revision', {{ $batchStakeholders }})"
+                                                    style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; color:#ef4444; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); cursor:pointer;">
+                                                Revise All
                                             </button>
                                         @endif
                                     </div>
@@ -626,11 +682,53 @@
                                         <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
                                     @endif
                                 </td>
-                                <td><span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span></td>
+                                <td>
+                                    @php
+                                        $subRevHistory = $subtask->getRelation('revisionsHistory') ?? $subtask->revisionsHistory ?? collect();
+                                        $subRevs = max((int)($subtask->revisions ?? 0), $subRevHistory->count());
+                                    @endphp
+                                    <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
+                                        @if($subRevs > 0)
+                                            <span @if($subtask->revision_instructions) onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" @endif style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;{{ $subtask->revision_instructions ? 'cursor:pointer;' : '' }}" title="{{ $subRevs }} Revision(s){{ $subtask->revision_instructions ? ' (Click to view)' : '' }}"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $subRevs }}</span>
+                                        @else
+                                            <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
+                                        @endif
+                                    </div>
+                                </td>
                                 <td><div class="rtb-stage-label">{{ $subtask->approval_stage === 'Close' ? 'Closed' : ($subtask->approval_stage ?: 'Assign') }}</div></td>
                                 <td><div style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">{{ $subtask->client_status ?: 'Not Sent' }}</div></td>
                                 <td style="text-align:center;">
                                     <div class="quick-actions-grid">
+                                        @php
+                                            $subStage = $subtask->approval_stage ?: 'Assign';
+                                            $nextSubStage = $subtask->getNextStage();
+                                            $isSubManager = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']) || ($subtask->brand_manager_id && $subtask->brand_manager_id == $currentUserId);
+                                            $isSubAssigned = ($subtask->writer_id && $subtask->writer_id == $currentUserId) || ($subtask->designer_id && $subtask->designer_id == $currentUserId);
+                                            $canApproveSub = (
+                                                (($subStage === 'Writer' || $subStage === 'Assignee' || $subStage === 'Assign') && $isSubAssigned) ||
+                                                (($subStage === 'AM/BD' || $subStage === 'Final Approval' || $subStage === 'Approve') && $isSubManager)
+                                            );
+                                            $canReviseSub = ($subStage === 'Approve' || in_array($subStage, ['AM/BD', 'Final Approval'])) && $isSubManager;
+                                            $subStakeholders = "{approver: " . ($subtask->approver_id ?? 'null') . ", brand_manager: " . ($subtask->brand_manager_id ?? 'null') . ", coordinator: " . ($subtask->coordinator_id ?? 'null') . ", designer: " . ($subtask->designer_id ?? 'null') . ", writerName: '" . addslashes($subtask->writer->name ?? '') . "'}";
+                                        @endphp
+                                        @if($subtask->revision_instructions)
+                                            <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" class="quick-action-btn btn-revision-preview" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);cursor:pointer;">
+                                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
+                                                Revision Requested
+                                            </button>
+                                        @endif
+                                        @if($canApproveSub && $nextSubStage)
+                                            <button type="button" onclick="openBatchModal(event, {{ $subtask->id }}, '{{ $nextSubStage }}', 1, 'submit', {{ $subStakeholders }}, false)" class="quick-action-btn btn-approve-quick">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                {{ $subStage === 'Approve' ? 'Approve' : 'Submit' }}
+                                            </button>
+                                        @endif
+                                        @if($canReviseSub)
+                                            <button type="button" onclick="openBatchModal(event, {{ $subtask->id }}, '{{ $subStage }}', 1, 'revision', {{ $subStakeholders }})" class="quick-action-btn btn-revise-quick">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                                Revise
+                                            </button>
+                                        @endif
                                         @if($canEditInline)
                                             <a href="{{ route('deliverables.show', $subtask->id) }}" class="quick-action-btn btn-edit-quick" onclick="event.stopPropagation()" style="text-decoration:none; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.25);">
                                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -746,7 +844,19 @@
                                     <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
                                 @endif
                             </td>
-                            <td><span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span></td>
+                            <td>
+                                @php
+                                    $taskRevHistory = $task->getRelation('revisionsHistory') ?? $task->revisionsHistory ?? collect();
+                                    $taskRevs = max((int)($task->revisions ?? 0), $taskRevHistory->count());
+                                @endphp
+                                <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
+                                    @if($taskRevs > 0)
+                                        <span @if($task->revision_instructions) onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" @endif style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;{{ $task->revision_instructions ? 'cursor:pointer;' : '' }}" title="{{ $taskRevs }} Revision(s){{ $task->revision_instructions ? ' (Click to view)' : '' }}"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $taskRevs }}</span>
+                                    @else
+                                        <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
+                                    @endif
+                                </div>
+                            </td>
                             <td>
                                 <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->approval_stage === 'Close' ? 'Closed' : ($task->approval_stage ?: 'Assign') }}</div>
                             </td>
@@ -776,12 +886,25 @@
                                             (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Assign') && $isStandaloneAssigned) ||
                                             (($stage === 'AM/BD' || $stage === 'Final Approval' || $stage === 'Approve') && $isStandaloneManager)
                                         );
+                                        $canRevise = ($stage === 'Approve' || in_array($stage, ['AM/BD', 'Final Approval'])) && ($isStandaloneManager || ($task->brand_manager_id && $task->brand_manager_id == $currentUserId));
                                         $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
                                     @endphp
+                                    @if($task->revision_instructions)
+                                        <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" class="quick-action-btn btn-revision-preview" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);cursor:pointer;">
+                                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
+                                            Revision Requested
+                                        </button>
+                                    @endif
                                     @if($canApprove && $nextStage)
                                         <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick">
                                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            {{ $stage === 'Approve' ? 'Approve & Close' : 'Submit' }}
+                                            {{ $stage === 'Approve' ? 'Approve' : 'Submit' }}
+                                        </button>
+                                    @endif
+                                    @if($canRevise)
+                                        <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', 1, 'revision', {{ $taskStakeholders }})" class="quick-action-btn btn-revise-quick">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                            Revise
                                         </button>
                                     @endif
                                     @if($canEditOtherStandalone)
