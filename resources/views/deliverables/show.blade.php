@@ -238,8 +238,14 @@
         .ql-editor { padding: 12px; }
         .ql-editor.ql-blank::before { color: rgba(255, 255, 255, 0.3) !important; font-style: normal; }
         .dark .ql-editor,
-        .dark .ql-editor * {
+        .dark .ql-editor *,
+        .dark .ql-container.ql-snow.ql-disabled .ql-editor,
+        .dark .ql-container.ql-snow.ql-disabled .ql-editor * {
             color: var(--color-text-primary) !important;
+        }
+        .ql-container.ql-snow.ql-disabled .ql-editor {
+            color: var(--color-text-primary) !important;
+            cursor: default;
         }
         
         button.ql-active .ql-stroke { stroke: #0ea5e9 !important; }
@@ -606,9 +612,13 @@
 
                 <div class="detail-grid">
                     <div class="detail-item full">
-                        <label class="detail-label">Concept</label>
-                        <input type="hidden" id="modalConcept" name="concept" form="submitStageForm">
-                        <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px;"></div>
+                        @php
+                            $isOtherDeliv = ($deliverable->project?->workflow_type ?? '') !== 'retainer' && !in_array(strtolower(trim($deliverable->post_type ?? '')), ['outlines', 'outline']);
+                            $initialBriefOrConcept = $deliverable->concept ?: ($deliverable->notes ?: '');
+                        @endphp
+                        <label class="detail-label">{{ $isOtherDeliv ? 'Brief' : 'Concept' }}</label>
+                        <input type="hidden" id="modalConcept" name="concept" value="{{ $initialBriefOrConcept }}" form="submitStageForm">
+                        <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px;">{!! $initialBriefOrConcept !!}</div>
                     </div>
                     <div class="detail-item full">
                         <label class="detail-label">Copy</label>
@@ -1461,9 +1471,18 @@
                 ptEl.style.color = colors.text;
                 ptEl.style.borderColor = colors.border;
 
-                const conceptOrBrief = task.concept || task.notes || '';
+                const conceptOrBrief = task.concept || task.notes || task.description || '';
                 document.getElementById('modalConcept').value = conceptOrBrief;
-                quillConcept.clipboard.dangerouslyPasteHTML(conceptOrBrief);
+                if (typeof quillConcept !== 'undefined' && quillConcept) {
+                    if (conceptOrBrief) {
+                        quillConcept.clipboard.dangerouslyPasteHTML(conceptOrBrief);
+                        if (!quillConcept.getText().trim() && conceptOrBrief.trim()) {
+                            quillConcept.root.innerHTML = conceptOrBrief;
+                        }
+                    } else {
+                        quillConcept.setText('');
+                    }
+                }
                 
                 document.getElementById('modalCaption').value = task.caption || '';
                 quillCaption.clipboard.dangerouslyPasteHTML(task.caption || '');
