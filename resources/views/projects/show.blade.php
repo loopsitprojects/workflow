@@ -485,6 +485,10 @@
         .ql-snow .ql-picker-label:hover .ql-stroke { stroke: var(--color-text-primary); }
         .ql-editor { padding: 12px; }
         .ql-editor.ql-blank::before { color: rgba(255, 255, 255, 0.3) !important; font-style: normal; }
+        .dark .ql-editor,
+        .dark .ql-editor * {
+            color: var(--color-text-primary) !important;
+        }
         
         button.ql-active .ql-stroke { stroke: #0ea5e9 !important; }
         button.ql-active .ql-fill { fill: #0ea5e9 !important; }
@@ -935,9 +939,9 @@
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
-                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="concept" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ strip_tags($subtask->concept) }}</textarea>
+                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="concept" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ html_entity_decode(strip_tags($subtask->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
                                             @else
-                                                @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ strip_tags($subtask->concept) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                                @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ html_entity_decode(strip_tags($subtask->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td>
@@ -948,16 +952,16 @@
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
-                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="caption" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ strip_tags($subtask->caption) }}</textarea>
+                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="caption" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ html_entity_decode(strip_tags($subtask->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
                                             @else
-                                                @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ strip_tags($subtask->caption) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                                @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ html_entity_decode(strip_tags($subtask->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
-                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="post_copy" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ strip_tags($subtask->post_copy) }}</textarea>
+                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="post_copy" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ html_entity_decode(strip_tags($subtask->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
                                             @else
-                                                @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ strip_tags($subtask->post_copy) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                                @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ html_entity_decode(strip_tags($subtask->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
@@ -1137,7 +1141,7 @@
 
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="concept" placeholder="Concept..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($task->concept) }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="concept" placeholder="Concept..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ html_entity_decode(strip_tags($task->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
                                         </td>
                                         <td>
                                             @if($task->subtask_type)
@@ -1150,10 +1154,10 @@
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="caption" placeholder="Caption..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($task->caption) }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="caption" placeholder="Caption..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ html_entity_decode(strip_tags($task->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="post_copy" placeholder="Copy..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ strip_tags($task->post_copy) }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="post_copy" placeholder="Copy..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ html_entity_decode(strip_tags($task->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             @if($task->reference_file)
@@ -1964,7 +1968,20 @@
                         ['bold', 'italic', 'underline', 'strike'],
                         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                         ['clean']
-                    ]
+                    ],
+                    clipboard: {
+                        matchers: [
+                            [Node.ELEMENT_NODE, function(node, delta) {
+                                delta.ops.forEach(op => {
+                                    if (op.attributes) {
+                                        delete op.attributes.color;
+                                        delete op.attributes.background;
+                                    }
+                                });
+                                return delta;
+                            }]
+                        ]
+                    }
                 }
             };
             
@@ -4059,7 +4076,9 @@
             document.getElementById('cellEditorSubtitle').textContent = taskTitle;
             
             const modalTextarea = document.getElementById('cellEditorTextarea');
-            modalTextarea.value = activeTextarea.value;
+            let initialVal = activeTextarea.value || '';
+            initialVal = initialVal.replace(/&nbsp;/gi, ' ');
+            modalTextarea.value = initialVal;
             modalTextarea.readOnly = isReadOnly;
             modalTextarea.style.background = isReadOnly ? 'var(--color-bg-secondary)' : 'var(--color-bg-primary)';
             
@@ -4080,7 +4099,9 @@
         function saveCellEditor() {
             if (!activeTextarea) return;
             const modalTextarea = document.getElementById('cellEditorTextarea');
-            activeTextarea.value = modalTextarea.value;
+            let cleanVal = modalTextarea.value || '';
+            cleanVal = cleanVal.replace(/&nbsp;/gi, ' ');
+            activeTextarea.value = cleanVal;
             activeTextarea.dispatchEvent(new Event('input', { bubbles: true }));
             activeTextarea.dispatchEvent(new Event('change', { bubbles: true }));
             closeCellEditor();

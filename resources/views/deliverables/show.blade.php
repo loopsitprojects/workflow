@@ -237,6 +237,10 @@
         .ql-snow .ql-picker-label:hover .ql-stroke { stroke: var(--color-text-primary); }
         .ql-editor { padding: 12px; }
         .ql-editor.ql-blank::before { color: rgba(255, 255, 255, 0.3) !important; font-style: normal; }
+        .dark .ql-editor,
+        .dark .ql-editor * {
+            color: var(--color-text-primary) !important;
+        }
         
         button.ql-active .ql-stroke { stroke: #0ea5e9 !important; }
         button.ql-active .ql-fill { fill: #0ea5e9 !important; }
@@ -1041,7 +1045,20 @@
                         ['bold', 'italic', 'underline', 'strike'],
                         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                         ['clean']
-                    ]
+                    ],
+                    clipboard: {
+                        matchers: [
+                            [Node.ELEMENT_NODE, function(node, delta) {
+                                delta.ops.forEach(op => {
+                                    if (op.attributes) {
+                                        delete op.attributes.color;
+                                        delete op.attributes.background;
+                                    }
+                                });
+                                return delta;
+                            }]
+                        ]
+                    }
                 }
             };
             

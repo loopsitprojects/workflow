@@ -132,7 +132,7 @@
                             @if($task->concept || $task->notes)
                                 <div class="cell-text" onclick="event.stopPropagation();openTextPreview('Creative Brief', {{ json_encode($task->concept ?? $task->notes) }})"
                                      style="max-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:11px; color:var(--color-text-secondary); cursor:pointer;">
-                                    {{ strip_tags($task->concept ?? $task->notes) }}
+                                    {{ html_entity_decode(strip_tags($task->concept ?? $task->notes), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}
                                 </div>
                             @else
                                 <span style="color:var(--color-text-secondary); opacity:0.5;">—</span>
@@ -347,7 +347,7 @@
                                     @if($sub->concept || $sub->notes)
                                         <div class="cell-text" onclick="event.stopPropagation();openTextPreview('Subtask Brief', {{ json_encode($sub->concept ?? $sub->notes) }})"
                                              style="max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:11px; color:var(--color-text-secondary); cursor:pointer;">
-                                            {{ strip_tags($sub->concept ?? $sub->notes) }}
+                                            {{ html_entity_decode(strip_tags($sub->concept ?? $sub->notes), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}
                                         </div>
                                     @else
                                         <span style="color:var(--color-text-secondary); opacity:0.5;">—</span>

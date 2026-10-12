@@ -45,6 +45,16 @@
         /* Light mode: crisp, refined shadow. Dark mode: visible depth without harsh outline */
         .card-shadow { box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 4px 14px -1px rgba(15, 23, 42, 0.05); }
         .dark .card-shadow { box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 24px rgba(0, 0, 0, 0.35); }
+
+        /* Quill Editor Dark Mode & Pasted Content Color Fixes */
+        .dark .ql-editor,
+        .dark .ql-editor * {
+            color: var(--color-text-primary) !important;
+        }
+        .dark .ql-editor.ql-blank::before {
+            color: var(--color-text-secondary) !important;
+            opacity: 0.5;
+        }
     </style>
     <script>
         // Check for saved theme or default to system preference
@@ -75,7 +85,20 @@
                                 ['bold', 'italic', 'underline', 'strike'],
                                 [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                                 ['clean']
-                            ]
+                            ],
+                            clipboard: {
+                                matchers: [
+                                    [Node.ELEMENT_NODE, function(node, delta) {
+                                        delta.ops.forEach(op => {
+                                            if (op.attributes) {
+                                                delete op.attributes.color;
+                                                delete op.attributes.background;
+                                            }
+                                        });
+                                        return delta;
+                                    }]
+                                ]
+                            }
                         }
                     });
 

@@ -158,6 +158,18 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
             <input type="hidden" name="workflow_type" id="workflow_type" value="retainer">
         </div>
 
+        {{-- Assignee (Only for Campaign & Pitch) --}}
+        <div class="f-section" id="default-assignee-section" style="display:none;">
+            <label class="f-label blue">Assignee <span style="color:#ef4444;font-weight:700;">*</span></label>
+            <select name="writer_id" id="project_default_assignee" class="f-input" style="max-width:480px;">
+                <option value="">-- Select Assignee --</option>
+                @foreach($allUsers ?? $users as $u)
+                    <option value="{{ $u->id }}" {{ old('writer_id') == $u->id ? 'selected' : '' }}>{{ $u->name }} ({{ ucfirst($u->role) }})</option>
+                @endforeach
+            </select>
+            @error('writer_id')<p style="color:#ef4444;font-size:11px;margin-top:6px;">{{ $message }}</p>@enderror
+        </div>
+
         {{-- Project Brief --}}
 
         <div class="f-section">
@@ -541,38 +553,53 @@ function renderItemDates(input, batchIdx, typeId, typeName, savedDates = null, s
     container.style.borderTop = '1px dashed var(--color-border-primary)';
 
     const todayStr = new Date().toISOString().split('T')[0];
+    const currentWf = document.getElementById('workflow_type') ? document.getElementById('workflow_type').value : 'retainer';
+    const isRetainer = (currentWf === 'retainer');
     let html = '';
     for (let i = 1; i <= qty; i++) {
         const dateVal = existingDates[i] || '';
         const currentAssigneeVal = existingAssignees[i] || '';
         const label = (qty === 1) ? typeName : `${typeName} ${i}`;
 
-        let optionsHtml = '';
-        allTeamMembers.forEach(m => {
-            const isSel = (String(currentAssigneeVal) === String(m.id)) ? 'selected' : '';
-            optionsHtml += `<option value="${m.id}" ${isSel}>${m.name} (${m.role})</option>`;
-        });
-
-        html += `
-            <div style="background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:5px;">
-                <div style="font-size:10px;font-weight:700;color:var(--color-text-primary);letter-spacing:-0.01em;">${label}</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center;">
+        if (isRetainer) {
+            html += `
+                <div style="background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:5px;">
+                    <div style="font-size:10px;font-weight:700;color:var(--color-text-primary);letter-spacing:-0.01em;">${label}</div>
                     <div>
                         <span style="font-size:9px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:2px;">Due:</span>
                         <input type="date" name="batches[${batchIdx}][post_types][${typeId}][dates][${i}]" value="${dateVal}" min="${todayStr}"
                             style="width:100%;box-sizing:border-box;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:5px;padding:2px 5px;font-size:10.5px;font-weight:600;color:var(--color-text-primary);outline:none;">
                     </div>
-                    <div>
-                        <span style="font-size:9px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:2px;">Assignee:</span>
-                        <select name="batches[${batchIdx}][post_types][${typeId}][assignees][${i}]"
-                            style="width:100%;box-sizing:border-box;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:5px;padding:2px 4px;font-size:10.5px;font-weight:600;color:var(--color-text-primary);outline:none;text-overflow:ellipsis;">
-                            <option value="">-- Project Default --</option>
-                            ${optionsHtml}
-                        </select>
+                </div>
+            `;
+        } else {
+            let optionsHtml = '';
+            allTeamMembers.forEach(m => {
+                const isSel = (String(currentAssigneeVal) === String(m.id)) ? 'selected' : '';
+                optionsHtml += `<option value="${m.id}" ${isSel}>${m.name} (${m.role})</option>`;
+            });
+
+            html += `
+                <div style="background:var(--color-bg-secondary);border:1px solid var(--color-border-primary);border-radius:6px;padding:6px 8px;display:flex;flex-direction:column;gap:5px;">
+                    <div style="font-size:10px;font-weight:700;color:var(--color-text-primary);letter-spacing:-0.01em;">${label}</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center;">
+                        <div>
+                            <span style="font-size:9px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:2px;">Due:</span>
+                            <input type="date" name="batches[${batchIdx}][post_types][${typeId}][dates][${i}]" value="${dateVal}" min="${todayStr}"
+                                style="width:100%;box-sizing:border-box;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:5px;padding:2px 5px;font-size:10.5px;font-weight:600;color:var(--color-text-primary);outline:none;">
+                        </div>
+                        <div>
+                            <span style="font-size:9px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:2px;">Assignee:</span>
+                            <select name="batches[${batchIdx}][post_types][${typeId}][assignees][${i}]"
+                                style="width:100%;box-sizing:border-box;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:5px;padding:2px 4px;font-size:10.5px;font-weight:600;color:var(--color-text-primary);outline:none;text-overflow:ellipsis;">
+                                <option value="">-- Project Default --</option>
+                                ${optionsHtml}
+                            </select>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     }
     container.innerHTML = html;
 }
@@ -607,14 +634,25 @@ function setWorkflow(type) {
     );
 
     const batchesSection = document.getElementById('project-batches-section');
+    const assigneeSection = document.getElementById('default-assignee-section');
+    const assigneeSelect = document.getElementById('project_default_assignee');
     const container = document.getElementById('batches-container');
     if (container) container.innerHTML = '';
     batchIndex = 0;
     
     if (type === 'campaign' || type === 'pitch') {
         if (batchesSection) batchesSection.style.display = 'none';
+        if (assigneeSection) assigneeSection.style.display = 'block';
+        if (assigneeSelect) assigneeSelect.required = true;
     } else {
         if (batchesSection) batchesSection.style.display = 'block';
+        if (assigneeSection) {
+            assigneeSection.style.display = 'none';
+            if (assigneeSelect) {
+                assigneeSelect.required = false;
+                assigneeSelect.value = '';
+            }
+        }
         // Only auto-add an empty batch if there are NO old batches
         if (!oldBatches || Object.keys(oldBatches).length === 0) {
             addBatchCard();

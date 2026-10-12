@@ -151,13 +151,13 @@
                                     <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                 </td>
                                 <td onclick="event.stopPropagation()">
-                                    @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ strip_tags($subtask->concept) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                    @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ html_entity_decode(strip_tags($subtask->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                 </td>
                                 <td onclick="event.stopPropagation()">
-                                    @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Copy',{{ json_encode($subtask->post_copy) }})">{{ strip_tags($subtask->post_copy) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                    @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Copy',{{ json_encode($subtask->post_copy) }})">{{ html_entity_decode(strip_tags($subtask->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                 </td>
                                 <td onclick="event.stopPropagation()">
-                                    @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ strip_tags($subtask->caption) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                    @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ html_entity_decode(strip_tags($subtask->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                 </td>
                                 <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
                                     @php
@@ -287,13 +287,13 @@
                                 <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                             </td>
                             <td onclick="event.stopPropagation()">
-                                @if($task->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ strip_tags($task->concept) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                @if($task->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ html_entity_decode(strip_tags($task->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                             </td>
                             <td onclick="event.stopPropagation()">
-                                @if($task->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Copy',{{ json_encode($task->post_copy) }})">{{ strip_tags($task->post_copy) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                @if($task->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Copy',{{ json_encode($task->post_copy) }})">{{ html_entity_decode(strip_tags($task->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                             </td>
                             <td onclick="event.stopPropagation()">
-                                @if($task->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($task->caption) }})">{{ strip_tags($task->caption) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                @if($task->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($task->caption) }})">{{ html_entity_decode(strip_tags($task->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                             </td>
                                 <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
                                     @php
@@ -615,7 +615,7 @@
                                 </td>
                                 <td onclick="event.stopPropagation()">
                                     @php $briefContent = $subtask->concept ?? $subtask->notes; @endphp
-                                    @if($briefContent)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Brief',{{ json_encode($briefContent) }})">{{ strip_tags($briefContent) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                    @if($briefContent)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Brief',{{ json_encode($briefContent) }})">{{ html_entity_decode(strip_tags($briefContent), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                 </td>
                                 <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
                                     @php
@@ -777,7 +777,7 @@
                             </td>
                             <td onclick="event.stopPropagation()">
                                 @php $briefContent = $task->concept ?? $task->notes; @endphp
-                                @if($briefContent)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Brief',{{ json_encode($briefContent) }})">{{ strip_tags($briefContent) }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                @if($briefContent)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Brief',{{ json_encode($briefContent) }})">{{ html_entity_decode(strip_tags($briefContent), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                             </td>
                             <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
                                 @php

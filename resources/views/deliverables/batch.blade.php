@@ -299,25 +299,25 @@
             <div class="pc-field full">
                 <div class="pc-label">Brief</div>
                 @php $brief = $post->concept ?? $post->notes; @endphp
-                @if($brief)<div class="pc-val">{{ strip_tags($brief) }}</div>
+                @if($brief)<div class="pc-val">{{ html_entity_decode(strip_tags($brief), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>
                 @else<div class="pc-val pc-empty">No brief yet</div>@endif
             </div>
             @else
             <div class="pc-field">
                 <div class="pc-label">Concept</div>
-                @if($post->concept)<div class="pc-val">{{ strip_tags($post->concept) }}</div>
+                @if($post->concept)<div class="pc-val">{{ html_entity_decode(strip_tags($post->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>
                 @else<div class="pc-val pc-empty">No concept yet</div>@endif
             </div>
 
             <div class="pc-field">
                 <div class="pc-label">Caption</div>
-                @if($post->caption)<div class="pc-val">{{ strip_tags($post->caption) }}</div>
+                @if($post->caption)<div class="pc-val">{{ html_entity_decode(strip_tags($post->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>
                 @else<div class="pc-val pc-empty">No caption yet</div>@endif
             </div>
 
             <div class="pc-field full">
                 <div class="pc-label">Post Copy</div>
-                @if($post->post_copy)<div class="pc-val">{{ strip_tags($post->post_copy) }}</div>
+                @if($post->post_copy)<div class="pc-val">{{ html_entity_decode(strip_tags($post->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>
                 @else<div class="pc-val pc-empty">No copy yet</div>@endif
             </div>
             @endif

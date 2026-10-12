@@ -386,6 +386,10 @@
         .ql-snow .ql-picker-label:hover .ql-stroke { stroke: var(--color-text-primary); }
         .ql-editor { padding: 10px 14px; min-height: 85px; font-family: inherit; font-size: 13px; line-height: 1.6; }
         .ql-editor.ql-blank::before { color: var(--color-text-secondary) !important; opacity: 0.4; font-style: normal; }
+        .dark .ql-editor,
+        .dark .ql-editor * {
+            color: var(--color-text-primary) !important;
+        }
         button.ql-active .ql-stroke { stroke: #0055D4 !important; }
         button.ql-active .ql-fill { fill: #0055D4 !important; }
         .ql-picker-label.ql-active { color: #0055D4 !important; }
@@ -887,7 +891,20 @@
                         ['bold', 'italic', 'underline', 'strike'],
                         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                         ['clean']
-                    ]
+                    ],
+                    clipboard: {
+                        matchers: [
+                            [Node.ELEMENT_NODE, function(node, delta) {
+                                delta.ops.forEach(op => {
+                                    if (op.attributes) {
+                                        delete op.attributes.color;
+                                        delete op.attributes.background;
+                                    }
+                                });
+                                return delta;
+                            }]
+                        ]
+                    }
                 }
             });
 
