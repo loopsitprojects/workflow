@@ -79,7 +79,7 @@ class ProjectController extends Controller
             'priority' => 'required|string',
             'type' => 'required|string',
             'workflow_type' => 'required|string|in:retainer,campaign,pitch',
-            'writer_id' => ($isCampaignOrPitch ? 'required' : 'nullable') . '|exists:users,id',
+            'writer_id' => 'nullable|exists:users,id',
             'approver_id' => 'nullable|exists:users,id',
             'brand_manager_id' => 'nullable|exists:users,id',
             'coordinator_id' => 'nullable|exists:users,id',
@@ -95,8 +95,6 @@ class ProjectController extends Controller
             'batches.*.deadline' => 'nullable',
             'batches.*.post_types' => 'nullable|array',
             'batches.*.posts_count' => 'nullable',
-        ], [
-            'writer_id.required' => 'Please select an assignee for Campaign or Pitch projects.',
         ]);
 
         if (!$isCampaignOrPitch) {
