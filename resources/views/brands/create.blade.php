@@ -92,16 +92,42 @@
         <div class="f-section" style="border-bottom:none;"
              x-data="{
                 users: {{ \Illuminate\Support\Js::from($users->sortBy('role')->values()->map(fn($u) => ['id'=>$u->id,'name'=>$u->name,'email'=>$u->email,'role'=>$u->role])) }},
-                selected: {{ \Illuminate\Support\Js::from(old('members', [])) }},
+                selected: {{ \Illuminate\Support\Js::from(collect(old('members', []))->map(fn($id) => (string)$id)->toArray()) }},
                 search: '',
                 get filtered() {
                     const s = this.search.toLowerCase();
                     return s ? this.users.filter(u => u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s) || (u.role||'').toLowerCase().includes(s)) : this.users;
                 },
+                get areAllFilteredSelected() {
+                    if (!this.filtered || this.filtered.length === 0) return false;
+                    return this.filtered.every(u => this.isSelected(u.id));
+                },
                 toggle(id) { const i=this.selected.indexOf(id.toString()); i>-1?this.selected.splice(i,1):this.selected.push(id.toString()); },
-                isSelected(id) { return this.selected.includes(id.toString()); }
+                isSelected(id) { return this.selected.includes(id.toString()); },
+                toggleAll() {
+                    const targetUsers = this.search.trim() ? this.filtered : this.users;
+                    if (!targetUsers || targetUsers.length === 0) return;
+                    if (this.areAllFilteredSelected) {
+                        const targetIds = new Set(targetUsers.map(u => u.id.toString()));
+                        this.selected = this.selected.filter(id => !targetIds.has(id.toString()));
+                    } else {
+                        const currentSet = new Set(this.selected.map(id => id.toString()));
+                        targetUsers.forEach(u => currentSet.add(u.id.toString()));
+                        this.selected = Array.from(currentSet);
+                    }
+                }
              }">
-            <label class="f-label">Team Members</label>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+                <label class="f-label" style="margin-bottom:0;">Team Members</label>
+                <button type="button"
+                        @click="toggleAll()"
+                        style="background:none;border:none;padding:2px 8px;font-size:11px;font-weight:700;color:#3b82f6;cursor:pointer;display:inline-flex;align-items:center;gap:5px;border-radius:6px;transition:all 0.15s;"
+                        onmouseover="this.style.background='rgba(59,130,246,0.08)'"
+                        onmouseout="this.style.background='transparent'">
+                    <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <span x-text="areAllFilteredSelected ? (search ? 'Deselect Filtered' : 'Deselect All') : (search ? 'Add All Filtered' : 'Add All at Once')"></span>
+                </button>
+            </div>
             <div class="mp-wrap">
                 <div class="mp-search">
                     <svg style="width:12px;height:12px;flex-shrink:0;color:var(--color-text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -109,6 +135,20 @@
                     <span x-show="search" @click="search=''" style="font-size:10px;font-weight:600;color:var(--color-text-secondary);cursor:pointer;">Clear</span>
                 </div>
                 <div class="mp-list">
+                    <template x-if="filtered.length > 0">
+                        <div class="mp-row mp-all-row" :class="{ selected: areAllFilteredSelected }" @click="toggleAll()" style="background:var(--color-bg-secondary);border-bottom:1.5px solid var(--color-border-primary);">
+                            <div class="mp-init" style="background:rgba(59,130,246,0.12);border-color:rgba(59,130,246,0.3);color:#3b82f6;">
+                                <svg style="width:13px;height:13px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="font-size:12.5px;font-weight:700;color:var(--color-text-primary);" x-text="areAllFilteredSelected ? (search ? 'Deselect All Filtered' : 'Deselect All Members') : (search ? 'Add All Filtered' : 'Add All at Once')"></div>
+                                <div style="font-size:10px;font-weight:600;color:var(--color-text-secondary);" x-text="(areAllFilteredSelected ? 'Click to deselect ' : 'Click to add ') + (search ? 'filtered ' : 'all ') + filtered.length + ' member' + (filtered.length === 1 ? '' : 's')"></div>
+                            </div>
+                            <div class="mp-check">
+                                <svg x-show="areAllFilteredSelected" style="width:8px;height:8px;" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                            </div>
+                        </div>
+                    </template>
                     <template x-for="user in filtered" :key="user.id">
                         <div class="mp-row" :class="{ selected: isSelected(user.id) }" @click="toggle(user.id)">
                             <div class="mp-init" x-text="user.name.charAt(0)"></div>
@@ -126,7 +166,14 @@
                     </template>
                 </div>
                 <div class="mp-footer">
-                    <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.06em;">Members</span>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.06em;">Members</span>
+                        <button type="button"
+                                @click="toggleAll()"
+                                style="background:none;border:none;padding:0;font-size:10.5px;font-weight:700;color:#3b82f6;cursor:pointer;text-decoration:underline;"
+                                x-text="areAllFilteredSelected ? 'Deselect all' : 'Add all at once'">
+                        </button>
+                    </div>
                     <span style="padding:2px 8px;background:#3b82f6;color:#fff;font-size:10px;font-weight:700;border-radius:20px;" x-text="selected.length + ' selected'"></span>
                 </div>
             </div>

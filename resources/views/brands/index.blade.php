@@ -199,15 +199,32 @@
                         <!-- Team Selection -->
                         <div class="modal-form-section" style="border-bottom:none;"
                              x-data="{
-                                selected: {{ \Illuminate\Support\Js::from(old('members', $brand->members->pluck('id')->map(fn($id) => (string)$id)->toArray())) }},
+                                allUsers: {{ \Illuminate\Support\Js::from(\App\Models\User::all()->map(fn($u) => (string)$u->id)) }},
+                                selected: {{ \Illuminate\Support\Js::from(collect(old('members', $brand->members->pluck('id')))->map(fn($id) => (string)$id)->toArray()) }},
                                 toggle(id) {
                                     const index = this.selected.indexOf(id.toString());
                                     if (index > -1) { this.selected.splice(index, 1); }
                                     else { this.selected.push(id.toString()); }
                                 },
-                                isSelected(id) { return this.selected.includes(id.toString()); }
+                                isSelected(id) { return this.selected.includes(id.toString()); },
+                                get areAllSelected() {
+                                    return this.allUsers.length > 0 && this.allUsers.every(id => this.isSelected(id));
+                                },
+                                toggleAll() {
+                                    if (this.areAllSelected) {
+                                        this.selected = [];
+                                    } else {
+                                        this.selected = [...this.allUsers];
+                                    }
+                                }
                              }">
-                            <label class="modal-field-label">Team Members</label>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="modal-field-label" style="margin-bottom:0;">Team Members</label>
+                                <button type="button" @click="toggleAll()"
+                                        class="text-[10px] font-bold text-blue-500 hover:text-blue-600 transition-colors"
+                                        x-text="areAllSelected ? 'Deselect All' : 'Add All at Once'">
+                                </button>
+                            </div>
 
                             <div class="rounded-xl overflow-hidden" style="border: 1px solid var(--color-border-primary);">
                                 <div class="max-h-40 overflow-y-auto p-2">
@@ -232,7 +249,10 @@
                                     </div>
                                 </div>
                                 <div class="px-3 py-2 flex justify-between items-center" style="border-top: 1px solid var(--color-border-primary); background: var(--color-bg-secondary);">
-                                    <span class="text-[9px] font-black uppercase tracking-wider" style="color:var(--color-text-secondary)">Team Members</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[9px] font-black uppercase tracking-wider" style="color:var(--color-text-secondary)">Team Members</span>
+                                        <button type="button" @click="toggleAll()" class="text-[9px] font-bold text-blue-500 hover:underline" x-text="areAllSelected ? 'Deselect all' : 'Add all at once'"></button>
+                                    </div>
                                     <span class="px-2 py-0.5 rounded-full text-[9px] font-black" style="background:#0055D4; color:#fff;" x-text="selected.length + ' assigned'"></span>
                                 </div>
                                 <template x-for="userId in selected" :key="'member-'+userId">
