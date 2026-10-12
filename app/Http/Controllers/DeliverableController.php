@@ -145,11 +145,12 @@ class DeliverableController extends Controller
             if (!empty($sub['title'])) {
                 $taskData['title'] = $sub['title'];
             }
-            $taskData['post_type'] = $sub['post_type'] ?? null;
-            $taskData['concept']   = $sub['concept'] ?? ($sub['brief'] ?? null);
-            $taskData['notes']     = $sub['notes'] ?? ($sub['brief'] ?? null);
-            $taskData['caption']   = $sub['caption'] ?? null;
-            $taskData['post_copy'] = $sub['post_copy'] ?? null;
+            $taskData['post_type'] = $sub['post_type'] ?? ($taskData['post_type'] ?? null);
+            $conceptOrBrief        = $sub['concept'] ?? ($sub['notes'] ?? ($sub['brief'] ?? ($taskData['concept'] ?? ($taskData['notes'] ?? null))));
+            $taskData['concept']   = $taskData['concept'] ?? $conceptOrBrief;
+            $taskData['notes']     = $taskData['notes'] ?? $conceptOrBrief;
+            $taskData['caption']   = $sub['caption'] ?? ($taskData['caption'] ?? null);
+            $taskData['post_copy'] = $sub['post_copy'] ?? ($taskData['post_copy'] ?? null);
             $taskData['reference'] = $sub['reference'] ?? null;
             $taskData['deadline']  = $sub['deadline'] ?? ($taskData['deadline'] ?? null);
             $taskData['priority']  = $sub['priority'] ?? ($taskData['priority'] ?? 'Medium');
@@ -181,6 +182,11 @@ class DeliverableController extends Controller
         // Standard logic for 0 or 2+ subtasks, or adding to existing parent
         $parentData = \Illuminate\Support\Arr::except($validated, ['subtasks']);
         $parentData['priority'] = $parentData['priority'] ?? 'Medium';
+        if (!empty($parentData['notes']) && empty($parentData['concept'])) {
+            $parentData['concept'] = $parentData['notes'];
+        } elseif (!empty($parentData['concept']) && empty($parentData['notes'])) {
+            $parentData['notes'] = $parentData['concept'];
+        }
         if (empty($parentData['approval_stage'])) {
             $pType = strtolower(trim($parentData['post_type'] ?? ''));
             if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {

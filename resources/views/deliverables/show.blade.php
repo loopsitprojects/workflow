@@ -1461,8 +1461,9 @@
                 ptEl.style.color = colors.text;
                 ptEl.style.borderColor = colors.border;
 
-                document.getElementById('modalConcept').value = task.concept || '';
-                quillConcept.clipboard.dangerouslyPasteHTML(task.concept || '');
+                const conceptOrBrief = task.concept || task.notes || '';
+                document.getElementById('modalConcept').value = conceptOrBrief;
+                quillConcept.clipboard.dangerouslyPasteHTML(conceptOrBrief);
                 
                 document.getElementById('modalCaption').value = task.caption || '';
                 quillCaption.clipboard.dangerouslyPasteHTML(task.caption || '');
