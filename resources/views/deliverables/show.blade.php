@@ -1434,7 +1434,8 @@
                 let stage = task.approval_stage;
                 const projectWorkflowType = task.project?.workflow_type || '{{ $deliverable->project?->workflow_type ?? "" }}';
                 const postTypeNorm = (task.post_type || '').toLowerCase().trim();
-                const isOtherDeliverable = projectWorkflowType !== 'retainer' && (task.workflow_stages?.length === 3 || (!['outlines', 'outline'].includes(postTypeNorm)));
+                const isDirectDesign = (task.flow_type === 'direct_design' || task.is_direct_design);
+                const isOtherDeliverable = !isDirectDesign && projectWorkflowType !== 'retainer' && (task.workflow_stages?.length === 3 || (!['outlines', 'outline'].includes(postTypeNorm)));
                 const isAssignedWriter      = AUTH_USER_ID == task.writer_id;
                 const isAssignedApprover    = AUTH_USER_ID == task.approver_id;
                 const isAssignedBrandMgr    = AUTH_USER_ID == task.brand_manager_id;
@@ -2253,6 +2254,7 @@
                             (stage === 'AM/BD'           && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                             (stage === 'Final Approval'  && userRole === 'brandmanager' && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                             (stage === 'Approve'         && isManager && (!task.brand_manager_id || isAssignedBrandMgr)) ||
+                            (stage === 'Manager Review'  && isManager && (!task.brand_manager_id || isAssignedBrandMgr)) ||
                             (stage === 'Coordinator'     && (userRole === 'coordinator' || userRole === 'approvercoordinator')  && (!task.coordinator_id  || isAssignedCoordinator)) ||
                             (stage === 'Designer'        && hasDesignerRole             && (!task.designer_id      || isAssignedDesigner))
                         ))
@@ -2270,7 +2272,7 @@
                 ) : (
                     (stage === 'Writer' || stage === 'Assignee' || stage === 'Assign' || stage === 'Writer Review') ? isAssignedWriter :
                     (stage === 'Approver' || stage === 'Approver Review' || stage === 'Further Approver') ? isAssignedApprover :
-                    (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval' || stage === 'Approve') ? isAssignedBrandMgr :
+                    (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval' || stage === 'Approve' || stage === 'Manager Review') ? isAssignedBrandMgr :
                     (stage === 'Coordinator') ? isAssignedCoordinator :
                     (stage === 'Designer') ? isAssignedDesigner : false
                 );

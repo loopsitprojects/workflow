@@ -16,7 +16,6 @@
             </span>
         </div>
         <div class="cd-header-right">
-            @if(!in_array($project->workflow_type, ['campaign', 'pitch']))
             @can('create-deliverable')
             <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'flow' => 'design']) }}"
                style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:#6366f1; border-radius:8px; font-size:11px; font-weight:700; color:#fff; text-decoration:none; transition:all 0.15s; box-shadow: 0 2px 8px rgba(99,102,241,0.3);">
@@ -24,7 +23,6 @@
                 Add Fast Track Deliverable
             </a>
             @endcan
-            @endif
         </div>
     </div>
 

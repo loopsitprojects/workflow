@@ -224,7 +224,7 @@ test('manager can request revisions which returns deliverable to Designer stage'
     expect($task->revisionsHistory)->toHaveCount(1);
 });
 
-test('fast track deliverable button is not displayed on campaign or pitch projects but shown on retainer', function () {
+test('fast track deliverable button is displayed on campaign, pitch, and retainer projects', function () {
     $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-fasttrack-btn']);
     $manager = User::factory()->create(['role' => 'Brand Manager']);
 
@@ -253,14 +253,14 @@ test('fast track deliverable button is not displayed on campaign or pitch projec
     $resRetainer->assertSee('Fast Track Deliverable');
 
     $resCampaign = $this->actingAs($manager)->get(route('projects.show', $campaignProject->id));
-    $resCampaign->assertDontSee('Fast Track Deliverable');
+    $resCampaign->assertSee('Fast Track Deliverable');
 
     $resPitch = $this->actingAs($manager)->get(route('projects.show', $pitchProject->id));
-    $resPitch->assertDontSee('Fast Track Deliverable');
+    $resPitch->assertSee('Fast Track Deliverable');
 });
 
-test('cannot access fast track creation form or store direct design for campaign or pitch projects', function () {
-    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-fasttrack-block']);
+test('can access fast track creation form and store direct design for campaign and pitch projects', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-fasttrack-allow']);
     $manager = User::factory()->create(['role' => 'Brand Manager']);
     $designer = User::factory()->create(['role' => 'Designer']);
 
@@ -271,15 +271,15 @@ test('cannot access fast track creation form or store direct design for campaign
         'brand_manager_id' => $manager->id,
     ]);
 
-    // Attempt to access create_design form
+    // Access create_design form for campaign project -> 200 OK
     $resGet = $this->actingAs($manager)->get(route('deliverables.create', ['project_id' => $campaignProject->id, 'flow' => 'design']));
-    $resGet->assertRedirect(route('deliverables.create', ['project_id' => $campaignProject->id]));
+    $resGet->assertOk();
 
-    // Attempt to post direct_design deliverable to campaign project
+    // Store direct_design deliverable in campaign project
     $resPost = $this->actingAs($manager)->post(route('deliverables.store'), [
         'project_id' => $campaignProject->id,
         'flow_type' => 'direct_design',
-        'title' => 'Fast Track In Campaign Not Allowed',
+        'title' => 'Fast Track In Campaign Deliverable',
         'designer_id' => $designer->id,
         'designer_deadline' => '2026-10-15 18:00',
         'status' => 'To Do',
@@ -287,8 +287,29 @@ test('cannot access fast track creation form or store direct design for campaign
         'progress_percent' => 20,
     ]);
     $resPost->assertRedirect(route('projects.show', $campaignProject->id));
-    $resPost->assertSessionHas('error');
 
-    expect(Deliverable::where('title', 'Fast Track In Campaign Not Allowed')->exists())->toBeFalse();
+    $deliverable = Deliverable::where('title', 'Fast Track In Campaign Deliverable')->first();
+    expect($deliverable)->not->toBeNull();
+    expect($deliverable->isDirectDesign())->toBeTrue();
+    expect($deliverable->isOtherDeliverable())->toBeFalse();
+    expect($deliverable->approval_stage)->toBe('Designer');
+    expect($deliverable->progress_percent)->toBe(20);
+
+    // Designer can submit artwork in Campaign Fast Track deliverable -> advances to Manager Review
+    $resDesignerSubmit = $this->actingAs($designer)->post(route('deliverables.submit', $deliverable->id), [
+        'final_designs_link' => 'https://example.com/artwork.png',
+    ]);
+    $resDesignerSubmit->assertRedirect();
+    $deliverable->refresh();
+    expect($deliverable->approval_stage)->toBe('Manager Review');
+    expect($deliverable->progress_percent)->toBe(60);
+
+    // Manager can approve Campaign Fast Track deliverable -> moves to Closed
+    $resManagerApprove = $this->actingAs($manager)->post(route('deliverables.submit', $deliverable->id));
+    $resManagerApprove->assertRedirect();
+    $deliverable->refresh();
+    expect($deliverable->approval_stage)->toBe('Closed');
+    expect($deliverable->progress_percent)->toBe(100);
 });
+
 

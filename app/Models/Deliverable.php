@@ -246,6 +246,7 @@ class Deliverable extends Model
 
     public function isOtherDeliverable(): bool
     {
+        if ($this->isDirectDesign()) return false;
         $projectType = $this->project?->workflow_type ?? 'retainer';
         if ($projectType === 'retainer') return false;
         $postType = $this->post_type ?? $this->parent?->post_type;

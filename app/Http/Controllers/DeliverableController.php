@@ -69,11 +69,7 @@ class DeliverableController extends Controller
         $workflowType = $project ? $project->workflow_type : ($parentTask?->project?->workflow_type ?? 'retainer');
 
         if ($flow === 'design' || ($parentTask && $parentTask->isDirectDesign())) {
-            if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
-                return redirect()->route('deliverables.create', ['project_id' => $project->id])
-                    ->with('error', 'Fast Track deliverables are not available for Campaign and Pitch projects.');
-            }
-            $projects = Project::with('brand')->where('workflow_type', 'retainer')->get();
+            $projects = Project::with('brand')->get();
             $designers = \App\Models\User::where('role', 'Designer')->orderBy('name')->get();
             $subtaskTypes = \App\Models\SubtaskType::all();
             return view('deliverables.create_design', compact('projects', 'project', 'designers', 'selectedProjectId', 'parentId', 'parentTask', 'workflowType', 'subtaskTypes'));
@@ -279,11 +275,6 @@ class DeliverableController extends Controller
      */
     private function storeDirectDesignDeliverable(StoreDeliverableRequest $request, array $validated, ?Project $project, ?int $parentId, array $subtasks)
     {
-        if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
-            return redirect()->route('projects.show', $project->id)
-                ->with('error', 'Fast Track deliverables are not available for Campaign and Pitch projects.');
-        }
-
         $creator = auth()->user();
         $designerId = $validated['designer_id'] ?? (!empty($subtasks[0]['designer_id']) ? $subtasks[0]['designer_id'] : null);
         $designerUser = $designerId ? User::find($designerId) : null;
