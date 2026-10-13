@@ -116,12 +116,22 @@ class DeliverableController extends Controller
         // Auto-assign writer/assignee from project or creator if omitted
         $creator = auth()->user();
         if (empty($validated['brand_manager_id'])) {
-            $validated['brand_manager_id'] = $project?->brand_manager_id ?? (in_array($creator->role, ['Brand Manager', 'Operations Manager']) ? $creator->id : null);
+            if (in_array($creator->role, ['Brand Manager', 'Operations Manager'])) {
+                $validated['brand_manager_id'] = $creator->id;
+            } elseif ($project?->brand_manager_id && in_array($project->brandManager?->role, ['Brand Manager', 'Operations Manager'])) {
+                $validated['brand_manager_id'] = $project->brand_manager_id;
+            } else {
+                $validated['brand_manager_id'] = $project?->brand?->members()->whereIn('role', ['Brand Manager', 'Operations Manager'])->first()?->id
+                    ?? (in_array($creator->role, ['Admin', 'Owner']) ? $creator->id : ($project?->brand_manager_id ?? null));
+            }
         }
         if (empty($validated['writer_id'])) {
             $validated['writer_id'] = $project?->writer_id ?? $creator->id;
             $u = \App\Models\User::find($validated['writer_id']);
             $validated['assignee_name'] = $u?->name ?? $creator->name;
+        } else {
+            $u = \App\Models\User::find($validated['writer_id']);
+            $validated['assignee_name'] = $u?->name ?? 'Unassigned';
         }
 
         // Auto-assign deadline from subtask or project if omitted
@@ -255,6 +265,7 @@ class DeliverableController extends Controller
                         : Deliverable::STAGES[0],
                     'writer_id' => $writerId,
                     'assignee_name' => $writerName,
+                    'brand_manager_id' => $parentTask->brand_manager_id,
                     'revisions' => 0,
                 ]);
             }
@@ -277,7 +288,14 @@ class DeliverableController extends Controller
         $designerId = $validated['designer_id'] ?? (!empty($subtasks[0]['designer_id']) ? $subtasks[0]['designer_id'] : null);
         $designerUser = $designerId ? User::find($designerId) : null;
         $designerName = $designerUser?->name ?? 'Unassigned';
-        $brandManagerId = $project?->brand_manager_id ?? $creator->id;
+        if (in_array($creator->role, ['Brand Manager', 'Operations Manager'])) {
+            $brandManagerId = $creator->id;
+        } elseif ($project?->brand_manager_id && in_array($project->brandManager?->role, ['Brand Manager', 'Operations Manager'])) {
+            $brandManagerId = $project->brand_manager_id;
+        } else {
+            $brandManagerId = $project?->brand?->members()->whereIn('role', ['Brand Manager', 'Operations Manager'])->first()?->id
+                ?? (in_array($creator->role, ['Admin', 'Owner']) ? $creator->id : ($project?->brand_manager_id ?? $creator->id));
+        }
 
         // Auto-populate title if omitted
         if (empty($validated['title'])) {

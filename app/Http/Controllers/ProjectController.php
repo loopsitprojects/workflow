@@ -115,13 +115,12 @@ class ProjectController extends Controller
 
         if (empty($validated['brand_manager_id'])) {
             $brand = \App\Models\Brand::find($validated['brand_id']);
-            if ($brand) {
-                if ($brand->created_by) {
-                    $validated['brand_manager_id'] = $brand->created_by;
-                } else {
-                    $bm = $brand->members()->where('role', 'Brand Manager')->first();
-                    $validated['brand_manager_id'] = $bm ? $bm->id : (\App\Models\User::where('role', 'Brand Manager')->value('id') ?? auth()->id());
-                }
+            $user = auth()->user();
+            if (in_array($user->role, ['Brand Manager', 'Operations Manager'])) {
+                $validated['brand_manager_id'] = $user->id;
+            } elseif ($brand) {
+                $bm = $brand->members()->where('role', 'Brand Manager')->first();
+                $validated['brand_manager_id'] = $bm ? $bm->id : (\App\Models\User::where('role', 'Brand Manager')->value('id') ?? $user->id);
             }
         }
 

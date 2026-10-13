@@ -514,5 +514,58 @@ test('authenticated user can add deliverable to a batch', function () {
     ]);
 });
 
+test('deliverable defaults brand_manager_id to the creating Brand Manager', function () {
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $brandManager = User::factory()->create(['role' => 'Brand Manager', 'name' => 'Yoshini']);
+    $assignee = User::factory()->create(['role' => 'Coordinator', 'name' => 'Kavi']);
+
+    $brand = Brand::create(['name' => 'Test Brand BM', 'slug' => 'test-brand-bm', 'created_by' => $admin->id]);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Campaign Project',
+        'workflow_type' => 'campaign',
+        'brand_manager_id' => $admin->id, // Project had admin fallback
+    ]);
+
+    $response = $this->actingAs($brandManager)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'title' => 'Campaign Deliverable',
+        'writer_id' => $assignee->id,
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 0,
+        'priority' => 'Medium',
+        'subtasks' => [
+            [
+                'title' => 'Subtask 1',
+                'writer_id' => $assignee->id,
+                'post_type' => 'Graphic',
+            ],
+            [
+                'title' => 'Subtask 2',
+                'writer_id' => $assignee->id,
+                'post_type' => 'Graphic',
+            ],
+        ],
+    ]);
+
+    $response->assertRedirect();
+
+    // Check parent deliverable
+    $parent = Deliverable::where('project_id', $project->id)->whereNull('parent_deliverable_id')->first();
+    expect($parent)->not->toBeNull();
+    expect($parent->brand_manager_id)->toBe($brandManager->id);
+    expect($parent->assignee_name)->toBe('Kavi');
+
+    // Check child subtasks inherit brand_manager_id
+    $children = Deliverable::where('parent_deliverable_id', $parent->id)->get();
+    expect($children)->toHaveCount(2);
+    foreach ($children as $child) {
+        expect($child->brand_manager_id)->toBe($brandManager->id);
+        expect($child->assignee_name)->toBe('Kavi');
+    }
+});
+
+
 
 

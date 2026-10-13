@@ -355,6 +355,12 @@
             background: #0044aa;
             transform: translateY(-1px);
         }
+        .btn-primary-blue:disabled {
+            opacity: 0.85;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        @keyframes loopSpin { to { transform: rotate(360deg); } }
         .btn-cancel {
             background: transparent;
             color: var(--color-text-secondary);
@@ -446,7 +452,7 @@
             @endif
         </div>
 
-        <form action="{{ route('deliverables.store') }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('deliverables.store') }}" method="POST" enctype="multipart/form-data" @submit="handleSubmit($event)">
             @csrf
             <input type="hidden" name="status" value="To Do">
             <input type="hidden" name="task_type" value="Deliverable">
@@ -611,12 +617,25 @@
 
                 {{-- Single Deliverable Action Footer --}}
                 <div class="form-footer-card">
-                    <a href="{{ $selectedProjectId ? route('projects.show', $selectedProjectId) : url()->previous() }}" class="btn btn-cancel">Cancel</a>
-                    <button type="submit" class="btn btn-primary-blue">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Create Deliverable
+                    <a href="{{ $selectedProjectId ? route('projects.show', $selectedProjectId) : url()->previous() }}" class="btn btn-cancel" :style="isSubmitting ? 'pointer-events:none;opacity:0.6;' : ''">Cancel</a>
+                    <button type="submit" class="btn btn-primary-blue" :disabled="isSubmitting" :style="isSubmitting ? 'pointer-events:none;opacity:0.85;' : ''">
+                        <template x-if="!isSubmitting">
+                            <span style="display:inline-flex;align-items:center;gap:6px;">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Create Deliverable
+                            </span>
+                        </template>
+                        <template x-if="isSubmitting">
+                            <span style="display:inline-flex;align-items:center;gap:8px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:loopSpin 0.75s linear infinite;">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Creating Deliverable…
+                            </span>
+                        </template>
                     </button>
                 </div>
             </div>
@@ -805,16 +824,42 @@
 
                 {{-- Batch Action Footer --}}
                 <div class="form-footer-card">
-                    <a href="{{ $selectedProjectId ? route('projects.show', $selectedProjectId) : url()->previous() }}" class="btn btn-cancel">Cancel</a>
-                    <button type="submit" class="btn btn-primary-blue">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span x-text="`Create Batch (${subtasks.length} Deliverable${subtasks.length === 1 ? '' : 's'})`"></span>
+                    <a href="{{ $selectedProjectId ? route('projects.show', $selectedProjectId) : url()->previous() }}" class="btn btn-cancel" :style="isSubmitting ? 'pointer-events:none;opacity:0.6;' : ''">Cancel</a>
+                    <button type="submit" class="btn btn-primary-blue" :disabled="isSubmitting" :style="isSubmitting ? 'pointer-events:none;opacity:0.85;' : ''">
+                        <template x-if="!isSubmitting">
+                            <span style="display:inline-flex;align-items:center;gap:6px;">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span x-text="`Create Batch (${subtasks.length} Deliverable${subtasks.length === 1 ? '' : 's'})`"></span>
+                            </span>
+                        </template>
+                        <template x-if="isSubmitting">
+                            <span style="display:inline-flex;align-items:center;gap:8px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:loopSpin 0.75s linear infinite;">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Creating Batch…
+                            </span>
+                        </template>
                     </button>
                 </div>
             </div>
         </form>
+
+        {{-- Full-page loading overlay --}}
+        <div id="pageLoadingOverlay"
+             x-show="isSubmitting"
+             x-cloak
+             style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);flex-direction:column;align-items:center;justify-content:center;gap:16px;"
+             :style="isSubmitting ? 'display:flex !important;' : 'display:none !important;'">
+            <div style="width:52px;height:52px;border-radius:50%;border:3.5px solid rgba(255,255,255,0.18);border-top-color:#3b82f6;animation:loopSpin 0.75s linear infinite;"></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;">
+                <span style="color:#ffffff;font-size:15px;font-weight:800;letter-spacing:0.02em;" x-text="mode === 'batch' ? 'Creating deliverables batch…' : 'Creating deliverable…'">Creating deliverable…</span>
+                <span style="color:rgba(255,255,255,0.7);font-size:12px;font-weight:500;">Uploading assets and configuring deliverable…</span>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -827,6 +872,14 @@
                 singlePostType: '',
                 subtasks: [],
                 subtaskCounter: 0,
+                isSubmitting: false,
+                handleSubmit(e) {
+                    if (this.isSubmitting) {
+                        e.preventDefault();
+                        return;
+                    }
+                    this.isSubmitting = true;
+                },
                 get currentSubtaskTypes() {
                     const types = (this.workflowType === 'campaign' || this.workflowType === 'pitch') 
                         ? this.campaignTypes 
@@ -856,7 +909,7 @@
                         title: '',
                         post_type: '',
                         deadline: '',
-                        writer_id: '{{ auth()->user()->role === 'Writer' ? auth()->id() : ($users->first()->id ?? '') }}',
+                        writer_id: '{{ auth()->user()->role === 'Writer' ? auth()->id() : '' }}',
                         concept: '',
                         caption: '',
                         post_copy: '',
