@@ -614,19 +614,20 @@
                     <div class="detail-item full">
                         @php
                             $isOtherDeliv = ($deliverable->project?->workflow_type ?? '') !== 'retainer' && !in_array(strtolower(trim($deliverable->post_type ?? '')), ['outlines', 'outline']);
+                            $isBriefOnlyDeliverable = $isOtherDeliv || $deliverable->isDirectDesign();
                             $initialBriefOrConcept = $deliverable->concept ?: ($deliverable->notes ?: '');
                         @endphp
-                        <label class="detail-label">{{ $isOtherDeliv ? 'Brief' : 'Concept' }}</label>
+                        <label class="detail-label">{{ $isBriefOnlyDeliverable ? 'Brief' : 'Concept' }}</label>
                         <input type="hidden" id="modalConcept" name="concept" value="{{ $initialBriefOrConcept }}" form="submitStageForm">
                         <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px;">{!! $initialBriefOrConcept !!}</div>
                     </div>
-                    <div class="detail-item full">
+                    <div class="detail-item full" style="{{ $isBriefOnlyDeliverable ? 'display:none;' : '' }}">
                         <label class="detail-label">Copy</label>
                         <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
                         <input type="hidden" id="deleteReferenceFile" name="delete_reference_file" value="0" form="submitStageForm">
                         <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:140px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full">
+                    <div class="detail-item full" style="{{ $isBriefOnlyDeliverable ? 'display:none;' : '' }}">
                         <label class="detail-label">Caption</label>
                         <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
                         <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px;"></div>
@@ -2205,16 +2206,17 @@
                     }).join('');
                 }
 
-                // Adjust fields for Other Deliverables (hide caption/copy, show brief)
+                // Adjust fields for Other Deliverables & Fast Track (hide caption/copy, show brief)
                 const captionItem = document.getElementById('quillCaption')?.closest('.detail-item');
                 const copyItem = document.getElementById('quillCopy')?.closest('.detail-item');
                 const conceptLabel = document.getElementById('quillConcept')?.closest('.detail-item')?.querySelector('.detail-label');
                 const submitNotesArea = document.getElementById('submitNotesArea');
-                if (isOtherDeliverable) {
+                const isBriefOnly = isOtherDeliverable || isDirectDesign || task.is_direct_design;
+                if (isBriefOnly) {
                     if (captionItem) captionItem.style.display = 'none';
                     if (copyItem) copyItem.style.display = 'none';
                     if (conceptLabel) conceptLabel.textContent = 'Brief';
-                    if (submitNotesArea) submitNotesArea.style.display = 'none';
+                    if (submitNotesArea && isOtherDeliverable) submitNotesArea.style.display = 'none';
                 } else {
                     if (captionItem) captionItem.style.display = '';
                     if (copyItem) copyItem.style.display = '';

@@ -2777,20 +2777,29 @@
                     }).join('');
                 }
 
-                // Adjust fields for Other Deliverables (hide caption/copy, show brief)
+                // Adjust fields for Other Deliverables & Fast Track (hide caption/copy, show brief)
                 const captionItem = document.getElementById('quillCaption')?.closest('.detail-item');
                 const copyItem = document.getElementById('quillCopy')?.closest('.detail-item');
                 const conceptLabel = document.getElementById('modalConceptLabel') || document.getElementById('quillConcept')?.closest('.detail-item')?.querySelector('.detail-label');
                 const submitNotesArea = document.getElementById('submitNotesArea');
-                if (isOtherDeliverable) {
+                const isBriefOnly = isOtherDeliverable || isDirectDesign || task.is_direct_design;
+                if (isBriefOnly) {
                     if (captionItem) captionItem.style.display = 'none';
                     if (copyItem) copyItem.style.display = 'none';
-                    if (conceptLabel) conceptLabel.textContent = 'Brief';
-                    if (submitNotesArea) submitNotesArea.style.display = 'none';
+                    if (conceptLabel) {
+                        conceptLabel.textContent = 'Brief';
+                        if (isDirectDesign || task.is_direct_design) {
+                            conceptLabel.style.background = '#6366f1';
+                        }
+                    }
+                    if (submitNotesArea && isOtherDeliverable) submitNotesArea.style.display = 'none';
                 } else {
                     if (captionItem) captionItem.style.display = '';
                     if (copyItem) copyItem.style.display = '';
-                    if (conceptLabel) conceptLabel.textContent = 'Concept';
+                    if (conceptLabel) {
+                        conceptLabel.textContent = 'Concept';
+                        conceptLabel.style.background = '#3b82f6';
+                    }
                     if (submitNotesArea) submitNotesArea.style.display = '';
                 }
 

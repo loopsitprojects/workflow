@@ -947,8 +947,18 @@ class DeliverableController extends Controller
             if ($canEditContent) {
                 if ($request->has('title')) $deliverable->title = $request->title;
                 if ($canEditBriefAndRef) {
-                    if ($request->has('concept')) $deliverable->concept = $request->concept;
-                    if ($request->has('notes')) $deliverable->notes = $request->notes;
+                    if ($request->has('concept')) {
+                        $deliverable->concept = $request->concept;
+                        if ($deliverable->isDirectDesign()) {
+                            $deliverable->notes = $request->concept;
+                        }
+                    }
+                    if ($request->has('notes')) {
+                        $deliverable->notes = $request->notes;
+                        if ($deliverable->isDirectDesign()) {
+                            $deliverable->concept = $request->notes;
+                        }
+                    }
                 }
                 if ($request->has('caption')) $deliverable->caption = $request->caption;
                 if ($request->has('post_copy')) $deliverable->post_copy = $request->post_copy;

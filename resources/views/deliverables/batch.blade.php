@@ -222,16 +222,20 @@
     @php
         $stage     = $post->approval_stage ?? 'Writer';
         $nextStage = $post->getNextStage();
+        $isDirectDesign = $post->isDirectDesign();
         $isOtherDeliv = $post->isOtherDeliverable();
+        $isBriefOnly = $isOtherDeliv || $isDirectDesign;
         $stageClass = in_array($stage, ['Closed', 'Close']) ? 'stage-done' : ($post->revisions > 0 && in_array($stage, ['Writer','Assignee','Assign']) ? 'stage-rev' : 'stage-open');
         $revs      = $post->getRelation('revisionsHistory') ?? collect();
         $approvals = $post->getRelation('approvalsHistory') ?? collect();
         $isImg     = $post->final_designs && preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $post->final_designs);
 
         $canApprove = $isAdmin || (
+            ($isDirectDesign && $stage === 'Designer' && (in_array($authRole, ['designer']) || (!$post->designer_id || $post->designer_id == $authId))) ||
+            ($isDirectDesign && $stage === 'Manager Review' && in_array($authRole, ['brandmanager', 'operationsmanager'])) ||
             ($isOtherDeliv && in_array($stage, ['Assign', 'Assignee']) && (in_array($authRole, ['writer', 'assignee']) || (!$post->writer_id || $post->writer_id == $authId))) ||
             ($isOtherDeliv && $stage === 'Approve' && in_array($authRole, ['brandmanager', 'operationsmanager'])) ||
-            (!$isOtherDeliv && (
+            (!$isBriefOnly && (
                 (in_array($stage, ['Writer','Assignee','Writer Review']) && in_array($authRole, ['writer','assignee']) && (!$post->writer_id || $post->writer_id == $authId)) ||
                 ((in_array($stage, ['Approver', 'Approver Review']) && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->approver_id || $post->approver_id == $authId)) || ($stage === 'Further Approver' && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->further_approver_id || $post->further_approver_id == $authId))) ||
                 (in_array($stage, ['Brand Manager','AM/BD','Final Approval']) && $authRole === 'brandmanager' && (!$post->brand_manager_id || $post->brand_manager_id == $authId)) ||
@@ -241,8 +245,9 @@
         );
 
         $canRevise = $isAdmin || (
+            ($isDirectDesign && $stage === 'Manager Review' && in_array($authRole, ['brandmanager', 'operationsmanager'])) ||
             ($isOtherDeliv && $stage === 'Approve' && in_array($authRole, ['brandmanager', 'operationsmanager'])) ||
-            (!$isOtherDeliv && (
+            (!$isBriefOnly && (
                 ($stage === 'Writer Review' && in_array($authRole, ['writer','assignee']) && (!$post->writer_id || $post->writer_id == $authId)) ||
                 ((in_array($stage, ['Approver', 'Approver Review']) && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->approver_id || $post->approver_id == $authId)) || ($stage === 'Further Approver' && in_array($authRole, ['approver', 'approvercoordinator']) && (!$post->further_approver_id || $post->further_approver_id == $authId))) ||
                 (in_array($stage, ['Brand Manager','AM/BD','Final Approval']) && $authRole === 'brandmanager' && (!$post->brand_manager_id || $post->brand_manager_id == $authId))
@@ -295,7 +300,7 @@
         {{-- Body --}}
         <div class="post-card-body">
 
-            @if($isOtherDeliv)
+            @if($isBriefOnly)
             <div class="pc-field full">
                 <div class="pc-label">Brief</div>
                 @php $brief = $post->concept ?? $post->notes; @endphp

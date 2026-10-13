@@ -35,7 +35,7 @@
                     <th style="width:120px;">Post Type</th>
                     <th style="width:130px;">Designer</th>
                     <th style="width:120px;">Deadline</th>
-                    <th style="width:150px;">Brief / Concept</th>
+                    <th style="width:150px;">Brief</th>
                     <th style="width:90px;">Ref</th>
                     <th style="width:110px;">Artwork</th>
                     <th style="width:65px; text-align:center;">Rev</th>
