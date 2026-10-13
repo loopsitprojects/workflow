@@ -101,4 +101,21 @@ class AuthorizationTest extends TestCase
         $response = $this->actingAs($writer)->get(route('projects.edit', $project));
         $response->assertStatus(403);
     }
+
+    public function test_brand_manager_added_to_brand_as_member_sees_brand_assigned_and_can_access()
+    {
+        $creator = User::factory()->create(['role' => 'Admin']);
+        $manager = User::factory()->create(['role' => 'Brand Manager']);
+        $brand = Brand::create(['name' => 'Krest', 'slug' => 'krest', 'created_by' => $creator->id]);
+        $brand->members()->attach($manager->id);
+
+        $response = $this->actingAs($manager)->get(route('brands.index'));
+        $response->assertStatus(200);
+        $response->assertSee('View Brand');
+        $response->assertDontSee('Not Assigned');
+
+        $response = $this->actingAs($manager)->get(route('dashboard'));
+        $response->assertStatus(200);
+        $response->assertSee(route('brands.show', $brand));
+    }
 }

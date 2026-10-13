@@ -157,8 +157,9 @@
                 @php
                     $user = auth()->user();
                     $isAssigned = $user->isAdmin() || 
-                        ($user->role === 'Brand Manager' && $brand->created_by === $user->id) ||
-                        ($user->role !== 'Brand Manager' && ($brand->created_by === $user->id || $brand->members->contains('id', $user->id)));
+                        $user->role === 'Operations Manager' ||
+                        $brand->created_by === $user->id || 
+                        $brand->members->contains('id', $user->id);
                 @endphp
                 @if($isAssigned)
                 <a href="{{ route('brands.show', $brand) }}"
