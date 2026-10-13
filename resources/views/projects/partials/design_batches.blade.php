@@ -1,5 +1,6 @@
 @php
     $designBatches = $project->deliverables->whereNull('parent_deliverable_id')->where('flow_type', 'direct_design');
+    $directDesignTasks = $designBatches;
     $currentUserId = auth()->id();
     $userRole = strtolower(str_replace(' ', '', auth()->user()->role ?? ''));
     $isAdmin = (auth()->check() && auth()->user()->isAdmin());
@@ -486,7 +487,7 @@
 
     // Populate Fast Track client-side deliverables cache
     window.projectDeliverables = window.projectDeliverables || {};
-    @foreach($directDesignTasks as $dt)
+    @foreach(($designBatches ?? $directDesignTasks ?? collect()) as $dt)
         window.projectDeliverables[{{ $dt->id }}] = @json($dt);
         @foreach($dt->subtasks as $dst)
             window.projectDeliverables[{{ $dst->id }}] = @json($dst);

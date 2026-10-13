@@ -440,7 +440,14 @@ test('fast track deliverable due date sets deliverable deadline and designer dea
     expect($sub2)->not->toBeNull();
     expect(\Carbon\Carbon::parse($sub2->deadline)->format('Y-m-d'))->toBe('2026-11-25');
     expect(\Carbon\Carbon::parse($sub2->designer_deadline)->format('Y-m-d'))->toBe('2026-11-25');
+
+    // 4. Verify project show page renders without view errors with Fast Track deliverables present
+    $projShowRes = $this->actingAs($manager)->get(route('projects.show', $project->id));
+    $projShowRes->assertOk();
+    $projShowRes->assertSee('Fast Track Deliverables');
+    $projShowRes->assertSee('Batch Fast Track Campaign');
 });
+
 
 
 
