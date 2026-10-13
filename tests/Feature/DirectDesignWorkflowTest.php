@@ -448,6 +448,46 @@ test('fast track deliverable due date sets deliverable deadline and designer dea
     $projShowRes->assertSee('Batch Fast Track Campaign');
 });
 
+test('brand manager sees fast track deliverables in manager review on dashboard', function () {
+    $brand = Brand::create(['name' => 'Brand Dashboard Test', 'slug' => 'brand-dash-test']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $brand->members()->attach($manager->id);
 
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Dashboard Campaign Project',
+        'workflow_type' => 'campaign',
+        'brand_manager_id' => $manager->id,
+    ]);
 
+    // 1. Deliverable in Designer stage -> should not be pending for manager
+    $designerTask = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'In Design Fast Track',
+        'flow_type' => 'direct_design',
+        'approval_stage' => 'Designer',
+        'status' => 'To Do',
+        'designer_id' => $designer->id,
+        'brand_manager_id' => $manager->id,
+        'deadline' => '2026-11-01',
+    ]);
 
+    // 2. Deliverable in Manager Review stage -> MUST appear on manager dashboard
+    $reviewTask = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Ready For Review Fast Track',
+        'flow_type' => 'direct_design',
+        'approval_stage' => 'Manager Review',
+        'status' => 'To Do',
+        'designer_id' => $designer->id,
+        'brand_manager_id' => $manager->id,
+        'deadline' => '2026-11-05',
+    ]);
+
+    $dashResponse = $this->actingAs($manager)->get(route('dashboard'));
+    $dashResponse->assertOk();
+    $dashResponse->assertSee('Ready For Review Fast Track');
+    $dashResponse->assertSee('Manager Review');
+    $dashResponse->assertDontSee('In Design Fast Track');
+});
