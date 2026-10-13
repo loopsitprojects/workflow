@@ -231,7 +231,14 @@ class DirectDesignWorkflowService implements WorkflowInterface
         }
         if (isset($data['designer_id'])) $deliverable->designer_id = $data['designer_id'];
         if (isset($data['brand_manager_id'])) $deliverable->brand_manager_id = $data['brand_manager_id'];
-        if (isset($data['designer_deadline'])) $deliverable->designer_deadline = $data['designer_deadline'];
+        if (isset($data['designer_deadline'])) {
+            $deliverable->designer_deadline = $data['designer_deadline'];
+            $deliverable->deadline = $data['designer_deadline'];
+        }
+        if (isset($data['deadline'])) {
+            $deliverable->deadline = $data['deadline'];
+            $deliverable->designer_deadline = $data['deadline'];
+        }
 
         // Reset client status when advancing
         $deliverable->client_status = null;

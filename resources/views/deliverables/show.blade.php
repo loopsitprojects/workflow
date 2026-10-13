@@ -1423,8 +1423,31 @@
             }
         }
 
-        function openTaskModal(task) {
+        async function openTaskModal(task) {
             try {
+                if (typeof task === 'number' || typeof task === 'string' || (task && typeof task === 'object' && !task.title && !task.approval_stage && task.id)) {
+                    const taskId = typeof task === 'object' ? task.id : task;
+                    if (window.projectDeliverables && window.projectDeliverables[taskId]) {
+                        task = window.projectDeliverables[taskId];
+                    } else {
+                        try {
+                            const res = await fetch(`/deliverables/${taskId}`, {
+                                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                            });
+                            if (res.ok) {
+                                task = await res.json();
+                            }
+                        } catch (err) {
+                            console.error('Failed to fetch deliverable for modal:', err);
+                        }
+                    }
+                }
+
+                if (!task || typeof task !== 'object') {
+                    console.error('Invalid task passed to openTaskModal:', task);
+                    return;
+                }
+
                 console.log('Opening Task Modal for:', task);
                 currentTaskData = task;
 
@@ -1614,7 +1637,7 @@
                     }
 
                     // 2. Designer Due Date
-                    if (task.designer_deadline && !isOtherDeliverable) {
+                    if (task.designer_deadline && !isOtherDeliverable && !isDirectDesign) {
                         const desDate = new Date(task.designer_deadline);
                         const desDateStr = desDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
                         const desBadge = document.createElement('div');
@@ -1624,24 +1647,28 @@
                     }
                 }
 
-                // Hide designer deadline box for Other Deliverables (no designer stage)
+                // Hide designer deadline box for Other Deliverables & Fast Track (where deliverable deadline is used directly)
                 const desDeadlineBox = document.getElementById('modalDesignerDeadlineBox');
                 if (desDeadlineBox) {
-                    desDeadlineBox.style.display = isOtherDeliverable ? 'none' : 'flex';
+                    desDeadlineBox.style.display = (isOtherDeliverable || isDirectDesign) ? 'none' : 'flex';
                 }
 
                 // Deliverable Deadline Input Population
                 const delDeadlineInput = document.getElementById('modalDeliverableDeadlineInput');
                 if (delDeadlineInput) {
                     let dDateStr = '';
-                    const displayDeadline = task.deadline || (task.parent ? task.parent.deadline : null);
+                    const displayDeadline = task.deadline || task.designer_deadline || (task.parent ? (task.parent.deadline || task.parent.designer_deadline) : null);
                     if (displayDeadline) {
-                        const dDate = new Date(displayDeadline);
-                        const pad = n => String(n).padStart(2,'0');
-                        dDateStr = `${dDate.getFullYear()}-${pad(dDate.getMonth()+1)}-${pad(dDate.getDate())}`;
+                        if (typeof displayDeadline === 'string' && /^\d{4}-\d{2}-\d{2}/.test(displayDeadline)) {
+                            dDateStr = displayDeadline.substring(0, 10);
+                        } else {
+                            const dDate = new Date(displayDeadline);
+                            const pad = n => String(n).padStart(2,'0');
+                            dDateStr = `${dDate.getFullYear()}-${pad(dDate.getMonth()+1)}-${pad(dDate.getDate())}`;
+                        }
                     }
                     delDeadlineInput.value = dDateStr;
-                    const isBrandManagerOrAdmin = isAdmin || userRole === 'brandmanager';
+                    const isBrandManagerOrAdmin = isAdmin || userRole === 'brandmanager' || userRole === 'operationsmanager';
                     delDeadlineInput.readOnly = !isBrandManagerOrAdmin;
                     const saveBtn = document.getElementById('saveDeadlineBtn');
                     if (!isBrandManagerOrAdmin) {
@@ -2151,7 +2178,9 @@
 
                 // Workflow Tracker dots
                 let taskStages;
-                if (isOtherDeliverable) {
+                if (isDirectDesign || task.is_direct_design) {
+                    taskStages = ['Designer', 'Manager Review'];
+                } else if (isOtherDeliverable) {
                     taskStages = ['Assign', 'Approve'];
                 } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
                     taskStages = ['Writer', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator', 'Designer', 'Writer Review', 'Approver Review', 'AM/BD', 'Final Approval'];

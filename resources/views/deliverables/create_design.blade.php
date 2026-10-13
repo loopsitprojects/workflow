@@ -497,6 +497,7 @@
         <form action="{{ route('deliverables.store') }}" method="POST" enctype="multipart/form-data" @submit="handleSubmit($event)">
             @csrf
             <input type="hidden" name="flow_type" value="direct_design">
+            <input type="hidden" name="creation_mode" :value="mode">
             <input type="hidden" name="status" value="To Do">
             <input type="hidden" name="task_type" value="Deliverable">
             <input type="hidden" name="progress_percent" value="20">
@@ -573,9 +574,11 @@
                             </div>
 
                             <div>
-                                <label class="field-label">Designer Deadline</label>
-                                <input type="date" name="designer_deadline" class="styled-input" :disabled="mode !== 'single'"
-                                    value="{{ old('designer_deadline', isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : '') }}">
+                                <label class="field-label">Deliverable Deadline</label>
+                                <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'single'"
+                                    value="{{ old('deadline', old('designer_deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : (isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : ''))) }}">
+                                <input type="hidden" name="designer_deadline" :disabled="mode !== 'single'"
+                                    value="{{ old('deadline', old('designer_deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : (isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : ''))) }}">
                             </div>
 
                             <div>
@@ -607,10 +610,11 @@
                         {{-- Creative Brief --}}
                         <div class="form-field-group">
                             <label class="field-label">Creative Brief & Design Instructions</label>
-                            <div x-data="{ localConcept: {{ json_encode(old('concept', $parentTask->concept ?? '')) }} }"
+                            <div x-data="{ localConcept: {{ json_encode(old('concept', $parentTask->concept ?? ($parentTask->notes ?? ''))) }} }"
                                  x-init="initQuill($refs.singleConceptEditor, localConcept, (val) => { localConcept = val; }, 'Detail the visual concept, color palette, dimensions, or specific design guidelines...')">
-                                <div x-ref="singleConceptEditor"></div>
-                                <input type="hidden" name="concept" :value="localConcept" :disabled="mode !== 'single'">
+                                <div x-ref="singleConceptEditor" class="single-concept-editor"></div>
+                                <input type="hidden" name="concept" id="singleHiddenConcept" :value="localConcept" :disabled="mode !== 'single'">
+                                <input type="hidden" name="notes" id="singleHiddenNotes" :value="localConcept" :disabled="mode !== 'single'">
                             </div>
                         </div>
 
@@ -683,9 +687,11 @@
                         {{-- Batch Date & Priority (Clean 2-Column Row) --}}
                         <div class="form-grid-2 form-field-group">
                             <div>
-                                <label class="field-label">Batch Due Date</label>
-                                <input type="date" name="designer_deadline" class="styled-input" :disabled="mode !== 'batch'"
-                                    value="{{ old('designer_deadline', isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : '') }}">
+                                <label class="field-label">Batch Deliverable Deadline</label>
+                                <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'batch'"
+                                    value="{{ old('deadline', old('designer_deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : (isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : ''))) }}">
+                                <input type="hidden" name="designer_deadline" :disabled="mode !== 'batch'"
+                                    value="{{ old('deadline', old('designer_deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : (isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : ''))) }}">
                             </div>
 
                             <div>
@@ -774,17 +780,19 @@
                                                 </select>
                                             </div>
                                             <div>
-                                                <label class="field-label">Due Date <span style="font-size:10px;text-transform:none;opacity:0.6;font-weight:500;">(Defaults to batch date if blank)</span></label>
-                                                <input type="date" :name="`subtasks[${index}][designer_deadline]`" x-model="subtask.designer_deadline" class="styled-input" :disabled="mode !== 'batch'">
+                                                <label class="field-label">Deliverable Deadline <span style="font-size:10px;text-transform:none;opacity:0.6;font-weight:500;">(Defaults to batch deadline if blank)</span></label>
+                                                <input type="date" :name="`subtasks[${index}][deadline]`" x-model="subtask.deadline" @input="subtask.designer_deadline = subtask.deadline" class="styled-input" :disabled="mode !== 'batch'">
+                                                <input type="hidden" :name="`subtasks[${index}][designer_deadline]`" :value="subtask.deadline || subtask.designer_deadline" :disabled="mode !== 'batch'">
                                             </div>
                                         </div>
 
                                         {{-- Row 3: Creative Brief & Specific Notes --}}
                                         <div class="form-field-group">
                                             <label class="field-label">Creative Brief & Specific Notes</label>
-                                            <div x-init="initQuill($refs.subtaskEditor, subtask.concept, (val) => { subtask.concept = val; }, 'Visual concept, color palette, dimensions, or specific design instructions for this deliverable...')">
-                                                <div x-ref="subtaskEditor"></div>
-                                                <input type="hidden" :name="`subtasks[${index}][concept]`" :value="subtask.concept" :disabled="mode !== 'batch'">
+                                            <div x-init="initQuill($el.querySelector('.subtask-concept-editor'), subtask.concept, (val) => { subtask.concept = val; }, 'Visual concept, color palette, dimensions, or specific design instructions for this deliverable...')">
+                                                <div class="subtask-concept-editor"></div>
+                                                <input type="hidden" :name="`subtasks[${index}][concept]`" class="subtask-hidden-concept" :value="subtask.concept" :disabled="mode !== 'batch'">
+                                                <input type="hidden" :name="`subtasks[${index}][notes]`" class="subtask-hidden-notes" :value="subtask.concept" :disabled="mode !== 'batch'">
                                             </div>
                                         </div>
 
@@ -866,6 +874,31 @@
                         e.preventDefault();
                         return;
                     }
+
+                    // Explicitly sync Quill DOM contents to hidden inputs before native submit
+                    if (this.mode === 'single') {
+                        const singleEditor = document.querySelector('.single-concept-editor .ql-editor');
+                        const hiddenConcept = document.getElementById('singleHiddenConcept');
+                        const hiddenNotes = document.getElementById('singleHiddenNotes');
+                        if (singleEditor) {
+                            const html = singleEditor.innerHTML === '<p><br></p>' ? '' : singleEditor.innerHTML;
+                            if (hiddenConcept) hiddenConcept.value = html;
+                            if (hiddenNotes) hiddenNotes.value = html;
+                        }
+                    } else {
+                        const batchCards = document.querySelectorAll('.deliverable-item-card');
+                        batchCards.forEach((card) => {
+                            const editor = card.querySelector('.subtask-concept-editor .ql-editor');
+                            const hConcept = card.querySelector('.subtask-hidden-concept');
+                            const hNotes = card.querySelector('.subtask-hidden-notes');
+                            if (editor) {
+                                const html = editor.innerHTML === '<p><br></p>' ? '' : editor.innerHTML;
+                                if (hConcept) hConcept.value = html;
+                                if (hNotes) hNotes.value = html;
+                            }
+                        });
+                    }
+
                     this.isSubmitting = true;
                 },
                 init() {
@@ -883,6 +916,7 @@
                         id: Date.now() + Math.random(),
                         title: '',
                         post_type: '',
+                        deadline: '',
                         designer_deadline: '',
                         designer_id: '{{ $designers->first()->id ?? '' }}',
                         concept: '',

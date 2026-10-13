@@ -48,6 +48,11 @@ class DeliverableController extends Controller
 
         $deliverable->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history', 'workflow_stages', 'is_other_deliverable', 'is_direct_design']);
 
+        if (request()->wantsJson() || request()->ajax()) {
+            $deliverable->load(['writer', 'designer', 'brandManager', 'approver', 'coordinator', 'furtherApprover', 'project.brand']);
+            return response()->json($deliverable);
+        }
+
         return view('deliverables.show', compact('deliverable', 'userRole', 'isAdmin', 'approvers', 'brandManagers', 'coordinators', 'designers', 'stages'));
     }
 
@@ -305,29 +310,38 @@ class DeliverableController extends Controller
         $taskData['revisions'] = 0;
         $taskData['priority'] = $taskData['priority'] ?? 'Medium';
         $taskData['task_type'] = $taskData['task_type'] ?? 'Deliverable';
-        if (!empty($validated['designer_deadline'])) {
-            $taskData['designer_deadline'] = $validated['designer_deadline'];
-            $taskData['deadline'] = $taskData['deadline'] ?? $validated['designer_deadline'];
-        }
+        $finalDeadline = !empty($validated['deadline']) ? $validated['deadline'] : (!empty($validated['designer_deadline']) ? $validated['designer_deadline'] : null);
+        $taskData['deadline'] = $finalDeadline;
+        $taskData['designer_deadline'] = $finalDeadline;
 
-        // If creating a NEW deliverable and exactly 1 subtask is defined without a distinct batch title, consolidate into a single standalone deliverable.
-        // If the user specified a distinct batch title and subtask title, keep as a Batch parent + Subtask deliverable.
+        // Ensure concept and notes are synchronized on taskData
+        $mainBrief = !empty($taskData['concept']) ? $taskData['concept'] : (!empty($taskData['notes']) ? $taskData['notes'] : (!empty($taskData['description']) ? $taskData['description'] : null));
+        $taskData['concept'] = $mainBrief;
+        $taskData['notes']   = $mainBrief;
+
+        $creationMode = $request->input('creation_mode');
+
+        // If creating a NEW deliverable and exactly 1 subtask is defined without a distinct batch title in batch mode, consolidate into a single standalone deliverable.
         $hasDistinctBatchTitle = !empty($taskData['title']) && !empty($subtasks[0]['title']) && trim(strtolower($taskData['title'])) !== trim(strtolower($subtasks[0]['title']));
-        if (!$parentId && count($subtasks) === 1 && !$hasDistinctBatchTitle) {
+        if ($creationMode !== 'single' && !$parentId && count($subtasks) === 1 && !$hasDistinctBatchTitle) {
             $sub = $subtasks[0];
             if (!empty($sub['title'])) $taskData['title'] = $sub['title'];
-            $taskData['post_type'] = $sub['post_type'] ?? ($taskData['post_type'] ?? 'Graphic');
-            $taskData['concept']   = $sub['concept'] ?? ($sub['brief'] ?? ($taskData['concept'] ?? null));
-            $taskData['notes']     = $sub['notes'] ?? ($sub['brief'] ?? ($taskData['notes'] ?? null));
+            $taskData['post_type'] = !empty($sub['post_type']) ? $sub['post_type'] : ($taskData['post_type'] ?? 'Graphic');
+            $subConcept = !empty($sub['concept']) ? $sub['concept'] : (!empty($sub['notes']) ? $sub['notes'] : (!empty($sub['brief']) ? $sub['brief'] : null));
+            if ($subConcept) {
+                $taskData['concept'] = $subConcept;
+                $taskData['notes']   = $subConcept;
+            }
             $taskData['reference'] = $sub['reference'] ?? ($taskData['reference'] ?? null);
             if (!empty($sub['designer_id'])) {
                 $taskData['designer_id'] = $sub['designer_id'];
                 $d = User::find($sub['designer_id']);
                 if ($d) $taskData['assignee_name'] = $d->name;
             }
-            if (!empty($sub['designer_deadline'])) {
-                $taskData['designer_deadline'] = $sub['designer_deadline'];
-                $taskData['deadline'] = $sub['designer_deadline'];
+            $subDeadline = !empty($sub['deadline']) ? $sub['deadline'] : (!empty($sub['designer_deadline']) ? $sub['designer_deadline'] : $taskData['deadline']);
+            if ($subDeadline) {
+                $taskData['designer_deadline'] = $subDeadline;
+                $taskData['deadline'] = $subDeadline;
             }
             if ($request->hasFile("subtasks.0.reference_file")) {
                 $taskData['reference_file'] = $this->moveUploadedFile($request->file("subtasks.0.reference_file"), 'references');
@@ -357,7 +371,7 @@ class DeliverableController extends Controller
             $parentTask = Deliverable::create($taskData);
         }
 
-        if (!empty($subtasks)) {
+        if (!empty($subtasks) && $creationMode !== 'single') {
             $existingCount = $parentTask->subtasks()->count();
             foreach ($subtasks as $index => $sub) {
                 $subDesignerId = $sub['designer_id'] ?? $parentTask->designer_id;
@@ -380,23 +394,27 @@ class DeliverableController extends Controller
                     $refUploadedBy = auth()->id();
                 }
 
-                Deliverable::create([
-                    'parent_deliverable_id' => $parentTask->id,
-                    'project_id'            => $parentTask->project_id,
-                    'flow_type'             => 'direct_design',
-                    'title'                 => $subTitle,
-                    'status'                => 'To Do',
-                    'task_type'             => 'Deliverable',
-                    'progress_percent'      => 20,
-                    'approval_stage'        => 'Designer',
-                    'post_type'             => $sub['post_type'] ?? 'Graphic',
-                    'concept'               => $sub['concept'] ?? ($sub['brief'] ?? null),
-                    'notes'                 => $sub['notes'] ?? ($sub['brief'] ?? null),
-                    'reference'             => $sub['reference'] ?? null,
-                    'reference_file'        => $refFile,
-                    'reference_uploaded_by' => $refUploadedBy,
-                    'deadline'              => $sub['designer_deadline'] ?? ($sub['deadline'] ?? $parentTask->deadline),
-                    'designer_deadline'     => $sub['designer_deadline'] ?? $parentTask->designer_deadline,
+                $subBrief = !empty($sub['concept']) ? $sub['concept'] : (!empty($sub['notes']) ? $sub['notes'] : (!empty($sub['brief']) ? $sub['brief'] : $mainBrief));
+
+                    $subDeadline = !empty($sub['deadline']) ? $sub['deadline'] : (!empty($sub['designer_deadline']) ? $sub['designer_deadline'] : ($parentTask->deadline ?? $parentTask->designer_deadline));
+
+                    Deliverable::create([
+                        'parent_deliverable_id' => $parentTask->id,
+                        'project_id'            => $parentTask->project_id,
+                        'flow_type'             => 'direct_design',
+                        'title'                 => $subTitle,
+                        'status'                => 'To Do',
+                        'task_type'             => 'Deliverable',
+                        'progress_percent'      => 20,
+                        'approval_stage'        => 'Designer',
+                        'post_type'             => $sub['post_type'] ?? 'Graphic',
+                        'concept'               => $subBrief,
+                        'notes'                 => $subBrief,
+                        'reference'             => $sub['reference'] ?? null,
+                        'reference_file'        => $refFile,
+                        'reference_uploaded_by' => $refUploadedBy,
+                        'deadline'              => $subDeadline,
+                        'designer_deadline'     => $subDeadline,
                     'priority'              => $sub['priority'] ?? ($parentTask->priority ?? 'Medium'),
                     'designer_id'           => $subDesignerId,
                     'brand_manager_id'      => $parentTask->brand_manager_id,
@@ -691,6 +709,9 @@ class DeliverableController extends Controller
         $updatePayload = ['designer_id' => $newDesignerId];
         if (array_key_exists('designer_deadline', $validated)) {
             $updatePayload['designer_deadline'] = $validated['designer_deadline'] ?: null;
+            if ($deliverable->isDirectDesign()) {
+                $updatePayload['deadline'] = $validated['designer_deadline'] ?: null;
+            }
         }
         $deliverable->update($updatePayload);
 
@@ -730,9 +751,13 @@ class DeliverableController extends Controller
             'designer_deadline' => 'nullable|date',
         ]);
 
-        $deliverable->update([
+        $updateData = [
             'designer_deadline' => $validated['designer_deadline'] ?: null,
-        ]);
+        ];
+        if ($deliverable->isDirectDesign()) {
+            $updateData['deadline'] = $validated['designer_deadline'] ?: null;
+        }
+        $deliverable->update($updateData);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -1009,11 +1034,21 @@ class DeliverableController extends Controller
                 $oldDeadline = $deliverable->deadline ? \Carbon\Carbon::parse($deliverable->deadline)->format('Y-m-d') : null;
                 
                 if ($newDeadline !== $oldDeadline) {
-                    $isBrandManagerOrAdmin = $user->isAdmin() || $userRole === 'brandmanager';
+                    $isBrandManagerOrAdmin = $user->isAdmin() || in_array($userRole, ['brandmanager', 'operationsmanager']);
                     if (!$isBrandManagerOrAdmin) {
                         abort(403, 'Unauthorized action: only Brand Managers or Admins can edit the deadline.');
                     }
                     $deliverable->deadline = $newDeadline;
+                    if ($deliverable->isDirectDesign()) {
+                        $deliverable->designer_deadline = $newDeadline;
+                    }
+                }
+            }
+            if ($request->has('designer_deadline')) {
+                $newDesDeadline = $request->designer_deadline ?: null;
+                $deliverable->designer_deadline = $newDesDeadline;
+                if ($deliverable->isDirectDesign()) {
+                    $deliverable->deadline = $newDesDeadline;
                 }
             }
             

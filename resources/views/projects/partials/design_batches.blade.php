@@ -59,7 +59,7 @@
                     {{-- Parent Row --}}
                     <tr class="{{ $hasSubtasks ? 'rtb-heading-row' : '' }} {{ $isClosed ? 'task-closed' : '' }}"
                         style="{{ $hasSubtasks ? 'background:var(--color-bg-secondary); border-left:3px solid #6366f1; cursor:pointer;' : '' }}"
-                        @if($hasSubtasks) onclick="toggleSubtasks(event, {{ $task->id }})" @else onclick="openTaskModal({{ $task->id }})" style="cursor:pointer;" @endif>
+                        @if($hasSubtasks) onclick="toggleSubtasks(event, {{ $task->id }})" @else onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" style="cursor:pointer;" @endif>
                         
                         {{-- Title & Format --}}
                         <td>
@@ -114,7 +114,7 @@
                         {{-- Deadline --}}
                         <td>
                             @php
-                                $dDate = $task->designer_deadline ?? $task->deadline;
+                                $dDate = $task->deadline ?? $task->designer_deadline;
                             @endphp
                             @if($dDate)
                                 <div style="font-size:11px; font-weight:600; color:var(--color-text-secondary);">
@@ -222,7 +222,7 @@
                             <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
                                 {{-- 1. Submit Button --}}
                                 @if($isDesignerStage && $canDesignerSubmit)
-                                    <button type="button" onclick="openTaskModal({{ $task->id }})" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
+                                    <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                         Submit
                                     </button>
@@ -243,7 +243,7 @@
                                         View
                                     </a>
                                 @else
-                                    <button type="button" onclick="openTaskModal({{ $task->id }})" class="quick-action-btn btn-view-quick" title="Edit Details">
+                                    <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" class="quick-action-btn btn-view-quick" title="Edit Details">
                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                         Edit
                                     </button>
@@ -292,7 +292,7 @@
                                 $subArtUrls = $sub->getFinalDesignsUrlsArray();
                             @endphp
                             <tr class="subtask-row subtask-of-{{ $task->id }} {{ $subIsClosed ? 'task-closed' : '' }}"
-                                onclick="openTaskModal({{ $sub->id }})" style="cursor:pointer;">
+                                onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" style="cursor:pointer;">
                                 
                                 {{-- Subtask Title & Format --}}
                                 <td>
@@ -335,8 +335,11 @@
 
                                 {{-- Deadline --}}
                                 <td>
+                                    @php
+                                        $subDeadline = $sub->deadline ?? $sub->designer_deadline ?? $task->deadline ?? $task->designer_deadline;
+                                    @endphp
                                     <span style="font-size:11px; color:var(--color-text-secondary);">
-                                        {{ $sub->designer_deadline ? \Carbon\Carbon::parse($sub->designer_deadline)->format('M d, Y') : ($task->designer_deadline ? \Carbon\Carbon::parse($task->designer_deadline)->format('M d, Y') : '—') }}
+                                        {{ $subDeadline ? \Carbon\Carbon::parse($subDeadline)->format('M d, Y') : '—' }}
                                     </span>
                                 </td>
 
@@ -419,7 +422,7 @@
                                 {{-- Action --}}
                                 <td style="text-align:center; padding:6px 6px;" onclick="event.stopPropagation()">
                                     <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
-                                        <button type="button" onclick="openTaskModal({{ $sub->id }})" class="quick-action-btn btn-view-quick" title="View Deliverable">
+                                        <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" class="quick-action-btn btn-view-quick" title="View Deliverable">
                                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                             View
                                         </button>
@@ -480,5 +483,14 @@
     function closeDirectRevisionPrompt() {
         document.getElementById('directRevisionModal').style.display = 'none';
     }
+
+    // Populate Fast Track client-side deliverables cache
+    window.projectDeliverables = window.projectDeliverables || {};
+    @foreach($directDesignTasks as $dt)
+        window.projectDeliverables[{{ $dt->id }}] = @json($dt);
+        @foreach($dt->subtasks as $dst)
+            window.projectDeliverables[{{ $dst->id }}] = @json($dst);
+        @endforeach
+    @endforeach
 </script>
 @endif

@@ -312,4 +312,135 @@ test('can access fast track creation form and store direct design for campaign a
     expect($deliverable->progress_percent)->toBe(100);
 });
 
+test('fast track deliverable preserves brief text and returns it in json endpoint', function () {
+    $brand = Brand::create(['name' => 'Brand Brief', 'slug' => 'brand-brief']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Campaign With Brief',
+        'workflow_type' => 'campaign',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $briefHtml = '<p>This is the creative brief for the promotional flyer.</p>';
+
+    $resPost = $this->actingAs($manager)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'creation_mode' => 'single',
+        'title' => 'Promotional Flyer',
+        'designer_id' => $designer->id,
+        'post_type' => 'Graphic',
+        'concept' => $briefHtml,
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 20,
+    ]);
+    $resPost->assertRedirect(route('projects.show', $project->id));
+
+    $deliverable = Deliverable::where('title', 'Promotional Flyer')->first();
+    expect($deliverable)->not->toBeNull();
+    expect($deliverable->concept)->toBe($briefHtml);
+    expect($deliverable->notes)->toBe($briefHtml);
+    expect($deliverable->is_direct_design)->toBeTrue();
+    expect($deliverable->is_other_deliverable)->toBeFalse();
+
+    // Verify GET deliverables/{id} with JSON returns concept and notes
+    $resJson = $this->actingAs($manager)->getJson(route('deliverables.show', $deliverable->id));
+    $resJson->assertOk();
+    $data = $resJson->json();
+    expect($data['concept'])->toBe($briefHtml);
+    expect($data['notes'])->toBe($briefHtml);
+    expect($data['is_direct_design'])->toBeTrue();
+});
+
+test('fast track deliverable due date sets deliverable deadline and designer deadline', function () {
+    $brand = Brand::create(['name' => 'Brand Fast Track Deadline', 'slug' => 'brand-ft-deadline']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Fast Track Deadline Project',
+        'workflow_type' => 'campaign',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    // 1. Single Fast Track deliverable creation with deadline
+    $res = $this->actingAs($manager)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'creation_mode' => 'single',
+        'title' => 'Single Fast Track Asset',
+        'designer_id' => $designer->id,
+        'deadline' => '2026-11-15',
+        'post_type' => 'Static Post',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 20,
+    ]);
+    $res->assertRedirect(route('projects.show', $project->id));
+
+    $task = Deliverable::where('title', 'Single Fast Track Asset')->first();
+    expect($task)->not->toBeNull();
+    expect(\Carbon\Carbon::parse($task->deadline)->format('Y-m-d'))->toBe('2026-11-15');
+    expect(\Carbon\Carbon::parse($task->designer_deadline)->format('Y-m-d'))->toBe('2026-11-15');
+
+    // 2. Update deadline via save_only action
+    $updateRes = $this->actingAs($manager)->postJson(route('deliverables.submit', $task->id), [
+        'action' => 'save_only',
+        'deadline' => '2026-11-20',
+    ]);
+    $updateRes->assertJson(['success' => true]);
+
+    $task->refresh();
+    expect(\Carbon\Carbon::parse($task->deadline)->format('Y-m-d'))->toBe('2026-11-20');
+    expect(\Carbon\Carbon::parse($task->designer_deadline)->format('Y-m-d'))->toBe('2026-11-20');
+
+    // 3. Batch Fast Track deliverable creation with deadline
+    $batchRes = $this->actingAs($manager)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'creation_mode' => 'batch',
+        'title' => 'Batch Fast Track Campaign',
+        'deadline' => '2026-11-25',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 20,
+        'subtasks' => [
+            [
+                'title' => 'Batch Item 1',
+                'post_type' => 'Static Post',
+                'designer_id' => $designer->id,
+                'deadline' => '2026-11-22',
+            ],
+            [
+                'title' => 'Batch Item 2',
+                'post_type' => 'Carousel',
+                'designer_id' => $designer->id,
+                // leaves deadline empty to default to parent batch deadline
+            ],
+        ],
+    ]);
+    $batchRes->assertRedirect(route('projects.show', $project->id));
+
+    $batchParent = Deliverable::where('title', 'Batch Fast Track Campaign')->first();
+    expect($batchParent)->not->toBeNull();
+    expect(\Carbon\Carbon::parse($batchParent->deadline)->format('Y-m-d'))->toBe('2026-11-25');
+    expect(\Carbon\Carbon::parse($batchParent->designer_deadline)->format('Y-m-d'))->toBe('2026-11-25');
+
+    $sub1 = Deliverable::where('title', 'Batch Item 1')->first();
+    expect($sub1)->not->toBeNull();
+    expect(\Carbon\Carbon::parse($sub1->deadline)->format('Y-m-d'))->toBe('2026-11-22');
+    expect(\Carbon\Carbon::parse($sub1->designer_deadline)->format('Y-m-d'))->toBe('2026-11-22');
+
+    $sub2 = Deliverable::where('title', 'Batch Item 2')->first();
+    expect($sub2)->not->toBeNull();
+    expect(\Carbon\Carbon::parse($sub2->deadline)->format('Y-m-d'))->toBe('2026-11-25');
+    expect(\Carbon\Carbon::parse($sub2->designer_deadline)->format('Y-m-d'))->toBe('2026-11-25');
+});
+
+
 

@@ -66,6 +66,8 @@ class Deliverable extends Model
         'workflow_stages',
         'can_remove_reference',
         'can_remove_artwork',
+        'is_direct_design',
+        'is_other_deliverable',
     ];
 
     public function getReferenceFilesArray(): array
