@@ -53,7 +53,7 @@ pnpm-debug.log*
 # --------------------------------------------------
 /public/storage
 /public/hot
-/public/build/
+# /public/build/ (Kept tracked so production servers without Node/npm have manifest.json and compiled bundles)
 
 # User-uploaded assets in public directory (keep folder structure only)
 /public/artwork/*
