@@ -1348,9 +1348,9 @@
     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
     View
 </a>
-                                                <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'parent_id' => $task->id]) }}" onclick="event.stopPropagation()" class="quick-action-btn btn-edit-quick" style="text-decoration:none;">
+                                                <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'parent_id' => $task->id]) }}" onclick="event.stopPropagation()" class="quick-action-btn btn-edit-quick" style="text-decoration:none;" title="Add Subtask">
                                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                                                    Sub
+                                                    Add
                                                 </a>
                                                 @if($isAdmin || $userRole === 'brandmanager')
                                                 <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirmAction(event, 'Delete Deliverable?', 'Are you sure you want to delete this deliverable? This action cannot be undone.', true)" style="display:contents;" onclick="event.stopPropagation()">
@@ -2871,7 +2871,14 @@
                                           (task.assignee_name && task.assignee_name === AUTH_USER_NAME);
                 const isManager = isAdmin || userRole === 'brandmanager' || userRole === 'operationsmanager';
 
-                const canAct = (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee' || stage === 'Writer'))
+                const canAct = (isDirectDesign || task.is_direct_design)
+                    ? (
+                        isAdmin ||
+                        userRole === 'operationsmanager' ||
+                        (stage === 'Designer' && (isAssignedDesigner || (!task.designer_id && hasDesignerRole))) ||
+                        (stage === 'Manager Review' && (userRole === 'brandmanager' || userRole === 'operationsmanager'))
+                    )
+                    : (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee' || stage === 'Writer'))
                     ? isAssignedPerson
                     : (
                         isAdmin ||
@@ -2900,7 +2907,10 @@
                 const isLastSubmitter = latestApproval && (latestApproval.user_id == AUTH_USER_ID);
 
                 // Check if the current user is specifically assigned to handle this current stage
-                const isCurrentStageAssignee = isOtherDeliverable ? (
+                const isCurrentStageAssignee = (isDirectDesign || task.is_direct_design) ? (
+                    (stage === 'Designer') ? (isAssignedDesigner || (!task.designer_id && hasDesignerRole)) :
+                    (stage === 'Manager Review') ? (isAssignedBrandMgr || (!task.brand_manager_id && isManager)) : false
+                ) : isOtherDeliverable ? (
                     (stage === 'Assign' || stage === 'Assignee') ? isAssignedPerson :
                     (stage === 'Approve') ? isManager : false
                 ) : (
@@ -2933,7 +2943,17 @@
                             nextBtn.style.opacity = '1';
                             nextBtn.style.cursor = 'pointer';
                             nextBtn.style.boxShadow = '0 4px 12px rgba(0,85,212,0.4)';
-                            if (isOtherDeliverable) {
+                            if (isDirectDesign || task.is_direct_design) {
+                                if (stage === 'Designer') {
+                                    nextBtn.textContent = 'Submit';
+                                    nextBtn.style.background = '#10b981';
+                                } else if (stage === 'Manager Review') {
+                                    nextBtn.textContent = 'Approve & Close';
+                                    nextBtn.style.background = '#10b981';
+                                } else {
+                                    nextBtn.textContent = 'Submit';
+                                }
+                            } else if (isOtherDeliverable) {
                                 if (stage === 'Assign' || stage === 'Assignee') {
                                     nextBtn.textContent = 'Submit';
                                     nextBtn.style.background = '#0055D4';

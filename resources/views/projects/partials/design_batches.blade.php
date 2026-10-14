@@ -233,7 +233,7 @@
                                         @csrf
                                         <button type="submit" onclick="return confirm('Approve artwork and close this deliverable?')" class="quick-action-btn btn-approve-quick" title="Approve">
                                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            Submit
+                                            Approve
                                         </button>
                                     </form>
                                 @endif
@@ -251,14 +251,14 @@
                                     </button>
                                 @endif
 
-                                {{-- 3. + Sub Button (Batches only) --}}
+                                {{-- 3. + Add Button (Batches only) --}}
                                 @if($hasSubtasks)
                                     @can('create-deliverable')
                                         <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'flow' => 'design', 'parent_id' => $task->id]) }}"
                                            class="quick-action-btn btn-edit-quick" style="text-decoration:none;"
                                            title="Add Subtask">
                                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                                            Sub
+                                            Add
                                         </a>
                                     @endcan
                                 @endif
@@ -290,6 +290,11 @@
                         @foreach($subtasks as $sub)
                             @php
                                 $subIsClosed = $sub->approval_stage === 'Closed';
+                                $subIsDesignerStage = $sub->approval_stage === 'Designer';
+                                $subIsManagerReviewStage = $sub->approval_stage === 'Manager Review';
+                                $subIsAssignedDesigner = $sub->designer_id && $currentUserId == $sub->designer_id;
+                                $canSubDesignerSubmit = $isAdmin || ($userRole === 'operationsmanager') || ($subIsDesignerStage && ($subIsAssignedDesigner || (!$sub->designer_id && $userRole === 'designer')));
+                                $canSubManagerReview = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']);
                                 $subArtFiles = $sub->getFinalDesignsArray();
                                 $subArtUrls = $sub->getFinalDesignsUrlsArray();
                             @endphp
@@ -421,11 +426,37 @@
                                 {{-- Action --}}
                                 <td style="text-align:center; padding:6px 6px;" onclick="event.stopPropagation()">
                                     <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
+                                        {{-- 1. Submit / Approve Button --}}
+                                        @if($subIsDesignerStage && $canSubDesignerSubmit)
+                                            <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                Submit
+                                            </button>
+                                        @elseif($subIsManagerReviewStage && $canSubManagerReview)
+                                            <form action="{{ route('deliverables.submit', $sub->id) }}" method="POST" style="display:contents;">
+                                                @csrf
+                                                <button type="submit" onclick="return confirm('Approve artwork and close this deliverable?')" class="quick-action-btn btn-approve-quick" title="Approve">
+                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                    Approve
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        {{-- 2. View Button --}}
                                         <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" class="quick-action-btn btn-view-quick" title="View Deliverable">
                                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                             View
                                         </button>
 
+                                        {{-- 3. Revise Button (if Manager Review stage) --}}
+                                        @if($subIsManagerReviewStage && $canSubManagerReview)
+                                            <button type="button" onclick="openDirectRevisionPrompt({{ $sub->id }})" class="quick-action-btn btn-revise-quick" title="Request Revisions">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                                Revise
+                                            </button>
+                                        @endif
+
+                                        {{-- 4. Delete Button --}}
                                         @if($isAdmin || $userRole === 'brandmanager')
                                             <form action="{{ route('deliverables.destroy', $sub) }}" method="POST" onsubmit="return confirmAction(event, 'Delete Subtask?', 'Are you sure you want to delete this subtask? This action cannot be undone.', true)" style="display:contents;" onclick="event.stopPropagation()">
                                                 @csrf @method('DELETE')

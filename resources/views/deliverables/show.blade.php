@@ -2293,7 +2293,14 @@
                                           (task.assignee_name && task.assignee_name === AUTH_USER_NAME);
                 const isManager = isAdmin || userRole === 'brandmanager' || userRole === 'operationsmanager';
 
-                const canAct = (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee' || stage === 'Writer'))
+                const canAct = (isDirectDesign || task.is_direct_design)
+                    ? (
+                        isAdmin ||
+                        userRole === 'operationsmanager' ||
+                        (stage === 'Designer' && (isAssignedDesigner || (!task.designer_id && hasDesignerRole))) ||
+                        (stage === 'Manager Review' && (userRole === 'brandmanager' || userRole === 'operationsmanager'))
+                    )
+                    : (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee' || stage === 'Writer'))
                     ? isAssignedPerson
                     : (
                         isAdmin ||
@@ -2322,7 +2329,10 @@
                 const isLastSubmitter = latestApproval && (latestApproval.user_id == AUTH_USER_ID);
 
                 // Check if the current user is specifically assigned to handle this current stage
-                const isCurrentStageAssignee = isOtherDeliverable ? (
+                const isCurrentStageAssignee = (isDirectDesign || task.is_direct_design) ? (
+                    (stage === 'Designer') ? (isAssignedDesigner || (!task.designer_id && hasDesignerRole)) :
+                    (stage === 'Manager Review') ? (isAssignedBrandMgr || (!task.brand_manager_id && isManager)) : false
+                ) : isOtherDeliverable ? (
                     (stage === 'Assign' || stage === 'Assignee') ? isAssignedPerson :
                     (stage === 'Approve') ? isManager : false
                 ) : (
@@ -2355,7 +2365,17 @@
                             nextBtn.style.opacity = '1';
                             nextBtn.style.cursor = 'pointer';
                             nextBtn.style.boxShadow = '0 4px 12px rgba(0,85,212,0.4)';
-                            if (isOtherDeliverable) {
+                            if (isDirectDesign || task.is_direct_design) {
+                                if (stage === 'Designer') {
+                                    nextBtn.textContent = 'Submit';
+                                    nextBtn.style.background = '#10b981';
+                                } else if (stage === 'Manager Review') {
+                                    nextBtn.textContent = 'Approve & Close';
+                                    nextBtn.style.background = '#10b981';
+                                } else {
+                                    nextBtn.textContent = 'Submit';
+                                }
+                            } else if (isOtherDeliverable) {
                                 if (stage === 'Assign' || stage === 'Assignee') {
                                     nextBtn.textContent = 'Submit';
                                     nextBtn.style.background = '#0055D4';
