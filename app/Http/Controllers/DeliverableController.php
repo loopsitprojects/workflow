@@ -2062,8 +2062,14 @@ class DeliverableController extends Controller
         if (preg_match('#/(artwork|references|briefs|brand_logos|revision_images)/([^/?]+)(?:\?.*)?$#', $path, $m)) {
             try { \Illuminate\Support\Facades\Storage::disk('s3')->delete($m[1] . '/' . $m[2]); } catch(\Throwable $e) {}
         } else if (str_starts_with($path, '/references/') || str_starts_with($path, '/artwork/')) {
-            $fullPath = public_path(ltrim($path, '/'));
-            if (file_exists($fullPath)) @unlink($fullPath);
+            $folder = str_starts_with($path, '/references/') ? 'references' : 'artwork';
+            $filename = basename(parse_url($path, PHP_URL_PATH));
+            $allowedDir = realpath(public_path($folder));
+            $fullPath = public_path($folder . '/' . $filename);
+            $realPath = realpath($fullPath);
+            if ($realPath && $allowedDir && str_starts_with($realPath, $allowedDir)) {
+                @unlink($realPath);
+            }
         }
     }
 }
