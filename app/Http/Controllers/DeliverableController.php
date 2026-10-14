@@ -23,7 +23,7 @@ class DeliverableController extends Controller
     {
         $deliverable->load([
             'project.brand', 'parent', 'writer', 'approver', 'brandManager', 
-            'coordinator', 'designer', 'revisionsHistory.user', 
+            'coordinator', 'designer', 'revisionsHistory.user', 'revisionsHistory.fixedByUser',
             'approvalsHistory.user', 'reassignments.fromUser', 
             'reassignments.toUser', 'reassignments.reassignedBy'
         ]);
@@ -446,6 +446,7 @@ class DeliverableController extends Controller
             'subtasks.writer', 'subtasks.approver', 'subtasks.brandManager',
             'subtasks.coordinator', 'subtasks.designer',
             'subtasks.revisionsHistory.user',
+            'subtasks.revisionsHistory.fixedByUser',
             'subtasks.approvalsHistory.user',
         ]);
 

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class DeliverableRevision extends Model
 {
+    protected $with = ['user', 'fixedByUser'];
+
     protected $fillable = [
         'deliverable_id',
         'user_id',

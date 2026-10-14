@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class DeliverableApproval extends Model
 {
+    protected $with = ['user'];
+
     protected $fillable = [
         'deliverable_id',
         'user_id',

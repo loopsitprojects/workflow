@@ -176,7 +176,7 @@
             
             // Resolve parent revisions
             if (!$deliverable->relationLoaded('revisionsHistory')) {
-                $deliverable->load('revisionsHistory.user');
+                $deliverable->load('revisionsHistory.user', 'revisionsHistory.fixedByUser');
             }
             $parentRevs = $deliverable->revisionsHistory;
         @endphp

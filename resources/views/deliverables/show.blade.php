@@ -2069,9 +2069,9 @@
                             // Find the corresponding approval record where the writer wrote what they changed.
                             const fixTime = new Date(rev.fixed_at).getTime();
                             const matchingApproval = task.approvals_history ? task.approvals_history.find(app => {
-                                if (app.user_id !== rev.fixed_by_user_id) return false;
+                                if (rev.fixed_by_user_id && app.user_id !== rev.fixed_by_user_id) return false;
                                 const appTime = new Date(app.created_at).getTime();
-                                return Math.abs(appTime - fixTime) < 5000;
+                                return Math.abs(appTime - fixTime) < 10000;
                             }) : null;
 
                             let noteHtml = '';
@@ -2087,12 +2087,37 @@
                                 `;
                             }
 
+                            let fixedByName = null;
+                            if (rev.fixed_by_user && rev.fixed_by_user.name) {
+                                fixedByName = rev.fixed_by_user.name;
+                            } else if (rev.fixedByUser && rev.fixedByUser.name) {
+                                fixedByName = rev.fixedByUser.name;
+                            } else if (matchingApproval && matchingApproval.user && matchingApproval.user.name) {
+                                fixedByName = matchingApproval.user.name;
+                            } else if (rev.fixed_by_user_id) {
+                                const anyApprovalByUser = task.approvals_history ? task.approvals_history.find(app => app.user_id === rev.fixed_by_user_id && app.user && app.user.name) : null;
+                                if (anyApprovalByUser) {
+                                    fixedByName = anyApprovalByUser.user.name;
+                                } else if (task.writer_id === rev.fixed_by_user_id && (task.writer?.name || task.assignee_name)) {
+                                    fixedByName = task.writer?.name || task.assignee_name;
+                                } else if (task.designer_id === rev.fixed_by_user_id && task.designer?.name) {
+                                    fixedByName = task.designer.name;
+                                } else if (task.associates && task.associates.writer && task.writer_id === rev.fixed_by_user_id) {
+                                    fixedByName = task.associates.writer;
+                                }
+                            }
+                            if (!fixedByName && (task.writer || task.assignee_name || (task.associates && task.associates.writer))) {
+                                if (['Approver', 'Writer', 'Writer Review'].includes(rev.stage_at_revision)) {
+                                    fixedByName = task.writer?.name || task.assignee_name || (task.associates && task.associates.writer);
+                                }
+                            }
+
                             fixedBadge = `
                                 <div style="display:flex; flex-direction:column; margin-top:4px; padding-top:8px; border-top:1px dashed rgba(239, 68, 68, 0.2);">
                                     <div style="display:flex; justify-content:space-between; align-items:center;">
                                         <div style="display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:800; color:#10b981; text-transform:uppercase; background:rgba(16, 185, 129, 0.1); padding:4px 8px; border-radius:6px;">
                                             <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            Fixed by ${rev.fixed_by_user ? rev.fixed_by_user.name : 'Unknown'}
+                                            Fixed by ${fixedByName || 'Unknown'}
                                         </div>
                                         <div style="font-size:10px; color:#10b981; opacity:0.8; font-weight:600;">${fixedDate}</div>
                                     </div>
