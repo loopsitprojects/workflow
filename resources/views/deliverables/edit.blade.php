@@ -1,6 +1,8 @@
 <x-layout title="Edit: {{ $deliverable->title }}">
 <style>
-.f-wrap{max-width:640px;margin:24px auto;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:14px;overflow:hidden;font-family:'Inter',sans-serif;}
+.f-wrap{max-width:640px;margin:24px auto;background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:14px;overflow:visible;font-family:'Inter',sans-serif;}
+.f-wrap > form > .f-section:first-child { border-top-left-radius: 13px; border-top-right-radius: 13px; }
+.f-footer { border-bottom-left-radius: 13px; border-bottom-right-radius: 13px; }
 .f-section{padding:20px 24px;border-bottom:1px solid var(--color-border-primary);position:relative;}
 .f-label{display:block;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin-bottom:7px;}
 .f-label.blue{color:#3b82f6;}
@@ -22,6 +24,230 @@
 .ref-btn{border:none;background:transparent;padding:5px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--color-text-secondary);border-radius:6px;cursor:pointer;transition:all 0.15s;}
 .ref-btn.active{background:var(--color-bg-primary);color:#0055D4;box-shadow:0 2px 6px rgba(0,0,0,0.06);}
 textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
+
+/* Searchable User Combobox Component */
+.searchable-user-wrapper {
+    position: relative;
+    width: 100%;
+}
+.searchable-select-trigger {
+    width: 100%;
+    background: var(--color-bg-secondary);
+    border: 1.5px solid var(--color-border-primary);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    outline: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 40px;
+    box-sizing: border-box;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    user-select: none;
+}
+.searchable-select-trigger:focus,
+.searchable-select-trigger.is-open {
+    border-color: #0055D4;
+    box-shadow: 0 0 0 3px rgba(0, 85, 212, 0.15);
+}
+.searchable-select-trigger.has-error {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+.searchable-chevron {
+    color: var(--color-text-secondary);
+    transition: transform 0.2s ease;
+}
+.searchable-chevron.is-open {
+    transform: rotate(180deg);
+}
+.searchable-clear-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.searchable-clear-btn:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+.user-avatar-pill {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    flex-shrink: 0;
+    letter-spacing: -0.02em;
+}
+.user-name-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.user-role-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 85, 212, 0.1);
+    color: #3b82f6;
+    border: 1px solid rgba(0, 85, 212, 0.2);
+    text-transform: capitalize;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.user-role-badge.role-writer {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.25);
+}
+.user-role-badge.role-designer {
+    background: rgba(168, 85, 247, 0.12);
+    color: #a855f7;
+    border-color: rgba(168, 85, 247, 0.25);
+}
+.user-role-badge.role-admin,
+.user-role-badge.role-operations-manager {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.25);
+}
+.user-role-badge.role-brand-manager {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.25);
+}
+
+/* Floating Dropdown Panel */
+.searchable-dropdown-panel {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: var(--color-bg-primary);
+    border: 1.5px solid var(--color-border-primary);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.35);
+    padding: 6px;
+    min-width: 260px;
+}
+.searchable-input-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.searchable-input-box .search-icon {
+    position: absolute;
+    left: 10px;
+    color: var(--color-text-secondary);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+}
+.searchable-input {
+    width: 100%;
+    padding: 8px 30px 8px 32px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--color-bg-secondary);
+    border: 1.5px solid #0055D4;
+    border-radius: 7px;
+    color: var(--color-text-primary);
+    outline: none;
+    box-sizing: border-box;
+}
+.searchable-input::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.6;
+    font-weight: 500;
+}
+.search-clear-btn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: 15px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+.search-clear-btn:hover {
+    color: var(--color-text-primary);
+}
+.searchable-count-bar {
+    padding: 2px 6px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid var(--color-border-primary);
+    margin-bottom: 4px;
+}
+.searchable-list {
+    max-height: 220px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.searchable-list::-webkit-scrollbar {
+    width: 5px;
+}
+.searchable-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.searchable-list::-webkit-scrollbar-thumb {
+    background: var(--color-border-primary);
+    border-radius: 4px;
+}
+.searchable-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.12s;
+    user-select: none;
+    gap: 8px;
+}
+.searchable-item:hover,
+.searchable-item.is-highlighted {
+    background: rgba(0, 85, 212, 0.08);
+}
+.searchable-item.is-selected {
+    background: rgba(0, 85, 212, 0.12);
+}
+.searchable-empty {
+    padding: 20px 12px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
 </style>
 
 <nav style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--color-text-secondary);margin:0 auto 12px;max-width:640px;">
@@ -29,7 +255,7 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
     <span style="opacity:0.4;">/</span>
     <span style="color:var(--color-text-primary);">Edit Deliverable</span>
 </nav>
-<div class="f-wrap" x-data="{ showDeleteModal: false }">
+<div class="f-wrap" x-data="deliverableEditForm()">
     {{-- Delete Confirmation Modal --}}
     <div x-show="showDeleteModal" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -67,7 +293,7 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
             <div class="f-grid">
                 <div>
                     <label class="f-label">Project</label>
-                    <select name="project_id" required class="f-input">
+                    <select name="project_id" required class="f-input" @change="updateProject($event.target.value)">
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}" {{ old('project_id', $deliverable->project_id) == $project->id ? 'selected' : '' }}>
                                 {{ $project->brand->name }} / {{ $project->name }}
@@ -140,12 +366,151 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
             <div class="f-grid">
                 <div>
                     <label class="f-label">Writer / Assignee</label>
-                    <select name="writer_id" class="f-input">
-                        <option value="">— Unassigned —</option>
-                        @foreach($users as $user)
-                            <option value="{{ $user->id }}" {{ old('writer_id', $deliverable->writer_id) == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
-                        @endforeach
-                    </select>
+                    <div x-data="searchableUserSelect({
+                        getUsers: () => availableUsers,
+                        selectedId: selectedWriterId,
+                        onSelect: (val) => { selectedWriterId = val }
+                    })" 
+                         class="searchable-user-wrapper" 
+                         @click.outside="open = false">
+                        
+                        <input type="hidden" name="writer_id" :value="selectedId">
+
+                        {{-- Trigger Box --}}
+                        <div class="searchable-select-trigger"
+                             :class="{ 'is-open': open }"
+                             @click="toggle()"
+                             tabindex="0"
+                             @keydown="handleTriggerKeyDown($event)">
+                            <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;overflow:hidden;">
+                                <template x-if="selectedUser">
+                                    <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                                        <span class="user-avatar-pill" :style="getAvatarStyle(selectedUser.id, selectedUser.name)" x-text="getInitials(selectedUser.name)"></span>
+                                        <span class="user-name-text" x-text="selectedUser.name"></span>
+                                        <span class="user-role-badge" :class="'role-' + (selectedUser.role || '').toLowerCase().replace(/\s+/g, '-')" x-text="selectedUser.role" x-show="selectedUser.role"></span>
+                                    </div>
+                                </template>
+                                <template x-if="!selectedUser">
+                                    <div style="display:flex;align-items:center;gap:8px;color:var(--color-text-secondary);font-size:13px;opacity:0.7;">
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                        </svg>
+                                        <span>— Unassigned —</span>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                                <button type="button" 
+                                        x-show="selectedUser" 
+                                        @click.stop="clear($event)" 
+                                        class="searchable-clear-btn" 
+                                        title="Clear selection">
+                                    &times;
+                                </button>
+                                <svg class="searchable-chevron" :class="{ 'is-open': open }" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        {{-- Dropdown Floating Panel --}}
+                        <div x-show="open"
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 transform -translate-y-1 scale-98"
+                             x-transition:enter-end="opacity-100 transform translate-y-0 scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100 transform translate-y-0 scale-100"
+                             x-transition:leave-end="opacity-0 transform -translate-y-1 scale-98"
+                             class="searchable-dropdown-panel"
+                             style="display:none;"
+                             @keydown.escape.prevent.stop="open = false">
+
+                            {{-- Search Input Box --}}
+                            <div class="searchable-input-box">
+                                <span class="search-icon">
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <circle cx="11" cy="11" r="8" stroke-width="2.5"/>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65" stroke-width="2.5" stroke-linecap="round"/>
+                                    </svg>
+                                </span>
+                                <input type="text"
+                                       x-ref="searchInput"
+                                       x-model="search"
+                                       @input="highlightedIndex = 0"
+                                       @keydown="handleSearchKeyDown($event)"
+                                       placeholder="Type name or role to find..."
+                                       class="searchable-input"
+                                       autocomplete="off"
+                                       spellcheck="false">
+                                <button type="button" 
+                                        x-show="search.length > 0" 
+                                        @click="search = ''; $refs.searchInput.focus()" 
+                                        class="search-clear-btn">
+                                    &times;
+                                </button>
+                            </div>
+
+                            {{-- Quick Count / Help Bar --}}
+                            <div class="searchable-count-bar">
+                                <span x-text="filteredUsers.length + (filteredUsers.length === 1 ? ' person' : ' people')"></span>
+                                <span style="font-size:10px;opacity:0.6;">&uarr;&darr; navigate &bull; &crarr; select</span>
+                            </div>
+
+                            {{-- Users List --}}
+                            <div class="searchable-list" x-ref="list">
+                                {{-- Unassigned Item (visible when no search query or matching "unassigned") --}}
+                                <div x-show="!search || 'unassigned'.includes(search.toLowerCase())"
+                                     class="searchable-item"
+                                     :class="{
+                                         'is-highlighted': highlightedIndex === -1,
+                                         'is-selected': !selectedId
+                                     }"
+                                     @click="clear($event)">
+                                    <div style="display:flex;align-items:center;gap:9px;min-width:0;flex:1;">
+                                        <span class="user-avatar-pill" style="background:var(--color-bg-secondary);color:var(--color-text-secondary);border:1px dashed var(--color-border-primary);">&oslash;</span>
+                                        <span class="user-name-text" style="color:var(--color-text-secondary);">— Unassigned —</span>
+                                    </div>
+                                    <template x-if="!selectedId">
+                                        <svg width="15" height="15" fill="none" stroke="#0055D4" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                    </template>
+                                </div>
+
+                                <template x-for="(user, idx) in filteredUsers" :key="user.id">
+                                    <div class="searchable-item"
+                                         :class="{
+                                             'is-highlighted': idx === highlightedIndex,
+                                             'is-selected': String(user.id) === String(selectedId)
+                                         }"
+                                         @mouseenter="highlightedIndex = idx"
+                                         @click="select(user)">
+                                        <div style="display:flex;align-items:center;gap:9px;min-width:0;flex:1;">
+                                            <span class="user-avatar-pill" :style="getAvatarStyle(user.id, user.name)" x-text="getInitials(user.name)"></span>
+                                            <span class="user-name-text" x-html="highlightMatch(user.name, search)"></span>
+                                            <span class="user-role-badge" :class="'role-' + (user.role || '').toLowerCase().replace(/\s+/g, '-')" x-text="user.role" x-show="user.role"></span>
+                                        </div>
+                                        <template x-if="String(user.id) === String(selectedId)">
+                                            <svg width="15" height="15" fill="none" stroke="#0055D4" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </template>
+                                    </div>
+                                </template>
+
+                                {{-- Empty State --}}
+                                <div x-show="filteredUsers.length === 0 && search && !'unassigned'.includes(search.toLowerCase())" class="searchable-empty">
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-bottom:6px;opacity:0.4;">
+                                        <circle cx="11" cy="11" r="8" stroke-width="2"/>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                    <div style="font-weight:700;font-size:12px;color:var(--color-text-primary);">No person found</div>
+                                    <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px;">No match for "<span x-text="search"></span>"</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label class="f-label">Approver</label>
@@ -260,6 +625,184 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
 </div>
 
 <script>
+function deliverableEditForm() {
+    return {
+        showDeleteModal: false,
+        workflowType: '{{ $deliverable->project->workflow_type ?? 'retainer' }}',
+        projectWorkflows: @json($projects->pluck('workflow_type', 'id')),
+        selectedWriterId: '{{ (string)old('writer_id', $deliverable->writer_id ?? '') }}',
+        allUsers: @json(($allUsers ?? $users)->map(fn($u) => ['id' => (string)$u->id, 'name' => $u->name, 'role' => $u->role ?? ''])->values()),
+        retainerUsers: @json(($allUsers ?? $users)->filter(fn($u) => strtolower($u->role ?? '') === 'writer')->map(fn($u) => ['id' => (string)$u->id, 'name' => $u->name, 'role' => $u->role ?? ''])->values()),
+        get availableUsers() {
+            const isCampaignOrPitch = (this.workflowType === 'campaign' || this.workflowType === 'pitch');
+            return isCampaignOrPitch ? this.allUsers : this.retainerUsers;
+        },
+        updateProject(projectId) {
+            if (projectId && this.projectWorkflows && this.projectWorkflows[projectId]) {
+                this.workflowType = this.projectWorkflows[projectId];
+            }
+        }
+    };
+}
+
+function searchableUserSelect(config) {
+    return {
+        open: false,
+        search: '',
+        getUsers: config.getUsers || null,
+        _users: config.users || [],
+        selectedId: config.selectedId ? String(config.selectedId) : '',
+        onSelect: config.onSelect || null,
+        showError: false,
+        highlightedIndex: 0,
+        placeholder: config.placeholder || '— Unassigned —',
+
+        init() {
+            if (this.selectedId && this.onSelect) {
+                this.onSelect(this.selectedId);
+            }
+        },
+
+        get users() {
+            if (typeof this.getUsers === 'function') {
+                return this.getUsers() || [];
+            }
+            return this._users || [];
+        },
+
+        get selectedUser() {
+            if (!this.selectedId) return null;
+            return this.users.find(u => String(u.id) === String(this.selectedId)) || null;
+        },
+
+        get filteredUsers() {
+            const list = this.users;
+            if (!this.search || !this.search.trim()) {
+                return list;
+            }
+            const q = this.search.toLowerCase().trim();
+            return list.filter(u => {
+                const name = (u.name || '').toLowerCase();
+                const role = (u.role || '').toLowerCase();
+                return name.includes(q) || role.includes(q);
+            });
+        },
+
+        select(user) {
+            this.selectedId = user ? String(user.id) : '';
+            this.showError = false;
+            if (this.onSelect) {
+                this.onSelect(this.selectedId);
+            }
+            this.open = false;
+            this.search = '';
+        },
+
+        clear(e) {
+            if (e) e.stopPropagation();
+            this.selectedId = '';
+            this.showError = false;
+            if (this.onSelect) {
+                this.onSelect('');
+            }
+            this.search = '';
+        },
+
+        toggle() {
+            this.open = !this.open;
+            if (this.open) {
+                this.search = '';
+                this.highlightedIndex = 0;
+                this.showError = false;
+                this.$nextTick(() => {
+                    if (this.$refs.searchInput) {
+                        this.$refs.searchInput.focus();
+                    }
+                });
+            }
+        },
+
+        handleTriggerKeyDown(e) {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                this.toggle();
+            }
+        },
+
+        handleSearchKeyDown(e) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (this.filteredUsers.length > 0) {
+                    this.highlightedIndex = (this.highlightedIndex + 1) % this.filteredUsers.length;
+                    this.scrollToHighlighted();
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (this.filteredUsers.length > 0) {
+                    this.highlightedIndex = (this.highlightedIndex - 1 + this.filteredUsers.length) % this.filteredUsers.length;
+                    this.scrollToHighlighted();
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (this.filteredUsers.length > 0 && this.filteredUsers[this.highlightedIndex]) {
+                    this.select(this.filteredUsers[this.highlightedIndex]);
+                }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this.open = false;
+            }
+        },
+
+        scrollToHighlighted() {
+            this.$nextTick(() => {
+                if (!this.$refs.list) return;
+                const items = this.$refs.list.querySelectorAll('.searchable-item');
+                if (items && items[this.highlightedIndex]) {
+                    items[this.highlightedIndex].scrollIntoView({ block: 'nearest' });
+                }
+            });
+        },
+
+        getInitials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            if (parts.length >= 2) {
+                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            }
+            return name.substring(0, 2).toUpperCase();
+        },
+
+        getAvatarStyle(id, name) {
+            const palette = [
+                { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.3)' },
+                { bg: 'rgba(16, 185, 129, 0.15)', text: '#10b981', border: 'rgba(16, 185, 129, 0.3)' },
+                { bg: 'rgba(245, 158, 11, 0.15)', text: '#f59e0b', border: 'rgba(245, 158, 11, 0.3)' },
+                { bg: 'rgba(139, 92, 246, 0.15)', text: '#8b5cf6', border: 'rgba(139, 92, 246, 0.3)' },
+                { bg: 'rgba(236, 72, 153, 0.15)', text: '#ec4899', border: 'rgba(236, 72, 153, 0.3)' },
+                { bg: 'rgba(14, 165, 233, 0.15)', text: '#0ea5e9', border: 'rgba(14, 165, 233, 0.3)' },
+                { bg: 'rgba(99, 102, 241, 0.15)', text: '#6366f1', border: 'rgba(99, 102, 241, 0.3)' },
+                { bg: 'rgba(20, 184, 166, 0.15)', text: '#14b8a6', border: 'rgba(20, 184, 166, 0.3)' }
+            ];
+            let hash = 0;
+            const str = String(id || '') + String(name || '');
+            for (let i = 0; i < str.length; i++) {
+                hash = (hash * 31 + str.charCodeAt(i)) & 0xffffffff;
+            }
+            const c = palette[Math.abs(hash) % palette.length];
+            return `background:${c.bg};color:${c.text};border:1px solid ${c.border};`;
+        },
+
+        highlightMatch(text, query) {
+            if (!text) return '';
+            const safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            if (!query || !query.trim()) return safeText;
+            const q = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${q})`, 'gi');
+            return safeText.replace(regex, '<span style="color:#0055D4;font-weight:800;text-decoration:underline;">$1</span>');
+        }
+    };
+}
+
 function toggleRef(type) {
     document.getElementById('ref-link').style.display    = type === 'link'   ? 'block' : 'none';
     document.getElementById('ref-upload').style.display  = type === 'upload' ? 'block' : 'none';

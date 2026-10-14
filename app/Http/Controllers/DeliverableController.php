@@ -551,10 +551,20 @@ class DeliverableController extends Controller
             if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
         }
         $projects = Project::all();
-        $users = \App\Models\User::where('role', 'Writer')->get();
+        $workflowType = $deliverable->project ? $deliverable->project->workflow_type : 'retainer';
+        $users = ($workflowType === 'retainer')
+            ? \App\Models\User::where('role', 'Writer')->orderBy('name')->get()
+            : \App\Models\User::whereIn('role', ['Writer', 'Designer', 'Assignee', 'Coordinator', 'Brand Manager', 'Operations Manager', 'Admin'])->orderBy('name')->get();
+        if ($deliverable->writer && !$users->contains('id', $deliverable->writer_id)) {
+            $users->push($deliverable->writer);
+        }
+        $allUsers = \App\Models\User::whereIn('role', ['Writer', 'Designer', 'Assignee', 'Coordinator', 'Brand Manager', 'Operations Manager', 'Admin'])->orderBy('name')->get();
+        if ($deliverable->writer && !$allUsers->contains('id', $deliverable->writer_id)) {
+            $allUsers->push($deliverable->writer);
+        }
         $approvers = \App\Models\User::whereIn('role', ['Approver', 'Approver Coordinator', 'Admin'])->get();
         $subtaskTypes = \App\Models\SubtaskType::all();
-        return view('deliverables.edit', compact('deliverable', 'projects', 'users', 'approvers', 'subtaskTypes'));
+        return view('deliverables.edit', compact('deliverable', 'projects', 'users', 'allUsers', 'approvers', 'subtaskTypes'));
     }
 
     public function update(Request $request, Deliverable $deliverable)
