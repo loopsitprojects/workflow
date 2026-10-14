@@ -557,31 +557,37 @@ test('campaign or pitch project can be created initially without batches', funct
     expect($deliverables)->toBeEmpty();
 });
 
-test('default assignee is required for campaign and pitch flow but not for retainer', function () {
+test('assignee is optional when creating campaign, pitch, or retainer projects', function () {
     $admin = User::factory()->create(['role' => 'Admin']);
     $brand = Brand::create(['name' => 'Assignee Test Brand', 'slug' => 'assignee-test-brand']);
 
-    // Attempt to create Campaign project without writer_id -> fails validation
+    // Attempt to create Campaign project without writer_id -> succeeds
     $responseCampaign = $this->actingAs($admin)->post(route('projects.store'), [
         'brand_id' => $brand->id,
-        'name' => 'Campaign Missing Assignee',
+        'name' => 'Campaign No Assignee Needed',
         'status' => 'To commence',
         'priority' => 'Medium',
         'type' => 'primary',
         'workflow_type' => 'campaign',
     ]);
-    $responseCampaign->assertSessionHasErrors(['writer_id']);
+    $responseCampaign->assertRedirect();
+    $campaignProject = Project::where('name', 'Campaign No Assignee Needed')->first();
+    expect($campaignProject)->not->toBeNull();
+    expect($campaignProject->writer_id)->toBeNull();
 
-    // Attempt to create Pitch project without writer_id -> fails validation
+    // Attempt to create Pitch project without writer_id -> succeeds
     $responsePitch = $this->actingAs($admin)->post(route('projects.store'), [
         'brand_id' => $brand->id,
-        'name' => 'Pitch Missing Assignee',
+        'name' => 'Pitch No Assignee Needed',
         'status' => 'To commence',
         'priority' => 'Medium',
         'type' => 'primary',
         'workflow_type' => 'pitch',
     ]);
-    $responsePitch->assertSessionHasErrors(['writer_id']);
+    $responsePitch->assertRedirect();
+    $pitchProject = Project::where('name', 'Pitch No Assignee Needed')->first();
+    expect($pitchProject)->not->toBeNull();
+    expect($pitchProject->writer_id)->toBeNull();
 
     // Attempt to create Retainer project without writer_id -> succeeds
     $responseRetainer = $this->actingAs($admin)->post(route('projects.store'), [
