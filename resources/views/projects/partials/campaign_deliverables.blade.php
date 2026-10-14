@@ -95,15 +95,16 @@
                                     );
                                     $subtasks = $outlineSubtasks;
                                     $totalInBatch = $subtasks->count();
-                                    $parentStageNorm = $stage ?: 'Assignee';
-                                    $readyInBatch = $subtasks->filter(fn($t) => ($t->approval_stage ?: 'Assignee') === $parentStageNorm)->count();
+                                    $normalizeCampaignStage = fn($s) => (in_array(strtolower($s ?? ''), ['writer', 'assign', 'assignee']) || empty($s)) ? 'Assignee' : (in_array(strtolower($s ?? ''), ['close', 'closed']) ? 'Closed' : $s);
+                                    $parentStageNorm = $normalizeCampaignStage($stage);
+                                    $readyInBatch = $subtasks->filter(fn($t) => $normalizeCampaignStage($t->approval_stage) === $parentStageNorm)->count();
                                     $allReady = $readyInBatch === $totalInBatch;
                                     $isGated = !$allReady;
                                     $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
                                 @endphp
                                 <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px;">
                                     <span style="font-size:10px; font-weight:700; color:#3b82f6; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); padding:3px 9px; border-radius:6px;">
-                                        {{ $task->approval_stage ?: 'Assignee' }}
+                                        {{ $normalizeCampaignStage($task->approval_stage) }}
                                     </span>
                                     <div style="display:flex; align-items:center; gap:6px;">
                                         <a href="{{ route('deliverables.showBatch', $task->id) }}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:7px;text-decoration:none;white-space:nowrap;">View</a>
@@ -231,7 +232,7 @@
                                         @endif
                                     </div>
                                 </td>
-                                <td><div class="rtb-stage-label">{{ $subtask->approval_stage ?: 'Assignee' }}</div></td>
+                                <td><div class="rtb-stage-label">{{ (in_array(strtolower($subtask->approval_stage ?? ''), ['writer', 'assign', 'assignee']) || empty($subtask->approval_stage)) ? 'Assignee' : (in_array(strtolower($subtask->approval_stage ?? ''), ['close', 'closed']) ? 'Closed' : $subtask->approval_stage) }}</div></td>
                                 <td><div style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">{{ $subtask->client_status ?: 'Not Sent' }}</div></td>
                                 <td style="text-align:center;">
                                     <div class="quick-actions-grid">
@@ -364,9 +365,9 @@
                                     @endif
                                 </div>
                             </td>
-                            <td>
-                                <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->approval_stage }}</div>
-                            </td>
+                                <td>
+                                    <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ (in_array(strtolower($task->approval_stage ?? ''), ['writer', 'assign', 'assignee']) || empty($task->approval_stage)) ? 'Assignee' : (in_array(strtolower($task->approval_stage ?? ''), ['close', 'closed']) ? 'Closed' : $task->approval_stage) }}</div>
+                                </td>
                             <td>
                                 @if($isAdmin || $userRole === 'brandmanager')
                                     <select onchange="updateClientStatusInline(this, {{ $task->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
@@ -533,15 +534,16 @@
                                     );
                                     $subtasks = $otherSubtasks;
                                     $totalInBatch = $subtasks->count();
-                                    $parentStageNorm = $stage ?: 'Assign';
-                                    $readyInBatch = $subtasks->filter(fn($t) => ($t->approval_stage ?: 'Assign') === $parentStageNorm)->count();
+                                    $normalizeOtherStage = fn($s) => (in_array(strtolower($s ?? ''), ['writer', 'assign', 'assignee']) || empty($s)) ? 'Assignee' : (in_array(strtolower($s ?? ''), ['close', 'closed']) ? 'Closed' : $s);
+                                    $parentStageNorm = $normalizeOtherStage($stage);
+                                    $readyInBatch = $subtasks->filter(fn($t) => $normalizeOtherStage($t->approval_stage) === $parentStageNorm)->count();
                                     $allReady = $readyInBatch === $totalInBatch;
                                     $isGated = !$allReady;
                                     $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
                                 @endphp
                                 <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px;">
                                     <span style="font-size:10px; font-weight:700; color:#0ea5e9; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.2); padding:3px 9px; border-radius:6px;">
-                                        {{ $task->approval_stage === 'Close' ? 'Closed' : ($task->approval_stage ?: 'Assign') }}
+                                        {{ $normalizeOtherStage($task->approval_stage) }}
                                     </span>
                                     <div style="display:flex; align-items:center; gap:6px;">
                                         <a href="{{ route('deliverables.showBatch', $task->id) }}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:7px;text-decoration:none;white-space:nowrap;">View</a>
@@ -680,7 +682,7 @@
                                         @endif
                                     </div>
                                 </td>
-                                <td><div class="rtb-stage-label">{{ $subtask->approval_stage === 'Close' ? 'Closed' : ($subtask->approval_stage ?: 'Assign') }}</div></td>
+                                <td><div class="rtb-stage-label">{{ (in_array(strtolower($subtask->approval_stage ?? ''), ['writer', 'assign', 'assignee']) || empty($subtask->approval_stage)) ? 'Assignee' : (in_array(strtolower($subtask->approval_stage ?? ''), ['close', 'closed']) ? 'Closed' : $subtask->approval_stage) }}</div></td>
                                 <td><div style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">{{ $subtask->client_status ?: 'Not Sent' }}</div></td>
                                 <td style="text-align:center;">
                                     <div class="quick-actions-grid">
@@ -839,9 +841,9 @@
                                     @endif
                                 </div>
                             </td>
-                            <td>
-                                <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ $task->approval_stage === 'Close' ? 'Closed' : ($task->approval_stage ?: 'Assign') }}</div>
-                            </td>
+                                <td>
+                                    <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ (in_array(strtolower($task->approval_stage ?? ''), ['writer', 'assign', 'assignee']) || empty($task->approval_stage)) ? 'Assignee' : (in_array(strtolower($task->approval_stage ?? ''), ['close', 'closed']) ? 'Closed' : $task->approval_stage) }}</div>
+                                </td>
                             <td>
                                 @if($isAdmin || $userRole === 'brandmanager')
                                     <select onchange="updateClientStatusInline(this, {{ $task->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">

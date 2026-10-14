@@ -1516,10 +1516,11 @@
                 quillCopy.clipboard.dangerouslyPasteHTML(task.subtask_copy || task.post_copy || '');
 
                 if (document.getElementById('modalStage')) {
-                    let stage = task.approval_stage || (isOtherDeliverable ? 'Assign' : 'Writer');
-                    if (isOtherDeliverable) {
-                        if (stage === 'Assignee' || !stage) stage = 'Assign';
-                        else if (stage === 'Closed') stage = 'Close';
+                    const isCampaignOrPitch = (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch');
+                    let stage = task.approval_stage || ((isOtherDeliverable || isCampaignOrPitch) ? 'Assignee' : 'Writer');
+                    if (isOtherDeliverable || isCampaignOrPitch) {
+                        if (['writer', 'assign', 'assignee'].includes(String(stage || '').toLowerCase()) || !stage) stage = 'Assignee';
+                        else if (['close', 'closed'].includes(String(stage || '').toLowerCase())) stage = 'Closed';
                     }
                     let stageText = stage;
                     

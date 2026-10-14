@@ -169,7 +169,7 @@ class DeliverableController extends Controller
             if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
                 $pType = strtolower(trim($taskData['post_type'] ?? ''));
                 $taskData['approval_stage'] = ($pType === 'outlines' || $pType === 'outline')
-                    ? Deliverable::CAMPAIGN_STAGES[0]
+                    ? 'Assignee'
                     : Deliverable::OTHER_DELIVERABLE_STAGES[0];
             } else {
                 $taskData['approval_stage'] = Deliverable::STAGES[0];
@@ -198,13 +198,15 @@ class DeliverableController extends Controller
         } elseif (!empty($parentData['concept']) && empty($parentData['notes'])) {
             $parentData['notes'] = $parentData['concept'];
         }
-        if (empty($parentData['approval_stage'])) {
+        if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
             $pType = strtolower(trim($parentData['post_type'] ?? ''));
-            if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
+            if (empty($parentData['approval_stage']) || in_array($parentData['approval_stage'], ['Writer', 'Assign', 'Assignee'])) {
                 $parentData['approval_stage'] = ($pType === 'outlines' || $pType === 'outline')
-                    ? Deliverable::CAMPAIGN_STAGES[0]
+                    ? 'Assignee'
                     : Deliverable::OTHER_DELIVERABLE_STAGES[0];
-            } else {
+            }
+        } else {
+            if (empty($parentData['approval_stage'])) {
                 $parentData['approval_stage'] = Deliverable::STAGES[0];
             }
         }
@@ -262,7 +264,7 @@ class DeliverableController extends Controller
                     'deadline' => $sub['deadline'] ?? $parentTask->deadline,
                     'priority' => $sub['priority'] ?? ($parentTask->priority ?? 'Medium'),
                     'approval_stage' => ($parentTask->project && in_array($parentTask->project->workflow_type, ['campaign', 'pitch']))
-                        ? ((strtolower(trim($sub['post_type'] ?? ($parentTask->post_type ?? ''))) === 'outlines' || strtolower(trim($sub['post_type'] ?? ($parentTask->post_type ?? ''))) === 'outline') ? Deliverable::CAMPAIGN_STAGES[0] : Deliverable::OTHER_DELIVERABLE_STAGES[0])
+                        ? ((strtolower(trim($sub['post_type'] ?? ($parentTask->post_type ?? ''))) === 'outlines' || strtolower(trim($sub['post_type'] ?? ($parentTask->post_type ?? ''))) === 'outline') ? 'Assignee' : Deliverable::OTHER_DELIVERABLE_STAGES[0])
                         : Deliverable::STAGES[0],
                     'writer_id' => $writerId,
                     'assignee_name' => $writerName,
@@ -482,7 +484,7 @@ class DeliverableController extends Controller
             $firstStage = 'Designer';
         } else {
             $firstStage = in_array($project?->workflow_type, ['campaign', 'pitch'])
-                ? (($pType === 'outlines' || $pType === 'outline') ? Deliverable::CAMPAIGN_STAGES[0] : Deliverable::OTHER_DELIVERABLE_STAGES[0])
+                ? (($pType === 'outlines' || $pType === 'outline') ? 'Assignee' : Deliverable::OTHER_DELIVERABLE_STAGES[0])
                 : Deliverable::STAGES[0];
         }
 

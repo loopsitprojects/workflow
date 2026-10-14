@@ -291,7 +291,7 @@ test('campaign deliverable with outlines stores concept, caption, and post copy'
     expect($deliverable)->not->toBeNull()
         ->and($deliverable->title)->toBe('Outline Post #1')
         ->and($deliverable->post_type)->toBe('Outlines')
-        ->and($deliverable->approval_stage)->toBe('Writer')
+        ->and($deliverable->approval_stage)->toBe('Assignee')
         ->and($deliverable->concept)->toBe('Brand narrative concept')
         ->and($deliverable->caption)->toBe('Exciting caption for outline')
         ->and($deliverable->post_copy)->toContain('Body copy outline')
@@ -602,6 +602,31 @@ test('assignee is optional when creating campaign, pitch, or retainer projects',
     $project = Project::where('name', 'Retainer No Assignee Needed')->first();
     expect($project)->not->toBeNull();
     expect($project->writer_id)->toBeNull();
+});
+
+test('campaign deliverables table displays stage as Assignee and never Writer for initial stage', function () {
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $brand = Brand::create(['name' => 'Stage Test Brand', 'slug' => 'stage-test-brand']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Stage Verification Campaign',
+        'workflow_type' => 'campaign',
+    ]);
+
+    // Create a standalone Presentation deliverable (like promo)
+    $presentation = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'promo',
+        'post_type' => 'Presentation',
+        'approval_stage' => 'Writer', // even if legacy data has Writer
+        'status' => 'To Do',
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('projects.show', $project));
+    $response->assertOk();
+    $response->assertSee('promo');
+    $response->assertSee('Assignee');
+    $response->assertDontSee('WRITER');
 });
 
 

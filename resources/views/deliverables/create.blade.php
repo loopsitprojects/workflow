@@ -720,7 +720,7 @@
             <input type="hidden" name="task_type" value="Deliverable">
             <input type="hidden" name="progress_percent" value="{{ $progressPercent ?? 0 }}">
             <input type="hidden" name="approver_id" value="">
-            <input type="hidden" name="approval_stage" value="Writer">
+            <input type="hidden" name="approval_stage" :value="(workflowType === 'campaign' || workflowType === 'pitch') ? 'Assignee' : 'Writer'" value="{{ (isset($workflowType) && in_array($workflowType, ['campaign', 'pitch'])) ? 'Assignee' : 'Writer' }}">
 
             @if(isset($parentId))
                 <input type="hidden" name="parent_deliverable_id" value="{{ $parentId }}">
