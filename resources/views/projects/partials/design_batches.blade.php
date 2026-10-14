@@ -224,10 +224,23 @@
                             <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
                                 {{-- 1. Submit Button --}}
                                 @if($isDesignerStage && $canDesignerSubmit)
-                                    <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
-                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                        Submit
-                                    </button>
+                                    @if($hasSubtasks)
+                                        <form action="{{ route('deliverables.batchSubmit', $task->id) }}" method="POST" style="display:contents;" onclick="event.stopPropagation()">
+                                            @csrf
+                                            <button type="submit" onclick="return confirm('Submit all deliverables in this batch for Manager Review?')" class="quick-action-btn btn-approve-quick" title="Submit Batch">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                Submit
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form action="{{ route('deliverables.submit', $task->id) }}" method="POST" style="display:contents;" onclick="event.stopPropagation()">
+                                            @csrf
+                                            <button type="submit" onclick="return confirm('Submit this deliverable for Manager Review?')" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                Submit
+                                            </button>
+                                        </form>
+                                    @endif
                                 @elseif($isManagerReviewStage && $canManagerReview)
                                     <form action="{{ route('deliverables.submit', $task->id) }}" method="POST" style="display:contents;">
                                         @csrf
@@ -428,10 +441,13 @@
                                     <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
                                         {{-- 1. Submit / Approve Button --}}
                                         @if($subIsDesignerStage && $canSubDesignerSubmit)
-                                            <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                Submit
-                                            </button>
+                                            <form action="{{ route('deliverables.submit', $sub->id) }}" method="POST" style="display:contents;" onclick="event.stopPropagation()">
+                                                @csrf
+                                                <button type="submit" onclick="return confirm('Submit this deliverable for Manager Review?')" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
+                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                    Submit
+                                                </button>
+                                            </form>
                                         @elseif($subIsManagerReviewStage && $canSubManagerReview)
                                             <form action="{{ route('deliverables.submit', $sub->id) }}" method="POST" style="display:contents;">
                                                 @csrf

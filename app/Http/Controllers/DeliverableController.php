@@ -1330,10 +1330,12 @@ class DeliverableController extends Controller
         foreach ($subtasks as $subtask) {
             $subStage = $subtask->approval_stage ?: $stages[0];
             if ($subStage !== $parentStageNorm) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'All subtasks must be at the same stage before a batch action can be performed.'
-                ], 422);
+                return $request->wantsJson()
+                    ? response()->json([
+                        'success' => false,
+                        'message' => 'All subtasks must be at the same stage before a batch action can be performed.'
+                    ], 422)
+                    : redirect()->back()->with('error', 'All subtasks must be at the same stage before a batch action can be performed.');
             }
         }
 
@@ -1342,14 +1344,18 @@ class DeliverableController extends Controller
         $nextStage = $deliverable->getNextStage();
         
         if (!$nextStage) {
-            return response()->json(['success' => false, 'message' => 'Batch is already at the final stage.'], 400);
+            return $request->wantsJson()
+                ? response()->json(['success' => false, 'message' => 'Batch is already at the final stage.'], 400)
+                : redirect()->back()->with('error', 'Batch is already at the final stage.');
         }
 
         // Shared Role Validation (check if parent's logic allows the transition)
         $dummy = clone $deliverable;
         $valResult = $this->internallyAdvanceStage($dummy, $request->all(), true); // Dry run
         if (!$valResult['success']) {
-            return response()->json(['success' => false, 'message' => $valResult['message']], $valResult['code'] ?? 422);
+            return $request->wantsJson()
+                ? response()->json(['success' => false, 'message' => $valResult['message']], $valResult['code'] ?? 422)
+                : redirect()->back()->with('error', $valResult['message']);
         }
 
         try {
@@ -1378,7 +1384,9 @@ class DeliverableController extends Controller
                 $result = $this->internallyAdvanceStage($task, $mergedData);
                 if (!$result['success']) {
                     \DB::rollBack();
-                    return response()->json(['success' => false, 'message' => "Task #{$task->id} failed: " . $result['message']], 422);
+                    return $request->wantsJson()
+                        ? response()->json(['success' => false, 'message' => "Task #{$task->id} failed: " . $result['message']], 422)
+                        : redirect()->back()->with('error', "Task #{$task->id} failed: " . $result['message']);
                 }
             }
 
@@ -1411,12 +1419,16 @@ class DeliverableController extends Controller
             }
 
             \DB::commit();
-            return response()->json(['success' => true, 'message' => "Batch successfully submitted to {$nextStage} stage."]);
+            return $request->wantsJson()
+                ? response()->json(['success' => true, 'message' => "Batch successfully submitted to {$nextStage} stage."])
+                : redirect()->back()->with('success', "Batch successfully submitted to {$nextStage} stage.");
 
         } catch (\Exception $e) {
             \DB::rollBack();
             \Log::error("Batch Submit Error: " . $e->getMessage(), ['exception' => $e]);
-            return response()->json(['success' => false, 'message' => 'An internal error occurred during batch processing: ' . $e->getMessage()], 500);
+            return $request->wantsJson()
+                ? response()->json(['success' => false, 'message' => 'An internal error occurred during batch processing: ' . $e->getMessage()], 500)
+                : redirect()->back()->with('error', 'An internal error occurred during batch processing: ' . $e->getMessage());
         }
     }
 
