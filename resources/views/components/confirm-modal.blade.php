@@ -11,6 +11,9 @@
                 <svg id="globalConfirmIconInfo" width="22" height="22" fill="none" stroke="#3b82f6" viewBox="0 0 24 24" style="display:none;">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
+                <svg id="globalConfirmIconSuccess" width="22" height="22" fill="none" stroke="#10b981" viewBox="0 0 24 24" style="display:none;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
             </div>
             <div>
                 <h3 id="globalConfirmTitle" style="font-size:16px; font-weight:800; color:var(--color-text-primary, #fff); margin:0 0 6px 0; line-height:1.3;">
@@ -47,28 +50,39 @@ window.customConfirm = function(options = {}) {
         const iconBg = document.getElementById('globalConfirmIconBg');
         const dangerIcon = document.getElementById('globalConfirmIconDanger');
         const infoIcon = document.getElementById('globalConfirmIconInfo');
+        const successIcon = document.getElementById('globalConfirmIconSuccess');
 
         const title = typeof options === 'string' ? options : (options.title || 'Confirm Action');
         const message = options.message || options.text || '';
         const confirmText = options.confirmText || 'Confirm';
         const cancelText = options.cancelText || 'Cancel';
         const isDanger = options.isDanger !== false;
+        const type = options.type || (isDanger ? 'danger' : 'info');
 
         titleEl.innerHTML = title;
         msgEl.innerHTML = message;
         okBtn.textContent = confirmText;
         cancelBtn.textContent = cancelText;
 
-        if (isDanger) {
+        if (type === 'success' || options.isSuccess) {
+            iconBg.style.background = 'rgba(16, 185, 129, 0.15)';
+            dangerIcon.style.display = 'none';
+            infoIcon.style.display = 'none';
+            if (successIcon) successIcon.style.display = 'block';
+            okBtn.style.background = '#10b981';
+            okBtn.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+        } else if (isDanger) {
             iconBg.style.background = 'rgba(239, 68, 68, 0.15)';
             dangerIcon.style.display = 'block';
             infoIcon.style.display = 'none';
+            if (successIcon) successIcon.style.display = 'none';
             okBtn.style.background = '#ef4444';
             okBtn.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
         } else {
             iconBg.style.background = 'rgba(59, 130, 246, 0.15)';
             dangerIcon.style.display = 'none';
             infoIcon.style.display = 'block';
+            if (successIcon) successIcon.style.display = 'none';
             okBtn.style.background = '#3b82f6';
             okBtn.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
         }
@@ -96,24 +110,31 @@ window.customConfirm = function(options = {}) {
     });
 };
 
-window.confirmAction = function(event, title = 'Delete Item?', message = 'Are you sure you want to proceed?', isDanger = true, confirmText = null) {
-    if (event.datasetConfirmed === 'true') {
-        delete event.datasetConfirmed;
-        return true;
+window.confirmAction = function(event, title = 'Confirm Action?', message = 'Are you sure you want to proceed?', isDanger = true, confirmText = null, type = null) {
+    if (event) {
+        if (typeof event.stopPropagation === 'function') event.stopPropagation();
+        if (typeof event.preventDefault === 'function') event.preventDefault();
     }
 
-    event.preventDefault();
-    const form = event.target.closest('form') || event.target;
+    const targetEl = event ? (event.target || event.currentTarget) : null;
+    const form = targetEl ? (targetEl.closest ? targetEl.closest('form') : null) || targetEl : null;
+    const resolvedType = type || (isDanger ? 'danger' : 'success');
 
     window.customConfirm({
         title: title,
         message: message,
         confirmText: confirmText || (isDanger ? 'Delete' : 'Confirm'),
-        isDanger: isDanger
+        isDanger: isDanger,
+        type: resolvedType
     }).then((confirmed) => {
-        if (confirmed) {
-            if (form && typeof form.submit === 'function') {
-                form.datasetConfirmed = 'true';
+        if (confirmed && form) {
+            try {
+                if (typeof HTMLFormElement.prototype.submit === 'function') {
+                    HTMLFormElement.prototype.submit.call(form);
+                } else if (typeof form.submit === 'function') {
+                    form.submit();
+                }
+            } catch (err) {
                 form.submit();
             }
         }

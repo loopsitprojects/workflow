@@ -225,26 +225,26 @@
                                 {{-- 1. Submit Button --}}
                                 @if($isDesignerStage && $canDesignerSubmit)
                                     @if($hasSubtasks)
-                                        <form action="{{ route('deliverables.batchSubmit', $task->id) }}" method="POST" style="display:contents;" onclick="event.stopPropagation()">
+                                        <form action="{{ route('deliverables.batchSubmit', $task->id) }}" method="POST" onsubmit="return confirmAction(event, 'Submit Batch?', 'Submit all deliverables in this batch for Manager Review?', false, 'Submit', 'success')" style="display:contents;" onclick="event.stopPropagation()">
                                             @csrf
-                                            <button type="submit" onclick="return confirm('Submit all deliverables in this batch for Manager Review?')" class="quick-action-btn btn-approve-quick" title="Submit Batch">
+                                            <button type="submit" class="quick-action-btn btn-approve-quick" title="Submit Batch">
                                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                                 Submit
                                             </button>
                                         </form>
                                     @else
-                                        <form action="{{ route('deliverables.submit', $task->id) }}" method="POST" style="display:contents;" onclick="event.stopPropagation()">
+                                        <form action="{{ route('deliverables.submit', $task->id) }}" method="POST" onsubmit="return confirmAction(event, 'Submit Deliverable?', 'Submit this deliverable for Manager Review?', false, 'Submit', 'success')" style="display:contents;" onclick="event.stopPropagation()">
                                             @csrf
-                                            <button type="submit" onclick="return confirm('Submit this deliverable for Manager Review?')" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
+                                            <button type="submit" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
                                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                                 Submit
                                             </button>
                                         </form>
                                     @endif
                                 @elseif($isManagerReviewStage && $canManagerReview)
-                                    <form action="{{ route('deliverables.submit', $task->id) }}" method="POST" style="display:contents;">
+                                    <form action="{{ route('deliverables.submit', $task->id) }}" method="POST" onsubmit="return confirmAction(event, 'Approve Deliverable?', 'Approve artwork and close this deliverable?', false, 'Approve', 'success')" style="display:contents;" onclick="event.stopPropagation()">
                                         @csrf
-                                        <button type="submit" onclick="return confirm('Approve artwork and close this deliverable?')" class="quick-action-btn btn-approve-quick" title="Approve">
+                                        <button type="submit" class="quick-action-btn btn-approve-quick" title="Approve">
                                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                             Approve
                                         </button>
@@ -278,7 +278,7 @@
 
                                 {{-- Revise Button (if Manager Review stage) --}}
                                 @if($isManagerReviewStage && $canManagerReview)
-                                    <button type="button" onclick="openDirectRevisionPrompt({{ $task->id }})" class="quick-action-btn btn-revise-quick" title="Request Revisions">
+                                    <button type="button" onclick="openDirectRevisionPrompt({{ $task->id }}, {{ $hasSubtasks ? 'true' : 'false' }})" class="quick-action-btn btn-revise-quick" title="Request Revisions">
                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                         Revise
                                     </button>
@@ -441,17 +441,17 @@
                                     <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
                                         {{-- 1. Submit / Approve Button --}}
                                         @if($subIsDesignerStage && $canSubDesignerSubmit)
-                                            <form action="{{ route('deliverables.submit', $sub->id) }}" method="POST" style="display:contents;" onclick="event.stopPropagation()">
+                                            <form action="{{ route('deliverables.submit', $sub->id) }}" method="POST" onsubmit="return confirmAction(event, 'Submit Deliverable?', 'Submit this deliverable for Manager Review?', false, 'Submit', 'success')" style="display:contents;" onclick="event.stopPropagation()">
                                                 @csrf
-                                                <button type="submit" onclick="return confirm('Submit this deliverable for Manager Review?')" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
+                                                <button type="submit" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
                                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                                     Submit
                                                 </button>
                                             </form>
                                         @elseif($subIsManagerReviewStage && $canSubManagerReview)
-                                            <form action="{{ route('deliverables.submit', $sub->id) }}" method="POST" style="display:contents;">
+                                            <form action="{{ route('deliverables.submit', $sub->id) }}" method="POST" onsubmit="return confirmAction(event, 'Approve Deliverable?', 'Approve artwork and close this deliverable?', false, 'Approve', 'success')" style="display:contents;" onclick="event.stopPropagation()">
                                                 @csrf
-                                                <button type="submit" onclick="return confirm('Approve artwork and close this deliverable?')" class="quick-action-btn btn-approve-quick" title="Approve">
+                                                <button type="submit" class="quick-action-btn btn-approve-quick" title="Approve">
                                                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                                     Approve
                                                 </button>
@@ -466,7 +466,7 @@
 
                                         {{-- 3. Revise Button (if Manager Review stage) --}}
                                         @if($subIsManagerReviewStage && $canSubManagerReview)
-                                            <button type="button" onclick="openDirectRevisionPrompt({{ $sub->id }})" class="quick-action-btn btn-revise-quick" title="Request Revisions">
+                                            <button type="button" onclick="openDirectRevisionPrompt({{ $sub->id }}, false)" class="quick-action-btn btn-revise-quick" title="Request Revisions">
                                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                                 Revise
                                             </button>
@@ -496,13 +496,56 @@
 {{-- Inline Revision Prompt Modal for Direct Design --}}
 <div id="directRevisionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(6px); z-index:99999; align-items:center; justify-content:center;">
     <div style="background:var(--color-bg-primary); border-radius:16px; border:1px solid var(--color-border-primary); max-width:480px; width:90%; padding:24px; box-shadow:0 30px 80px rgba(0,0,0,0.3);">
-        <h3 style="margin:0 0 8px; font-size:16px; font-weight:800; color:var(--color-text-primary);">Request Revisions</h3>
-        <p style="font-size:12px; color:var(--color-text-secondary); margin:0 0 16px;">Describe the revisions required. This deliverable will be routed back to the designer.</p>
+        <h3 id="directRevisionModalTitle" style="margin:0 0 8px; font-size:16px; font-weight:800; color:var(--color-text-primary);">Request Revisions</h3>
+        <p id="directRevisionModalSub" style="font-size:12px; color:var(--color-text-secondary); margin:0 0 16px;">Describe the revisions required. This deliverable will be routed back to the designer.</p>
         
-        <form id="directRevisionForm" method="POST">
+        <form id="directRevisionForm" method="POST" enctype="multipart/form-data">
             @csrf
             <textarea name="revision_instructions" required placeholder="Specify what needs to be changed in the artwork..."
-                      style="width:100%; min-height:100px; padding:12px; background:var(--color-bg-secondary); border:1.5px solid var(--color-border-primary); border-radius:8px; font-family:inherit; font-size:13px; color:var(--color-text-primary); outline:none; resize:vertical; box-sizing:border-box; margin-bottom:16px;"></textarea>
+                      style="width:100%; min-height:100px; padding:12px; background:var(--color-bg-secondary); border:1.5px solid var(--color-border-primary); border-radius:8px; font-family:inherit; font-size:13px; color:var(--color-text-primary); outline:none; resize:vertical; box-sizing:border-box; margin-bottom:14px;"></textarea>
+
+            {{-- Optional Image or File Attachment --}}
+            <div style="margin-bottom:18px;">
+                <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#ef4444; margin-bottom:6px;">
+                    Attach Image or File <span style="font-weight:500; opacity:0.6; text-transform:none; letter-spacing:0;">(optional)</span>
+                </label>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <label for="directRevisionFileInput" style="display:inline-flex; align-items:center; gap:8px; padding:9px 14px; border-radius:8px; border:1.5px dashed rgba(239,68,68,0.35); background:rgba(239,68,68,0.04); cursor:pointer; font-size:12px; font-weight:600; color:#ef4444; transition:all 0.15s;" onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='rgba(239,68,68,0.04)'">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                        <span id="directRevisionFileLabel">Choose file or image…</span>
+                    </label>
+                    <input type="file" id="directRevisionFileInput" name="revision_image" accept="image/*,video/*,application/pdf" style="display:none;" onchange="
+                        const f = this.files[0];
+                        document.getElementById('directRevisionFileLabel').textContent = f ? f.name : 'Choose file or image…';
+                        const prev = document.getElementById('directRevisionFilePreview');
+                        const clearBtn = document.getElementById('directRevisionFileClear');
+                        if (f) {
+                            clearBtn.style.display = 'inline-flex';
+                            if (f.type.startsWith('image/')) {
+                                const r = new FileReader();
+                                r.onload = e => { prev.src = e.target.result; prev.style.display='block'; };
+                                r.readAsDataURL(f);
+                            } else {
+                                prev.style.display = 'none';
+                                prev.src = '';
+                            }
+                        } else {
+                            clearBtn.style.display = 'none';
+                            prev.style.display = 'none';
+                            prev.src = '';
+                        }
+                    ">
+                    <button type="button" id="directRevisionFileClear" style="display:none; padding:6px 10px; background:rgba(239,68,68,0.1); border:none; border-radius:6px; font-size:11px; font-weight:600; color:#ef4444; cursor:pointer;" onclick="
+                        const inp = document.getElementById('directRevisionFileInput');
+                        inp.value = '';
+                        document.getElementById('directRevisionFileLabel').textContent = 'Choose file or image…';
+                        document.getElementById('directRevisionFilePreview').style.display = 'none';
+                        document.getElementById('directRevisionFilePreview').src = '';
+                        this.style.display = 'none';
+                    ">Remove</button>
+                </div>
+                <img id="directRevisionFilePreview" src="" alt="Revision Preview" style="display:none; margin-top:10px; max-width:100%; max-height:180px; border-radius:8px; border:1px solid rgba(239,68,68,0.2); object-fit:contain;">
+            </div>
             
             <div style="display:flex; justify-content:flex-end; gap:8px;">
                 <button type="button" onclick="closeDirectRevisionPrompt()"
@@ -519,15 +562,43 @@
 </div>
 
 <script>
-    function openDirectRevisionPrompt(taskId) {
+    function openDirectRevisionPrompt(taskId, isBatch = false) {
         const modal = document.getElementById('directRevisionModal');
         const form = document.getElementById('directRevisionForm');
-        form.action = `/deliverables/${taskId}/revisions`;
+        form.action = isBatch ? `/deliverables/${taskId}/batch-revisions` : `/deliverables/${taskId}/revisions`;
+        form.reset();
+
+        const title = document.getElementById('directRevisionModalTitle');
+        const sub = document.getElementById('directRevisionModalSub');
+        if (title && sub) {
+            if (isBatch) {
+                title.textContent = 'Request Batch Revisions';
+                sub.textContent = 'Describe the revisions required. All deliverables in this batch will be routed back to the designer.';
+            } else {
+                title.textContent = 'Request Revisions';
+                sub.textContent = 'Describe the revisions required. This deliverable will be routed back to the designer.';
+            }
+        }
+
+        const fileLabel = document.getElementById('directRevisionFileLabel');
+        if (fileLabel) fileLabel.textContent = 'Choose file or image…';
+        const filePrev = document.getElementById('directRevisionFilePreview');
+        if (filePrev) { filePrev.style.display = 'none'; filePrev.src = ''; }
+        const clearBtn = document.getElementById('directRevisionFileClear');
+        if (clearBtn) clearBtn.style.display = 'none';
+
         modal.style.display = 'flex';
     }
 
     function closeDirectRevisionPrompt() {
-        document.getElementById('directRevisionModal').style.display = 'none';
+        const modal = document.getElementById('directRevisionModal');
+        modal.style.display = 'none';
+        const fileLabel = document.getElementById('directRevisionFileLabel');
+        if (fileLabel) fileLabel.textContent = 'Choose file or image…';
+        const filePrev = document.getElementById('directRevisionFilePreview');
+        if (filePrev) { filePrev.style.display = 'none'; filePrev.src = ''; }
+        const clearBtn = document.getElementById('directRevisionFileClear');
+        if (clearBtn) clearBtn.style.display = 'none';
     }
 
     // Populate Fast Track client-side deliverables cache

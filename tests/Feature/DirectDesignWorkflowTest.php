@@ -224,6 +224,45 @@ test('manager can request revisions which returns deliverable to Designer stage'
     expect($task->revisionsHistory)->toHaveCount(1);
 });
 
+test('manager can request revisions with attached image file for direct design deliverable', function () {
+    \Illuminate\Support\Facades\Storage::fake('s3');
+
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-rev-img']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Revision With Image',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $task = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Design Needs Work Image',
+        'flow_type' => 'direct_design',
+        'approval_stage' => 'Manager Review',
+        'designer_id' => $designer->id,
+        'brand_manager_id' => $manager->id,
+        'progress_percent' => 60,
+        'revisions' => 0,
+    ]);
+
+    $file = \Illuminate\Http\UploadedFile::fake()->image('annotation.png');
+
+    $response = $this->actingAs($manager)->post(route('deliverables.revisions', $task->id), [
+        'revision_instructions' => 'See attached reference for the new icon colors.',
+        'revision_image' => $file,
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $task->refresh();
+    expect($task->approval_stage)->toBe('Designer');
+    expect($task->revisionsHistory)->toHaveCount(1);
+    expect($task->revisionsHistory->first()->image_path)->not->toBeNull();
+});
+
 test('fast track deliverable button is displayed on campaign, pitch, and retainer projects', function () {
     $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-fasttrack-btn']);
     $manager = User::factory()->create(['role' => 'Brand Manager']);

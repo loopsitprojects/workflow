@@ -1508,7 +1508,7 @@ class DeliverableController extends Controller
         $validated = $request->validate([
             'revision_instructions' => 'required|string|max:2000',
             'revision_target'       => 'nullable|in:writer,designer',
-            'revision_image'        => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm|max:512000',
+            'revision_image'        => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm,pdf|max:512000',
         ]);
 
         // Handle optional image upload once for the whole batch
@@ -1527,10 +1527,12 @@ class DeliverableController extends Controller
         foreach ($deliverable->subtasks as $subtask) {
             $subStage = $subtask->approval_stage ?: $batchStages[0];
             if ($subStage !== $batchParentStage) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'All subtasks must be at the same stage before a batch revision can be requested.'
-                ], 422);
+                return $request->wantsJson()
+                    ? response()->json([
+                        'success' => false,
+                        'message' => 'All subtasks must be at the same stage before a batch revision can be requested.'
+                    ], 422)
+                    : redirect()->back()->with('error', 'All subtasks must be at the same stage before a batch revision can be requested.');
             }
         }
 
@@ -1543,10 +1545,14 @@ class DeliverableController extends Controller
             }
 
             \Illuminate\Support\Facades\DB::commit();
-            return response()->json(['success' => true, 'message' => 'Batch revisions requested successfully.']);
+            return $request->wantsJson()
+                ? response()->json(['success' => true, 'message' => 'Batch revisions requested successfully.'])
+                : redirect()->back()->with('success', 'Batch revisions requested successfully.');
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Error requesting batch revisions: ' . $e->getMessage()]);
+            return $request->wantsJson()
+                ? response()->json(['success' => false, 'message' => 'Error requesting batch revisions: ' . $e->getMessage()])
+                : redirect()->back()->with('error', 'Error requesting batch revisions: ' . $e->getMessage());
         }
     }
 
