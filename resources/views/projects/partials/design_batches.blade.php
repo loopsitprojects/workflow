@@ -99,14 +99,18 @@
 
                         {{-- Designer --}}
                         <td>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <div style="width:22px; height:22px; border-radius:50%; background:#6366f1; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800;">
-                                    {{ substr($task->designer->name ?? ($task->assignee_name ?? 'D'), 0, 1) }}
+                            @if($hasSubtasks)
+                                <span style="color:var(--color-text-secondary); opacity:0.5; font-size:12px;">—</span>
+                            @else
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <div style="width:22px; height:22px; border-radius:50%; background:#6366f1; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800;">
+                                        {{ substr($task->designer->name ?? ($task->assignee_name ?? 'D'), 0, 1) }}
+                                    </div>
+                                    <span style="font-weight:600; font-size:12px; color:var(--color-text-primary);">
+                                        {{ $task->designer->name ?? ($task->assignee_name ?? 'Unassigned') }}
+                                    </span>
                                 </div>
-                                <span style="font-weight:600; font-size:12px; color:var(--color-text-primary);">
-                                    {{ $task->designer->name ?? ($task->assignee_name ?? 'Unassigned') }}
-                                </span>
-                            </div>
+                            @endif
                         </td>
 
                         {{-- Deadline --}}
@@ -324,7 +328,7 @@
                                 {{-- Designer --}}
                                 <td>
                                     <span style="font-size:11px; color:var(--color-text-secondary);">
-                                        {{ $sub->designer->name ?? ($sub->assignee_name ?? $task->designer->name ?? 'Unassigned') }}
+                                        {{ $sub->designer->name ?? ($sub->assignee_name ?? 'Unassigned') }}
                                     </span>
                                 </td>
 

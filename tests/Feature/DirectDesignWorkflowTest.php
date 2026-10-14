@@ -109,7 +109,7 @@ test('manager can create a direct design batch with subtasks', function () {
     expect($parent)->not->toBeNull();
     expect($parent->flow_type)->toBe('direct_design');
     expect($parent->approval_stage)->toBe('Designer');
-    expect($parent->designer_id)->toBe($designer->id);
+    expect($parent->designer_id)->toBeNull();
     expect($parent->brand_manager_id)->toBe($manager->id);
 
     $subtasks = $parent->subtasks;
@@ -490,4 +490,71 @@ test('brand manager sees fast track deliverables in manager review on dashboard'
     $dashResponse->assertSee('Ready For Review Fast Track');
     $dashResponse->assertSee('Manager Review');
     $dashResponse->assertDontSee('In Design Fast Track');
+});
+
+test('fast track batch deliverable does not put designer for batch and assigns only to deliverables', function () {
+    $brand = Brand::create(['name' => 'Brand Test Fast Track Batch', 'slug' => 'brand-ft-batch']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designerAlice = User::factory()->create(['name' => 'Alice Designer', 'role' => 'Designer']);
+    $designerBob = User::factory()->create(['name' => 'Bob Designer', 'role' => 'Designer']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Fast Track Batch Isolation',
+        'workflow_type' => 'campaign',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $response = $this->actingAs($manager)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'creation_mode' => 'batch',
+        'title' => 'Batch Week 1 Launch',
+        'designer_deadline' => '2026-11-15 18:00',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 20,
+        'concept' => 'Batch creative instructions',
+        'subtasks' => [
+            [
+                'title' => 'Deliverable Alpha',
+                'post_type' => 'Static Post',
+                'designer_id' => $designerAlice->id,
+                'concept' => 'Concept for Alpha',
+            ],
+            [
+                'title' => 'Deliverable Beta',
+                'post_type' => 'Reel',
+                'designer_id' => $designerBob->id,
+                'concept' => 'Concept for Beta',
+            ],
+        ],
+    ]);
+
+    $response->assertRedirect(route('projects.show', $project->id));
+
+    $parent = Deliverable::where('title', 'Batch Week 1 Launch')->first();
+    expect($parent)->not->toBeNull();
+    // Batch parent must NOT have a designer assigned
+    expect($parent->designer_id)->toBeNull();
+    expect($parent->assignee_name)->toBeNull();
+
+    $subtasks = $parent->subtasks;
+    expect($subtasks)->toHaveCount(2);
+
+    // Subtasks MUST have their assigned designers
+    expect($subtasks[0]->title)->toBe('Deliverable Alpha');
+    expect($subtasks[0]->designer_id)->toBe($designerAlice->id);
+    expect($subtasks[0]->assignee_name)->toBe('Alice Designer');
+
+    expect($subtasks[1]->title)->toBe('Deliverable Beta');
+    expect($subtasks[1]->designer_id)->toBe($designerBob->id);
+    expect($subtasks[1]->assignee_name)->toBe('Bob Designer');
+
+    // Verify rendered table in projects.show shows deliverables' designers
+    $projectView = $this->actingAs($manager)->get(route('projects.show', $project->id));
+    $projectView->assertOk();
+    $projectView->assertSee('Batch Week 1 Launch');
+    $projectView->assertSee('Alice Designer');
+    $projectView->assertSee('Bob Designer');
 });

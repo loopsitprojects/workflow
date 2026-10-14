@@ -407,6 +407,39 @@
             border: 1.5px solid var(--color-border-primary);
         }
         .btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--color-text-primary);
+        }
+
+        /* Full-page loading overlay */
+        .full-page-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 999999;
+            background: rgba(11, 17, 32, 0.82);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+        .loading-spinner-ring {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            border: 3.5px solid rgba(255, 255, 255, 0.15);
+            border-top-color: #818cf8;
+            border-right-color: #818cf8;
+            animation: loopSpin 0.75s linear infinite;
+        }
+
         /* Quill Rich Text Editor Dark Mode & Theme */
         .ql-toolbar.ql-snow {
             border: 1.5px solid var(--color-border-primary) !important;
@@ -850,14 +883,13 @@
 
         {{-- Full-page loading overlay --}}
         <div id="pageLoadingOverlay"
+             class="full-page-loading-overlay"
              x-show="isSubmitting"
-             x-cloak
-             style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);flex-direction:column;align-items:center;justify-content:center;gap:16px;"
-             :style="isSubmitting ? 'display:flex !important;' : 'display:none !important;'">
-            <div style="width:52px;height:52px;border-radius:50%;border:3.5px solid rgba(255,255,255,0.18);border-top-color:#818cf8;animation:loopSpin 0.75s linear infinite;"></div>
-            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;">
-                <span style="color:#ffffff;font-size:15px;font-weight:800;letter-spacing:0.02em;" x-text="mode === 'batch' ? 'Creating deliverables batch…' : 'Creating deliverable…'">Creating deliverable…</span>
-                <span style="color:rgba(255,255,255,0.7);font-size:12px;font-weight:500;">Uploading assets and configuring deliverable…</span>
+             x-cloak>
+            <div class="loading-spinner-ring"></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;">
+                <span style="color:#ffffff;font-size:16px;font-weight:800;letter-spacing:0.02em;" x-text="mode === 'batch' ? 'Creating deliverables batch…' : 'Creating deliverable…'">Creating deliverable…</span>
+                <span style="color:rgba(255,255,255,0.75);font-size:13px;font-weight:500;">Uploading assets and configuring deliverable…</span>
             </div>
         </div>
     </div>
@@ -900,6 +932,10 @@
                     }
 
                     this.isSubmitting = true;
+                    const overlay = document.getElementById('pageLoadingOverlay');
+                    if (overlay) {
+                        overlay.style.display = 'flex';
+                    }
                 },
                 init() {
                     this.addSubtask();

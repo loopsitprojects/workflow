@@ -281,9 +281,14 @@ class DeliverableController extends Controller
     private function storeDirectDesignDeliverable(StoreDeliverableRequest $request, array $validated, ?Project $project, ?int $parentId, array $subtasks)
     {
         $creator = auth()->user();
-        $designerId = $validated['designer_id'] ?? (!empty($subtasks[0]['designer_id']) ? $subtasks[0]['designer_id'] : null);
+        $creationMode = $request->input('creation_mode');
+        $isBatch = ($creationMode === 'batch' || (!empty($subtasks) && $creationMode !== 'single'));
+
+        // Fast Track batches do NOT assign a designer to the parent batch; designers are assigned strictly to individual deliverables
+        $batchDesignerFallback = $validated['designer_id'] ?? null;
+        $designerId = $isBatch ? null : ($validated['designer_id'] ?? null);
         $designerUser = $designerId ? User::find($designerId) : null;
-        $designerName = $designerUser?->name ?? 'Unassigned';
+        $designerName = $designerUser?->name ?? ($isBatch ? null : 'Unassigned');
         if (in_array($creator->role, ['Brand Manager', 'Operations Manager'])) {
             $brandManagerId = $creator->id;
         } elseif ($project?->brand_manager_id && in_array($project->brandManager?->role, ['Brand Manager', 'Operations Manager'])) {
@@ -319,8 +324,6 @@ class DeliverableController extends Controller
         $taskData['concept'] = $mainBrief;
         $taskData['notes']   = $mainBrief;
 
-        $creationMode = $request->input('creation_mode');
-
         // If creating a NEW deliverable and exactly 1 subtask is defined without a distinct batch title in batch mode, consolidate into a single standalone deliverable.
         $hasDistinctBatchTitle = !empty($taskData['title']) && !empty($subtasks[0]['title']) && trim(strtolower($taskData['title'])) !== trim(strtolower($subtasks[0]['title']));
         if ($creationMode !== 'single' && !$parentId && count($subtasks) === 1 && !$hasDistinctBatchTitle) {
@@ -333,9 +336,10 @@ class DeliverableController extends Controller
                 $taskData['notes']   = $subConcept;
             }
             $taskData['reference'] = $sub['reference'] ?? ($taskData['reference'] ?? null);
-            if (!empty($sub['designer_id'])) {
-                $taskData['designer_id'] = $sub['designer_id'];
-                $d = User::find($sub['designer_id']);
+            $singleDesignerId = !empty($sub['designer_id']) ? $sub['designer_id'] : $batchDesignerFallback;
+            if ($singleDesignerId) {
+                $taskData['designer_id'] = $singleDesignerId;
+                $d = User::find($singleDesignerId);
                 if ($d) $taskData['assignee_name'] = $d->name;
             }
             $subDeadline = !empty($sub['deadline']) ? $sub['deadline'] : (!empty($sub['designer_deadline']) ? $sub['designer_deadline'] : $taskData['deadline']);
@@ -368,15 +372,20 @@ class DeliverableController extends Controller
         if ($parentId) {
             $parentTask = Deliverable::findOrFail($parentId);
         } else {
+            // For a batch deliverable (when subtasks exist and mode is batch), ensure NO designer on the parent batch
+            if (!empty($subtasks) && $creationMode !== 'single') {
+                $taskData['designer_id'] = null;
+                $taskData['assignee_name'] = null;
+            }
             $parentTask = Deliverable::create($taskData);
         }
 
         if (!empty($subtasks) && $creationMode !== 'single') {
             $existingCount = $parentTask->subtasks()->count();
             foreach ($subtasks as $index => $sub) {
-                $subDesignerId = $sub['designer_id'] ?? $parentTask->designer_id;
-                $subDesignerName = $parentTask->assignee_name;
-                if ($subDesignerId && $subDesignerId != $parentTask->designer_id) {
+                $subDesignerId = $sub['designer_id'] ?? $batchDesignerFallback;
+                $subDesignerName = 'Unassigned';
+                if ($subDesignerId) {
                     $d = User::find($subDesignerId);
                     if ($d) $subDesignerName = $d->name;
                 }
@@ -521,14 +530,22 @@ class DeliverableController extends Controller
                           in_array($user->role, ['Brand Manager', 'Operations Manager']);
             if (!$isAssigned) abort(403, 'Direct design deliverables can only be edited by the assigned designer or manager.');
         } elseif ($deliverable->isOtherDeliverable()) {
-            $isAssigned = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
-                          ($deliverable->designer_id && $user->id == $deliverable->designer_id) ||
-                          ($deliverable->coordinator_id && $user->id == $deliverable->coordinator_id) ||
-                          ($deliverable->brand_manager_id && $user->id == $deliverable->brand_manager_id) ||
-                          ($deliverable->project && $user->id == $deliverable->project->brand_manager_id) ||
-                          $deliverable->canUserRemoveReference($user) ||
-                          $user->isAdmin() ||
-                          in_array($user->role, ['Brand Manager', 'Operations Manager']);
+            $isAssignStage = in_array($deliverable->approval_stage, ['Assign', 'Assignee', 'Writer']) || !$deliverable->approval_stage;
+            $isAssignedPerson = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
+                                ($deliverable->designer_id && $user->id == $deliverable->designer_id) ||
+                                ($deliverable->coordinator_id && $user->id == $deliverable->coordinator_id) ||
+                                ($deliverable->assignee_name && $deliverable->assignee_name === $user->name);
+
+            if ($isAssignStage) {
+                $isAssigned = $user->isAdmin() || $isAssignedPerson;
+            } else {
+                $isAssigned = $user->isAdmin() ||
+                              $isAssignedPerson ||
+                              ($deliverable->brand_manager_id && $user->id == $deliverable->brand_manager_id) ||
+                              ($deliverable->project && $user->id == $deliverable->project->brand_manager_id) ||
+                              $deliverable->canUserRemoveReference($user) ||
+                              in_array($user->role, ['Brand Manager', 'Operations Manager']);
+            }
             if (!$isAssigned) abort(403, 'Other deliverables can only be edited by the assigned person.');
         } else {
             if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
@@ -550,14 +567,22 @@ class DeliverableController extends Controller
                           in_array($user->role, ['Brand Manager', 'Operations Manager']);
             if (!$isAssigned) abort(403, 'Direct design deliverables can only be edited by the assigned designer or manager.');
         } elseif ($deliverable->isOtherDeliverable()) {
-            $isAssigned = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
-                          ($deliverable->designer_id && $user->id == $deliverable->designer_id) ||
-                          ($deliverable->coordinator_id && $user->id == $deliverable->coordinator_id) ||
-                          ($deliverable->brand_manager_id && $user->id == $deliverable->brand_manager_id) ||
-                          ($deliverable->project && $user->id == $deliverable->project->brand_manager_id) ||
-                          $deliverable->canUserRemoveReference($user) ||
-                          $user->isAdmin() ||
-                          in_array($user->role, ['Brand Manager', 'Operations Manager']);
+            $isAssignStage = in_array($deliverable->approval_stage, ['Assign', 'Assignee', 'Writer']) || !$deliverable->approval_stage;
+            $isAssignedPerson = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
+                                ($deliverable->designer_id && $user->id == $deliverable->designer_id) ||
+                                ($deliverable->coordinator_id && $user->id == $deliverable->coordinator_id) ||
+                                ($deliverable->assignee_name && $deliverable->assignee_name === $user->name);
+
+            if ($isAssignStage) {
+                $isAssigned = $user->isAdmin() || $isAssignedPerson;
+            } else {
+                $isAssigned = $user->isAdmin() ||
+                              $isAssignedPerson ||
+                              ($deliverable->brand_manager_id && $user->id == $deliverable->brand_manager_id) ||
+                              ($deliverable->project && $user->id == $deliverable->project->brand_manager_id) ||
+                              $deliverable->canUserRemoveReference($user) ||
+                              in_array($user->role, ['Brand Manager', 'Operations Manager']);
+            }
             if (!$isAssigned) abort(403, 'Other deliverables can only be edited by the assigned person.');
         } else {
             if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
@@ -921,14 +946,22 @@ class DeliverableController extends Controller
             $userRole = strtolower(str_replace(' ', '', $user->role));
 
             if ($deliverable->isOtherDeliverable()) {
-                $isAssigned = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
-                              ($deliverable->designer_id && $user->id == $deliverable->designer_id) ||
-                              ($deliverable->coordinator_id && $user->id == $deliverable->coordinator_id) ||
-                              ($deliverable->brand_manager_id && $user->id == $deliverable->brand_manager_id) ||
-                              ($deliverable->project && $user->id == $deliverable->project->brand_manager_id) ||
-                              $deliverable->canUserRemoveReference($user) ||
-                              $user->isAdmin() ||
-                              in_array($user->role, ['Brand Manager', 'Operations Manager']);
+                $isAssignStage = in_array($deliverable->approval_stage, ['Assign', 'Assignee', 'Writer']) || !$deliverable->approval_stage;
+                $isAssignedPerson = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
+                                    ($deliverable->designer_id && $user->id == $deliverable->designer_id) ||
+                                    ($deliverable->coordinator_id && $user->id == $deliverable->coordinator_id) ||
+                                    ($deliverable->assignee_name && $deliverable->assignee_name === $user->name);
+
+                if ($isAssignStage) {
+                    $isAssigned = $user->isAdmin() || $isAssignedPerson;
+                } else {
+                    $isAssigned = $user->isAdmin() ||
+                                  $isAssignedPerson ||
+                                  ($deliverable->brand_manager_id && $user->id == $deliverable->brand_manager_id) ||
+                                  ($deliverable->project && $user->id == $deliverable->project->brand_manager_id) ||
+                                  $deliverable->canUserRemoveReference($user) ||
+                                  in_array($user->role, ['Brand Manager', 'Operations Manager']);
+                }
                 if (!$isAssigned) {
                     abort(403, 'Other deliverables can only be edited by the assigned person.');
                 }
