@@ -870,7 +870,7 @@
                                                 }
 
                                                 $isGated = !$allReady;
-                                                $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "'}";
+                                                $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "', currentStage: '" . addslashes($stage) . "'}";
                                             @endphp
                                             <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px;">
                                                 {{-- Stage badge --}}
@@ -1089,7 +1089,7 @@
                                                 @endphp
 
                                                 @php
-                                                    $subStakeholders = "{approver: " . ($subtask->approver_id ?? 'null') . ", brand_manager: " . ($subtask->brand_manager_id ?? 'null') . ", coordinator: " . ($subtask->coordinator_id ?? 'null') . ", designer: " . ($subtask->designer_id ?? 'null') . ", writerName: '" . addslashes($subtask->writer->name ?? '') . "', approverName: '" . addslashes($subtask->approver->name ?? $project->approver->name ?? '') . "'}";
+                                                    $subStakeholders = "{approver: " . ($subtask->approver_id ?? 'null') . ", brand_manager: " . ($subtask->brand_manager_id ?? 'null') . ", coordinator: " . ($subtask->coordinator_id ?? 'null') . ", designer: " . ($subtask->designer_id ?? 'null') . ", writerName: '" . addslashes($subtask->writer->name ?? '') . "', approverName: '" . addslashes($subtask->approver->name ?? $project->approver->name ?? '') . "', currentStage: '" . addslashes($subStage) . "'}";
                                                 @endphp
                                                 @if($subtask->revision_instructions)
                                                     <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
@@ -1322,7 +1322,7 @@
                                                 @endphp
 
                                                 @php
-                                                    $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "'}";
+                                                    $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "', currentStage: '" . addslashes($stage) . "'}";
                                                 @endphp
                                                 @if($task->revision_instructions)
                                                     <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" class="quick-action-btn" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);">
@@ -3232,33 +3232,6 @@
 
         // Handle AJAX submission of the task stage form to prevent modal closing on validation error
         document.addEventListener('DOMContentLoaded', function() {
-            // Mutual exclusion for Further Approver and Brand Manager
-            const furtherApproverSelect = document.getElementById('batchFurtherApproverSelect');
-            const stakeholderSelect = document.getElementById('batchStakeholderSelect');
-
-            if (furtherApproverSelect && stakeholderSelect) {
-                furtherApproverSelect.addEventListener('change', function() {
-                    if (this.value) {
-                        stakeholderSelect.value = '';
-                        stakeholderSelect.disabled = true;
-                    } else {
-                        stakeholderSelect.disabled = false;
-                    }
-                });
-
-                stakeholderSelect.addEventListener('change', function() {
-                    // Only apply mutual exclusion if both are visible (i.e. at Approver stage)
-                    const furtherApproverGroup = document.getElementById('batchFurtherApproverGroup');
-                    if (furtherApproverGroup && furtherApproverGroup.style.display !== 'none') {
-                        if (this.value) {
-                            furtherApproverSelect.value = '';
-                            furtherApproverSelect.disabled = true;
-                        } else {
-                            furtherApproverSelect.disabled = false;
-                        }
-                    }
-                });
-            }
 
             // Auto-save selects (like Designer assignment)
             document.querySelectorAll('.batch-field-select').forEach(select => {
@@ -3529,10 +3502,10 @@
                     </div>
                 </div>
                 <!-- Further Approver (optional, shown at Approver → Brand Manager) -->
-                <div id="batchFurtherApproverGroup" style="display:none; margin-bottom:20px; padding:16px; border-radius:12px; border:1.5px solid rgba(124,58,237,0.15); background:rgba(124,58,237,0.04);">
+                <div id="batchFurtherApproverGroup" style="display:none; margin-top:20px; margin-bottom:20px; padding:16px; border-radius:12px; border:1.5px solid rgba(124,58,237,0.15); background:rgba(124,58,237,0.04);">
                     <label class="detail-label" style="color:#7c3aed; margin-bottom:6px;">
                         Further Approver
-                        <span style="font-size:10px; font-weight:500; color:var(--color-text-secondary);">(optional — adds another approval step before Brand Manager)</span>
+                        <span id="batchFurtherApproverHint" style="font-size:10px; font-weight:500; color:var(--color-text-secondary);">(optional — adds another approval step before Brand Manager)</span>
                     </label>
                     <div style="position:relative;">
                         <select id="batchFurtherApproverSelect" class="batch-select" style="border-color:rgba(124,58,237,0.2);">
@@ -3670,7 +3643,8 @@
             const furtherApproverSelect = document.getElementById('batchFurtherApproverSelect');
             const furtherApproverLabel = furtherApproverGroup ? furtherApproverGroup.querySelector('label') : null;
             if (furtherApproverGroup) {
-                const isApproverStage = (type === 'submit' && nextStage === 'Further Approver');
+                const currentStage = stakeholders.currentStage || null;
+                const isApproverStage = (type === 'submit' && (nextStage === 'Further Approver' || currentStage === 'Approver'));
                 const showFurther = isApproverStage;
                 furtherApproverGroup.style.display = showFurther ? 'block' : 'none';
                 if (furtherApproverSelect) {
@@ -3698,6 +3672,14 @@
                         opt.textContent = u.name;
                         furtherApproverSelect.appendChild(opt);
                     });
+
+                    furtherApproverSelect.onchange = function() {
+                        if (this.value) {
+                            subtitle.textContent = isIndividual ? `Submitting this task to the Further Approver stage.` : `Preparing to submit ${count} tasks to Further Approver stage.`;
+                        } else {
+                            subtitle.textContent = isIndividual ? `Submitting this task to the Brand Manager stage.` : `Preparing to submit ${count} tasks to Brand Manager stage.`;
+                        }
+                    };
                 }
             }
 
@@ -3909,8 +3891,10 @@
                 furtherApproverSelectEl.closest('#batchFurtherApproverGroup')?.style.display !== 'none' &&
                 furtherApproverSelectEl.value;
 
+            const isApproverFlow = (currentBatchNextStage === 'Further Approver' || (currentBatchStakeholders.currentStage === 'Approver' && currentBatchNextStage === 'Brand Manager'));
+
             // If the user selected a Further Approver, we do not STRICTLY require a Brand Manager to be selected right now.
-            if (currentBatchNextStage === 'Further Approver' && stakeholderRole && stakeholderSelect.style.display !== 'none') {
+            if (isApproverFlow && stakeholderRole && stakeholderSelect.style.display !== 'none') {
                 assigneeId = stakeholderSelect.value;
                 if (!assigneeId && !hasFurtherApprover) {
                     alert('Please select a Brand Manager for this task.');
