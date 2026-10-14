@@ -548,18 +548,25 @@
             </div>
             
             <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button type="button" onclick="closeDirectRevisionPrompt()"
-                        style="padding:8px 16px; background:transparent; border:1.5px solid var(--color-border-primary); border-radius:8px; font-size:12px; font-weight:600; color:var(--color-text-secondary); cursor:pointer;">
+                <button type="button" id="directRevisionCancelBtn" onclick="closeDirectRevisionPrompt()"
+                        style="padding:8px 16px; background:transparent; border:1.5px solid var(--color-border-primary); border-radius:8px; font-size:12px; font-weight:600; color:var(--color-text-secondary); cursor:pointer; transition:all 0.15s;">
                     Cancel
                 </button>
-                <button type="submit"
-                        style="padding:8px 18px; background:#ef4444; border:none; border-radius:8px; font-size:12px; font-weight:700; color:#fff; cursor:pointer;">
-                    Send to Designer
+                <button type="submit" id="directRevisionSubmitBtn"
+                        style="padding:8px 18px; background:#ef4444; border:none; border-radius:8px; font-size:12px; font-weight:700; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all 0.15s;">
+                    <span>Send to Designer</span>
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<style>
+@keyframes directSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
 
 <script>
     function openDirectRevisionPrompt(taskId, isBatch = false) {
@@ -567,6 +574,20 @@
         const form = document.getElementById('directRevisionForm');
         form.action = isBatch ? `/deliverables/${taskId}/batch-revisions` : `/deliverables/${taskId}/revisions`;
         form.reset();
+
+        const btn = document.getElementById('directRevisionSubmitBtn');
+        const cancelBtn = document.getElementById('directRevisionCancelBtn');
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+            btn.innerHTML = '<span>Send to Designer</span>';
+        }
+        if (cancelBtn) {
+            cancelBtn.disabled = false;
+            cancelBtn.style.opacity = '1';
+            cancelBtn.style.cursor = 'pointer';
+        }
 
         const title = document.getElementById('directRevisionModalTitle');
         const sub = document.getElementById('directRevisionModalSub');
@@ -593,6 +614,21 @@
     function closeDirectRevisionPrompt() {
         const modal = document.getElementById('directRevisionModal');
         modal.style.display = 'none';
+
+        const btn = document.getElementById('directRevisionSubmitBtn');
+        const cancelBtn = document.getElementById('directRevisionCancelBtn');
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+            btn.innerHTML = '<span>Send to Designer</span>';
+        }
+        if (cancelBtn) {
+            cancelBtn.disabled = false;
+            cancelBtn.style.opacity = '1';
+            cancelBtn.style.cursor = 'pointer';
+        }
+
         const fileLabel = document.getElementById('directRevisionFileLabel');
         if (fileLabel) fileLabel.textContent = 'Choose file or image…';
         const filePrev = document.getElementById('directRevisionFilePreview');
@@ -600,6 +636,33 @@
         const clearBtn = document.getElementById('directRevisionFileClear');
         if (clearBtn) clearBtn.style.display = 'none';
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const revForm = document.getElementById('directRevisionForm');
+        if (revForm) {
+            revForm.addEventListener('submit', function() {
+                const btn = document.getElementById('directRevisionSubmitBtn');
+                const cancelBtn = document.getElementById('directRevisionCancelBtn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.75';
+                    btn.style.cursor = 'not-allowed';
+                    btn.innerHTML = `
+                        <svg style="width:13px; height:13px; animation:directSpin 0.75s linear infinite;" fill="none" viewBox="0 0 24 24">
+                            <circle style="opacity:0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path style="opacity:0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Sending...</span>
+                    `;
+                }
+                if (cancelBtn) {
+                    cancelBtn.disabled = true;
+                    cancelBtn.style.opacity = '0.5';
+                    cancelBtn.style.cursor = 'not-allowed';
+                }
+            });
+        }
+    });
 
     // Populate Fast Track client-side deliverables cache
     window.projectDeliverables = window.projectDeliverables || {};
