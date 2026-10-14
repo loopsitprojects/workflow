@@ -24,7 +24,64 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @php
+        $defaultManifest = public_path('build/manifest.json');
+        $altManifests = [
+            $defaultManifest,
+            base_path('public/build/manifest.json'),
+            base_path('public_html/build/manifest.json'),
+            base_path('public_html/public/build/manifest.json'),
+            dirname(public_path()) . '/build/manifest.json',
+        ];
+        $foundManifest = null;
+        foreach ($altManifests as $mPath) {
+            if (file_exists($mPath)) {
+                $foundManifest = $mPath;
+                break;
+            }
+        }
+    @endphp
+
+    @if($foundManifest && $foundManifest === $defaultManifest)
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @elseif($foundManifest)
+        @php
+            $manifestData = json_decode(file_get_contents($foundManifest), true) ?: [];
+            $cssEntry = $manifestData['resources/css/app.css']['file'] ?? null;
+            $jsEntry  = $manifestData['resources/js/app.js']['file'] ?? null;
+        @endphp
+        @if($cssEntry)
+            <link rel="stylesheet" href="{{ asset('build/' . $cssEntry) }}">
+        @endif
+        @if($jsEntry)
+            <script type="module" src="{{ asset('build/' . $jsEntry) }}"></script>
+        @endif
+    @else
+        @php
+            $cssFile = null;
+            $jsFile  = null;
+            $assetDirs = [
+                public_path('build/assets'),
+                base_path('public_html/public/build/assets'),
+                base_path('public_html/build/assets'),
+            ];
+            foreach ($assetDirs as $dir) {
+                if (is_dir($dir)) {
+                    foreach (scandir($dir) as $f) {
+                        if (str_ends_with($f, '.css') && str_starts_with($f, 'app-')) $cssFile = $f;
+                        if (str_ends_with($f, '.js') && str_starts_with($f, 'app-')) $jsFile = $f;
+                    }
+                    if ($cssFile || $jsFile) break;
+                }
+            }
+        @endphp
+        @if($cssFile)
+            <link rel="stylesheet" href="{{ asset('build/assets/' . $cssFile) }}">
+        @endif
+        @if($jsFile)
+            <script type="module" src="{{ asset('build/assets/' . $jsFile) }}"></script>
+        @endif
+    @endif
     
     <!-- Quill.js for rich text editing -->
     <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
