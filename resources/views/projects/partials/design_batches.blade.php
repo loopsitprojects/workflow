@@ -76,9 +76,6 @@
                                     <svg width="14" height="14" fill="{{ $taskPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
                                         <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
                                     </svg>
-                                    @if($taskPrio === 'High Priority')
-                                        <span style="font-size:9px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); padding:1px 5px; border-radius:4px; text-transform:uppercase; letter-spacing:0.04em;">High</span>
-                                    @endif
                                 </span>
                                 <div>
                                     <div style="font-weight:700; color:var(--color-text-primary);">{{ $task->title }}</div>
@@ -306,9 +303,6 @@
                                             <svg width="14" height="14" fill="{{ $subPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
                                                 <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
                                             </svg>
-                                            @if($subPrio === 'High Priority')
-                                                <span style="font-size:9px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); padding:1px 5px; border-radius:4px; text-transform:uppercase; letter-spacing:0.04em;">High</span>
-                                            @endif
                                         </span>
                                         <div>
                                             <div style="font-weight:600; font-size:12px; color:var(--color-text-primary);">{{ $sub->title }}</div>
