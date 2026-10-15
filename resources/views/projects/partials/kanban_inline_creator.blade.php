@@ -11,8 +11,17 @@
      style="background: var(--color-bg-primary); border: 1.5px solid #64748b; border-radius: 12px; padding: 12px 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 8px;">
     
     <form onsubmit="submitInlineTask(event, '{{ $creatorKey }}', '{{ $colStatus }}')">
-        {{-- Row 1: Title Input + Save Button (Matching reference) --}}
-        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
+        {{-- Top Header: Stage on top very small --}}
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
+            <div style="display: inline-flex; align-items: center; gap: 4px;">
+                <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                    {{ $colStatus }}
+                </span>
+            </div>
+        </div>
+
+        {{-- Row 1: Title Input (clean, full-width) --}}
+        <div style="margin-bottom: 8px;">
             <input type="text" 
                    name="task_title" 
                    placeholder="Task Name…" 
@@ -20,14 +29,6 @@
                    autocomplete="off"
                    style="width: 100%; border: none; background: transparent; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); outline: none; padding: 2px 0;"
                    onkeydown="if(event.key === 'Enter') { event.preventDefault(); submitInlineTask(event, '{{ $creatorKey }}', '{{ $colStatus }}'); } else if(event.key === 'Escape') { closeInlineCreator('{{ $creatorKey }}'); }">
-            
-            <button type="submit" 
-                    style="background: #e2e8f0; dark:background: #334155; color: #1e293b; dark:color: #f8fafc; border: none; border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; gap: 3px; transition: all 0.15s;"
-                    onmouseover="this.style.background='#cbd5e1'"
-                    onmouseout="this.style.background='#e2e8f0'">
-                <span>Save</span>
-                <span style="font-size: 11px; opacity: 0.7;">↵</span>
-            </button>
         </div>
 
         {{-- Row 2: List / Post Type selector --}}
@@ -97,12 +98,19 @@
             </div>
         </div>
 
-        {{-- Footer actions: Cancel --}}
-        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 8px; padding-top: 6px;">
+        {{-- Footer actions: Cancel & Save on right (All buttons at the bottom) --}}
+        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
             <button type="button" 
                     onclick="closeInlineCreator('{{ $creatorKey }}')"
-                    style="background: transparent; border: none; font-size: 11px; font-weight: 700; color: var(--color-text-secondary); cursor: pointer; padding: 2px 6px;">
+                    style="background: transparent; border: none; font-size: 11.5px; font-weight: 700; color: var(--color-text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 6px;">
                 Cancel
+            </button>
+            <button type="submit" 
+                    style="background: #e2e8f0; dark:background: #334155; color: #1e293b; dark:color: #f8fafc; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s;"
+                    onmouseover="this.style.background='#cbd5e1'"
+                    onmouseout="this.style.background='#e2e8f0'">
+                <span>Save</span>
+                <span style="font-size: 11px; opacity: 0.7;">↵</span>
             </button>
         </div>
     </form>

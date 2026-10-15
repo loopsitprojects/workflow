@@ -56,11 +56,16 @@
     {{-- COLLAPSED CARD VIEW                                       --}}
     {{-- ========================================================= --}}
     <div class="kanban-card-view" id="kanban-card-view-{{ $task->id }}">
-        {{-- Card Header: Type & Assignee --}}
+        {{-- Card Header: Type, Stage & Assignee --}}
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
-            <span id="card-view-post-type-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
-                {{ $postTypeLabel }}
-            </span>
+            <div style="display: inline-flex; align-items: center; gap: 4px;">
+                <span id="card-view-post-type-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                    {{ $postTypeLabel }}
+                </span>
+                <span id="card-view-stage-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                    {{ $stage }}
+                </span>
+            </div>
             <span id="card-view-assignee-badge-{{ $task->id }}" 
                   style="font-size: 10px; font-weight: 700; color: {{ $hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--color-bg-secondary)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--color-border-primary)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;" 
                   title="{{ $hasAssignee ? 'Assigned to ' . $assigneeFullName : 'No assignee' }}">
@@ -115,8 +120,23 @@
     {{-- ========================================================= --}}
     <div class="kanban-card-editor" id="kanban-card-editor-{{ $task->id }}" style="display: none;" onclick="event.stopPropagation()">
         <form onsubmit="submitInlineCardEdit(event, {{ $task->id }})">
-            {{-- Row 1: Title Input + Save Button --}}
-            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
+            {{-- Top Header: Stage on top very small --}}
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
+                <div style="display: inline-flex; align-items: center; gap: 4px;">
+                    <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                        {{ $postTypeLabel }}
+                    </span>
+                    <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                        {{ $stage }}
+                    </span>
+                </div>
+                <span style="font-size: 10px; font-weight: 700; color: {{ $hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--color-bg-secondary)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--color-border-primary)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ $assigneeDisplay }}
+                </span>
+            </div>
+
+            {{-- Row 1: Title Input (clean, full-width) --}}
+            <div style="margin-bottom: 8px;">
                 <input type="text" 
                        name="task_title" 
                        id="card-input-title-{{ $task->id }}"
@@ -126,15 +146,6 @@
                        autocomplete="off"
                        style="width: 100%; border: none; background: transparent; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); outline: none; padding: 2px 0;"
                        onkeydown="if(event.key === 'Enter') { event.preventDefault(); submitInlineCardEdit(event, {{ $task->id }}); } else if(event.key === 'Escape') { toggleCardEditor({{ $task->id }}, false); }">
-                
-                <button type="submit" 
-                        id="card-btn-save-{{ $task->id }}"
-                        style="background: #e2e8f0; dark:background: #334155; color: #1e293b; dark:color: #f8fafc; border: none; border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; gap: 3px; transition: all 0.15s;"
-                        onmouseover="this.style.background='#cbd5e1'"
-                        onmouseout="this.style.background='#e2e8f0'">
-                    <span>Save</span>
-                    <span style="font-size: 11px; opacity: 0.7;">↵</span>
-                </button>
             </div>
 
             {{-- Row 2: Deliverable Type (Locked once set) --}}
@@ -203,20 +214,30 @@
                 </div>
             </div>
 
-            {{-- Footer actions: Details and Cancel --}}
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px;">
+            {{-- Footer actions: Details on left, Cancel & Save on right (All buttons at the bottom) --}}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
                 <button type="button" 
                         onclick="event.stopPropagation(); openTaskModal({{ $task->id }})"
-                        style="background: transparent; border: none; font-size: 11px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 2px 4px; display: inline-flex; align-items: center; gap: 3px;"
+                        style="background: transparent; border: none; font-size: 11px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 3px 4px; display: inline-flex; align-items: center; gap: 3px;"
                         title="Open full view with briefs, assets and artwork">
                     <span>Details</span>
                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                 </button>
-                <button type="button" 
-                        onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false)"
-                        style="background: transparent; border: none; font-size: 11px; font-weight: 700; color: var(--color-text-secondary); cursor: pointer; padding: 2px 6px;">
-                    Cancel
-                </button>
+                <div style="display: inline-flex; align-items: center; gap: 8px;">
+                    <button type="button" 
+                            onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false)"
+                            style="background: transparent; border: none; font-size: 11.5px; font-weight: 700; color: var(--color-text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 6px;">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            id="card-btn-save-{{ $task->id }}"
+                            style="background: #e2e8f0; dark:background: #334155; color: #1e293b; dark:color: #f8fafc; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s;"
+                            onmouseover="this.style.background='#cbd5e1'"
+                            onmouseout="this.style.background='#e2e8f0'">
+                        <span>Save</span>
+                        <span style="font-size: 11px; opacity: 0.7;">↵</span>
+                    </button>
+                </div>
             </div>
         </form>
     </div>
