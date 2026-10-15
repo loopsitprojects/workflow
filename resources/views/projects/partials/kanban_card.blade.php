@@ -53,17 +53,9 @@
     </div>
 
     {{-- Title --}}
-    <h4 style="margin: 0 0 8px 0; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); line-height: 1.35; letter-spacing: -0.01em;">
+    <h4 style="margin: 0 0 10px 0; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); line-height: 1.35; letter-spacing: -0.01em;">
         {{ $task->title }}
     </h4>
-
-    {{-- Subtasks Badge if any --}}
-    @if($subtasksCount > 0)
-    <div style="margin-bottom: 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 4px; padding: 1px 6px;">
-        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-        <span>{{ $subtasksCount }} {{ \Illuminate\Support\Str::plural('subtask', $subtasksCount) }}</span>
-    </div>
-    @endif
 
     {{-- Metadata Footer Row (matching reference screenshot) --}}
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px solid var(--color-border-primary); margin-top: 4px;">

@@ -54,36 +54,146 @@
             </thead>
             <tbody>
                 @forelse($outlineTasks as $task)
-                    @php
-                        $outlineSubtasks = $task->subtasks->filter(function($s) use ($task) {
-                            $type = strtolower(trim($s->post_type ?? ($task->post_type ?? '')));
-                            return $type === 'outlines' || $type === 'outline';
-                        });
-                    @endphp
-                    @if($outlineSubtasks->count() > 0)
-                        {{-- Heading Row for Deliverable with Subtasks --}}
-                        <tr class="rtb-heading-row" style="background:var(--color-bg-secondary); border-left:3px solid #3b82f6; cursor:pointer;" onclick="toggleSubtasks(event, {{ $task->id }})">
-                            <td colspan="4">
-                                <div class="deliverable-name-cell" style="padding: 8px 0; display:flex; align-items:center; gap:10px;">
-                                    <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle active" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:6px; outline:none;"></button>
-                                    @php
-                                        $taskPrio = $task->priority ?? 'Medium';
-                                        $taskPrioColor = $taskPrio === 'High Priority' ? '#ef4444' : '#10b981';
-                                    @endphp
-                                    <span onclick="event.stopPropagation(); openPriorityInlineEditor(event, {{ $task->id }}, '{{ $taskPrio }}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="{{ $taskPrio }} (Click to edit)">
-                                        <svg width="14" height="14" fill="{{ $taskPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
-                                            <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
-                                        </svg>
-                                    </span>
-                                    <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:800; color:var(--color-text-primary); font-size:13px; letter-spacing:-0.01em;">{{ $task->title }}</span>
-                                    <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary); background:var(--color-bg-primary); border:1px solid var(--color-border-primary); padding:2px 7px; border-radius:6px;">{{ $outlineSubtasks->count() }} posts</span>
+                    {{-- Standalone Outline Deliverable --}}
+                    <tr class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
+                        @php
+                            $canEditStandalone = $isAdmin || (($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || auth()->id() == $task->writer_id));
+                        @endphp
+                        <td>
+                            <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
+                                @php
+                                    $taskPrio = $task->priority ?? 'Medium';
+                                    $taskPrioColor = $taskPrio === 'High Priority' ? '#ef4444' : '#10b981';
+                                @endphp
+                                <span onclick="event.stopPropagation(); openPriorityInlineEditor(event, {{ $task->id }}, '{{ $taskPrio }}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="{{ $taskPrio }} (Click to edit)">
+                                    <svg width="14" height="14" fill="{{ $taskPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
+                                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
+                                    </svg>
+                                </span>
+                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:var(--color-text-primary);">{{ $task->title }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
+                            <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                            @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
+                                <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                    <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}
                                 </div>
-                            </td>
-                            <td colspan="7" style="padding-right:15px;" onclick="event.stopPropagation()">
+                            @endif
+                        </td>
+                        <td onclick="event.stopPropagation()">
+                            @if($task->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ html_entity_decode(strip_tags($task->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                        </td>
+                        <td onclick="event.stopPropagation()">
+                            @if($task->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Copy',{{ json_encode($task->post_copy) }})">{{ html_entity_decode(strip_tags($task->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                        </td>
+                        <td onclick="event.stopPropagation()">
+                            @if($task->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($task->caption) }})">{{ html_entity_decode(strip_tags($task->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                        </td>
+                        <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
+                            @php
+                                $taskRefFiles = $task->getReferenceFilesArray();
+                                $taskRefUrls  = $task->getReferenceUrlsArray();
+                                $totalTaskRefFiles = count($taskRefFiles);
+                                $totalTaskRefUrls  = count($taskRefUrls);
+                                $totalTaskRefs     = $totalTaskRefFiles + $totalTaskRefUrls;
+                            @endphp
+                            @if($totalTaskRefs === 1 && $totalTaskRefFiles === 1)
+                                @php $singleRef = $taskRefFiles[0]; @endphp
+                                @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
+                                    @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
+                                        <video src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Video" preload="metadata"></video>
+                                    @else
+                                        <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Image">
+                                    @endif
+                                @else
+                                    <a href="{{ $singleRef }}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:6px; background:rgba(0,85,212,0.08); border:1px solid rgba(0,85,212,0.25); color:#0055D4; font-size:10px; font-weight:700; text-decoration:none;" title="Download / View Attachment">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        File
+                                    </a>
+                                @endif
+                            @elseif($totalTaskRefs === 1 && $totalTaskRefUrls === 1)
+                                <a href="{{ $taskRefUrls[0] }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4);" title="Visit Link">
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                </a>
+                            @elseif($totalTaskRefs > 1)
+                                <button type="button" onclick="openMediaGallery('Reference Media', {{ json_encode($taskRefFiles) }}, {{ json_encode($taskRefUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskRefs }} references">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    Ref ({{ $totalTaskRefs }})
+                                </button>
+                            @else
+                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
+                            @endif
+                        </td>
+                        <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
+                            @php
+                                $taskArtFiles = $task->getFinalDesignsArray();
+                                $taskArtUrls  = $task->getFinalDesignsUrlsArray();
+                                $totalTaskArtFiles = count($taskArtFiles);
+                                $totalTaskArtUrls  = count($taskArtUrls);
+                                $totalTaskArt      = $totalTaskArtFiles + $totalTaskArtUrls;
+                            @endphp
+                            @if($totalTaskArt === 1 && $totalTaskArtFiles === 1)
+                                @php $singleArt = $taskArtFiles[0]; @endphp
+                                @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $singleArt))
+                                    @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
+                                        <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Video" preload="metadata"></video>
+                                    @else
+                                        <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Artwork">
+                                    @endif
+                                @else
+                                    <a href="{{ $singleArt }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
+                                @endif
+                            @elseif($totalTaskArt === 1 && $totalTaskArtUrls === 1)
+                                <a href="{{ $taskArtUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
+                            @elseif($totalTaskArt > 1)
+                                <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($taskArtFiles) }}, {{ json_encode($taskArtUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskArt }} artworks">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    Artwork ({{ $totalTaskArt }})
+                                </button>
+                            @else
+                                <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
+                            @endif
+                        </td>
+                        <td>
+                            @php
+                                $taskRevHistory = $task->getRelation('revisionsHistory') ?? $task->revisionsHistory ?? collect();
+                                $taskRevs = max((int)($task->revisions ?? 0), $taskRevHistory->count());
+                            @endphp
+                            <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
+                                @if($taskRevs > 0)
+                                    <span @if($task->revision_instructions) onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" @endif style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;{{ $task->revision_instructions ? 'cursor:pointer;' : '' }}" title="{{ $taskRevs }} Revision(s){{ $task->revision_instructions ? ' (Click to view)' : '' }}"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $taskRevs }}</span>
+                                @else
+                                    <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
+                                @endif
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ (in_array(strtolower($task->approval_stage ?? ''), ['writer', 'assign', 'assignee']) || empty($task->approval_stage)) ? 'Assignee' : (in_array(strtolower($task->approval_stage ?? ''), ['close', 'closed']) ? 'Closed' : $task->approval_stage) }}</div>
+                        </td>
+                        <td>
+                            @if($isAdmin || $userRole === 'brandmanager')
+                                <select onchange="updateClientStatusInline(this, {{ $task->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
+                                    <option value="Not Sent" {{ !$task->client_status || $task->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
+                                    <option value="Sent to Client" {{ $task->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
+                                    <option value="Waiting for Feedback" {{ $task->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
+                                    <option value="Client Approved" {{ $task->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
+                                    <option value="Client Revisions" {{ $task->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
+                                </select>
+                            @else
+                                <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                    {{ $task->client_status ?: 'Not Sent' }}
+                                </div>
+                            @endif
+                        </td>
+                        <td style="text-align:center; padding: 12px 8px;">
+                            <div class="quick-actions-grid">
                                 @php
                                     $stage = $task->approval_stage;
                                     $nextStage = $task->getNextStage();
-                                    $canApproveBatch = $isAdmin || (
+                                    $canApprove = $isAdmin || (
                                         (in_array($stage, ['Writer', 'Assignee', 'Writer Review']) && in_array($userRole, ['writer', 'assignee']) && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
                                         (in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
                                         ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId)) ||
@@ -91,364 +201,48 @@
                                         ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator', 'operationsmanager']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
                                         ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
                                     );
-                                    $subtasks = $outlineSubtasks;
-                                    $totalInBatch = $subtasks->count();
-                                    $normalizeCampaignStage = fn($s) => (in_array(strtolower($s ?? ''), ['writer', 'assign', 'assignee']) || empty($s)) ? 'Assignee' : (in_array(strtolower($s ?? ''), ['close', 'closed']) ? 'Closed' : $s);
-                                    $parentStageNorm = $normalizeCampaignStage($stage);
-                                    $readyInBatch = $subtasks->filter(fn($t) => $normalizeCampaignStage($t->approval_stage) === $parentStageNorm)->count();
-                                    $allReady = $readyInBatch === $totalInBatch;
-                                    $isGated = !$allReady;
-                                    $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
+                                    $canReviseOutline = $isAdmin || (
+                                        in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) &&
+                                        in_array($userRole, ['brandmanager', 'operationsmanager']) &&
+                                        (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)
+                                    );
+                                    $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
                                 @endphp
-                                <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px;">
-                                    <span style="font-size:10px; font-weight:700; color:#3b82f6; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); padding:3px 9px; border-radius:6px;">
-                                        {{ $normalizeCampaignStage($task->approval_stage) }}
-                                    </span>
-                                    <div style="display:flex; align-items:center; gap:6px;">
-                                        <a href="{{ route('deliverables.showBatch', $task->id) }}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:7px;text-decoration:none;white-space:nowrap;">View</a>
-                                        <button type="button" onclick="openAddPostTypeModal(event, {{ $task->id }}, '{{ $project->workflow_type }}', '{{ $task->post_type }}')" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:7px;cursor:pointer;white-space:nowrap; outline:none;">
-                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                                            Add Deliverable
-                                        </button>
-                                        @if($canApproveBatch && $nextStage)
-                                            <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }})"
-                                                    style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; background:#0055D4; color:#fff; border:1px solid #0055D4; cursor:pointer;" {{ $isGated ? 'disabled' : '' }}>
-                                                Approve Batch
-                                            </button>
-                                        @endif
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                        @foreach($outlineSubtasks as $subIndex => $subtask)
-                            @php
-                                $canEditInline = $isAdmin || (($subtask->approval_stage === 'Assignee' || $subtask->approval_stage === 'Writer') && ($userRole === 'writer' || $userRole === 'assignee') && (!$subtask->writer_id || auth()->id() == $subtask->writer_id));
-                            @endphp
-                            <tr class="subtask-row rtb-subtask-row subtask-of-{{ $task->id }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
-                                <td>
-                                    <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
-                                        @php
-                                            $subPrio = $subtask->priority ?? 'Medium';
-                                            $subPrioColor = $subPrio === 'High Priority' ? '#ef4444' : '#10b981';
-                                        @endphp
-                                        <span onclick="event.stopPropagation(); openPriorityInlineEditor(event, {{ $subtask->id }}, '{{ $subPrio }}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="{{ $subPrio }} (Click to edit)">
-                                            <svg width="14" height="14" fill="{{ $subPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
-                                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
-                                            </svg>
-                                        </span>
-                                        <span style="font-weight:700; color:var(--color-text-primary); font-size:13px;" class="dashboard-task-title-{{ $subtask->id }}">{{ $subtask->title }}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
-                                    <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
-                                    @if($subtask->revision_deadline && ($subtask->revision_instructions || ($subtask->revisions && $subtask->revisions > 0)))
-                                        <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
-                                            <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                            Rev: {{ \Carbon\Carbon::parse($subtask->revision_deadline)->format('M d') }}
-                                        </div>
-                                    @endif
-                                </td>
-                                <td onclick="event.stopPropagation()">
-                                    @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ html_entity_decode(strip_tags($subtask->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
-                                </td>
-                                <td onclick="event.stopPropagation()">
-                                    @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Copy',{{ json_encode($subtask->post_copy) }})">{{ html_entity_decode(strip_tags($subtask->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
-                                </td>
-                                <td onclick="event.stopPropagation()">
-                                    @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ html_entity_decode(strip_tags($subtask->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
-                                </td>
-                                <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
-                                    @php
-                                        $subRefFiles = $subtask->getReferenceFilesArray();
-                                        $subRefUrls  = $subtask->getReferenceUrlsArray();
-                                        $totalSubRefFiles = count($subRefFiles);
-                                        $totalSubRefUrls  = count($subRefUrls);
-                                        $totalSubRefs     = $totalSubRefFiles + $totalSubRefUrls;
-                                    @endphp
-                                    @if($totalSubRefs === 1 && $totalSubRefFiles === 1)
-                                        @php $singleRef = $subRefFiles[0]; @endphp
-                                        @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
-                                            @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
-                                                <video src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Video" preload="metadata"></video>
-                                            @else
-                                                <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Image">
-                                            @endif
-                                        @else
-                                            <a href="{{ $singleRef }}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:6px; background:rgba(0,85,212,0.08); border:1px solid rgba(0,85,212,0.25); color:#0055D4; font-size:10px; font-weight:700; text-decoration:none;" title="Download / View Attachment">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                                File
-                                            </a>
-                                        @endif
-                                    @elseif($totalSubRefs === 1 && $totalSubRefUrls === 1)
-                                        <a href="{{ $subRefUrls[0] }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4);" title="Visit Link">
-                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                        </a>
-                                    @elseif($totalSubRefs > 1)
-                                        <button type="button" onclick="openMediaGallery('Reference Media', {{ json_encode($subRefFiles) }}, {{ json_encode($subRefUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalSubRefs }} references">
-                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                            Ref ({{ $totalSubRefs }})
-                                        </button>
-                                    @else
-                                        <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
-                                    @endif
-                                </td>
-                                <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
-                                    @php
-                                        $subArtFiles = $subtask->getFinalDesignsArray();
-                                        $subArtUrls  = $subtask->getFinalDesignsUrlsArray();
-                                        $totalSubArtFiles = count($subArtFiles);
-                                        $totalSubArtUrls  = count($subArtUrls);
-                                        $totalSubArt      = $totalSubArtFiles + $totalSubArtUrls;
-                                    @endphp
-                                    @if($totalSubArt === 1 && $totalSubArtFiles === 1)
-                                        @php $singleArt = $subArtFiles[0]; @endphp
-                                        @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
-                                            @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
-                                                <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Video" preload="metadata"></video>
-                                            @else
-                                                <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Artwork">
-                                            @endif
-                                        @else
-                                            <a href="{{ $singleArt }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
-                                        @endif
-                                    @elseif($totalSubArt === 1 && $totalSubArtUrls === 1)
-                                        <a href="{{ $subArtUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
-                                    @elseif($totalSubArt > 1)
-                                        <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($subArtFiles) }}, {{ json_encode($subArtUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalSubArt }} artworks">
-                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                            Artwork ({{ $totalSubArt }})
-                                        </button>
-                                    @else
-                                        <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @php
-                                        $subRevHistory = $subtask->getRelation('revisionsHistory') ?? $subtask->revisionsHistory ?? collect();
-                                        $subRevs = max((int)($subtask->revisions ?? 0), $subRevHistory->count());
-                                    @endphp
-                                    <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                        @if($subRevs > 0)
-                                            <span @if($subtask->revision_instructions) onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" @endif style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;{{ $subtask->revision_instructions ? 'cursor:pointer;' : '' }}" title="{{ $subRevs }} Revision(s){{ $subtask->revision_instructions ? ' (Click to view)' : '' }}"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $subRevs }}</span>
-                                        @else
-                                            <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
-                                        @endif
-                                    </div>
-                                </td>
-                                <td><div class="rtb-stage-label">{{ (in_array(strtolower($subtask->approval_stage ?? ''), ['writer', 'assign', 'assignee']) || empty($subtask->approval_stage)) ? 'Assignee' : (in_array(strtolower($subtask->approval_stage ?? ''), ['close', 'closed']) ? 'Closed' : $subtask->approval_stage) }}</div></td>
-                                <td><div style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">{{ $subtask->client_status ?: 'Not Sent' }}</div></td>
-                                <td style="text-align:center;">
-                                    <div class="quick-actions-grid">
-                                        @if($subtask->revision_instructions)
-                                            <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" class="quick-action-btn btn-revision-preview" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);cursor:pointer;">
-                                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
-                                                Revision Requested
-                                            </button>
-                                        @endif
-                                        @if($canEditInline)
-                                            <a href="{{ route('deliverables.show', $subtask->id) }}" class="quick-action-btn btn-edit-quick" onclick="event.stopPropagation()" style="text-decoration:none; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.25);">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                                Edit
-                                            </a>
-                                        @else
-                                            <a href="{{ route('deliverables.show', $subtask->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">View</a>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    @else
-                        {{-- Standalone Outline Deliverable --}}
-                        <tr class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
-                            @php
-                                $canEditStandalone = $isAdmin || (($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || auth()->id() == $task->writer_id));
-                            @endphp
-                            <td>
-                                <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
-                                    @php
-                                        $taskPrio = $task->priority ?? 'Medium';
-                                        $taskPrioColor = $taskPrio === 'High Priority' ? '#ef4444' : '#10b981';
-                                    @endphp
-                                    <span onclick="event.stopPropagation(); openPriorityInlineEditor(event, {{ $task->id }}, '{{ $taskPrio }}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="{{ $taskPrio }} (Click to edit)">
-                                        <svg width="14" height="14" fill="{{ $taskPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
-                                            <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
-                                        </svg>
-                                    </span>
-                                    <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:var(--color-text-primary);">{{ $task->title }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
-                                <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
-                                @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
-                                    <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
-                                        <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}
-                                    </div>
+                                @if($task->revision_instructions)
+                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" class="quick-action-btn btn-revision-preview" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);cursor:pointer;">
+                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
+                                        Revision Requested
+                                    </button>
                                 @endif
-                            </td>
-                            <td onclick="event.stopPropagation()">
-                                @if($task->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ html_entity_decode(strip_tags($task->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
-                            </td>
-                            <td onclick="event.stopPropagation()">
-                                @if($task->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Copy',{{ json_encode($task->post_copy) }})">{{ html_entity_decode(strip_tags($task->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
-                            </td>
-                            <td onclick="event.stopPropagation()">
-                                @if($task->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($task->caption) }})">{{ html_entity_decode(strip_tags($task->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
-                            </td>
-                                <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
-                                    @php
-                                        $taskRefFiles = $task->getReferenceFilesArray();
-                                        $taskRefUrls  = $task->getReferenceUrlsArray();
-                                        $totalTaskRefFiles = count($taskRefFiles);
-                                        $totalTaskRefUrls  = count($taskRefUrls);
-                                        $totalTaskRefs     = $totalTaskRefFiles + $totalTaskRefUrls;
-                                    @endphp
-                                    @if($totalTaskRefs === 1 && $totalTaskRefFiles === 1)
-                                        @php $singleRef = $taskRefFiles[0]; @endphp
-                                        @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
-                                            @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
-                                                <video src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Video" preload="metadata"></video>
-                                            @else
-                                                <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Image">
-                                            @endif
-                                        @else
-                                            <a href="{{ $singleRef }}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:6px; background:rgba(0,85,212,0.08); border:1px solid rgba(0,85,212,0.25); color:#0055D4; font-size:10px; font-weight:700; text-decoration:none;" title="Download / View Attachment">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                                File
-                                            </a>
-                                        @endif
-                                    @elseif($totalTaskRefs === 1 && $totalTaskRefUrls === 1)
-                                        <a href="{{ $taskRefUrls[0] }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4);" title="Visit Link">
-                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                        </a>
-                                    @elseif($totalTaskRefs > 1)
-                                        <button type="button" onclick="openMediaGallery('Reference Media', {{ json_encode($taskRefFiles) }}, {{ json_encode($taskRefUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskRefs }} references">
-                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                            Ref ({{ $totalTaskRefs }})
-                                        </button>
-                                    @else
-                                        <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
-                                    @endif
-                                </td>
-                                <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
-                                    @php
-                                        $taskArtFiles = $task->getFinalDesignsArray();
-                                        $taskArtUrls  = $task->getFinalDesignsUrlsArray();
-                                        $totalTaskArtFiles = count($taskArtFiles);
-                                        $totalTaskArtUrls  = count($taskArtUrls);
-                                        $totalTaskArt      = $totalTaskArtFiles + $totalTaskArtUrls;
-                                    @endphp
-                                    @if($totalTaskArt === 1 && $totalTaskArtFiles === 1)
-                                        @php $singleArt = $taskArtFiles[0]; @endphp
-                                        @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $singleArt))
-                                            @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
-                                                <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Video" preload="metadata"></video>
-                                            @else
-                                                <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Artwork">
-                                            @endif
-                                        @else
-                                            <a href="{{ $singleArt }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
-                                        @endif
-                                    @elseif($totalTaskArt === 1 && $totalTaskArtUrls === 1)
-                                        <a href="{{ $taskArtUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
-                                    @elseif($totalTaskArt > 1)
-                                        <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($taskArtFiles) }}, {{ json_encode($taskArtUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskArt }} artworks">
-                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                            Artwork ({{ $totalTaskArt }})
-                                        </button>
-                                    @else
-                                        <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
-                                    @endif
-                                </td>
-                            <td>
-                                @php
-                                    $taskRevHistory = $task->getRelation('revisionsHistory') ?? $task->revisionsHistory ?? collect();
-                                    $taskRevs = max((int)($task->revisions ?? 0), $taskRevHistory->count());
-                                @endphp
-                                <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                    @if($taskRevs > 0)
-                                        <span @if($task->revision_instructions) onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" @endif style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;{{ $task->revision_instructions ? 'cursor:pointer;' : '' }}" title="{{ $taskRevs }} Revision(s){{ $task->revision_instructions ? ' (Click to view)' : '' }}"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $taskRevs }}</span>
-                                    @else
-                                        <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
-                                    @endif
-                                </div>
-                            </td>
-                                <td>
-                                    <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ (in_array(strtolower($task->approval_stage ?? ''), ['writer', 'assign', 'assignee']) || empty($task->approval_stage)) ? 'Assignee' : (in_array(strtolower($task->approval_stage ?? ''), ['close', 'closed']) ? 'Closed' : $task->approval_stage) }}</div>
-                                </td>
-                            <td>
-                                @if($isAdmin || $userRole === 'brandmanager')
-                                    <select onchange="updateClientStatusInline(this, {{ $task->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
-                                        <option value="Not Sent" {{ !$task->client_status || $task->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
-                                        <option value="Sent to Client" {{ $task->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
-                                        <option value="Waiting for Feedback" {{ $task->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
-                                        <option value="Client Approved" {{ $task->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
-                                        <option value="Client Revisions" {{ $task->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
-                                    </select>
+                                @if($canApprove && $nextStage)
+                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        Submit
+                                    </button>
+                                @endif
+                                @if($canReviseOutline)
+                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', 1, 'revision', {{ $taskStakeholders }})" class="quick-action-btn btn-revise-quick">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                        Revise
+                                    </button>
+                                @endif
+                                @if($canEditStandalone)
+                                    <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-edit-quick" onclick="event.stopPropagation()" style="text-decoration:none; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.25);">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        Edit
+                                    </a>
                                 @else
-                                    <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
-                                        {{ $task->client_status ?: 'Not Sent' }}
-                                    </div>
+                                    <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">View</a>
                                 @endif
-                            </td>
-                            <td style="text-align:center; padding: 12px 8px;">
-                                <div class="quick-actions-grid">
-                                    @php
-                                        $stage = $task->approval_stage;
-                                        $nextStage = $task->getNextStage();
-                                        $canApprove = $isAdmin || (
-                                            (in_array($stage, ['Writer', 'Assignee', 'Writer Review']) && in_array($userRole, ['writer', 'assignee']) && (!$task->writer_id || $task->writer_id == $currentUserId)) ||
-                                            (in_array($stage, ['Approver', 'Approver Review']) && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->approver_id || $task->approver_id == $currentUserId)) ||
-                                            ($stage === 'Further Approver' && in_array($userRole, ['approver', 'approvercoordinator', 'operationsmanager']) && (!$task->further_approver_id || $task->further_approver_id == $currentUserId)) ||
-                                            (in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) && in_array($userRole, ['brandmanager', 'operationsmanager']) && (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)) ||
-                                            ($stage === 'Coordinator' && in_array($userRole, ['coordinator', 'approvercoordinator', 'operationsmanager']) && (!$task->coordinator_id || $task->coordinator_id == $currentUserId)) ||
-                                            ($stage === 'Designer' && $userRole === 'designer' && (!$task->designer_id || $task->designer_id == $currentUserId))
-                                        );
-                                        $canReviseOutline = $isAdmin || (
-                                            in_array($stage, ['Brand Manager', 'AM/BD', 'Final Approval']) &&
-                                            in_array($userRole, ['brandmanager', 'operationsmanager']) &&
-                                            (!$task->brand_manager_id || $task->brand_manager_id == $currentUserId)
-                                        );
-                                        $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
-                                    @endphp
-                                    @if($task->revision_instructions)
-                                        <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" class="quick-action-btn btn-revision-preview" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);cursor:pointer;">
-                                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
-                                            Revision Requested
-                                        </button>
-                                    @endif
-                                    @if($canApprove && $nextStage)
-                                        <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            Submit
-                                        </button>
-                                    @endif
-                                    @if($canReviseOutline)
-                                        <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', 1, 'revision', {{ $taskStakeholders }})" class="quick-action-btn btn-revise-quick">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                            Revise
-                                        </button>
-                                    @endif
-                                    @if($canEditStandalone)
-                                        <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-edit-quick" onclick="event.stopPropagation()" style="text-decoration:none; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.25);">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                            Edit
-                                        </a>
-                                    @else
-                                        <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">View</a>
-                                    @endif
-                                    @if($isAdmin || $userRole === 'brandmanager')
-                                        <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirmAction(event, 'Delete Deliverable?', 'Are you sure you want to delete this deliverable? This action cannot be undone.', true)" style="display:contents;" onclick="event.stopPropagation()">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="quick-action-btn btn-delete-quick">Del</button>
-                                        </form>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @endif
+                                @if($isAdmin || $userRole === 'brandmanager')
+                                    <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirmAction(event, 'Delete Deliverable?', 'Are you sure you want to delete this deliverable? This action cannot be undone.', true)" style="display:contents;" onclick="event.stopPropagation()">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="quick-action-btn btn-delete-quick">Del</button>
+                                    </form>
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
                 @empty
                     <tr>
                         <td colspan="11" style="padding:48px 24px; text-align:center;">
@@ -507,430 +301,191 @@
             </thead>
             <tbody>
                 @forelse($otherTasks as $task)
-                    @php
-                        $otherSubtasks = $task->subtasks->filter(function($s) {
-                            $type = strtolower(trim($s->post_type ?? ''));
-                            return $type !== 'outlines' && $type !== 'outline';
-                        });
-                    @endphp
-                    @if($otherSubtasks->count() > 0)
-                        {{-- Heading Row for Deliverable with Subtasks --}}
-                        <tr class="rtb-heading-row" style="background:var(--color-bg-secondary); border-left:3px solid #0ea5e9; cursor:pointer;" onclick="toggleSubtasks(event, {{ $task->id }})">
-                            <td colspan="4">
-                                <div class="deliverable-name-cell" style="padding: 8px 0; display:flex; align-items:center; gap:10px;">
-                                    <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle active" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:6px; outline:none;"></button>
-                                    @php
-                                        $taskPrio = $task->priority ?? 'Medium';
-                                        $taskPrioColor = $taskPrio === 'High Priority' ? '#ef4444' : '#10b981';
-                                    @endphp
-                                    <span onclick="event.stopPropagation(); openPriorityInlineEditor(event, {{ $task->id }}, '{{ $taskPrio }}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="{{ $taskPrio }} (Click to edit)">
-                                        <svg width="14" height="14" fill="{{ $taskPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
-                                            <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
-                                        </svg>
-                                    </span>
-                                    <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:800; color:var(--color-text-primary); font-size:13px; letter-spacing:-0.01em;">{{ $task->title }}</span>
-                                    <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary); background:var(--color-bg-primary); border:1px solid var(--color-border-primary); padding:2px 7px; border-radius:6px;">{{ $otherSubtasks->count() }} items</span>
-                                </div>
-                            </td>
-                            <td colspan="6" style="padding-right:15px;" onclick="event.stopPropagation()">
+                    {{-- Standalone Other Deliverable --}}
+                    <tr class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
+                        @php
+                            $isAssignedStandalonePerson = ($task->writer_id && auth()->id() == $task->writer_id) || ($task->designer_id && auth()->id() == $task->designer_id);
+                            $canEditOtherStandalone = ($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer' || $task->approval_stage === 'Assign' || !$task->approval_stage) && $isAssignedStandalonePerson;
+                        @endphp
+                        <td>
+                            <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
                                 @php
-                                    $stage = $task->approval_stage ?: 'Assign';
-                                    $nextStage = $task->getNextStage();
-                                    $isManager = $isAdmin || $userRole === 'brandmanager' || $userRole === 'operationsmanager';
-                                    $isAssignedPerson = ($task->writer_id && $task->writer_id == $currentUserId) || ($task->designer_id && $task->designer_id == $currentUserId);
-                                    $canApproveBatch = (
-                                        (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Assign') && $isAssignedPerson) ||
-                                        (($stage === 'AM/BD' || $stage === 'Final Approval' || $stage === 'Approve') && $isManager)
-                                    );
-                                    $subtasks = $otherSubtasks;
-                                    $totalInBatch = $subtasks->count();
-                                    $normalizeOtherStage = fn($s) => (in_array(strtolower($s ?? ''), ['writer', 'assign', 'assignee']) || empty($s)) ? 'Assignee' : (in_array(strtolower($s ?? ''), ['close', 'closed']) ? 'Closed' : $s);
-                                    $parentStageNorm = $normalizeOtherStage($stage);
-                                    $readyInBatch = $subtasks->filter(fn($t) => $normalizeOtherStage($t->approval_stage) === $parentStageNorm)->count();
-                                    $allReady = $readyInBatch === $totalInBatch;
-                                    $isGated = !$allReady;
-                                    $batchStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
+                                    $taskPrio = $task->priority ?? 'Medium';
+                                    $taskPrioColor = $taskPrio === 'High Priority' ? '#ef4444' : '#10b981';
                                 @endphp
-                                <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px;">
-                                    <span style="font-size:10px; font-weight:700; color:#0ea5e9; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.2); padding:3px 9px; border-radius:6px;">
-                                        {{ $normalizeOtherStage($task->approval_stage) }}
-                                    </span>
-                                    <div style="display:flex; align-items:center; gap:6px;">
-                                        <a href="{{ route('deliverables.showBatch', $task->id) }}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--color-text-secondary);background:var(--color-bg-primary);border:1px solid var(--color-border-primary);border-radius:7px;text-decoration:none;white-space:nowrap;">View</a>
-                                        <button type="button" onclick="openAddPostTypeModal(event, {{ $task->id }}, '{{ $project->workflow_type }}', '{{ $task->post_type }}')" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;font-size:11px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:7px;cursor:pointer;white-space:nowrap; outline:none;">
-                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                                            Add Deliverable
-                                        </button>
-                                        @php
-                                            $canReviseBatch = ($stage === 'Approve' || in_array($stage, ['AM/BD', 'Final Approval'])) && ($isManager || ($task->brand_manager_id && $task->brand_manager_id == $currentUserId));
-                                        @endphp
-                                        @if($canApproveBatch && $nextStage)
-                                            <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $totalInBatch }}, 'submit', {{ $batchStakeholders }})"
-                                                    style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; background:#0055D4; color:#fff; border:1px solid #0055D4; cursor:pointer;" {{ $isGated ? 'disabled' : '' }}>
-                                                {{ $stage === 'Approve' ? 'Approve' : 'Submit' }}
-                                            </button>
-                                        @endif
-                                        @if($canReviseBatch)
-                                            <button onclick="event.stopPropagation(); openBatchModal(event, {{ $task->id }}, '{{ $stage }}', {{ $totalInBatch }}, 'revision', {{ $batchStakeholders }})"
-                                                    style="padding:6px 12px; border-radius:7px; font-size:11px; font-weight:600; white-space:nowrap; color:#ef4444; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); cursor:pointer;">
-                                                Revise All
-                                            </button>
-                                        @endif
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                        @foreach($otherSubtasks as $subIndex => $subtask)
-                            @php
-                                $isAssignedPerson = ($subtask->writer_id && auth()->id() == $subtask->writer_id) || ($subtask->designer_id && auth()->id() == $subtask->designer_id);
-                                $canEditInline = $isAdmin || (($subtask->approval_stage === 'Assignee' || $subtask->approval_stage === 'Writer' || $subtask->approval_stage === 'Assign' || !$subtask->approval_stage) && $isAssignedPerson);
-                            @endphp
-                            <tr class="subtask-row rtb-subtask-row subtask-of-{{ $task->id }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
-                                <td>
-                                    <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
-                                        @php
-                                            $subPrio = $subtask->priority ?? 'Medium';
-                                            $subPrioColor = $subPrio === 'High Priority' ? '#ef4444' : '#10b981';
-                                        @endphp
-                                        <span onclick="event.stopPropagation(); openPriorityInlineEditor(event, {{ $subtask->id }}, '{{ $subPrio }}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="{{ $subPrio }} (Click to edit)">
-                                            <svg width="14" height="14" fill="{{ $subPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
-                                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
-                                            </svg>
-                                        </span>
-                                        <span style="font-weight:700; color:var(--color-text-primary); font-size:13px;" class="dashboard-task-title-{{ $subtask->id }}">{{ $subtask->title }}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
-                                    <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
-                                    @if($subtask->revision_deadline && ($subtask->revision_instructions || ($subtask->revisions && $subtask->revisions > 0)))
-                                        <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
-                                            <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                            Rev: {{ \Carbon\Carbon::parse($subtask->revision_deadline)->format('M d') }}
-                                        </div>
-                                    @endif
-                                </td>
-                                <td style="overflow:hidden;">
-                                    @php $colors = $subtaskTypeColors[$subtask->subtask_type ?: ($subtask->post_type ?: 'default')] ?? ($subtaskTypeColors['default'] ?? ['bg' => 'rgba(14,165,233,0.1)', 'text' => '#0ea5e9', 'border' => 'rgba(14,165,233,0.25)']); @endphp
-                                    <span class="subtask-pill" style="background:{{ $colors['bg'] }}; color:{{ $colors['text'] }}; border-color:{{ $colors['border'] }}; font-size:9.5px; font-weight:800; letter-spacing:0.04em; padding:3px 8px;">
-                                        {{ $subtask->subtask_type ?: ($subtask->post_type ?: 'Standard') }}
-                                    </span>
-                                </td>
-                                <td onclick="event.stopPropagation()">
-                                    @php $briefContent = $subtask->concept ?? $subtask->notes; @endphp
-                                    @if($briefContent)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Brief',{{ json_encode($briefContent) }})">{{ html_entity_decode(strip_tags($briefContent), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
-                                </td>
-                                <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
-                                    @php
-                                        $subRefFiles = $subtask->getReferenceFilesArray();
-                                        $subRefUrls  = $subtask->getReferenceUrlsArray();
-                                        $totalSubRefFiles = count($subRefFiles);
-                                        $totalSubRefUrls  = count($subRefUrls);
-                                        $totalSubRefs     = $totalSubRefFiles + $totalSubRefUrls;
-                                    @endphp
-                                    @if($totalSubRefs === 1 && $totalSubRefFiles === 1)
-                                        @php $singleRef = $subRefFiles[0]; @endphp
-                                        @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
-                                            @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
-                                                <video src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Video" preload="metadata"></video>
-                                            @else
-                                                <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Image">
-                                            @endif
-                                        @else
-                                            <a href="{{ $singleRef }}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:6px; background:rgba(0,85,212,0.08); border:1px solid rgba(0,85,212,0.25); color:#0055D4; font-size:10px; font-weight:700; text-decoration:none;" title="Download / View Attachment">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                                File
-                                            </a>
-                                        @endif
-                                    @elseif($totalSubRefs === 1 && $totalSubRefUrls === 1)
-                                        <a href="{{ $subRefUrls[0] }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4);" title="Visit Link">
-                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                        </a>
-                                    @elseif($totalSubRefs > 1)
-                                        <button type="button" onclick="openMediaGallery('Reference Media', {{ json_encode($subRefFiles) }}, {{ json_encode($subRefUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalSubRefs }} references">
-                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                            Ref ({{ $totalSubRefs }})
-                                        </button>
-                                    @else
-                                        <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
-                                    @endif
-                                </td>
-                                <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
-                                    @php
-                                        $subArtFiles = $subtask->getFinalDesignsArray();
-                                        $subArtUrls  = $subtask->getFinalDesignsUrlsArray();
-                                        $totalSubArtFiles = count($subArtFiles);
-                                        $totalSubArtUrls  = count($subArtUrls);
-                                        $totalSubArt      = $totalSubArtFiles + $totalSubArtUrls;
-                                    @endphp
-                                    @if($totalSubArt === 1 && $totalSubArtFiles === 1)
-                                        @php $singleArt = $subArtFiles[0]; @endphp
-                                        @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
-                                            @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
-                                                <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Video" preload="metadata"></video>
-                                            @else
-                                                <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Artwork">
-                                            @endif
-                                        @else
-                                            <a href="{{ $singleArt }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
-                                        @endif
-                                    @elseif($totalSubArt === 1 && $totalSubArtUrls === 1)
-                                        <a href="{{ $subArtUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
-                                    @elseif($totalSubArt > 1)
-                                        <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($subArtFiles) }}, {{ json_encode($subArtUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalSubArt }} artworks">
-                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                            Artwork ({{ $totalSubArt }})
-                                        </button>
-                                    @else
-                                        <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @php
-                                        $subRevHistory = $subtask->getRelation('revisionsHistory') ?? $subtask->revisionsHistory ?? collect();
-                                        $subRevs = max((int)($subtask->revisions ?? 0), $subRevHistory->count());
-                                    @endphp
-                                    <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                        @if($subRevs > 0)
-                                            <span @if($subtask->revision_instructions) onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" @endif style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;{{ $subtask->revision_instructions ? 'cursor:pointer;' : '' }}" title="{{ $subRevs }} Revision(s){{ $subtask->revision_instructions ? ' (Click to view)' : '' }}"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $subRevs }}</span>
-                                        @else
-                                            <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
-                                        @endif
-                                    </div>
-                                </td>
-                                <td><div class="rtb-stage-label">{{ (in_array(strtolower($subtask->approval_stage ?? ''), ['writer', 'assign', 'assignee']) || empty($subtask->approval_stage)) ? 'Assignee' : (in_array(strtolower($subtask->approval_stage ?? ''), ['close', 'closed']) ? 'Closed' : $subtask->approval_stage) }}</div></td>
-                                <td><div style="font-size:10px; font-weight:700; color:var(--color-text-secondary);">{{ $subtask->client_status ?: 'Not Sent' }}</div></td>
-                                <td style="text-align:center;">
-                                    <div class="quick-actions-grid">
-                                        @php
-                                            $subStage = $subtask->approval_stage ?: 'Assign';
-                                            $nextSubStage = $subtask->getNextStage();
-                                            $isSubManager = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']) || ($subtask->brand_manager_id && $subtask->brand_manager_id == $currentUserId);
-                                            $isSubAssigned = ($subtask->writer_id && $subtask->writer_id == $currentUserId) || ($subtask->designer_id && $subtask->designer_id == $currentUserId);
-                                            $canApproveSub = (
-                                                (($subStage === 'Writer' || $subStage === 'Assignee' || $subStage === 'Assign') && $isSubAssigned) ||
-                                                (($subStage === 'AM/BD' || $subStage === 'Final Approval' || $subStage === 'Approve') && $isSubManager)
-                                            );
-                                            $canReviseSub = ($subStage === 'Approve' || in_array($subStage, ['AM/BD', 'Final Approval'])) && $isSubManager;
-                                            $subStakeholders = "{approver: " . ($subtask->approver_id ?? 'null') . ", brand_manager: " . ($subtask->brand_manager_id ?? 'null') . ", coordinator: " . ($subtask->coordinator_id ?? 'null') . ", designer: " . ($subtask->designer_id ?? 'null') . ", writerName: '" . addslashes($subtask->writer->name ?? '') . "'}";
-                                        @endphp
-                                        @if($subtask->revision_instructions)
-                                            <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($subtask->revision_instructions) }}, {{ json_encode($subtask->revisionsHistory->first()?->image_path) }})" class="quick-action-btn btn-revision-preview" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);cursor:pointer;">
-                                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
-                                                Revision Requested
-                                            </button>
-                                        @endif
-                                        @if($canApproveSub && $nextSubStage)
-                                            <button type="button" onclick="openBatchModal(event, {{ $subtask->id }}, '{{ $nextSubStage }}', 1, 'submit', {{ $subStakeholders }}, false)" class="quick-action-btn btn-approve-quick">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                {{ $subStage === 'Approve' ? 'Approve' : 'Submit' }}
-                                            </button>
-                                        @endif
-                                        @if($canReviseSub)
-                                            <button type="button" onclick="openBatchModal(event, {{ $subtask->id }}, '{{ $subStage }}', 1, 'revision', {{ $subStakeholders }})" class="quick-action-btn btn-revise-quick">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                                Revise
-                                            </button>
-                                        @endif
-                                        @if($canEditInline)
-                                            <a href="{{ route('deliverables.show', $subtask->id) }}" class="quick-action-btn btn-edit-quick" onclick="event.stopPropagation()" style="text-decoration:none; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.25);">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                                Edit
-                                            </a>
-                                        @else
-                                            <a href="{{ route('deliverables.show', $subtask->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">View</a>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    @else
-                        {{-- Standalone Other Deliverable --}}
-                        <tr class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
-                            @php
-                                $isAssignedStandalonePerson = ($task->writer_id && auth()->id() == $task->writer_id) || ($task->designer_id && auth()->id() == $task->designer_id);
-                                $canEditOtherStandalone = ($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer' || $task->approval_stage === 'Assign' || !$task->approval_stage) && $isAssignedStandalonePerson;
-                            @endphp
-                            <td>
-                                <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
-                                    @php
-                                        $taskPrio = $task->priority ?? 'Medium';
-                                        $taskPrioColor = $taskPrio === 'High Priority' ? '#ef4444' : '#10b981';
-                                    @endphp
-                                    <span onclick="event.stopPropagation(); openPriorityInlineEditor(event, {{ $task->id }}, '{{ $taskPrio }}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="{{ $taskPrio }} (Click to edit)">
-                                        <svg width="14" height="14" fill="{{ $taskPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
-                                            <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
-                                        </svg>
-                                    </span>
-                                    <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:var(--color-text-primary);">{{ $task->title }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
-                                <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
-                                @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
-                                    <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
-                                        <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}
-                                    </div>
-                                @endif
-                            </td>
-                            <td style="overflow:hidden;">
-                                @php $colors = $subtaskTypeColors[$task->subtask_type ?: ($task->post_type ?: 'default')] ?? ($subtaskTypeColors['default'] ?? ['bg' => 'rgba(14,165,233,0.1)', 'text' => '#0ea5e9', 'border' => 'rgba(14,165,233,0.25)']); @endphp
-                                <span class="subtask-pill" style="background:{{ $colors['bg'] }}; color:{{ $colors['text'] }}; border-color:{{ $colors['border'] }}; font-size:9.5px; font-weight:800; letter-spacing:0.04em; padding:3px 8px;">
-                                    {{ $task->subtask_type ?: ($task->post_type ?: 'Standard') }}
+                                <span onclick="event.stopPropagation(); openPriorityInlineEditor(event, {{ $task->id }}, '{{ $taskPrio }}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="{{ $taskPrio }} (Click to edit)">
+                                    <svg width="14" height="14" fill="{{ $taskPrioColor }}" viewBox="0 0 16 16" style="flex-shrink:0;">
+                                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
+                                    </svg>
                                 </span>
-                            </td>
-                            <td onclick="event.stopPropagation()">
-                                @php $briefContent = $task->concept ?? $task->notes; @endphp
-                                @if($briefContent)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Brief',{{ json_encode($briefContent) }})">{{ html_entity_decode(strip_tags($briefContent), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
-                            </td>
-                            <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
-                                @php
-                                    $taskRefFiles = $task->getReferenceFilesArray();
-                                    $taskRefUrls  = $task->getReferenceUrlsArray();
-                                    $totalTaskRefFiles = count($taskRefFiles);
-                                    $totalTaskRefUrls  = count($taskRefUrls);
-                                    $totalTaskRefs     = $totalTaskRefFiles + $totalTaskRefUrls;
-                                @endphp
-                                @if($totalTaskRefs === 1 && $totalTaskRefFiles === 1)
-                                    @php $singleRef = $taskRefFiles[0]; @endphp
-                                    @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
-                                        @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
-                                            <video src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Video" preload="metadata"></video>
-                                        @else
-                                            <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Image">
-                                        @endif
+                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:var(--color-text-primary);">{{ $task->title }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
+                            <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                            @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
+                                <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                    <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}
+                                </div>
+                            @endif
+                        </td>
+                        <td style="overflow:hidden;">
+                            @php $colors = $subtaskTypeColors[$task->subtask_type ?: ($task->post_type ?: 'default')] ?? ($subtaskTypeColors['default'] ?? ['bg' => 'rgba(14,165,233,0.1)', 'text' => '#0ea5e9', 'border' => 'rgba(14,165,233,0.25)']); @endphp
+                            <span class="subtask-pill" style="background:{{ $colors['bg'] }}; color:{{ $colors['text'] }}; border-color:{{ $colors['border'] }}; font-size:9.5px; font-weight:800; letter-spacing:0.04em; padding:3px 8px;">
+                                {{ $task->subtask_type ?: ($task->post_type ?: 'Standard') }}
+                            </span>
+                        </td>
+                        <td onclick="event.stopPropagation()">
+                            @php $briefContent = $task->concept ?? $task->notes; @endphp
+                            @if($briefContent)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Brief',{{ json_encode($briefContent) }})">{{ html_entity_decode(strip_tags($briefContent), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                        </td>
+                        <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
+                            @php
+                                $taskRefFiles = $task->getReferenceFilesArray();
+                                $taskRefUrls  = $task->getReferenceUrlsArray();
+                                $totalTaskRefFiles = count($taskRefFiles);
+                                $totalTaskRefUrls  = count($taskRefUrls);
+                                $totalTaskRefs     = $totalTaskRefFiles + $totalTaskRefUrls;
+                            @endphp
+                            @if($totalTaskRefs === 1 && $totalTaskRefFiles === 1)
+                                @php $singleRef = $taskRefFiles[0]; @endphp
+                                @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
+                                    @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
+                                        <video src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Video" preload="metadata"></video>
                                     @else
-                                        <a href="{{ $singleRef }}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:6px; background:rgba(0,85,212,0.08); border:1px solid rgba(0,85,212,0.25); color:#0055D4; font-size:10px; font-weight:700; text-decoration:none;" title="Download / View Attachment">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                            File
-                                        </a>
+                                        <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Image">
                                     @endif
-                                @elseif($totalTaskRefs === 1 && $totalTaskRefUrls === 1)
-                                    <a href="{{ $taskRefUrls[0] }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4);" title="Visit Link">
-                                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                @else
+                                    <a href="{{ $singleRef }}" target="_blank" style="display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:6px; background:rgba(0,85,212,0.08); border:1px solid rgba(0,85,212,0.25); color:#0055D4; font-size:10px; font-weight:700; text-decoration:none;" title="Download / View Attachment">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        File
                                     </a>
-                                @elseif($totalTaskRefs > 1)
-                                    <button type="button" onclick="openMediaGallery('Reference Media', {{ json_encode($taskRefFiles) }}, {{ json_encode($taskRefUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskRefs }} references">
-                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                        Ref ({{ $totalTaskRefs }})
-                                    </button>
+                                @endif
+                            @elseif($totalTaskRefs === 1 && $totalTaskRefUrls === 1)
+                                <a href="{{ $taskRefUrls[0] }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4);" title="Visit Link">
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                </a>
+                            @elseif($totalTaskRefs > 1)
+                                <button type="button" onclick="openMediaGallery('Reference Media', {{ json_encode($taskRefFiles) }}, {{ json_encode($taskRefUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskRefs }} references">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    Ref ({{ $totalTaskRefs }})
+                                </button>
+                            @else
+                                <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
+                            @endif
+                        </td>
+                        <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
+                            @php
+                                $taskArtFiles = $task->getFinalDesignsArray();
+                                $taskArtUrls  = $task->getFinalDesignsUrlsArray();
+                                $totalTaskArtFiles = count($taskArtFiles);
+                                $totalTaskArtUrls  = count($taskArtUrls);
+                                $totalTaskArt      = $totalTaskArtFiles + $totalTaskArtUrls;
+                            @endphp
+                            @if($totalTaskArt === 1 && $totalTaskArtFiles === 1)
+                                @php $singleArt = $taskArtFiles[0]; @endphp
+                                @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $singleArt))
+                                    @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
+                                        <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Video" preload="metadata"></video>
+                                    @else
+                                        <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Artwork">
+                                    @endif
+                                @else
+                                    <a href="{{ $singleArt }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
+                                @endif
+                            @elseif($totalTaskArt === 1 && $totalTaskArtUrls === 1)
+                                <a href="{{ $taskArtUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
+                            @elseif($totalTaskArt > 1)
+                                <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($taskArtFiles) }}, {{ json_encode($taskArtUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskArt }} artworks">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    Artwork ({{ $totalTaskArt }})
+                                </button>
+                            @else
+                                <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
+                            @endif
+                        </td>
+                        <td>
+                            @php
+                                $taskRevHistory = $task->getRelation('revisionsHistory') ?? $task->revisionsHistory ?? collect();
+                                $taskRevs = max((int)($task->revisions ?? 0), $taskRevHistory->count());
+                            @endphp
+                            <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
+                                @if($taskRevs > 0)
+                                    <span @if($task->revision_instructions) onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" @endif style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;{{ $task->revision_instructions ? 'cursor:pointer;' : '' }}" title="{{ $taskRevs }} Revision(s){{ $task->revision_instructions ? ' (Click to view)' : '' }}"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $taskRevs }}</span>
                                 @else
                                     <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                 @endif
-                            </td>
-                            <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ (in_array(strtolower($task->approval_stage ?? ''), ['writer', 'assign', 'assignee']) || empty($task->approval_stage)) ? 'Assignee' : (in_array(strtolower($task->approval_stage ?? ''), ['close', 'closed']) ? 'Closed' : $task->approval_stage) }}</div>
+                        </td>
+                        <td>
+                            @if($isAdmin || $userRole === 'brandmanager')
+                                <select onchange="updateClientStatusInline(this, {{ $task->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
+                                    <option value="Not Sent" {{ !$task->client_status || $task->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
+                                    <option value="Sent to Client" {{ $task->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
+                                    <option value="Waiting for Feedback" {{ $task->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
+                                    <option value="Client Approved" {{ $task->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
+                                    <option value="Client Revisions" {{ $task->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
+                                </select>
+                            @else
+                                <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
+                                    {{ $task->client_status ?: 'Not Sent' }}
+                                </div>
+                            @endif
+                        </td>
+                        <td style="text-align:center; padding: 12px 8px;">
+                            <div class="quick-actions-grid">
                                 @php
-                                    $taskArtFiles = $task->getFinalDesignsArray();
-                                    $taskArtUrls  = $task->getFinalDesignsUrlsArray();
-                                    $totalTaskArtFiles = count($taskArtFiles);
-                                    $totalTaskArtUrls  = count($taskArtUrls);
-                                    $totalTaskArt      = $totalTaskArtFiles + $totalTaskArtUrls;
+                                    $stage = $task->approval_stage ?: 'Assign';
+                                    $nextStage = $task->getNextStage();
+                                    $isStandaloneManager = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']);
+                                    $isStandaloneAssigned = ($task->writer_id && $task->writer_id == $currentUserId) || ($task->designer_id && $task->designer_id == $currentUserId);
+                                    $canApprove = (
+                                        (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Assign') && $isStandaloneAssigned) ||
+                                        (($stage === 'AM/BD' || $stage === 'Final Approval' || $stage === 'Approve') && $isStandaloneManager)
+                                    );
+                                    $canRevise = ($stage === 'Approve' || in_array($stage, ['AM/BD', 'Final Approval'])) && ($isStandaloneManager || ($task->brand_manager_id && $task->brand_manager_id == $currentUserId));
+                                    $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
                                 @endphp
-                                @if($totalTaskArt === 1 && $totalTaskArtFiles === 1)
-                                    @php $singleArt = $taskArtFiles[0]; @endphp
-                                    @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $singleArt))
-                                        @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
-                                            <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Video" preload="metadata"></video>
-                                        @else
-                                            <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleArt }}', false)" title="View Artwork">
-                                        @endif
-                                    @else
-                                        <a href="{{ $singleArt }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
-                                    @endif
-                                @elseif($totalTaskArt === 1 && $totalTaskArtUrls === 1)
-                                    <a href="{{ $taskArtUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
-                                @elseif($totalTaskArt > 1)
-                                    <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($taskArtFiles) }}, {{ json_encode($taskArtUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskArt }} artworks">
-                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                        Artwork ({{ $totalTaskArt }})
+                                @if($task->revision_instructions)
+                                    <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" class="quick-action-btn btn-revision-preview" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);cursor:pointer;">
+                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
+                                        Revision Requested
                                     </button>
-                                @else
-                                    <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
                                 @endif
-                            </td>
-                            <td>
-                                @php
-                                    $taskRevHistory = $task->getRelation('revisionsHistory') ?? $task->revisionsHistory ?? collect();
-                                    $taskRevs = max((int)($task->revisions ?? 0), $taskRevHistory->count());
-                                @endphp
-                                <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
-                                    @if($taskRevs > 0)
-                                        <span @if($task->revision_instructions) onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" @endif style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;{{ $task->revision_instructions ? 'cursor:pointer;' : '' }}" title="{{ $taskRevs }} Revision(s){{ $task->revision_instructions ? ' (Click to view)' : '' }}"><span style="font-size:8px;font-weight:700;opacity:0.7;">R</span>{{ $taskRevs }}</span>
-                                    @else
-                                        <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
-                                    @endif
-                                </div>
-                            </td>
-                                <td>
-                                    <div style="font-size:10px; font-weight:900; color:#0055D4; text-transform:uppercase; letter-spacing:0.05em;">{{ (in_array(strtolower($task->approval_stage ?? ''), ['writer', 'assign', 'assignee']) || empty($task->approval_stage)) ? 'Assignee' : (in_array(strtolower($task->approval_stage ?? ''), ['close', 'closed']) ? 'Closed' : $task->approval_stage) }}</div>
-                                </td>
-                            <td>
+                                @if($canApprove && $nextStage)
+                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        {{ $stage === 'Approve' ? 'Approve' : 'Submit' }}
+                                    </button>
+                                @endif
+                                @if($canRevise)
+                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', 1, 'revision', {{ $taskStakeholders }})" class="quick-action-btn btn-revise-quick">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                        Revise
+                                    </button>
+                                @endif
+                                @if($canEditOtherStandalone)
+                                    <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-edit-quick" onclick="event.stopPropagation()" style="text-decoration:none; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.25);">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        Edit
+                                    </a>
+                                @else
+                                    <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">View</a>
+                                @endif
                                 @if($isAdmin || $userRole === 'brandmanager')
-                                    <select onchange="updateClientStatusInline(this, {{ $task->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
-                                        <option value="Not Sent" {{ !$task->client_status || $task->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
-                                        <option value="Sent to Client" {{ $task->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
-                                        <option value="Waiting for Feedback" {{ $task->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
-                                        <option value="Client Approved" {{ $task->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
-                                        <option value="Client Revisions" {{ $task->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
-                                    </select>
-                                @else
-                                    <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
-                                        {{ $task->client_status ?: 'Not Sent' }}
-                                    </div>
+                                    <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirmAction(event, 'Delete Deliverable?', 'Are you sure you want to delete this deliverable? This action cannot be undone.', true)" style="display:contents;" onclick="event.stopPropagation()">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="quick-action-btn btn-delete-quick">Del</button>
+                                    </form>
                                 @endif
-                            </td>
-                            <td style="text-align:center; padding: 12px 8px;">
-                                <div class="quick-actions-grid">
-                                    @php
-                                        $stage = $task->approval_stage ?: 'Assign';
-                                        $nextStage = $task->getNextStage();
-                                        $isStandaloneManager = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']);
-                                        $isStandaloneAssigned = ($task->writer_id && $task->writer_id == $currentUserId) || ($task->designer_id && $task->designer_id == $currentUserId);
-                                        $canApprove = (
-                                            (($stage === 'Writer' || $stage === 'Assignee' || $stage === 'Assign') && $isStandaloneAssigned) ||
-                                            (($stage === 'AM/BD' || $stage === 'Final Approval' || $stage === 'Approve') && $isStandaloneManager)
-                                        );
-                                        $canRevise = ($stage === 'Approve' || in_array($stage, ['AM/BD', 'Final Approval'])) && ($isStandaloneManager || ($task->brand_manager_id && $task->brand_manager_id == $currentUserId));
-                                        $taskStakeholders = "{approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "'}";
-                                    @endphp
-                                    @if($task->revision_instructions)
-                                        <button type="button" onclick="event.stopPropagation(); openTextPreview('Revision Instructions', {{ json_encode($task->revision_instructions) }}, {{ json_encode($task->revisionsHistory->first()?->image_path) }})" class="quick-action-btn btn-revision-preview" style="grid-column:span 2;background:rgba(239,68,68,0.08);color:#ef4444;border-color:rgba(239,68,68,0.2);cursor:pointer;">
-                                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01"/></svg>
-                                            Revision Requested
-                                        </button>
-                                    @endif
-                                    @if($canApprove && $nextStage)
-                                        <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            {{ $stage === 'Approve' ? 'Approve' : 'Submit' }}
-                                        </button>
-                                    @endif
-                                    @if($canRevise)
-                                        <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $stage }}', 1, 'revision', {{ $taskStakeholders }})" class="quick-action-btn btn-revise-quick">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                            Revise
-                                        </button>
-                                    @endif
-                                    @if($canEditOtherStandalone)
-                                        <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-edit-quick" onclick="event.stopPropagation()" style="text-decoration:none; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.25);">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                            Edit
-                                        </a>
-                                    @else
-                                        <a href="{{ route('deliverables.show', $task->id) }}" class="quick-action-btn btn-view-quick" onclick="event.stopPropagation()">View</a>
-                                    @endif
-                                    @if($isAdmin || $userRole === 'brandmanager')
-                                        <form action="{{ route('deliverables.destroy', $task) }}" method="POST" onsubmit="return confirmAction(event, 'Delete Deliverable?', 'Are you sure you want to delete this deliverable? This action cannot be undone.', true)" style="display:contents;" onclick="event.stopPropagation()">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="quick-action-btn btn-delete-quick">Del</button>
-                                        </form>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @endif
+                            </div>
+                        </td>
+                    </tr>
                 @empty
                     <tr>
                         <td colspan="10" style="padding:48px 24px; text-align:center;">
