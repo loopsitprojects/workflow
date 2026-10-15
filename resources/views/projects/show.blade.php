@@ -138,6 +138,55 @@
             color: #ffffff;
         }
 
+        /* Campaign / Pitch View Switcher Toggle */
+        .campaign-view-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--color-bg-secondary);
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid var(--color-border-primary);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        .campaign-view-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 7px !important;
+            padding: 7px 16px !important;
+            border-radius: 9px !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            border: 1px solid transparent !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            color: var(--color-text-secondary) !important;
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            user-select: none !important;
+            line-height: 1 !important;
+            white-space: nowrap !important;
+            text-decoration: none !important;
+        }
+        .campaign-view-btn:hover:not(.is-active) {
+            color: var(--color-text-primary) !important;
+            background: rgba(148, 163, 184, 0.08) !important;
+        }
+        .campaign-view-btn.is-active {
+            background: var(--color-bg-primary) !important;
+            color: var(--color-text-primary) !important;
+            font-weight: 700 !important;
+            border-color: var(--color-border-primary) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+        }
+        .dark .campaign-view-btn.is-active {
+            background: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+        }
+
         /* Modal Styles - Fullscreen View */
         .cd-modal-overlay { 
             position: fixed; 
@@ -1413,20 +1462,20 @@
             }">
                 {{-- View Switcher Bar --}}
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
-                    <div style="display:inline-flex; align-items:center; background:var(--color-bg-secondary); border:1.5px solid var(--color-border-primary); border-radius:10px; padding:3px; gap:2px;">
+                    <div class="campaign-view-toggle">
                         <button type="button" 
                                 @click="setView('kanban')"
-                                :style="campaignView === 'kanban' ? 'background:var(--color-bg-primary); color:var(--color-text-primary); box-shadow:0 1px 4px rgba(0,0,0,0.08); font-weight:700;' : 'background:transparent; color:var(--color-text-secondary); font-weight:600;'"
-                                style="padding:6px 14px; border-radius:8px; border:none; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all 0.15s;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z"/></svg>
-                            Kanban Board
+                                class="campaign-view-btn"
+                                :class="campaignView === 'kanban' ? 'is-active' : ''">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z"/></svg>
+                            <span>Kanban Board</span>
                         </button>
                         <button type="button" 
                                 @click="setView('table')"
-                                :style="campaignView === 'table' ? 'background:var(--color-bg-primary); color:var(--color-text-primary); box-shadow:0 1px 4px rgba(0,0,0,0.08); font-weight:700;' : 'background:transparent; color:var(--color-text-secondary); font-weight:600;'"
-                                style="padding:6px 14px; border-radius:8px; border:none; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all 0.15s;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-                            Table View
+                                class="campaign-view-btn"
+                                :class="campaignView === 'table' ? 'is-active' : ''">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                            <span>Table View</span>
                         </button>
                     </div>
                 </div>
