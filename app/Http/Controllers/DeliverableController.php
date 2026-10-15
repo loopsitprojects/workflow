@@ -2240,6 +2240,55 @@ class DeliverableController extends Controller
     }
 
     /**
+     * Quick update deliverable inline on Campaign/Pitch Kanban board.
+     */
+    public function quickUpdateCampaignKanban(Request $request, Deliverable $deliverable)
+    {
+        $project = $deliverable->project;
+        if (!$project || !in_array($project->workflow_type, ['campaign', 'pitch'])) {
+            return response()->json(['success' => false, 'message' => 'Quick update is only available for campaign and pitch projects.'], 403);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'post_type' => 'nullable|string|max:100',
+            'writer_id' => 'nullable',
+            'deadline' => 'nullable|date',
+            'priority' => 'nullable|string|in:Low,Medium,High Priority,Urgent,High',
+        ]);
+
+        $deliverable->title = $validated['title'];
+        if (array_key_exists('post_type', $validated) && !empty($validated['post_type'])) {
+            $deliverable->post_type = $validated['post_type'];
+        }
+        if (array_key_exists('priority', $validated) && !empty($validated['priority'])) {
+            $deliverable->priority = $validated['priority'];
+        }
+        if (array_key_exists('deadline', $validated)) {
+            $deliverable->deadline = !empty($validated['deadline']) ? $validated['deadline'] : null;
+        }
+        if (array_key_exists('writer_id', $validated)) {
+            if (!empty($validated['writer_id']) && is_numeric($validated['writer_id'])) {
+                $assignee = User::find($validated['writer_id']);
+                $deliverable->writer_id = $assignee?->id;
+                $deliverable->assignee_name = $assignee?->name ?? 'Unassigned';
+            } else {
+                $deliverable->writer_id = null;
+                $deliverable->assignee_name = 'Unassigned';
+            }
+        }
+
+        $deliverable->save();
+        $deliverable->load(['writer', 'brandManager', 'approver', 'designer']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Deliverable updated successfully.',
+            'deliverable' => $deliverable,
+        ]);
+    }
+
+    /**
      * Update deliverable status via Kanban drag-and-drop or card action.
      */
     public function updateKanbanStatus(Request $request, Deliverable $deliverable)

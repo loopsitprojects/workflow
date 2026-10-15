@@ -254,8 +254,182 @@
 <script>
 let draggedTaskId = null;
 let draggedCardElement = null;
+let currentlyEditingCardId = null;
+let isDraggingKanbanCard = false;
+
+const kanbanSelectableUsers = @json($selectableUsers->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role]));
+const kanbanSubtaskTypes = @json($subtaskTypes->map(fn($st) => ['name' => $st->name]));
+
+function isCardEditorOpen(taskId) {
+    return currentlyEditingCardId === taskId;
+}
+
+function handleCardClick(taskId) {
+    if (isDraggingKanbanCard) return;
+    if (currentlyEditingCardId === taskId) return;
+    toggleCardEditor(taskId, true);
+}
+
+function toggleCardEditor(taskId, open) {
+    const card = document.getElementById('kanban-card-' + taskId);
+    const view = document.getElementById('kanban-card-view-' + taskId);
+    const editor = document.getElementById('kanban-card-editor-' + taskId);
+    if (!card || !view || !editor) return;
+
+    if (open) {
+        // Close any other open editor
+        if (currentlyEditingCardId && currentlyEditingCardId !== taskId) {
+            toggleCardEditor(currentlyEditingCardId, false);
+        }
+        currentlyEditingCardId = taskId;
+        card.setAttribute('draggable', 'false');
+        card.style.border = '1.5px solid #64748b';
+        card.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)';
+        card.style.cursor = 'default';
+        view.style.display = 'none';
+        editor.style.display = 'block';
+
+        const titleInput = document.getElementById('card-input-title-' + taskId);
+        if (titleInput) {
+            setTimeout(() => {
+                titleInput.focus();
+                titleInput.select();
+            }, 50);
+        }
+    } else {
+        if (currentlyEditingCardId === taskId) {
+            currentlyEditingCardId = null;
+        }
+        card.setAttribute('draggable', 'true');
+        // Restore border based on status
+        const status = card.getAttribute('data-status') || 'To Do';
+        let statusBorderColor = 'var(--color-border-primary)';
+        if (['Done', 'Completed', 'Complete'].includes(status)) statusBorderColor = '#10b981';
+        else if (['Approval Stage', 'Approval', 'Review', 'Under Review'].includes(status)) statusBorderColor = '#f59e0b';
+        else if (['In Progress', 'on hold'].includes(status)) statusBorderColor = '#6366f1';
+        card.style.border = '1px solid var(--color-border-primary)';
+        card.style.borderLeft = '3px solid ' + statusBorderColor;
+        card.style.boxShadow = '0 1px 4px rgba(0,0,0,0.03)';
+        card.style.cursor = 'pointer';
+        editor.style.display = 'none';
+        view.style.display = 'block';
+    }
+}
+
+async function submitInlineCardEdit(event, taskId) {
+    event.preventDefault();
+    const card = document.getElementById('kanban-card-' + taskId);
+    const editor = document.getElementById('kanban-card-editor-' + taskId);
+    if (!card || !editor) return;
+
+    const titleInput = document.getElementById('card-input-title-' + taskId);
+    const postTypeSelect = document.getElementById('card-input-post-type-' + taskId);
+    const writerSelect = document.getElementById('card-input-writer-' + taskId);
+    const deadlineInput = document.getElementById('card-input-deadline-' + taskId);
+    const prioritySelect = document.getElementById('card-input-priority-' + taskId);
+
+    const title = titleInput ? titleInput.value.trim() : '';
+    if (!title) {
+        alert('Please enter a task name.');
+        if (titleInput) titleInput.focus();
+        return;
+    }
+
+    const postType = postTypeSelect ? postTypeSelect.value : '';
+    const writerId = writerSelect && writerSelect.value ? writerSelect.value : '';
+    const deadline = deadlineInput && deadlineInput.value ? deadlineInput.value : '';
+    const priority = prioritySelect ? prioritySelect.value : 'Medium';
+
+    const saveBtn = document.getElementById('card-btn-save-' + taskId);
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span>Saving…</span>';
+    }
+
+    try {
+        const response = await fetch(`/deliverables/${taskId}/campaign-kanban/quick-update`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            },
+            body: JSON.stringify({
+                title: title,
+                post_type: postType,
+                writer_id: writerId,
+                deadline: deadline,
+                priority: priority,
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success && result.deliverable) {
+            const d = result.deliverable;
+            updateCardViewElements(taskId, d);
+            toggleCardEditor(taskId, false);
+            window.dispatchEvent(new CustomEvent('toast', { detail: { message: result.message || 'Deliverable updated', type: 'success' } }));
+        } else {
+            window.dispatchEvent(new CustomEvent('toast', { detail: { message: result.message || 'Failed to update deliverable.', type: 'error' } }));
+        }
+    } catch (err) {
+        console.error('Error updating card inline:', err);
+        alert('Network error while updating deliverable.');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<span>Save</span><span style="font-size:11px; opacity:0.7;">↵</span>';
+        }
+    }
+}
+
+function updateCardViewElements(taskId, d) {
+    const titleEl = document.getElementById('card-view-title-' + taskId);
+    if (titleEl) titleEl.textContent = d.title;
+
+    const postTypeEl = document.getElementById('card-view-post-type-' + taskId);
+    if (postTypeEl) postTypeEl.textContent = d.post_type || 'Deliverable';
+
+    const avatarEl = document.getElementById('card-view-avatar-' + taskId);
+    const initial = (d.assignee_name && d.assignee_name !== 'Unassigned') ? d.assignee_name.trim().charAt(0).toUpperCase() : 'U';
+    if (avatarEl) {
+        avatarEl.textContent = initial;
+        avatarEl.title = d.assignee_name || 'Unassigned';
+    }
+
+    const dateContainer = document.getElementById('card-view-date-' + taskId);
+    if (dateContainer) {
+        if (d.deadline) {
+            try {
+                const dt = new Date(d.deadline);
+                const formatted = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                dateContainer.style.display = 'inline-flex';
+                const span = dateContainer.querySelector('span');
+                if (span) span.textContent = formatted;
+            } catch(e) {
+                dateContainer.style.display = 'inline-flex';
+                const span = dateContainer.querySelector('span');
+                if (span) span.textContent = d.deadline;
+            }
+        } else {
+            dateContainer.style.display = 'none';
+        }
+    }
+
+    const prioFlag = document.getElementById('card-view-prio-' + taskId);
+    if (prioFlag) {
+        const prioColor = (d.priority === 'High Priority' || d.priority === 'Urgent' || d.priority === 'High') ? '#ef4444' : (d.priority === 'Low' ? '#64748b' : '#10b981');
+        prioFlag.setAttribute('fill', prioColor);
+        prioFlag.title = d.priority || 'Medium';
+    }
+}
 
 function kanbanOnDragStart(event, taskId) {
+    if (currentlyEditingCardId === taskId) {
+        event.preventDefault();
+        return;
+    }
+    isDraggingKanbanCard = true;
     draggedTaskId = taskId;
     draggedCardElement = event.currentTarget;
     event.dataTransfer.effectAllowed = 'move';
@@ -266,6 +440,7 @@ function kanbanOnDragStart(event, taskId) {
 }
 
 function kanbanOnDragEnd(event) {
+    setTimeout(() => { isDraggingKanbanCard = false; }, 100);
     if (draggedCardElement) {
         draggedCardElement.style.opacity = '1';
     }
@@ -477,6 +652,16 @@ async function submitInlineTask(event, colKey, statusValue) {
     }
 }
 
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function insertCreatedCardIntoColumn(colKey, d) {
     let containerId = 'cards-container-' + colKey;
     const container = document.getElementById(containerId);
@@ -486,68 +671,189 @@ function insertCreatedCardIntoColumn(colKey, d) {
         ? d.assignee_name.trim().charAt(0).toUpperCase() 
         : 'U';
 
-    const prioColor = (d.priority === 'High Priority' || d.priority === 'Urgent') ? '#ef4444' : '#10b981';
+    const prio = d.priority || 'Medium';
+    const prioColor = (prio === 'High Priority' || prio === 'Urgent' || prio === 'High') ? '#ef4444' : (prio === 'Low' ? '#64748b' : '#10b981');
 
     let borderLeft = 'border-left: 3px solid var(--color-border-primary);';
-    if (d.status === 'Done' || d.status === 'Completed') {
+    if (d.status === 'Done' || d.status === 'Completed' || d.status === 'Complete') {
         borderLeft = 'border-left: 3px solid #10b981;';
     } else if (d.status === 'Approval Stage' || d.status === 'Approval' || d.status === 'Review' || d.status === 'Under Review') {
         borderLeft = 'border-left: 3px solid #f59e0b;';
-    } else if (d.status === 'In Progress') {
+    } else if (d.status === 'In Progress' || d.status === 'on hold') {
         borderLeft = 'border-left: 3px solid #6366f1;';
     }
 
     let formattedDate = '';
+    let rawDate = '';
     if (d.deadline) {
         try {
             const dt = new Date(d.deadline);
             formattedDate = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            rawDate = dt.toISOString().split('T')[0];
         } catch(e) {
             formattedDate = d.deadline;
+            rawDate = d.deadline;
         }
     }
+
+    // Build post type options
+    let postTypeOptions = '';
+    kanbanSubtaskTypes.forEach(st => {
+        const isSelected = (st.name.toLowerCase() === (d.post_type || '').toLowerCase()) ? 'selected' : '';
+        postTypeOptions += `<option value="${escapeHtml(st.name)}" ${isSelected}>${escapeHtml(st.name)}</option>`;
+    });
+
+    // Build assignee options
+    let assigneeOptions = `<option value="">Add assignee…</option>`;
+    kanbanSelectableUsers.forEach(u => {
+        const isSelected = (d.writer_id == u.id) ? 'selected' : '';
+        assigneeOptions += `<option value="${u.id}" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
+    });
 
     const cardHtml = `
         <div class="kanban-card" 
              id="kanban-card-${d.id}"
              data-id="${d.id}"
-             data-status="${d.status}"
+             data-status="${escapeHtml(d.status || 'To Do')}"
              draggable="true"
              ondragstart="kanbanOnDragStart(event, ${d.id})"
              ondragend="kanbanOnDragEnd(event)"
-             onclick="openTaskModal(${d.id})"
-             style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); ${borderLeft} border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); cursor: pointer; transition: all 0.15s ease; position: relative;">
+             onclick="handleCardClick(${d.id})"
+             style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); ${borderLeft} border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); cursor: pointer; transition: all 0.15s ease; position: relative;"
+             onmouseover="if(!isCardEditorOpen(${d.id})) { this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-1px)'; }"
+             onmouseout="if(!isCardEditorOpen(${d.id})) { this.style.boxShadow='0 1px 4px rgba(0,0,0,0.03)'; this.style.transform='none'; }">
             
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px;">
-                <span style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; color:var(--color-text-secondary); background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); padding:2px 6px; border-radius:5px;">
-                    ${d.post_type || 'Outlines'}
-                </span>
-                <span style="font-size:10px; font-weight:700; color:#3b82f6; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); padding:1px 6px; border-radius:5px;">
-                    ${d.approval_stage || 'Assignee'}
-                </span>
+            {{-- Collapsed Card View --}}
+            <div class="kanban-card-view" id="kanban-card-view-${d.id}">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
+                    <span id="card-view-post-type-${d.id}" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 2px 6px; border-radius: 5px;">
+                        ${escapeHtml(d.post_type || 'Outlines')}
+                    </span>
+                    <span style="font-size: 10px; font-weight: 700; color: #3b82f6; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); padding: 1px 6px; border-radius: 5px;">
+                        ${escapeHtml(d.approval_stage || 'Assignee')}
+                    </span>
+                </div>
+
+                <h4 id="card-view-title-${d.id}" style="margin: 0 0 10px 0; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); line-height: 1.35; letter-spacing: -0.01em;">
+                    ${escapeHtml(d.title)}
+                </h4>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px solid var(--color-border-primary); margin-top: 4px;">
+                    <div style="display: inline-flex; align-items: center; gap: 6px;">
+                        <div id="card-view-avatar-${d.id}" 
+                             style="width: 22px; height: 22px; border-radius: 50%; background: #7c3aed; color: #ffffff; font-size: 10.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(124,58,237,0.3);" 
+                             title="${escapeHtml(d.assignee_name || 'Unassigned')}">
+                            ${escapeHtml(initial)}
+                        </div>
+                        <div id="card-view-date-${d.id}" style="display: ${formattedDate ? 'inline-flex' : 'none'}; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary);" title="Due ${escapeHtml(formattedDate)}">
+                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <span>${escapeHtml(formattedDate)}</span>
+                        </div>
+                    </div>
+                    <div style="display: inline-flex; align-items: center; gap: 6px;">
+                        <svg id="card-view-prio-${d.id}" width="12" height="12" fill="${prioColor}" viewBox="0 0 16 16" title="${escapeHtml(prio)}">
+                            <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
+                        </svg>
+                        <svg width="12" height="12" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                        </svg>
+                    </div>
+                </div>
             </div>
 
-            <h4 style="margin:0 0 10px 0; font-size:13.5px; font-weight:700; color:var(--color-text-primary); line-height:1.35; letter-spacing:-0.01em;">
-                ${d.title}
-            </h4>
-
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:6px; border-top:1px solid var(--color-border-primary);">
-                <div style="display:inline-flex; align-items:center; gap:6px;">
-                    <div style="width:22px; height:22px; border-radius:50%; background:#7c3aed; color:#fff; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(124,58,237,0.3);" title="${d.assignee_name || 'Unassigned'}">
-                        ${initial}
+            {{-- Expanded Inline Editor --}}
+            <div class="kanban-card-editor" id="kanban-card-editor-${d.id}" style="display: none;" onclick="event.stopPropagation()">
+                <form onsubmit="submitInlineCardEdit(event, ${d.id})">
+                    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
+                        <input type="text" 
+                               name="task_title" 
+                               id="card-input-title-${d.id}"
+                               value="${escapeHtml(d.title)}"
+                               placeholder="Task Name…" 
+                               required
+                               autocomplete="off"
+                               style="width: 100%; border: none; background: transparent; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); outline: none; padding: 2px 0;"
+                               onkeydown="if(event.key === 'Enter') { event.preventDefault(); submitInlineCardEdit(event, ${d.id}); } else if(event.key === 'Escape') { toggleCardEditor(${d.id}, false); }">
+                        
+                        <button type="submit" 
+                                id="card-btn-save-${d.id}"
+                                style="background: #e2e8f0; color: #1e293b; border: none; border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; gap: 3px;">
+                            <span>Save</span>
+                            <span style="font-size: 11px; opacity: 0.7;">↵</span>
+                        </button>
                     </div>
-                    ${formattedDate ? `
-                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:10.5px; font-weight:600; color:var(--color-text-secondary);">
-                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            <span>${formattedDate}</span>
+
+                    <div style="margin-bottom: 10px;">
+                        <select name="post_type" 
+                                id="card-input-post-type-${d.id}"
+                                style="border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; padding: 0; outline: none;">
+                            ${postTypeOptions}
+                        </select>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border-primary);">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            <select name="writer_id" 
+                                    id="card-input-writer-${d.id}"
+                                    style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
+                                ${assigneeOptions}
+                            </select>
                         </div>
-                    ` : ''}
-                </div>
-                <div style="display:inline-flex; align-items:center; gap:6px;">
-                    <svg width="12" height="12" fill="${prioColor}" viewBox="0 0 16 16" title="${d.priority || 'Medium'}">
-                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
-                    </svg>
-                </div>
+
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <input type="date" 
+                                   name="deadline" 
+                                   id="card-input-deadline-${d.id}"
+                                   value="${rawDate}"
+                                   placeholder="Add dates…"
+                                   style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/>
+                            </svg>
+                            <select name="priority" 
+                                    id="card-input-priority-${d.id}"
+                                    style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
+                                <option value="Medium" ${d.priority === 'Medium' ? 'selected' : ''}>Add priority (Medium)</option>
+                                <option value="High Priority" ${(d.priority === 'High Priority' || d.priority === 'High') ? 'selected' : ''}>High Priority</option>
+                                <option value="Urgent" ${d.priority === 'Urgent' ? 'selected' : ''}>Urgent</option>
+                                <option value="Low" ${d.priority === 'Low' ? 'selected' : ''}>Low</option>
+                            </select>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                            </svg>
+                            <span style="font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); opacity: 0.8;">
+                                {{ ucfirst($project->workflow_type ?? 'campaign') }} deliverable
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px;">
+                        <button type="button" 
+                                onclick="event.stopPropagation(); openTaskModal(${d.id})"
+                                style="background: transparent; border: none; font-size: 11px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 2px 4px; display: inline-flex; align-items: center; gap: 3px;"
+                                title="Open full view with briefs, assets and artwork">
+                            <span>Details</span>
+                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </button>
+                        <button type="button" 
+                                onclick="event.stopPropagation(); toggleCardEditor(${d.id}, false)"
+                                style="background: transparent; border: none; font-size: 11px; font-weight: 700; color: var(--color-text-secondary); cursor: pointer; padding: 2px 6px;">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     `;

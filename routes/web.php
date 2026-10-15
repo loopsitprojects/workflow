@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
 
     // Campaign & Pitch Kanban Actions
     Route::post('/projects/{project}/campaign-kanban/quick-store', [DeliverableController::class, 'quickStoreCampaignKanban'])->name('campaign-kanban.quick-store');
+    Route::post('/deliverables/{deliverable}/campaign-kanban/quick-update', [DeliverableController::class, 'quickUpdateCampaignKanban'])->name('campaign-kanban.quick-update');
     Route::post('/deliverables/{deliverable}/update-kanban-status', [DeliverableController::class, 'updateKanbanStatus'])->name('deliverables.update-kanban-status');
 
     // Deliverable exports
