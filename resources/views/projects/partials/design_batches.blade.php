@@ -63,7 +63,7 @@
                         $isAssignedFurtherApprover = $task->further_approver_id && $currentUserId == $task->further_approver_id;
                         $isAssignedBrandMgr = $task->brand_manager_id && $currentUserId == $task->brand_manager_id;
 
-                        $canDesignerSubmit = $isAdmin || ($userRole === 'operationsmanager') || ($isDesignerStage && ($isAssignedDesigner || (!$task->designer_id && $userRole === 'designer')));
+                        $canDesignerSubmit = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']) || ($isDesignerStage && ($isAssignedDesigner || (!$task->designer_id && $userRole === 'designer')));
                         $canWriterReview = $isAdmin || ($userRole === 'operationsmanager') || ($isWriterReviewStage && ($isAssignedWriter || (!$task->writer_id && in_array($userRole, ['writer', 'assignee']))));
                         $canApproverReview = $isAdmin || ($userRole === 'operationsmanager') || ($isApproverReviewStage && ($isAssignedApprover || (!$task->approver_id && in_array($userRole, ['approver', 'approvercoordinator']))));
                         $canFurtherApprover = $isAdmin || ($userRole === 'operationsmanager') || ($isFurtherApproverStage && ($isAssignedFurtherApprover || (!$task->further_approver_id && in_array($userRole, ['approver', 'approvercoordinator']))));
@@ -260,11 +260,22 @@
                         <td style="text-align:center; padding:8px 6px;" onclick="event.stopPropagation()">
                             <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
                                 {{-- 1. Submit Button --}}
+                                @php
+                                    $hasArt = !empty($task->getFinalDesignsArray()) || !empty($task->getFinalDesignsUrlsArray());
+                                    $taskStakeholders = "{writer: " . ($task->writer_id ?? 'null') . ", approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "', currentStage: '" . addslashes($stage) . "'}";
+                                @endphp
                                 @if($isDesignerStage && $canDesignerSubmit)
-                                    <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
-                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                        Submit
-                                    </button>
+                                    @if($hasArt)
+                                        <button type="button" onclick="openBatchModal(event, {{ $task->id }}, 'Writer Review', {{ $hasSubtasks ? $subtasks->count() : 1 }}, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="Submit to Writer Review">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                            Submit
+                                        </button>
+                                    @else
+                                        <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" class="quick-action-btn btn-approve-quick" title="Upload Artwork & Submit">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                            Submit
+                                        </button>
+                                    @endif
                                 @elseif(($isWriterReviewStage && $canWriterReview) || ($isApproverReviewStage && $canApproverReview) || ($isFurtherApproverStage && $canFurtherApprover))
                                     <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" class="quick-action-btn btn-approve-quick" title="Review Deliverable">
                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
@@ -345,7 +356,7 @@
                                 $subIsAssignedFurtherApprover = $sub->further_approver_id && $currentUserId == $sub->further_approver_id;
                                 $subIsAssignedBrandMgr = $sub->brand_manager_id && $currentUserId == $sub->brand_manager_id;
 
-                                $canSubDesignerSubmit = $isAdmin || ($userRole === 'operationsmanager') || ($subIsDesignerStage && ($subIsAssignedDesigner || (!$sub->designer_id && $userRole === 'designer')));
+                                $canSubDesignerSubmit = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']) || ($subIsDesignerStage && ($subIsAssignedDesigner || (!$sub->designer_id && $userRole === 'designer')));
                                 $canSubWriterReview = $isAdmin || ($userRole === 'operationsmanager') || ($subIsWriterReviewStage && ($subIsAssignedWriter || (!$sub->writer_id && in_array($userRole, ['writer', 'assignee']))));
                                 $canSubApproverReview = $isAdmin || ($userRole === 'operationsmanager') || ($subIsApproverReviewStage && ($subIsAssignedApprover || (!$sub->approver_id && in_array($userRole, ['approver', 'approvercoordinator']))));
                                 $canSubFurtherApprover = $isAdmin || ($userRole === 'operationsmanager') || ($subIsFurtherApproverStage && ($subIsAssignedFurtherApprover || (!$sub->further_approver_id && in_array($userRole, ['approver', 'approvercoordinator']))));
@@ -501,11 +512,22 @@
                                 <td style="text-align:center; padding:6px 6px;" onclick="event.stopPropagation()">
                                     <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
                                         {{-- 1. Submit / Approve Button --}}
+                                        @php
+                                            $subHasArt = !empty($sub->getFinalDesignsArray()) || !empty($sub->getFinalDesignsUrlsArray());
+                                            $subStakeholders = "{writer: " . ($sub->writer_id ?? 'null') . ", approver: " . ($sub->approver_id ?? 'null') . ", brand_manager: " . ($sub->brand_manager_id ?? 'null') . ", coordinator: " . ($sub->coordinator_id ?? 'null') . ", designer: " . ($sub->designer_id ?? 'null') . ", writerName: '" . addslashes($sub->writer->name ?? '') . "', approverName: '" . addslashes($sub->approver->name ?? $project->approver->name ?? '') . "', currentStage: '" . addslashes($subStage) . "'}";
+                                        @endphp
                                         @if($subIsDesignerStage && $canSubDesignerSubmit)
-                                            <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                Submit
-                                            </button>
+                                            @if($subHasArt)
+                                                <button type="button" onclick="openBatchModal(event, {{ $sub->id }}, 'Writer Review', 1, 'submit', {{ $subStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="Submit to Writer Review">
+                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                    Submit
+                                                </button>
+                                            @else
+                                                <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" class="quick-action-btn btn-approve-quick" title="Upload Artwork & Submit">
+                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                    Submit
+                                                </button>
+                                            @endif
                                         @elseif(($subIsWriterReviewStage && $canSubWriterReview) || ($subIsApproverReviewStage && $canSubApproverReview) || ($subIsFurtherApproverStage && $canSubFurtherApprover))
                                             <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" class="quick-action-btn btn-approve-quick" title="Review Deliverable">
                                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>

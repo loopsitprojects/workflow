@@ -640,3 +640,140 @@ test('fast track batch deliverable does not put designer for batch and assigns o
     $projectView->assertSee('Alice Designer');
     $projectView->assertSee('Bob Designer');
 });
+
+test('fast track deliverable creation persists writer_id in single and batch mode', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-writer']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $writer1 = User::factory()->create(['name' => 'Charlie Writer', 'role' => 'Writer']);
+    $writer2 = User::factory()->create(['name' => 'Dave Writer', 'role' => 'Writer']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Fast Track Writer',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    // Single deliverable creation
+    $response = $this->actingAs($manager)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'creation_mode' => 'single',
+        'title' => 'Single Fast Track Item',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 20,
+        'designer_id' => $designer->id,
+        'writer_id' => $writer1->id,
+        'concept' => 'Single creative brief',
+    ]);
+    $response->assertRedirect(route('projects.show', $project->id));
+
+    $single = Deliverable::where('title', 'Single Fast Track Item')->first();
+    expect($single)->not->toBeNull();
+    expect($single->writer_id)->toBe($writer1->id);
+
+    // Batch creation with batch fallback and subtask specific writer
+    $batchResponse = $this->actingAs($manager)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'creation_mode' => 'batch',
+        'title' => 'Batch Fast Track Group',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 20,
+        'writer_id' => $writer1->id,
+        'subtasks' => [
+            [
+                'title' => 'Subtask 1 with fallback writer',
+                'designer_id' => $designer->id,
+                'concept' => 'Brief 1',
+            ],
+            [
+                'title' => 'Subtask 2 with explicit writer',
+                'designer_id' => $designer->id,
+                'writer_id' => $writer2->id,
+                'concept' => 'Brief 2',
+            ],
+        ],
+    ]);
+    $batchResponse->assertRedirect(route('projects.show', $project->id));
+
+    $batchParent = Deliverable::where('title', 'Batch Fast Track Group')->first();
+    expect($batchParent)->not->toBeNull();
+    expect($batchParent->writer_id)->toBe($writer1->id);
+
+    $sub1 = Deliverable::where('title', 'Subtask 1 with fallback writer')->first();
+    expect($sub1->writer_id)->toBe($writer1->id);
+
+    $sub2 = Deliverable::where('title', 'Subtask 2 with explicit writer')->first();
+    expect($sub2->writer_id)->toBe($writer2->id);
+});
+
+test('brand manager can advance direct design deliverable and assign writer for Writer Review', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-bm-advance']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $writer = User::factory()->create(['name' => 'Emma Writer', 'role' => 'Writer']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project BM Advance',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $task = Deliverable::create([
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'title' => 'Fast Track Submit Test',
+        'approval_stage' => 'Designer',
+        'designer_id' => $designer->id,
+        'brand_manager_id' => $manager->id,
+        'final_designs' => 'artwork/sample.jpg',
+    ]);
+
+    // Brand manager submits deliverable to Writer Review via batch-submit endpoint
+    $response = $this->actingAs($manager)->postJson(route('deliverables.batchSubmit', $task->id), [
+        'writer_id' => $writer->id,
+    ]);
+
+    $response->assertOk();
+    $task->refresh();
+    expect($task->approval_stage)->toBe('Writer Review');
+    expect($task->writer_id)->toBe($writer->id);
+});
+
+test('designer advance to Writer Review falls back to project writer when writer_id omitted', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-fallback-writer']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $projectWriter = User::factory()->create(['name' => 'Default Writer', 'role' => 'Writer']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Fallback Writer',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+        'writer_id' => $projectWriter->id,
+    ]);
+
+    $task = Deliverable::create([
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'title' => 'Auto Fallback Task',
+        'approval_stage' => 'Designer',
+        'designer_id' => $designer->id,
+        'final_designs' => 'artwork/sample.jpg',
+    ]);
+
+    // Advance without passing writer_id
+    $response = $this->actingAs($designer)->post(route('deliverables.submit', $task->id), []);
+    $response->assertSessionHasNoErrors();
+
+    $task->refresh();
+    expect($task->approval_stage)->toBe('Writer Review');
+    expect($task->writer_id)->toBe($projectWriter->id);
+});
+

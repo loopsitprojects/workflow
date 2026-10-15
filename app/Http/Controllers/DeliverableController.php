@@ -160,7 +160,7 @@ class DeliverableController extends Controller
         // If creating a NEW deliverable and exactly 1 subtask is defined without a distinct batch title, consolidate into a standalone deliverable.
         // If the user specified a distinct batch title and subtask title, keep as a Batch parent + Subtask deliverable.
         $hasDistinctBatchTitle = !$isCampaignOrPitch && !empty($validated['title']) && !empty($subtasks[0]['title']) && trim(strtolower($validated['title'])) !== trim(strtolower($subtasks[0]['title']));
-        if (!$parentId && (count($subtasks) === 1 || $isCampaignOrPitch) && !$hasDistinctBatchTitle) {
+        if (!$parentId && count($subtasks) === 1 && !$hasDistinctBatchTitle) {
             $sub = $subtasks[0];
             $taskData = \Illuminate\Support\Arr::except($validated, ['subtasks', 'parent_deliverable_id']);
             

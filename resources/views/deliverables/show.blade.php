@@ -2507,7 +2507,7 @@
                     ? (
                         isAdmin ||
                         userRole === 'operationsmanager' ||
-                        (stage === 'Designer' && (isAssignedDesigner || (!task.designer_id && hasDesignerRole))) ||
+                        (stage === 'Designer' && (isAssignedDesigner || (!task.designer_id && hasDesignerRole) || userRole === 'brandmanager')) ||
                         (stage === 'Writer Review' && (isAssignedWriter || (!task.writer_id && hasWriterRole))) ||
                         (stage === 'Approver Review' && (isAssignedApprover || (!task.approver_id && (userRole === 'approver' || userRole === 'approvercoordinator')))) ||
                         (stage === 'Further Approver' && (isAssignedFurtherApprover || (!task.further_approver_id && (userRole === 'approver' || userRole === 'approvercoordinator')))) ||
@@ -2543,7 +2543,7 @@
 
                 // Check if the current user is specifically assigned to handle this current stage
                 const isCurrentStageAssignee = (isDirectDesign || task.is_direct_design) ? (
-                    (stage === 'Designer') ? (isAssignedDesigner || (!task.designer_id && hasDesignerRole)) :
+                    (stage === 'Designer') ? (isAssignedDesigner || (!task.designer_id && hasDesignerRole) || userRole === 'brandmanager') :
                     (stage === 'Writer Review') ? (isAssignedWriter || (!task.writer_id && hasWriterRole)) :
                     (stage === 'Approver Review') ? (isAssignedApprover || (!task.approver_id && (userRole === 'approver' || userRole === 'approvercoordinator'))) :
                     (stage === 'Further Approver') ? (isAssignedFurtherApprover || (!task.further_approver_id && (userRole === 'approver' || userRole === 'approvercoordinator'))) :
@@ -2623,7 +2623,17 @@
                             if (writerArea) {
                                 writerArea.style.display = 'block';
                                 const sel = writerArea.querySelector('select');
-                                if (sel) sel.disabled = false;
+                                if (sel) {
+                                    sel.disabled = false;
+                                    const projectWriterId = {!! json_encode($deliverable->project?->writer_id) !!};
+                                    if (task.writer_id) {
+                                        sel.value = task.writer_id;
+                                    } else if (projectWriterId && sel.querySelector(`option[value="${projectWriterId}"]`)) {
+                                        sel.value = projectWriterId;
+                                    } else if (sel.options.length > 1 && !sel.value) {
+                                        sel.value = sel.options[1].value;
+                                    }
+                                }
                             }
                         } else if (stage === 'Writer Review') {
                             if (apprArea) {

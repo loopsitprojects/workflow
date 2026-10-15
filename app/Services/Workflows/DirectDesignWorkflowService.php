@@ -182,11 +182,17 @@ class DirectDesignWorkflowService implements WorkflowInterface
                 if ($deliverable->project?->writer_id) {
                     $deliverable->writer_id = $deliverable->project->writer_id;
                 } else {
-                    return [
-                        'success' => false,
-                        'message' => 'Please select a writer for writer approval.',
-                        'code'    => 422,
-                    ];
+                    $fallbackWriter = $deliverable->project?->brand?->members()->whereIn('role', ['Writer', 'Assignee'])->first()
+                        ?? User::whereIn('role', ['Writer', 'Assignee'])->first();
+                    if ($fallbackWriter) {
+                        $deliverable->writer_id = $fallbackWriter->id;
+                    } else {
+                        return [
+                            'success' => false,
+                            'message' => 'Please select a writer for writer approval.',
+                            'code'    => 422,
+                        ];
+                    }
                 }
             }
         } elseif ($oldStage === 'Writer Review') {

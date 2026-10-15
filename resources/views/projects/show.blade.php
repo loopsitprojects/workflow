@@ -3151,7 +3151,7 @@
                     ? (
                         isAdmin ||
                         userRole === 'operationsmanager' ||
-                        (stage === 'Designer' && (isAssignedDesigner || (!task.designer_id && hasDesignerRole))) ||
+                        (stage === 'Designer' && (isAssignedDesigner || (!task.designer_id && hasDesignerRole) || userRole === 'brandmanager')) ||
                         (stage === 'Writer Review' && (isAssignedWriter || (!task.writer_id && hasWriterRole))) ||
                         (stage === 'Approver Review' && (isAssignedApprover || (!task.approver_id && (userRole === 'approver' || userRole === 'approvercoordinator')))) ||
                         (stage === 'Further Approver' && (isAssignedFurtherApprover || (!task.further_approver_id && (userRole === 'approver' || userRole === 'approvercoordinator')))) ||
@@ -3187,7 +3187,7 @@
 
                 // Check if the current user is specifically assigned to handle this current stage
                 const isCurrentStageAssignee = (isDirectDesign || task.is_direct_design) ? (
-                    (stage === 'Designer') ? (isAssignedDesigner || (!task.designer_id && hasDesignerRole)) :
+                    (stage === 'Designer') ? (isAssignedDesigner || (!task.designer_id && hasDesignerRole) || userRole === 'brandmanager') :
                     (stage === 'Writer Review') ? (isAssignedWriter || (!task.writer_id && hasWriterRole)) :
                     (stage === 'Approver Review') ? (isAssignedApprover || (!task.approver_id && (userRole === 'approver' || userRole === 'approvercoordinator'))) :
                     (stage === 'Further Approver') ? (isAssignedFurtherApprover || (!task.further_approver_id && (userRole === 'approver' || userRole === 'approvercoordinator'))) :
@@ -3267,7 +3267,17 @@
                             if (writerArea) {
                                 writerArea.style.display = 'block';
                                 const sel = writerArea.querySelector('select');
-                                if (sel) sel.disabled = false;
+                                if (sel) {
+                                    sel.disabled = false;
+                                    const projectWriterId = {!! json_encode($project->writer_id) !!};
+                                    if (task.writer_id) {
+                                        sel.value = task.writer_id;
+                                    } else if (projectWriterId && sel.querySelector(`option[value="${projectWriterId}"]`)) {
+                                        sel.value = projectWriterId;
+                                    } else if (sel.options.length > 1 && !sel.value) {
+                                        sel.value = sel.options[1].value;
+                                    }
+                                }
                             }
                         } else if (stage === 'Writer Review') {
                             if (apprArea) {
@@ -3934,6 +3944,7 @@
     <script id="managers-data" type="application/json">{!! json_encode($brandManagers) !!}</script>
     <script id="coordinators-data" type="application/json">{!! json_encode($coordinators) !!}</script>
     <script id="designers-data" type="application/json">{!! json_encode($designers) !!}</script>
+    <script id="writers-data" type="application/json">{!! json_encode($writers) !!}</script>
 
     <script>
         let currentBatchTask = null;
@@ -4129,6 +4140,11 @@
                     title.textContent = `Assign Designer`;
                     subtitle.textContent = `Assign a designer for this deliverable.`;
                 }
+            } else if (nextStage === 'Writer Review') {
+                roleToFill = 'writer_id';
+                const writersEl = document.getElementById('writers-data');
+                roleUsers = writersEl ? JSON.parse(writersEl.textContent) : [];
+                label = "Select Writer for Review";
             }
 
             if (roleToFill && type === 'submit') {
@@ -4140,6 +4156,10 @@
                     stakeholderGroup.style.display = 'none';
                     genericConfirm.style.display = 'block';
                     genericConfirm.textContent = isIndividual ? `Are you sure you want to submit this task to the Brand Manager stage?` : `Are you sure you want to submit this entire batch to the Brand Manager stage?`;
+                } else if (nextStage === 'Writer Review' && stakeholders.writer && stakeholders.writerName) {
+                    stakeholderGroup.style.display = 'none';
+                    genericConfirm.style.display = 'block';
+                    genericConfirm.innerHTML = isIndividual ? `Are you sure you want to submit this task to <b>${stakeholders.writerName}</b> for review?` : `Are you sure you want to submit this entire batch to <b>${stakeholders.writerName}</b> for review?`;
                 } else {
                     stakeholderGroup.style.display = 'block';
                     genericConfirm.style.display = 'none';
@@ -4162,6 +4182,11 @@
                         preSelectId = stakeholders.coordinator || {!! json_encode($project->coordinator_id) !!};
                     } else if (nextStage === 'Designer') {
                         preSelectId = !isIndividual ? 'individual' : (stakeholders.designer || {!! json_encode($project->designer_id) !!});
+                    } else if (nextStage === 'Writer Review') {
+                        preSelectId = stakeholders.writer || {!! json_encode($project->writer_id) !!};
+                        if (!preSelectId && roleUsers.length > 0) {
+                            preSelectId = roleUsers[0].id;
+                        }
                     }
 
                     if (stakeholderSelect.style.display !== 'none') {
@@ -4311,6 +4336,12 @@
                 else if (currentBatchNextStage === 'Brand Manager' || currentBatchNextStage === 'Final Approval' || currentBatchNextStage === 'AM/BD' || currentBatchNextStage === 'Approve') roleField = 'brand_manager_id';
                 else if (currentBatchNextStage === 'Coordinator') roleField = 'coordinator_id';
                 else if (currentBatchNextStage === 'Designer') roleField = 'designer_id';
+                else if (currentBatchNextStage === 'Writer Review') roleField = 'writer_id';
+            }
+
+            if (!assigneeId && currentBatchNextStage === 'Writer Review' && currentBatchStakeholders.writer) {
+                assigneeId = currentBatchStakeholders.writer;
+                roleField = 'writer_id';
             }
 
             btn.innerHTML = '<svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Submitting...';
