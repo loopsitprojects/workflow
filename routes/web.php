@@ -84,6 +84,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/maintenance/toggle', [MaintenanceController::class, 'toggle'])->name('admin.maintenance.toggle');
         Route::post('/maintenance/message', [MaintenanceController::class, 'updateMessage'])->name('admin.maintenance.message');
         Route::post('/settings/toggle-client-review', [UserController::class, 'toggleClientReview'])->name('admin.features.toggle-client-review');
+        Route::post('/settings/toggle-direct-design', [UserController::class, 'toggleDirectDesign'])->name('admin.features.toggle-direct-design');
         Route::post('/settings/toggle-project-type', [UserController::class, 'toggleProjectType'])->name('admin.features.toggle-project-type');
         Route::resource('users', UserController::class)->except(['show']);
         Route::resource('subtask-types', SubtaskTypeController::class)->only(['index', 'store', 'destroy']);

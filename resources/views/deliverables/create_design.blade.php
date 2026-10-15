@@ -1,4 +1,4 @@
-<x-layout title="New Fast Track Deliverable">
+<x-layout title="New Direct Design">
     <style>
         .create-page-wrapper {
             max-width: 820px;
@@ -487,7 +487,7 @@
                 <a href="{{ route('projects.show', $project->id) }}" class="create-bc-link">{{ $project->name }}</a>
                 <span class="create-bc-sep">/</span>
             @endif
-            <span class="create-bc-current">{{ isset($parentId) ? 'Add Deliverables to Batch' : 'New Fast Track Deliverable' }}</span>
+            <span class="create-bc-current">{{ isset($parentId) ? 'Add Deliverables to Batch' : 'New Direct Design' }}</span>
         </nav>
 
         {{-- Top Control Header --}}
@@ -497,7 +497,7 @@
                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                     </svg>
-                    Fast Track Flow
+                    Direct Design Flow
                 </div>
                 <div class="direct-flow-steps">
                     <div class="step-badge active">1. Designer</div>
@@ -674,7 +674,7 @@
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                                 </svg>
-                                Create Fast Track Deliverable
+                                Create Direct Design Deliverable
                             </span>
                         </template>
                         <template x-if="isSubmitting">

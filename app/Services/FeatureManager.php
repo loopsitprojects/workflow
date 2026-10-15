@@ -31,12 +31,44 @@ class FeatureManager
     {
         return [
             'client_review_enabled' => true,
+            'direct_design_enabled' => true,
             'enabled_project_types' => [
                 'retainer' => true,
                 'campaign' => true,
                 'pitch' => true,
             ],
         ];
+    }
+
+    /**
+     * Check if the Direct Design feature is enabled.
+     */
+    public static function isDirectDesignEnabled(): bool
+    {
+        $settings = self::getAll();
+        return (bool) ($settings['direct_design_enabled'] ?? true);
+    }
+
+    /**
+     * Set the Direct Design feature status.
+     */
+    public static function setDirectDesignEnabled(bool $enabled): void
+    {
+        $current = self::getAll();
+        $current['direct_design_enabled'] = $enabled;
+        $current['updated_at'] = now()->toDateTimeString();
+
+        Storage::disk('local')->put(self::SETTINGS_FILE, json_encode($current, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Toggle the Direct Design feature.
+     */
+    public static function toggleDirectDesign(): bool
+    {
+        $newStatus = !self::isDirectDesignEnabled();
+        self::setDirectDesignEnabled($newStatus);
+        return $newStatus;
     }
 
     /**

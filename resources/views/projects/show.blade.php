@@ -667,11 +667,13 @@
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         New Deliverable
                     </a>
+                    @if(\App\Services\FeatureManager::isDirectDesignEnabled())
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'flow' => 'design']) }}"
                        style="padding: 8px 16px; background: #6366f1; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(99,102,241,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        Fast Track Deliverable
+                        Direct Design
                     </a>
+                    @endif
                     @endcan
                 </div>
             </div>
@@ -758,7 +760,7 @@
                             class="board-tab-btn is-fasttrack"
                             :class="activeBoardTab === 'fasttrack' ? 'is-active' : ''">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        <span>Fast Track Deliverables</span>
+                        <span>Direct Design</span>
                         <span class="board-tab-badge">{{ $fastTrackTasks->count() }}</span>
                     </button>
                 </div>

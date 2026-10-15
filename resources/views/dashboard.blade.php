@@ -241,18 +241,18 @@
                         if (!$isBatch && !empty($subtasks[0])) {
                             $t = $subtasks[0];
                             if (!empty($t->post_type)) {
-                                $deliverableType = $t->post_type . ($t->flow_type === 'direct_design' ? ' (Fast Track)' : '');
+                                $deliverableType = $t->post_type . ($t->flow_type === 'direct_design' ? ' (Direct Design)' : '');
                             } elseif ($t->flow_type === 'direct_design') {
-                                $deliverableType = 'Fast Track';
+                                $deliverableType = 'Direct Design';
                             } elseif (!empty($t->task_type) && $t->task_type !== 'Deliverable') {
                                 $deliverableType = $t->task_type;
                             }
                         } elseif ($isBatch && !empty($group['parent'])) {
                             $p = $group['parent'];
                             if (!empty($p->post_type)) {
-                                $deliverableType = $p->post_type . ($p->flow_type === 'direct_design' ? ' (Fast Track)' : '');
+                                $deliverableType = $p->post_type . ($p->flow_type === 'direct_design' ? ' (Direct Design)' : '');
                             } elseif ($p->flow_type === 'direct_design') {
-                                $deliverableType = 'Fast Track';
+                                $deliverableType = 'Direct Design';
                             }
                         }
                     @endphp
@@ -356,18 +356,18 @@
                         if (!$isBatch && !empty($subtasks[0])) {
                             $t = $subtasks[0];
                             if (!empty($t->post_type)) {
-                                $completedType = $t->post_type . ($t->flow_type === 'direct_design' ? ' (Fast Track)' : '');
+                                $completedType = $t->post_type . ($t->flow_type === 'direct_design' ? ' (Direct Design)' : '');
                             } elseif ($t->flow_type === 'direct_design') {
-                                $completedType = 'Fast Track';
+                                $completedType = 'Direct Design';
                             } elseif (!empty($t->task_type) && $t->task_type !== 'Deliverable') {
                                 $completedType = $t->task_type;
                             }
                         } elseif ($isBatch && !empty($group['parent'])) {
                             $p = $group['parent'];
                             if (!empty($p->post_type)) {
-                                $completedType = $p->post_type . ($p->flow_type === 'direct_design' ? ' (Fast Track)' : '');
+                                $completedType = $p->post_type . ($p->flow_type === 'direct_design' ? ' (Direct Design)' : '');
                             } elseif ($p->flow_type === 'direct_design') {
-                                $completedType = 'Fast Track';
+                                $completedType = 'Direct Design';
                             }
                         }
                     @endphp

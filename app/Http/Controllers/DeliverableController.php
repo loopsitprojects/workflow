@@ -74,6 +74,9 @@ class DeliverableController extends Controller
         $workflowType = $project ? $project->workflow_type : ($parentTask?->project?->workflow_type ?? 'retainer');
 
         if ($flow === 'design' || ($parentTask && $parentTask->isDirectDesign())) {
+            if (!\App\Services\FeatureManager::isDirectDesignEnabled()) {
+                abort(403, 'Direct design feature is currently disabled.');
+            }
             $projects = Project::with('brand')->get();
             $designers = \App\Models\User::where('role', 'Designer')->orderBy('name')->get();
             $subtaskTypes = \App\Models\SubtaskType::all();
@@ -105,6 +108,9 @@ class DeliverableController extends Controller
         $project = Project::find($validated['project_id']);
 
         if (($validated['flow_type'] ?? null) === 'direct_design' || ($parentId && Deliverable::find($parentId)?->isDirectDesign())) {
+            if (!\App\Services\FeatureManager::isDirectDesignEnabled()) {
+                abort(403, 'Direct design feature is currently disabled.');
+            }
             return $this->storeDirectDesignDeliverable($request, $validated, $project, $parentId, $subtasks);
         }
 
@@ -478,6 +484,9 @@ class DeliverableController extends Controller
         }
 
         $isDirectDesign = $deliverable->isDirectDesign();
+        if ($isDirectDesign && !\App\Services\FeatureManager::isDirectDesignEnabled()) {
+            abort(403, 'Direct design feature is currently disabled.');
+        }
         $project = $deliverable->project;
         $pType = strtolower(trim($postType ?? ''));
         if ($isDirectDesign) {

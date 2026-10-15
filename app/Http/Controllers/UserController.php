@@ -141,8 +141,20 @@ class UserController extends Controller
     {
         $maintenance = \App\Http\Controllers\Admin\MaintenanceController::getStatus();
         $clientReviewEnabled = \App\Services\FeatureManager::isClientReviewEnabled();
+        $directDesignEnabled = \App\Services\FeatureManager::isDirectDesignEnabled();
         $projectTypesStatus = \App\Services\FeatureManager::getProjectTypesStatus();
-        return view('admin.settings', compact('maintenance', 'clientReviewEnabled', 'projectTypesStatus'));
+        return view('admin.settings', compact('maintenance', 'clientReviewEnabled', 'directDesignEnabled', 'projectTypesStatus'));
+    }
+
+    public function toggleDirectDesign(Request $request)
+    {
+        $newStatus = \App\Services\FeatureManager::toggleDirectDesign();
+
+        $msg = $newStatus
+            ? 'Direct Design feature has been ENABLED. Team members can now create direct design deliverables.'
+            : 'Direct Design feature has been DISABLED. Direct design creation has been paused.';
+
+        return redirect()->route('admin.settings')->with('success', $msg);
     }
 
     public function toggleClientReview(Request $request)

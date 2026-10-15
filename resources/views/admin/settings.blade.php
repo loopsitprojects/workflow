@@ -193,6 +193,51 @@
             </div>
         </div>
 
+        <!-- Direct Design Feature Section -->
+        <div class="bg-white dark:bg-[#0F172A] rounded-[32px] p-8 card-shadow border {{ ($directDesignEnabled ?? true) ? 'border-indigo-500/30 dark:border-indigo-500/30' : 'border-gray-100 dark:border-slate-800' }}">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 {{ ($directDesignEnabled ?? true) ? 'bg-indigo-500/10 text-indigo-500' : 'bg-slate-500/10 text-slate-400' }} rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Direct Design Flow</h3>
+                            @if($directDesignEnabled ?? true)
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                    FEATURE ENABLED
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                                    FEATURE DISABLED
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-sm text-gray-400 dark:text-slate-500 font-medium mt-1">
+                            Enable or disable direct design deliverables that bypass copywriting stages directly to designers.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Sleek Toggle Switch -->
+                <form action="{{ route('admin.features.toggle-direct-design') }}" method="POST" id="directDesignToggleForm" class="flex-shrink-0 flex items-center gap-3">
+                    @csrf
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                        {{ ($directDesignEnabled ?? true) ? 'ON' : 'OFF' }}
+                    </span>
+                    <button type="submit" onclick="return confirmAction(event, '{{ ($directDesignEnabled ?? true) ? 'Disable Direct Design Feature?' : 'Enable Direct Design Feature?' }}', '{{ ($directDesignEnabled ?? true) ? 'Hide Direct Design actions and prevent creating new direct design deliverables?' : 'Allow teams to create direct design deliverables and batches?' }}', false, '{{ ($directDesignEnabled ?? true) ? 'Disable Feature' : 'Enable Feature' }}');"
+                        class="relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ ($directDesignEnabled ?? true) ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700' }}"
+                        role="switch" aria-checked="{{ ($directDesignEnabled ?? true) ? 'true' : 'false' }}">
+                        <span class="pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ ($directDesignEnabled ?? true) ? 'translate-x-6' : 'translate-x-0' }}"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- Maintenance Mode Section -->
         <div class="bg-white dark:bg-[#0F172A] rounded-[32px] p-8 card-shadow border {{ $maintenance['enabled'] ? 'border-amber-500/50 dark:border-amber-500/50' : 'border-gray-100 dark:border-slate-800' }}">
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">

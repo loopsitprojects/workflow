@@ -289,13 +289,13 @@ test('fast track deliverable button is displayed on campaign, pitch, and retaine
     ]);
 
     $resRetainer = $this->actingAs($manager)->get(route('projects.show', $retainerProject->id));
-    $resRetainer->assertSee('Fast Track Deliverable');
+    $resRetainer->assertSee('Direct Design');
 
     $resCampaign = $this->actingAs($manager)->get(route('projects.show', $campaignProject->id));
-    $resCampaign->assertSee('Fast Track Deliverable');
+    $resCampaign->assertSee('Direct Design');
 
     $resPitch = $this->actingAs($manager)->get(route('projects.show', $pitchProject->id));
-    $resPitch->assertSee('Fast Track Deliverable');
+    $resPitch->assertSee('Direct Design');
 });
 
 test('can access fast track creation form and store direct design for campaign and pitch projects', function () {
@@ -483,7 +483,7 @@ test('fast track deliverable due date sets deliverable deadline and designer dea
     // 4. Verify project show page renders without view errors with Fast Track deliverables present
     $projShowRes = $this->actingAs($manager)->get(route('projects.show', $project->id));
     $projShowRes->assertOk();
-    $projShowRes->assertSee('Fast Track Deliverables');
+    $projShowRes->assertSee('Direct Design');
     $projShowRes->assertSee('Batch Fast Track Campaign');
 });
 
