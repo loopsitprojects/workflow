@@ -11,9 +11,17 @@
      style="background: var(--color-bg-primary); border: 1.5px solid #64748b; border-radius: 12px; padding: 12px 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 8px;">
     
     <form onsubmit="submitInlineTask(event, '{{ $creatorKey }}', '{{ $colStatus }}')">
-        {{-- Top Header: Stage on top very small --}}
+        {{-- Top Header: Type selector and Stage on top very small --}}
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
             <div style="display: inline-flex; align-items: center; gap: 4px;">
+                <select name="post_type" 
+                        style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; cursor: pointer; outline: none;">
+                    @foreach($subtaskTypes as $st)
+                        <option value="{{ $st->name }}" {{ strtolower($st->name) === 'outlines' ? 'selected' : '' }}>
+                            {{ $st->name }}
+                        </option>
+                    @endforeach
+                </select>
                 <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                     {{ $colStatus }}
                 </span>
@@ -31,20 +39,7 @@
                    onkeydown="if(event.key === 'Enter') { event.preventDefault(); submitInlineTask(event, '{{ $creatorKey }}', '{{ $colStatus }}'); } else if(event.key === 'Escape') { closeInlineCreator('{{ $creatorKey }}'); }">
         </div>
 
-        {{-- Row 2: List / Post Type selector --}}
-        <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary);">
-            <span style="opacity: 0.75;">Type:</span>
-            <select name="post_type" 
-                    style="border: none; background: transparent; font-size: 11.5px; font-weight: 700; color: var(--color-text-primary); cursor: pointer; padding: 0; outline: none;">
-                @foreach($subtaskTypes as $st)
-                    <option value="{{ $st->name }}" {{ strtolower($st->name) === 'outlines' ? 'selected' : '' }}>
-                        {{ $st->name }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-
-        {{-- Row 3: Action Pickers with Icons (Matching reference layout) --}}
+        {{-- Row 2: Action Pickers with Icons (Matching reference layout) --}}
         <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border-primary);">
             
             {{-- Add Assignee --}}
@@ -85,16 +80,6 @@
                     <option value="Urgent">Urgent</option>
                     <option value="Low">Low</option>
                 </select>
-            </div>
-
-            {{-- Add Tag --}}
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                </svg>
-                <span style="font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); opacity: 0.8;">
-                    Campaign deliverable
-                </span>
             </div>
         </div>
 

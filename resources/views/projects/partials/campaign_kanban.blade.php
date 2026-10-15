@@ -830,12 +830,8 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                onkeydown="if(event.key === 'Enter') { event.preventDefault(); submitInlineCardEdit(event, ${d.id}); } else if(event.key === 'Escape') { toggleCardEditor(${d.id}, false); }">
                     </div>
 
-                    {{-- Row 2: Deliverable Type (Locked once set) --}}
-                    <div style="margin-bottom: 10px; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); display: flex; align-items: center; gap: 4px;">
-                        <span style="opacity: 0.75;">Type:</span>
-                        <span style="font-weight: 700; color: var(--color-text-primary);">${escapeHtml(d.post_type || 'Deliverable')}</span>
-                        <input type="hidden" name="post_type" id="card-input-post-type-${d.id}" value="${escapeHtml(d.post_type || '')}">
-                    </div>
+                    {{-- Hidden post_type input (locked once set) --}}
+                    <input type="hidden" name="post_type" id="card-input-post-type-${d.id}" value="${escapeHtml(d.post_type || '')}">
 
                     <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border-primary);">
                         <div style="display: flex; align-items: center; gap: 8px;">
@@ -873,15 +869,6 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                 <option value="Urgent" ${d.priority === 'Urgent' ? 'selected' : ''}>Urgent</option>
                                 <option value="Low" ${d.priority === 'Low' ? 'selected' : ''}>Low</option>
                             </select>
-                        </div>
-
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                            </svg>
-                            <span style="font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); opacity: 0.8;">
-                                {{ ucfirst($project->workflow_type ?? 'campaign') }} deliverable
-                            </span>
                         </div>
                     </div>
 
