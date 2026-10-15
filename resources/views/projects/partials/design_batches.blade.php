@@ -49,12 +49,31 @@
                         $subtasks = $task->subtasks;
                         $hasSubtasks = $subtasks->count() > 0;
                         $isClosed = $task->approval_stage === 'Closed';
-                        $isDesignerStage = $task->approval_stage === 'Designer';
-                        $isManagerReviewStage = $task->approval_stage === 'Manager Review';
+                        $stage = $task->approval_stage;
+                        $isDesignerStage = $stage === 'Designer';
+                        $isWriterReviewStage = $stage === 'Writer Review';
+                        $isApproverReviewStage = $stage === 'Approver Review';
+                        $isFurtherApproverStage = $stage === 'Further Approver';
+                        $isFinalApprovalStage = in_array($stage, ['Final Approval', 'Manager Review']);
+                        $isReviewStage = in_array($stage, ['Writer Review', 'Approver Review', 'Further Approver', 'Final Approval', 'Manager Review']);
                         
                         $isAssignedDesigner = $task->designer_id && $currentUserId == $task->designer_id;
+                        $isAssignedWriter = $task->writer_id && $currentUserId == $task->writer_id;
+                        $isAssignedApprover = $task->approver_id && $currentUserId == $task->approver_id;
+                        $isAssignedFurtherApprover = $task->further_approver_id && $currentUserId == $task->further_approver_id;
+                        $isAssignedBrandMgr = $task->brand_manager_id && $currentUserId == $task->brand_manager_id;
+
                         $canDesignerSubmit = $isAdmin || ($userRole === 'operationsmanager') || ($isDesignerStage && ($isAssignedDesigner || (!$task->designer_id && $userRole === 'designer')));
-                        $canManagerReview = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']);
+                        $canWriterReview = $isAdmin || ($userRole === 'operationsmanager') || ($isWriterReviewStage && ($isAssignedWriter || (!$task->writer_id && in_array($userRole, ['writer', 'assignee']))));
+                        $canApproverReview = $isAdmin || ($userRole === 'operationsmanager') || ($isApproverReviewStage && ($isAssignedApprover || (!$task->approver_id && in_array($userRole, ['approver', 'approvercoordinator']))));
+                        $canFurtherApprover = $isAdmin || ($userRole === 'operationsmanager') || ($isFurtherApproverStage && ($isAssignedFurtherApprover || (!$task->further_approver_id && in_array($userRole, ['approver', 'approvercoordinator']))));
+                        $canFinalApprove = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']);
+
+                        $canRevise = $isAdmin || ($userRole === 'operationsmanager') ||
+                            ($isWriterReviewStage && ($isAssignedWriter || (!$task->writer_id && in_array($userRole, ['writer', 'assignee'])))) ||
+                            ($isApproverReviewStage && ($isAssignedApprover || (!$task->approver_id && in_array($userRole, ['approver', 'approvercoordinator'])))) ||
+                            ($isFurtherApproverStage && ($isAssignedFurtherApprover || (!$task->further_approver_id && in_array($userRole, ['approver', 'approvercoordinator'])))) ||
+                            ($isFinalApprovalStage && in_array($userRole, ['brandmanager', 'operationsmanager']));
                     @endphp
 
                     {{-- Parent Row --}}
@@ -208,9 +227,21 @@
                                 <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:800; text-transform:uppercase; background:#d1fae5; color:#065f46; border:1px solid #a7f3d0;">
                                     ✓ Closed
                                 </span>
-                            @elseif($task->approval_stage === 'Manager Review')
+                            @elseif(in_array($task->approval_stage, ['Final Approval', 'Manager Review']))
                                 <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:800; text-transform:uppercase; background:#ede9fe; color:#6d28d9; border:1px solid #ddd6fe;">
-                                    Manager Review
+                                    Final Approval
+                                </span>
+                            @elseif($task->approval_stage === 'Writer Review')
+                                <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:800; text-transform:uppercase; background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe;">
+                                    Writer Review
+                                </span>
+                            @elseif($task->approval_stage === 'Approver Review')
+                                <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:800; text-transform:uppercase; background:#ffedd5; color:#c2410c; border:1px solid #fed7aa;">
+                                    Approver Review
+                                </span>
+                            @elseif($task->approval_stage === 'Further Approver')
+                                <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:800; text-transform:uppercase; background:#fef3c7; color:#b45309; border:1px solid #fde68a;">
+                                    Further Approver
                                 </span>
                             @else
                                 <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:800; text-transform:uppercase; background:#fef3c7; color:#b45309; border:1px solid #fde68a;">
@@ -224,24 +255,16 @@
                             <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
                                 {{-- 1. Submit Button --}}
                                 @if($isDesignerStage && $canDesignerSubmit)
-                                    @if($hasSubtasks)
-                                        <form action="{{ route('deliverables.batchSubmit', $task->id) }}" method="POST" onsubmit="return confirmAction(event, 'Submit Batch?', 'Submit all deliverables in this batch for Manager Review?', false, 'Submit', 'success')" style="display:contents;" onclick="event.stopPropagation()">
-                                            @csrf
-                                            <button type="submit" class="quick-action-btn btn-approve-quick" title="Submit Batch">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                Submit
-                                            </button>
-                                        </form>
-                                    @else
-                                        <form action="{{ route('deliverables.submit', $task->id) }}" method="POST" onsubmit="return confirmAction(event, 'Submit Deliverable?', 'Submit this deliverable for Manager Review?', false, 'Submit', 'success')" style="display:contents;" onclick="event.stopPropagation()">
-                                            @csrf
-                                            <button type="submit" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
-                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                Submit
-                                            </button>
-                                        </form>
-                                    @endif
-                                @elseif($isManagerReviewStage && $canManagerReview)
+                                    <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        Submit
+                                    </button>
+                                @elseif(($isWriterReviewStage && $canWriterReview) || ($isApproverReviewStage && $canApproverReview) || ($isFurtherApproverStage && $canFurtherApprover))
+                                    <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" class="quick-action-btn btn-approve-quick" title="Review Deliverable">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        Review
+                                    </button>
+                                @elseif($isFinalApprovalStage && $canFinalApprove)
                                     <form action="{{ route('deliverables.submit', $task->id) }}" method="POST" onsubmit="return confirmAction(event, 'Approve Deliverable?', 'Approve artwork and close this deliverable?', false, 'Approve', 'success')" style="display:contents;" onclick="event.stopPropagation()">
                                         @csrf
                                         <button type="submit" class="quick-action-btn btn-approve-quick" title="Approve">
@@ -276,8 +299,8 @@
                                     @endcan
                                 @endif
 
-                                {{-- Revise Button (if Manager Review stage) --}}
-                                @if($isManagerReviewStage && $canManagerReview)
+                                {{-- Revise Button --}}
+                                @if($canRevise)
                                     <button type="button" onclick="openDirectRevisionPrompt({{ $task->id }}, {{ $hasSubtasks ? 'true' : 'false' }})" class="quick-action-btn btn-revise-quick" title="Request Revisions">
                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                         Revise
@@ -303,11 +326,31 @@
                         @foreach($subtasks as $sub)
                             @php
                                 $subIsClosed = $sub->approval_stage === 'Closed';
-                                $subIsDesignerStage = $sub->approval_stage === 'Designer';
-                                $subIsManagerReviewStage = $sub->approval_stage === 'Manager Review';
+                                $subStage = $sub->approval_stage;
+                                $subIsDesignerStage = $subStage === 'Designer';
+                                $subIsWriterReviewStage = $subStage === 'Writer Review';
+                                $subIsApproverReviewStage = $subStage === 'Approver Review';
+                                $subIsFurtherApproverStage = $subStage === 'Further Approver';
+                                $subIsFinalApprovalStage = in_array($subStage, ['Final Approval', 'Manager Review']);
+                                
                                 $subIsAssignedDesigner = $sub->designer_id && $currentUserId == $sub->designer_id;
+                                $subIsAssignedWriter = $sub->writer_id && $currentUserId == $sub->writer_id;
+                                $subIsAssignedApprover = $sub->approver_id && $currentUserId == $sub->approver_id;
+                                $subIsAssignedFurtherApprover = $sub->further_approver_id && $currentUserId == $sub->further_approver_id;
+                                $subIsAssignedBrandMgr = $sub->brand_manager_id && $currentUserId == $sub->brand_manager_id;
+
                                 $canSubDesignerSubmit = $isAdmin || ($userRole === 'operationsmanager') || ($subIsDesignerStage && ($subIsAssignedDesigner || (!$sub->designer_id && $userRole === 'designer')));
-                                $canSubManagerReview = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']);
+                                $canSubWriterReview = $isAdmin || ($userRole === 'operationsmanager') || ($subIsWriterReviewStage && ($subIsAssignedWriter || (!$sub->writer_id && in_array($userRole, ['writer', 'assignee']))));
+                                $canSubApproverReview = $isAdmin || ($userRole === 'operationsmanager') || ($subIsApproverReviewStage && ($subIsAssignedApprover || (!$sub->approver_id && in_array($userRole, ['approver', 'approvercoordinator']))));
+                                $canSubFurtherApprover = $isAdmin || ($userRole === 'operationsmanager') || ($subIsFurtherApproverStage && ($subIsAssignedFurtherApprover || (!$sub->further_approver_id && in_array($userRole, ['approver', 'approvercoordinator']))));
+                                $canSubFinalApprove = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']);
+
+                                $canSubRevise = $isAdmin || ($userRole === 'operationsmanager') ||
+                                    ($subIsWriterReviewStage && ($subIsAssignedWriter || (!$sub->writer_id && in_array($userRole, ['writer', 'assignee'])))) ||
+                                    ($subIsApproverReviewStage && ($subIsAssignedApprover || (!$sub->approver_id && in_array($userRole, ['approver', 'approvercoordinator'])))) ||
+                                    ($subIsFurtherApproverStage && ($subIsAssignedFurtherApprover || (!$sub->further_approver_id && in_array($userRole, ['approver', 'approvercoordinator'])))) ||
+                                    ($subIsFinalApprovalStage && in_array($userRole, ['brandmanager', 'operationsmanager']));
+
                                 $subArtFiles = $sub->getFinalDesignsArray();
                                 $subArtUrls = $sub->getFinalDesignsUrlsArray();
                             @endphp
@@ -429,8 +472,14 @@
                                 <td>
                                     @if($sub->approval_stage === 'Closed')
                                         <span style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#065f46;">✓ Closed</span>
-                                    @elseif($sub->approval_stage === 'Manager Review')
-                                        <span style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#6d28d9;">Manager Review</span>
+                                    @elseif(in_array($sub->approval_stage, ['Final Approval', 'Manager Review']))
+                                        <span style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#6d28d9;">Final Approval</span>
+                                    @elseif($sub->approval_stage === 'Writer Review')
+                                        <span style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#1d4ed8;">Writer Review</span>
+                                    @elseif($sub->approval_stage === 'Approver Review')
+                                        <span style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#c2410c;">Approver Review</span>
+                                    @elseif($sub->approval_stage === 'Further Approver')
+                                        <span style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#b45309;">Further Approver</span>
                                     @else
                                         <span style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#b45309;">Designer</span>
                                     @endif
@@ -441,14 +490,16 @@
                                     <div class="quick-actions-grid" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:4px; max-width:140px; margin:0 auto;">
                                         {{-- 1. Submit / Approve Button --}}
                                         @if($subIsDesignerStage && $canSubDesignerSubmit)
-                                            <form action="{{ route('deliverables.submit', $sub->id) }}" method="POST" onsubmit="return confirmAction(event, 'Submit Deliverable?', 'Submit this deliverable for Manager Review?', false, 'Submit', 'success')" style="display:contents;" onclick="event.stopPropagation()">
-                                                @csrf
-                                                <button type="submit" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
-                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                    Submit
-                                                </button>
-                                            </form>
-                                        @elseif($subIsManagerReviewStage && $canSubManagerReview)
+                                            <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" class="quick-action-btn btn-approve-quick" title="Submit Artwork">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                Submit
+                                            </button>
+                                        @elseif(($subIsWriterReviewStage && $canSubWriterReview) || ($subIsApproverReviewStage && $canSubApproverReview) || ($subIsFurtherApproverStage && $canSubFurtherApprover))
+                                            <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" class="quick-action-btn btn-approve-quick" title="Review Deliverable">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                Review
+                                            </button>
+                                        @elseif($subIsFinalApprovalStage && $canSubFinalApprove)
                                             <form action="{{ route('deliverables.submit', $sub->id) }}" method="POST" onsubmit="return confirmAction(event, 'Approve Deliverable?', 'Approve artwork and close this deliverable?', false, 'Approve', 'success')" style="display:contents;" onclick="event.stopPropagation()">
                                                 @csrf
                                                 <button type="submit" class="quick-action-btn btn-approve-quick" title="Approve">
@@ -464,8 +515,8 @@
                                             View
                                         </button>
 
-                                        {{-- 3. Revise Button (if Manager Review stage) --}}
-                                        @if($subIsManagerReviewStage && $canSubManagerReview)
+                                        {{-- 3. Revise Button --}}
+                                        @if($canSubRevise)
                                             <button type="button" onclick="openDirectRevisionPrompt({{ $sub->id }}, false)" class="quick-action-btn btn-revise-quick" title="Request Revisions">
                                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                                 Revise

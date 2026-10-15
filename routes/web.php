@@ -60,6 +60,10 @@ Route::middleware('auth')->group(function () {
     Route::get('deliverables/{deliverable}/batch', [DeliverableController::class, 'showBatch'])->name('deliverables.showBatch');
     Route::post('/deliverables/{deliverable}/checklist', [DeliverableController::class, 'updateChecklist'])->name('deliverables.update-checklist');
 
+    // Campaign & Pitch Kanban Actions
+    Route::post('/projects/{project}/campaign-kanban/quick-store', [DeliverableController::class, 'quickStoreCampaignKanban'])->name('campaign-kanban.quick-store');
+    Route::post('/deliverables/{deliverable}/update-kanban-status', [DeliverableController::class, 'updateKanbanStatus'])->name('deliverables.update-kanban-status');
+
     // Deliverable exports
     Route::get('deliverables/{deliverable}/export/docx', [DeliverableController::class, 'exportDocx'])->name('deliverables.export.docx');
     Route::get('deliverables/{deliverable}/export/ppt', [DeliverableController::class, 'exportPpt'])->name('deliverables.export.ppt');

@@ -499,12 +499,18 @@
                     </svg>
                     Fast Track Flow
                 </div>
-                <div class="direct-flow-steps">
+                <div class="direct-flow-steps" style="flex-wrap:wrap; gap:6px;">
                     <div class="step-badge active">1. Designer</div>
                     <span class="step-arrow">→</span>
-                    <div class="step-badge">2. Manager Review</div>
+                    <div class="step-badge">2. Writer Review</div>
                     <span class="step-arrow">→</span>
-                    <div class="step-badge">3. Closed</div>
+                    <div class="step-badge">3. Approver Review</div>
+                    <span class="step-arrow">→</span>
+                    <div class="step-badge">4. Further Approver</div>
+                    <span class="step-arrow">→</span>
+                    <div class="step-badge">5. Final Approval</div>
+                    <span class="step-arrow">→</span>
+                    <div class="step-badge">6. Closed</div>
                 </div>
             </div>
 

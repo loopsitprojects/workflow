@@ -207,7 +207,8 @@
         }
         #batchModalOverlay,
         #cellEditorOverlay,
-        #addPostTypeOverlay {
+        #addPostTypeOverlay,
+        #reassignDesignerModalOverlay {
             display: none;
             justify-content: center !important;
             align-items: center !important;
@@ -216,7 +217,8 @@
         }
         #batchModalOverlay .cd-modal,
         #cellEditorOverlay .cd-modal,
-        #addPostTypeOverlay .cd-modal {
+        #addPostTypeOverlay .cd-modal,
+        #reassignDesignerModalOverlay .cd-modal {
             position: relative !important;
             inset: auto !important;
             margin: auto !important;
@@ -232,7 +234,8 @@
         }
         #batchModalOverlay .cd-modal.active,
         #cellEditorOverlay .cd-modal.active,
-        #addPostTypeOverlay .cd-modal.active {
+        #addPostTypeOverlay .cd-modal.active,
+        #reassignDesignerModalOverlay .cd-modal.active {
             transform: scale(1) !important;
         }
         #batchModalOverlay .cd-modal {
@@ -243,6 +246,9 @@
         }
         #addPostTypeOverlay .cd-modal {
             max-width: 420px !important;
+        }
+        #reassignDesignerModalOverlay .cd-modal {
+            max-width: 480px !important;
         }
         #batchModalOverlay .cd-modal-header {
             display: flex !important;
@@ -1385,7 +1391,43 @@
             </div>
         </div>
         @else
-            @include('projects.partials.campaign_deliverables')
+            <div x-data="{ 
+                campaignView: localStorage.getItem('campaign_view_mode_{{ $project->id }}') || 'kanban',
+                setView(view) {
+                    this.campaignView = view;
+                    localStorage.setItem('campaign_view_mode_{{ $project->id }}', view);
+                }
+            }">
+                {{-- View Switcher Bar --}}
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+                    <div style="display:inline-flex; align-items:center; background:var(--color-bg-secondary); border:1.5px solid var(--color-border-primary); border-radius:10px; padding:3px; gap:2px;">
+                        <button type="button" 
+                                @click="setView('kanban')"
+                                :style="campaignView === 'kanban' ? 'background:var(--color-bg-primary); color:var(--color-text-primary); box-shadow:0 1px 4px rgba(0,0,0,0.08); font-weight:700;' : 'background:transparent; color:var(--color-text-secondary); font-weight:600;'"
+                                style="padding:6px 14px; border-radius:8px; border:none; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all 0.15s;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z"/></svg>
+                            Kanban Board
+                        </button>
+                        <button type="button" 
+                                @click="setView('table')"
+                                :style="campaignView === 'table' ? 'background:var(--color-bg-primary); color:var(--color-text-primary); box-shadow:0 1px 4px rgba(0,0,0,0.08); font-weight:700;' : 'background:transparent; color:var(--color-text-secondary); font-weight:600;'"
+                                style="padding:6px 14px; border-radius:8px; border:none; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all 0.15s;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                            Table View
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Kanban View --}}
+                <div x-show="campaignView === 'kanban'">
+                    @include('projects.partials.campaign_kanban')
+                </div>
+
+                {{-- Table View --}}
+                <div x-show="campaignView === 'table'" x-cloak>
+                    @include('projects.partials.campaign_deliverables')
+                </div>
+            </div>
         @endif
             </div>
 
@@ -1431,6 +1473,12 @@
                         </div>
                     </div>
                     <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                        @if($isAdmin || in_array($userRole, ['brandmanager', 'coordinator', 'approvercoordinator']))
+                        <button type="button" id="btnOpenReassignDesignerModal" onclick="openReassignDesignerModal()" style="display:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:800; background:rgba(236,72,153,0.1); color:#ec4899; border:1px solid rgba(236,72,153,0.3); align-items:center; gap:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap;" onmouseover="this.style.background='rgba(236,72,153,0.2)'" onmouseout="this.style.background='rgba(236,72,153,0.1)'" title="Reassign Designer">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            Reassign Designer
+                        </button>
+                        @endif
                         <div style="display:flex; gap:8px; margin-right:8px; border-right:1px solid var(--color-border-primary); padding-right:12px;">
                             <a id="btnExportPpt" href="#" class="cd-btn cd-btn-outline" style="padding:6px 12px; font-size:11px; font-weight:800;" title="Download PPT">PPT</a>
                         </div>
@@ -1493,36 +1541,7 @@
                     @endforeach
                 </div>
 
-                <!-- Reassign Designer Area -->
-                @if($isAdmin || in_array($userRole, ['brandmanager', 'coordinator', 'approvercoordinator']))
-                <div id="reassignDesignerArea" style="display:none; margin-bottom:24px; padding:16px; background:rgba(236,72,153,0.05); border:1px solid rgba(236,72,153,0.15); border-radius:12px;">
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                        <svg width="18" height="18" fill="none" stroke="#ec4899" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        <span style="font-size:12px; font-weight:900; color:#ec4899; text-transform:uppercase; letter-spacing:0.05em;">Reassign Designer</span>
-                    </div>
-                    <div style="display:flex; gap:10px; align-items:flex-end;">
-                        <div style="flex:1;">
-                            <label style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px;">New Designer</label>
-                            <select id="reassignDesignerSelect" style="width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none;">
-                                <option value="" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Select Designer...</option>
-                                @foreach($designers as $designer)
-                                    <option value="{{ $designer->id }}" style="background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $designer->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px;">Designer Due Date</label>
-                            <input type="date" id="reassignDesignerDeadline" style="width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px;">Reason (Optional)</label>
-                            <input type="text" id="reassignDesignerReason" placeholder="e.g. Designer unavailable" style="width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
-                        </div>
-                        <button type="button" onclick="reassignDesigner(this)" style="padding:8px 16px; background:#ec4899; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0;">Reassign</button>
-                    </div>
-                    <div id="reassignDesignerCurrentName" style="margin-top:8px; font-size:11px; color:var(--color-text-secondary); font-weight:600;"></div>
-                </div>
-                @endif
+
 
                 <!-- Latest Comment Banner -->
                 <div id="modalLatestCommentAlert" style="display:none; padding:16px; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.2); border-radius:16px; margin-bottom:24px;">
@@ -1559,26 +1578,26 @@
                 </div>
 
                 <div class="detail-grid">
-                    <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 24px;">
+                    <div class="detail-item full" style="margin-bottom: 24px !important; padding-top: 16px;">
                         <div id="modalConceptLabel" class="detail-label" style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Concept</div>
                         <input type="hidden" id="modalConcept" name="concept" form="submitStageForm">
-                        <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
+                        <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px; border-radius:10px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 40px;">
+                    <div class="detail-item full" style="margin-bottom: 24px !important; padding-top: 24px;">
                         <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Copy</div>
                         <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
                         <input type="hidden" id="deleteReferenceFile" name="delete_reference_file" value="0" form="submitStageForm">
-                        <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:180px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
+                        <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:180px; border-radius:10px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 40px;">
+                    <div class="detail-item full" style="margin-bottom: 24px !important; padding-top: 24px;">
                         <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Caption</div>
                         <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
-                        <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
+                        <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px; border-radius:10px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full">
-                        <label class="detail-label">Reference</label>
-                        <div id="modalReference" class="detail-val" style="margin-bottom: 12px;"></div>
-                        <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.1); border-radius:16px;">
+                    <div class="detail-item full" id="modalReferenceGroup" style="clear:both; position:relative; z-index:10; margin-top:32px !important; padding-top:16px;">
+                        <div id="modalReferenceLabel" class="detail-label" style="font-size:12px; font-weight:900; color:#fff; background:#0ea5e9; padding:6px 12px; border-radius:6px; margin-bottom:14px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(14,165,233,0.3); position:relative; z-index:20;">Reference</div>
+                        <div id="modalReference" class="detail-val" style="margin-bottom: 12px; margin-top: 8px;"></div>
+                        <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.1); border-radius:16px; margin-top: 14px;">
                             <div>
                                 <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Upload New Reference File</div>
                                 <input type="file" id="modalReferenceFileInput" name="reference_file" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
@@ -1651,6 +1670,19 @@
                             <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                         <div id="modalApprovalHistory" class="hist-body" style="display:none; flex-direction:column; gap:10px;"></div>
+                    </div>
+
+                    <div id="writerSelectionArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(14,165,233,0.05); border:1px solid rgba(14,165,233,0.1); border-radius:16px;">
+                        <label class="detail-label" style="color:#0ea5e9; margin-bottom:12px;">Assign Writer for Review</label>
+                        <select name="writer_id" form="submitStageForm" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                            <option value="">Select Writer...</option>
+                            @if(isset($writers))
+                                @foreach($writers as $writer)
+                                    <option value="{{ $writer->id }}">{{ $writer->name }}</option>
+                                @endforeach
+                            @endif
+                        </select>
+                        <p style="font-size:11px; color:#0ea5e9; margin-top:8px; font-weight:600;">Selection required to advance to Writer Review stage.</p>
                     </div>
 
                     <div id="approverSelectionArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(234,88,12,0.05); border:1px solid rgba(234,88,12,0.1); border-radius:16px;">
@@ -2169,6 +2201,7 @@
                 const isAssignedBrandMgr    = AUTH_USER_ID == task.brand_manager_id;
                 const isAssignedCoordinator = AUTH_USER_ID == task.coordinator_id;
                 const isAssignedDesigner    = AUTH_USER_ID == task.designer_id;
+                const isAssignedFurtherApprover = AUTH_USER_ID == task.further_approver_id;
                 const hasWriterRole = userRole === 'writer' || userRole === 'assignee';
                 const hasDesignerRole = userRole === 'designer';
                 const isWriterStage = ['Writer', 'Assignee', 'Writer Review', 'Assign'].includes(task.approval_stage || 'Writer');
@@ -2281,18 +2314,29 @@
                 
                 if (document.getElementById('modalClientStatusEdit')) document.getElementById('modalClientStatusEdit').style.display = 'none';
 
-                // Reassign Designer Area visibility
-                const reassignArea = document.getElementById('reassignDesignerArea');
-                if (reassignArea) {
+                // Reassign Designer Button and Modal Setup
+                const reassignBtn = document.getElementById('btnOpenReassignDesignerModal');
+                const reassignModalOverlay = document.getElementById('reassignDesignerModalOverlay');
+                if (reassignBtn) {
                     if (!isOtherDeliverable && task.approval_stage === 'Designer') {
-                        reassignArea.style.display = 'block';
-                        const currentDesignerName = task.designer?.name || 'Unassigned';
-                        document.getElementById('reassignDesignerCurrentName').textContent = `Current designer: ${currentDesignerName}`;
-                        document.getElementById('reassignDesignerSelect').value = '';
-                        document.getElementById('reassignDesignerReason').value = '';
-                        reassignArea.setAttribute('data-task-id', task.id);
+                        reassignBtn.style.display = 'inline-flex';
+                        reassignBtn.setAttribute('data-task-id', task.id);
+                        if (reassignModalOverlay) {
+                            reassignModalOverlay.setAttribute('data-task-id', task.id);
+                            const currentDesignerName = task.designer?.name || 'Unassigned';
+                            const currentNameEl = document.getElementById('reassignDesignerCurrentName');
+                            if (currentNameEl) currentNameEl.textContent = `Current designer: ${currentDesignerName}`;
+                            const sel = document.getElementById('reassignDesignerSelect');
+                            if (sel) sel.value = '';
+                            const reasonEl = document.getElementById('reassignDesignerReason');
+                            if (reasonEl) reasonEl.value = '';
+                            const deadlineEl = document.getElementById('reassignDesignerDeadline');
+                            if (deadlineEl) {
+                                deadlineEl.value = task.designer_deadline ? task.designer_deadline.split('T')[0] : '';
+                            }
+                        }
                     } else {
-                        reassignArea.style.display = 'none';
+                        reassignBtn.style.display = 'none';
                     }
                 }
 
@@ -2393,7 +2437,7 @@
                     const isPdf = task.reference_file.match(/\.pdf(?:$|\?)/i);
                     if (isPdf) {
                         refHtml = `
-                        <div style="display:flex; align-items:flex-end; gap:16px;">
+                        <div style="display:flex; align-items:flex-end; gap:16px; margin-top:8px;">
                             <div onclick="window.open('${task.reference_file}', '_blank')" style="display:inline-block; cursor:pointer;">
                                 <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:12px; margin-bottom:8px;">
                                     <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
@@ -2405,7 +2449,7 @@
                         </div>`;
                     } else if (isVideo) {
                         refHtml = `
-                        <div style="display:flex; align-items:flex-end; gap:16px;">
+                        <div style="display:flex; align-items:flex-end; gap:16px; margin-top:8px;">
                             <div style="display:inline-block;">
                                 <video controls src="${task.reference_file}" style="width:100%; max-width:300px; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;"></video>
                                 <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">Reference Video</span>
@@ -2414,7 +2458,7 @@
                         </div>`;
                     } else {
                         refHtml = `
-                        <div style="display:flex; align-items:flex-end; gap:16px;">
+                        <div style="display:flex; align-items:flex-end; gap:16px; margin-top:8px;">
                             <div onclick="openImagePreview('${task.reference_file}', false)" style="display:inline-block; cursor:pointer;">
                                 <img src="${task.reference_file}" style="width:100%; max-width:200px; height:auto; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;">
                                 <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">View Reference Image</span>
@@ -2455,11 +2499,16 @@
                             {key: 'brand_manager', label: 'Brand Manager'},
                         ];
                     } else if (task.flow_type === 'direct_design' || task.is_direct_design) {
-                        // Direct Design: Designer -> Manager Review -> Closed
+                        // Direct Design: Designer -> Writer Review -> Approver Review -> Further Approver -> Final Approval -> Closed
                         roles = [
                             {key: 'designer', label: 'Designer'},
-                            {key: 'brand_manager', label: 'Brand Manager'},
+                            {key: 'writer', label: 'Writer'},
+                            {key: 'approver', label: 'Approver'},
                         ];
+                        if (task.associates && task.associates.further_approver && task.associates.further_approver !== 'None') {
+                            roles.push({key: 'further_approver', label: 'Further Approver'});
+                        }
+                        roles.push({key: 'brand_manager', label: 'Brand Manager'});
                     } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
                         // Campaign / Pitch Outlines
                         roles = [
@@ -2776,7 +2825,7 @@
                 // Workflow Tracker dots
                 let taskStages;
                 if (isDirectDesign || task.is_direct_design) {
-                    taskStages = ['Designer', 'Manager Review', 'Closed'];
+                    taskStages = ['Designer', 'Writer Review', 'Approver Review', 'Further Approver', 'Final Approval'];
                 } else if (isOtherDeliverable) {
                     taskStages = ['Assign', 'Approve', 'Close'];
                 } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
@@ -2787,6 +2836,7 @@
 
                 let currentStageIdx = taskStages.indexOf(task.approval_stage);
                 if (currentStageIdx === -1) {
+                    if (task.approval_stage === 'Manager Review') currentStageIdx = taskStages.indexOf('Final Approval');
                     if (task.approval_stage === 'Assignee') currentStageIdx = taskStages.indexOf('Writer') !== -1 ? taskStages.indexOf('Writer') : taskStages.indexOf('Assign');
                     if (task.approval_stage === 'Assign') currentStageIdx = taskStages.indexOf('Assignee');
                     if (task.approval_stage === 'Closed') currentStageIdx = taskStages.length;
@@ -2807,6 +2857,7 @@
                 const captionItem = document.getElementById('quillCaption')?.closest('.detail-item');
                 const copyItem = document.getElementById('quillCopy')?.closest('.detail-item');
                 const conceptLabel = document.getElementById('modalConceptLabel') || document.getElementById('quillConcept')?.closest('.detail-item')?.querySelector('.detail-label');
+                const refGroup = document.getElementById('modalReferenceGroup') || document.getElementById('modalReference')?.closest('.detail-item');
                 const submitNotesArea = document.getElementById('submitNotesArea');
                 const isBriefOnly = isOtherDeliverable || isDirectDesign || task.is_direct_design;
                 if (isBriefOnly) {
@@ -2818,6 +2869,10 @@
                             conceptLabel.style.background = '#6366f1';
                         }
                     }
+                    if (refGroup) {
+                        refGroup.style.marginTop = '36px';
+                        refGroup.style.paddingTop = '20px';
+                    }
                     if (submitNotesArea && isOtherDeliverable) submitNotesArea.style.display = 'none';
                 } else {
                     if (captionItem) captionItem.style.display = '';
@@ -2826,6 +2881,10 @@
                         conceptLabel.textContent = 'Concept';
                         conceptLabel.style.background = '#3b82f6';
                     }
+                    if (refGroup) {
+                        refGroup.style.marginTop = '24px';
+                        refGroup.style.paddingTop = '12px';
+                    }
                     if (submitNotesArea) submitNotesArea.style.display = '';
                 }
 
@@ -2833,6 +2892,7 @@
                 const submitBtnForm = document.getElementById('submitStageForm');
                 const showRevisionBtn = document.getElementById('showRevisionBtn');
                 const saveContentBtn = document.getElementById('saveContentBtn');
+                const writerArea = document.getElementById('writerSelectionArea');
                 const apprArea = document.getElementById('approverSelectionArea');
                 const bmArea = document.getElementById('brandManagerSelectionArea');
                 const coordArea = document.getElementById('coordinatorSelectionArea');
@@ -2846,6 +2906,14 @@
                 if (nextBtn) nextBtn.style.display = 'none';
                 if (showRevisionBtn) showRevisionBtn.style.display = 'none';
                 saveContentBtn.style.display = 'none';
+                if (writerArea) {
+                    writerArea.style.display = 'none';
+                    const wSel = writerArea.querySelector('select');
+                    if (wSel) {
+                        wSel.disabled = true;
+                        wSel.value = '';
+                    }
+                }
                 apprArea.style.display = 'none';
                 apprArea.querySelector('select').disabled = true;
                 bmArea.style.display = 'none';
@@ -2877,7 +2945,10 @@
                         isAdmin ||
                         userRole === 'operationsmanager' ||
                         (stage === 'Designer' && (isAssignedDesigner || (!task.designer_id && hasDesignerRole))) ||
-                        (stage === 'Manager Review' && (userRole === 'brandmanager' || userRole === 'operationsmanager'))
+                        (stage === 'Writer Review' && (isAssignedWriter || (!task.writer_id && hasWriterRole))) ||
+                        (stage === 'Approver Review' && (isAssignedApprover || (!task.approver_id && (userRole === 'approver' || userRole === 'approvercoordinator')))) ||
+                        (stage === 'Further Approver' && (isAssignedFurtherApprover || (!task.further_approver_id && (userRole === 'approver' || userRole === 'approvercoordinator')))) ||
+                        ((stage === 'Final Approval' || stage === 'Manager Review') && (isAssignedBrandMgr || (!task.brand_manager_id && (userRole === 'brandmanager' || isManager))))
                     )
                     : (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee' || stage === 'Writer'))
                     ? isAssignedPerson
@@ -2910,7 +2981,10 @@
                 // Check if the current user is specifically assigned to handle this current stage
                 const isCurrentStageAssignee = (isDirectDesign || task.is_direct_design) ? (
                     (stage === 'Designer') ? (isAssignedDesigner || (!task.designer_id && hasDesignerRole)) :
-                    (stage === 'Manager Review') ? (isAssignedBrandMgr || (!task.brand_manager_id && isManager)) : false
+                    (stage === 'Writer Review') ? (isAssignedWriter || (!task.writer_id && hasWriterRole)) :
+                    (stage === 'Approver Review') ? (isAssignedApprover || (!task.approver_id && (userRole === 'approver' || userRole === 'approvercoordinator'))) :
+                    (stage === 'Further Approver') ? (isAssignedFurtherApprover || (!task.further_approver_id && (userRole === 'approver' || userRole === 'approvercoordinator'))) :
+                    (stage === 'Final Approval' || stage === 'Manager Review') ? (isAssignedBrandMgr || (!task.brand_manager_id && (userRole === 'brandmanager' || isManager))) : false
                 ) : isOtherDeliverable ? (
                     (stage === 'Assign' || stage === 'Assignee') ? isAssignedPerson :
                     (stage === 'Approve') ? isManager : false
@@ -2946,9 +3020,18 @@
                             nextBtn.style.boxShadow = '0 4px 12px rgba(0,85,212,0.4)';
                             if (isDirectDesign || task.is_direct_design) {
                                 if (stage === 'Designer') {
-                                    nextBtn.textContent = 'Submit';
-                                    nextBtn.style.background = '#10b981';
-                                } else if (stage === 'Manager Review') {
+                                    nextBtn.textContent = 'Submit for Writer Review';
+                                    nextBtn.style.background = '#0055D4';
+                                } else if (stage === 'Writer Review') {
+                                    nextBtn.textContent = 'Submit to Approver';
+                                    nextBtn.style.background = '#0055D4';
+                                } else if (stage === 'Approver Review') {
+                                    nextBtn.textContent = 'Approve & Submit';
+                                    nextBtn.style.background = '#0055D4';
+                                } else if (stage === 'Further Approver') {
+                                    nextBtn.textContent = 'Submit to Brand Manager';
+                                    nextBtn.style.background = '#0055D4';
+                                } else if (stage === 'Final Approval' || stage === 'Manager Review') {
                                     nextBtn.textContent = 'Approve & Close';
                                     nextBtn.style.background = '#10b981';
                                 } else {
@@ -2972,7 +3055,39 @@
                         }
                     }
 
-                    if (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee')) {
+                    if (isDirectDesign || task.is_direct_design) {
+                        if (stage === 'Designer') {
+                            if (writerArea) {
+                                writerArea.style.display = 'block';
+                                const sel = writerArea.querySelector('select');
+                                if (sel) sel.disabled = false;
+                            }
+                        } else if (stage === 'Writer Review') {
+                            if (apprArea) {
+                                apprArea.style.display = 'block';
+                                const sel = apprArea.querySelector('select');
+                                if (sel) sel.disabled = false;
+                            }
+                        } else if (stage === 'Approver Review') {
+                            const faArea = document.getElementById('modalFurtherApproverGroup');
+                            if (faArea) {
+                                faArea.style.display = 'block';
+                                const sel = faArea.querySelector('select');
+                                if (sel) sel.disabled = false;
+                            }
+                            if (!task.brand_manager_id && bmArea) {
+                                bmArea.style.display = 'block';
+                                const sel = bmArea.querySelector('select');
+                                if (sel) sel.disabled = false;
+                            }
+                        } else if (stage === 'Further Approver') {
+                            if (!task.brand_manager_id && bmArea) {
+                                bmArea.style.display = 'block';
+                                const sel = bmArea.querySelector('select');
+                                if (sel) sel.disabled = false;
+                            }
+                        }
+                    } else if (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee')) {
                         if (!task.brand_manager_id && bmArea) {
                             bmArea.style.display = 'block';
                             const sel = bmArea.querySelector('select');
@@ -2993,7 +3108,7 @@
                             }
                         }
                     }
-                    if (stage === 'Approver') {
+                    if (!isDirectDesign && !task.is_direct_design && stage === 'Approver') {
                         if (bmArea) {
                             bmArea.style.display = 'block';
                             const sel = bmArea.querySelector('select');
@@ -3066,21 +3181,29 @@
                     saveContentBtn.style.display = 'block';
                 }
 
-                const isReviewStage = ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Writer Review', 'Approver Review', 'Approve', 'Manager Review'].includes(stage);
+                const isReviewStage = ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Writer Review', 'Approver Review', 'Further Approver', 'Approve', 'Manager Review'].includes(stage);
                 const isAuthorizedToReview = isAdmin ||
-                    (stage === 'Approver' && (userRole === 'approver' || userRole === 'operationsmanager')) ||
-                    ((stage === 'Brand Manager' || stage === 'Final Approval') && (userRole === 'brandmanager' || userRole === 'operationsmanager')) ||
-                    (stage === 'Manager Review' && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isManager)) ||
-                    (stage === 'Approve' && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isManager || canEditBriefAndRef)) ||
-                    (stage === 'Writer Review' && (userRole === 'writer' || userRole === 'assignee')) ||
-                    (stage === 'Approver Review' && (userRole === 'approver' || userRole === 'operationsmanager'));
+                    (isDirectDesign || task.is_direct_design ? (
+                        (stage === 'Writer Review' && (hasWriterRole || isAssignedWriter || userRole === 'operationsmanager')) ||
+                        (stage === 'Approver Review' && (userRole === 'approver' || userRole === 'approvercoordinator' || isAssignedApprover || userRole === 'operationsmanager')) ||
+                        (stage === 'Further Approver' && (userRole === 'approver' || userRole === 'approvercoordinator' || isAssignedFurtherApprover || userRole === 'operationsmanager')) ||
+                        ((stage === 'Final Approval' || stage === 'Manager Review') && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isAssignedBrandMgr))
+                    ) : (
+                        (stage === 'Approver' && (userRole === 'approver' || userRole === 'operationsmanager')) ||
+                        ((stage === 'Brand Manager' || stage === 'Final Approval') && (userRole === 'brandmanager' || userRole === 'operationsmanager')) ||
+                        (stage === 'Manager Review' && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isManager)) ||
+                        (stage === 'Approve' && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isManager || canEditBriefAndRef)) ||
+                        (stage === 'Writer Review' && (userRole === 'writer' || userRole === 'assignee')) ||
+                        (stage === 'Approver Review' && (userRole === 'approver' || userRole === 'operationsmanager')) ||
+                        (stage === 'Further Approver' && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager'))
+                    ));
 
                 if (isReviewStage && isAuthorizedToReview && showRevisionBtn) {
                     showRevisionBtn.style.display = 'block';
                 }
 
                 // Show/reset revision target toggle for post-designer stages
-                const postDesignerStages = ['Writer Review', 'Approver Review', 'Final Approval', 'Manager Review'];
+                const postDesignerStages = ['Writer Review', 'Approver Review', 'Further Approver', 'Final Approval', 'Manager Review'];
                 const modalRevisionTargetGroup = document.getElementById('modalRevisionTargetGroup');
                 const modalRevisionTarget = document.getElementById('modalRevisionTarget');
                 if (modalRevisionTargetGroup) {
@@ -3088,6 +3211,10 @@
                         modalRevisionTargetGroup.style.display = 'none';
                         modalRevisionTarget.value = 'writer';
                         document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the assigned person.';
+                    } else if (isDirectDesign || task.is_direct_design) {
+                        modalRevisionTargetGroup.style.display = 'none';
+                        modalRevisionTarget.value = 'designer';
+                        document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the Designer.';
                     } else if (postDesignerStages.includes(stage)) {
                         modalRevisionTargetGroup.style.display = 'block';
                         document.getElementById('modalReviseTargetDesigner').checked = true;
@@ -4574,6 +4701,51 @@
         </div>
     </div>
 
+    <!-- Reassign Designer Modal Popup -->
+    @if($isAdmin || in_array($userRole, ['brandmanager', 'coordinator', 'approvercoordinator']))
+    <div id="reassignDesignerModalOverlay" class="cd-modal-overlay" onclick="closeReassignDesignerModal(event)" style="z-index: 10001; justify-content: center; align-items: center;">
+        <div class="cd-modal" style="max-width: 480px; width: 92%; position: relative !important; inset: auto !important; margin: auto !important; height: auto !important; max-height: 90vh !important; border-radius: 20px !important; overflow: hidden !important; border: 1px solid rgba(236,72,153,0.3) !important; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.5) !important;" onclick="event.stopPropagation()">
+            <div class="cd-modal-header" style="padding: 18px 24px; background: var(--color-bg-secondary); align-items: center; border-bottom: 1px solid var(--color-border-primary); display:flex; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:32px; height:32px; border-radius:8px; background:rgba(236,72,153,0.1); border:1px solid rgba(236,72,153,0.25); display:flex; align-items:center; justify-content:center;">
+                        <svg width="18" height="18" fill="none" stroke="#ec4899" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    </div>
+                    <div>
+                        <h2 style="font-size: 15px; font-weight: 900; color: #ec4899; margin: 0; text-transform:uppercase; letter-spacing:0.04em;">Reassign Designer</h2>
+                        <div id="reassignDesignerCurrentName" style="font-size: 11px; color: var(--color-text-secondary); font-weight: 600; margin-top:2px;">Current designer: -</div>
+                    </div>
+                </div>
+                <button type="button" onclick="closeReassignDesignerModal()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer; padding:4px;" title="Close">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="cd-modal-body" style="padding: 24px; display:flex; flex-direction:column; gap:16px;">
+                <div>
+                    <label class="detail-label" style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">New Designer</label>
+                    <select id="reassignDesignerSelect" required style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-weight:600; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none;">
+                        <option value="" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Select Designer...</option>
+                        @foreach($designers as $designer)
+                            <option value="{{ $designer->id }}" style="background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $designer->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="detail-label" style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">Designer Due Date</label>
+                    <input type="date" id="reassignDesignerDeadline" style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-weight:600; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none; box-sizing:border-box;">
+                </div>
+                <div>
+                    <label class="detail-label" style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">Reason (Optional)</label>
+                    <input type="text" id="reassignDesignerReason" placeholder="e.g. Designer unavailable" style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-weight:500; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none; box-sizing:border-box;">
+                </div>
+            </div>
+            <div class="cd-modal-footer" style="padding: 16px 24px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" onclick="closeReassignDesignerModal()" class="cd-btn cd-btn-outline" style="padding: 8px 18px; font-size: 12px; font-weight: 700;">Cancel</button>
+                <button type="button" onclick="reassignDesigner(this)" class="cd-btn" style="padding: 8px 20px; background:#ec4899; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(236,72,153,0.35);">Reassign</button>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <script>
     const allSubtaskTypes = @json($allSubtaskTypes);
     function openAddPostTypeModal(e, taskId, workflowType, defaultPostType) {
@@ -4631,6 +4803,29 @@
         setTimeout(() => {
             overlay.style.display = 'none';
         }, 300);
+    }
+
+    function openReassignDesignerModal() {
+        const overlay = document.getElementById('reassignDesignerModalOverlay');
+        if (!overlay) return;
+        overlay.style.display = 'flex';
+        setTimeout(() => {
+            overlay.style.opacity = '1';
+            const modal = overlay.querySelector('.cd-modal');
+            if (modal) modal.classList.add('active');
+        }, 10);
+    }
+
+    function closeReassignDesignerModal(e) {
+        if (e && e.target !== document.getElementById('reassignDesignerModalOverlay')) return;
+        const overlay = document.getElementById('reassignDesignerModalOverlay');
+        if (!overlay) return;
+        overlay.style.opacity = '0';
+        const modal = overlay.querySelector('.cd-modal');
+        if (modal) modal.classList.remove('active');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 200);
     }
     </script>
 </x-layout>
@@ -5309,9 +5504,10 @@ async function updatePriorityInlineModal(selectEl, taskId) {
 }
 
 async function reassignDesigner(btn) {
-    const area = document.getElementById('reassignDesignerArea');
-    const taskId = area?.getAttribute('data-task-id');
+    const overlay = document.getElementById('reassignDesignerModalOverlay');
+    const taskId = overlay?.getAttribute('data-task-id') || document.getElementById('btnOpenReassignDesignerModal')?.getAttribute('data-task-id');
     const designerId = document.getElementById('reassignDesignerSelect').value;
+    const designerDeadline = document.getElementById('reassignDesignerDeadline')?.value || null;
     const reason = document.getElementById('reassignDesignerReason').value;
 
     if (!designerId) {
@@ -5334,12 +5530,17 @@ async function reassignDesigner(btn) {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ designer_id: designerId, reason: reason })
+            body: JSON.stringify({ 
+                designer_id: designerId, 
+                designer_deadline: designerDeadline,
+                reason: reason 
+            })
         });
 
         const result = await response.json();
         if (response.ok && result.success) {
             alert(result.message || 'Designer reassigned successfully.');
+            closeReassignDesignerModal();
             window.location.reload();
         } else {
             alert(result.message || 'Error reassigning designer.');

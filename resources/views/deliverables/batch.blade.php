@@ -231,8 +231,13 @@
         $isImg     = $post->final_designs && preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $post->final_designs);
 
         $canApprove = $isAdmin || (
-            ($isDirectDesign && $stage === 'Designer' && (in_array($authRole, ['designer']) || (!$post->designer_id || $post->designer_id == $authId))) ||
-            ($isDirectDesign && $stage === 'Manager Review' && in_array($authRole, ['brandmanager', 'operationsmanager'])) ||
+            ($isDirectDesign && (
+                ($stage === 'Designer' && (in_array($authRole, ['designer']) || (!$post->designer_id || $post->designer_id == $authId))) ||
+                ($stage === 'Writer Review' && (in_array($authRole, ['writer','assignee']) || (!$post->writer_id || $post->writer_id == $authId))) ||
+                ($stage === 'Approver Review' && (in_array($authRole, ['approver','approvercoordinator']) || (!$post->approver_id || $post->approver_id == $authId))) ||
+                ($stage === 'Further Approver' && (in_array($authRole, ['approver','approvercoordinator']) || (!$post->further_approver_id || $post->further_approver_id == $authId))) ||
+                (in_array($stage, ['Final Approval', 'Manager Review']) && in_array($authRole, ['brandmanager', 'operationsmanager']))
+            )) ||
             ($isOtherDeliv && in_array($stage, ['Assign', 'Assignee']) && (in_array($authRole, ['writer', 'assignee']) || (!$post->writer_id || $post->writer_id == $authId))) ||
             ($isOtherDeliv && $stage === 'Approve' && in_array($authRole, ['brandmanager', 'operationsmanager'])) ||
             (!$isBriefOnly && (
@@ -245,7 +250,12 @@
         );
 
         $canRevise = $isAdmin || (
-            ($isDirectDesign && $stage === 'Manager Review' && in_array($authRole, ['brandmanager', 'operationsmanager'])) ||
+            ($isDirectDesign && (
+                ($stage === 'Writer Review' && (in_array($authRole, ['writer','assignee']) || (!$post->writer_id || $post->writer_id == $authId))) ||
+                ($stage === 'Approver Review' && (in_array($authRole, ['approver','approvercoordinator']) || (!$post->approver_id || $post->approver_id == $authId))) ||
+                ($stage === 'Further Approver' && (in_array($authRole, ['approver','approvercoordinator']) || (!$post->further_approver_id || $post->further_approver_id == $authId))) ||
+                (in_array($stage, ['Final Approval', 'Manager Review']) && in_array($authRole, ['brandmanager', 'operationsmanager']))
+            )) ||
             ($isOtherDeliv && $stage === 'Approve' && in_array($authRole, ['brandmanager', 'operationsmanager'])) ||
             (!$isBriefOnly && (
                 ($stage === 'Writer Review' && in_array($authRole, ['writer','assignee']) && (!$post->writer_id || $post->writer_id == $authId)) ||

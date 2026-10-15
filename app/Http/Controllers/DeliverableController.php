@@ -34,6 +34,7 @@ class DeliverableController extends Controller
         $brand = $deliverable->project->brand()->with('members')->first();
         $users = $brand ? $brand->members : collect();
         
+        $writers = $users->where('role', 'Writer');
         $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator']);
         $brandManagers = $users->where('role', 'Brand Manager');
         $coordinators = $users->whereIn('role', ['Coordinator', 'Approver Coordinator']);
@@ -53,7 +54,7 @@ class DeliverableController extends Controller
             return response()->json($deliverable);
         }
 
-        return view('deliverables.show', compact('deliverable', 'userRole', 'isAdmin', 'approvers', 'brandManagers', 'coordinators', 'designers', 'stages'));
+        return view('deliverables.show', compact('deliverable', 'userRole', 'isAdmin', 'writers', 'approvers', 'brandManagers', 'coordinators', 'designers', 'stages'));
     }
 
     /**
@@ -2135,6 +2136,103 @@ class DeliverableController extends Controller
                 @unlink($realPath);
             }
         }
+    }
+
+    /**
+     * Quick-store a new deliverable from the Campaign/Pitch Kanban board.
+     */
+    public function quickStoreCampaignKanban(Request $request, Project $project)
+    {
+        // Strict isolation: only campaign and pitch projects can use this
+        if (!in_array($project->workflow_type, ['campaign', 'pitch'])) {
+            return response()->json(['success' => false, 'message' => 'Quick store is only available for campaign and pitch projects.'], 403);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'status' => 'nullable|string|in:To Do,In Progress,Approval Stage,Done,To commence,Completed,Review,Approval',
+            'post_type' => 'nullable|string|max:100',
+            'writer_id' => 'nullable|exists:users,id',
+            'deadline' => 'nullable|date',
+            'priority' => 'nullable|string|in:Low,Medium,High Priority,Urgent',
+        ]);
+
+        $status = $validated['status'] ?? 'To Do';
+        if ($status === 'To commence') $status = 'To Do';
+        if ($status === 'Completed') $status = 'Done';
+        if (in_array($status, ['Review', 'Approval'])) $status = 'Approval Stage';
+
+        $postType = $validated['post_type'] ?? 'Outlines';
+        $normType = strtolower(trim($postType));
+        $stage = in_array($normType, ['outlines', 'outline']) ? 'Assignee' : 'Assign';
+
+        $assignee = !empty($validated['writer_id']) ? User::find($validated['writer_id']) : null;
+        $assigneeName = $assignee?->name ?? 'Unassigned';
+
+        $bmId = $project->brand_manager_id;
+        if (!$bmId && in_array(auth()->user()->role, ['Brand Manager', 'Operations Manager'])) {
+            $bmId = auth()->id();
+        }
+
+        $deliverable = Deliverable::create([
+            'project_id' => $project->id,
+            'title' => $validated['title'],
+            'status' => $status,
+            'priority' => $validated['priority'] ?? 'Medium',
+            'post_type' => $postType,
+            'writer_id' => $assignee?->id,
+            'assignee_name' => $assigneeName,
+            'deadline' => $validated['deadline'] ?? $project->deadline,
+            'approval_stage' => $stage,
+            'progress_percent' => ($status === 'Done') ? 100 : 0,
+            'task_type' => 'Deliverable',
+            'brand_manager_id' => $bmId,
+        ]);
+
+        $deliverable->load(['writer', 'brandManager', 'approver', 'designer']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Deliverable created successfully.',
+            'deliverable' => $deliverable,
+        ]);
+    }
+
+    /**
+     * Update deliverable status via Kanban drag-and-drop or card action.
+     */
+    public function updateKanbanStatus(Request $request, Deliverable $deliverable)
+    {
+        $project = $deliverable->project;
+        if (!$project || !in_array($project->workflow_type, ['campaign', 'pitch'])) {
+            return response()->json(['success' => false, 'message' => 'Kanban status update is restricted to Campaign and Pitch projects.'], 403);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:To Do,In Progress,Approval Stage,Done,Review,Approval',
+        ]);
+
+        $newStatus = $validated['status'];
+        if (in_array($newStatus, ['Review', 'Approval'])) $newStatus = 'Approval Stage';
+        $deliverable->status = $newStatus;
+
+        if ($newStatus === 'Done') {
+            $deliverable->progress_percent = 100;
+        } elseif ($deliverable->progress_percent == 100) {
+            $deliverable->progress_percent = $deliverable->getStageProgress();
+        }
+        $deliverable->save();
+
+        if ($deliverable->subtasks()->count() > 0) {
+            $deliverable->subtasks()->update(['status' => $newStatus]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Status updated to '{$newStatus}'.",
+            'status' => $newStatus,
+            'deliverable_id' => $deliverable->id,
+        ]);
     }
 }
 
