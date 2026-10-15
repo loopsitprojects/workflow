@@ -259,6 +259,50 @@ let isDraggingKanbanCard = false;
 
 const kanbanSelectableUsers = @json($selectableUsers->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role]));
 const kanbanSubtaskTypes = @json($subtaskTypes->map(fn($st) => ['name' => $st->name]));
+const kanbanCurrentUserId = {{ auth()->id() ?? 'null' }};
+const kanbanCurrentUserRole = "{{ auth()->user()?->role ?? '' }}";
+const kanbanIsAdminOrManager = {{ (auth()->user() && (auth()->user()->isAdmin() || in_array(auth()->user()->role, ['Admin', 'Owner', 'Operations Manager']))) ? 'true' : 'false' }};
+const kanbanProjectApproverId = {{ $project->approver_id ?? ($project->brand_manager_id ?? ($project->lead_id ?? 'null')) }};
+
+function checkCardMovePermission(d) {
+    if (kanbanIsAdminOrManager) {
+        return { canMove: true, reason: '' };
+    }
+    const status = (d.status || 'To Do').trim();
+    const statusLower = status.toLowerCase();
+    const isInApproval = ['approval stage', 'approval', 'review', 'under review'].includes(statusLower);
+    const isDone = ['done', 'completed', 'complete'].includes(statusLower);
+
+    const assignedId = d.writer_id || d.designer_id || null;
+    const isAssigned = (assignedId && kanbanCurrentUserId == assignedId);
+    const isUnassigned = !assignedId;
+
+    const approverId = d.approver_id || kanbanProjectApproverId;
+    const isApprover = (approverId && kanbanCurrentUserId == approverId) ||
+                       (!approverId && ['Approver', 'Approver Coordinator', 'Brand Manager'].includes(kanbanCurrentUserRole));
+
+    if (isInApproval) {
+        if (isApprover) {
+            return { canMove: true, reason: '' };
+        }
+        return { canMove: false, reason: 'Submitted to approver. Only the assigned approver can move this deliverable.' };
+    }
+
+    if (isDone) {
+        if (isApprover) {
+            return { canMove: true, reason: '' };
+        }
+        return { canMove: false, reason: 'This deliverable is completed. Only an approver or admin can move it.' };
+    }
+
+    // In To Do or In Progress
+    if (isAssigned || isUnassigned) {
+        return { canMove: true, reason: '' };
+    }
+
+    const assigneeName = d.assignee_name || 'the assigned person';
+    return { canMove: false, reason: `Only the assigned person (${assigneeName}) can move this deliverable.` };
+}
 
 function isCardEditorOpen(taskId) {
     return currentlyEditingCardId === taskId;
@@ -300,7 +344,8 @@ function toggleCardEditor(taskId, open) {
         if (currentlyEditingCardId === taskId) {
             currentlyEditingCardId = null;
         }
-        card.setAttribute('draggable', 'true');
+        const canMove = card.getAttribute('data-can-move') !== 'false';
+        card.setAttribute('draggable', canMove ? 'true' : 'false');
         // Restore border based on status
         const status = card.getAttribute('data-status') || 'To Do';
         let statusBorderColor = 'var(--color-border-primary)';
@@ -310,7 +355,7 @@ function toggleCardEditor(taskId, open) {
         card.style.border = '1px solid var(--color-border-primary)';
         card.style.borderLeft = '3px solid ' + statusBorderColor;
         card.style.boxShadow = '0 1px 4px rgba(0,0,0,0.03)';
-        card.style.cursor = 'pointer';
+        card.style.cursor = canMove ? 'grab' : 'pointer';
         editor.style.display = 'none';
         view.style.display = 'block';
     }
@@ -337,6 +382,8 @@ async function submitInlineCardEdit(event, taskId) {
 
     const postType = postTypeSelect ? postTypeSelect.value : '';
     const writerId = writerSelect && writerSelect.value ? writerSelect.value : '';
+    const approverSelect = document.getElementById('card-input-approver-' + taskId);
+    const approverId = approverSelect && approverSelect.value ? approverSelect.value : '';
     const deadline = deadlineInput && deadlineInput.value ? deadlineInput.value : '';
     const priority = prioritySelect ? prioritySelect.value : 'Medium';
 
@@ -358,6 +405,7 @@ async function submitInlineCardEdit(event, taskId) {
                 title: title,
                 post_type: postType,
                 writer_id: writerId,
+                approver_id: approverId,
                 deadline: deadline,
                 priority: priority,
             })
@@ -384,6 +432,16 @@ async function submitInlineCardEdit(event, taskId) {
 }
 
 function updateCardViewElements(taskId, d) {
+    const card = document.getElementById('kanban-card-' + taskId);
+    if (card) {
+        const perm = checkCardMovePermission(d);
+        card.setAttribute('data-can-move', perm.canMove ? 'true' : 'false');
+        card.setAttribute('data-restriction-reason', perm.reason);
+        card.setAttribute('draggable', perm.canMove ? 'true' : 'false');
+        card.style.cursor = perm.canMove ? 'grab' : 'pointer';
+        card.title = perm.reason;
+    }
+
     const titleEl = document.getElementById('card-view-title-' + taskId);
     if (titleEl) titleEl.textContent = d.title;
 
@@ -453,6 +511,13 @@ function kanbanOnDragStart(event, taskId) {
         event.preventDefault();
         return;
     }
+    const card = document.getElementById('kanban-card-' + taskId);
+    if (card && card.getAttribute('data-can-move') === 'false') {
+        event.preventDefault();
+        const reason = card.getAttribute('data-restriction-reason') || 'You do not have permission to move this card.';
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: reason, type: 'warning' } }));
+        return;
+    }
     isDraggingKanbanCard = true;
     draggedTaskId = taskId;
     draggedCardElement = event.currentTarget;
@@ -516,7 +581,7 @@ async function kanbanOnDrop(event, targetStatus) {
     targetContainer.appendChild(card);
     card.setAttribute('data-status', targetStatus);
 
-    // Update status dot/badge on card if present
+    // Update status border accent
     updateCardStatusUI(card, targetStatus);
     recalculateKanbanCounts();
 
@@ -541,6 +606,26 @@ async function kanbanOnDrop(event, targetStatus) {
             recalculateKanbanCounts();
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: result.message || 'Failed to update status.', type: 'error' } }));
         } else {
+            // Update stage badge and permission on card
+            if (result.approval_stage) {
+                const stageBadge = document.getElementById('card-view-stage-' + taskId);
+                if (stageBadge) stageBadge.textContent = result.approval_stage;
+            }
+            if (typeof result.can_move !== 'undefined') {
+                card.setAttribute('data-can-move', result.can_move ? 'true' : 'false');
+                card.setAttribute('draggable', result.can_move ? 'true' : 'false');
+                card.style.cursor = result.can_move ? 'grab' : 'pointer';
+                if (!result.can_move) {
+                    const reason = (targetStatus === 'Approval Stage')
+                        ? 'Submitted to approver. Only the approver can move this deliverable.'
+                        : 'You do not have permission to move this card.';
+                    card.setAttribute('data-restriction-reason', reason);
+                    card.title = reason;
+                } else {
+                    card.removeAttribute('data-restriction-reason');
+                    card.title = '';
+                }
+            }
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: result.message || 'Status updated', type: 'success' } }));
         }
     } catch (err) {
@@ -622,11 +707,13 @@ async function submitInlineTask(event, colKey, statusValue) {
 
     const postTypeSelect = creator.querySelector('select[name="post_type"]');
     const assigneeSelect = creator.querySelector('select[name="writer_id"]');
+    const approverSelect = creator.querySelector('select[name="approver_id"]');
     const deadlineInput = creator.querySelector('input[name="deadline"]');
     const prioritySelect = creator.querySelector('select[name="priority"]');
 
     const postType = postTypeSelect ? postTypeSelect.value : 'Outlines';
     const writerId = assigneeSelect && assigneeSelect.value ? assigneeSelect.value : null;
+    const approverId = approverSelect && approverSelect.value ? approverSelect.value : null;
     const deadline = deadlineInput && deadlineInput.value ? deadlineInput.value : null;
     const priority = prioritySelect ? prioritySelect.value : 'Medium';
 
@@ -649,6 +736,7 @@ async function submitInlineTask(event, colKey, statusValue) {
                 status: statusValue,
                 post_type: postType,
                 writer_id: writerId,
+                approver_id: approverId,
                 deadline: deadline,
                 priority: priority,
             })
@@ -734,6 +822,17 @@ function insertCreatedCardIntoColumn(colKey, d) {
         assigneeOptions += `<option value="${u.id}" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
     });
 
+    // Build approver options
+    let approverOptions = `<option value="">Add approver…</option>`;
+    kanbanSelectableUsers.forEach(u => {
+        const isSelected = (d.approver_id == u.id) ? 'selected' : '';
+        approverOptions += `<option value="${u.id}" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
+    });
+
+    const perm = checkCardMovePermission(d);
+    const canMove = perm.canMove;
+    const restrictionReason = perm.reason;
+
     const hasAssignee = d.assignee_name && d.assignee_name !== 'Unassigned';
     const assigneeDisplay = hasAssignee ? d.assignee_name : 'Unassigned';
     const badgeColor = hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)';
@@ -746,11 +845,14 @@ function insertCreatedCardIntoColumn(colKey, d) {
              id="kanban-card-${d.id}"
              data-id="${d.id}"
              data-status="${escapeHtml(d.status || 'To Do')}"
-             draggable="true"
+             data-can-move="${canMove ? 'true' : 'false'}"
+             data-restriction-reason="${escapeHtml(restrictionReason)}"
+             draggable="${canMove ? 'true' : 'false'}"
              ondragstart="kanbanOnDragStart(event, ${d.id})"
              ondragend="kanbanOnDragEnd(event)"
              onclick="handleCardClick(${d.id})"
-             style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); ${borderLeft} border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); cursor: pointer; transition: all 0.15s ease; position: relative;"
+             style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); ${borderLeft} border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); cursor: ${canMove ? 'grab' : 'pointer'}; transition: all 0.15s ease; position: relative;"
+             title="${escapeHtml(restrictionReason)}"
              onmouseover="if(!isCardEditorOpen(${d.id})) { this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-1px)'; }"
              onmouseout="if(!isCardEditorOpen(${d.id})) { this.style.boxShadow='0 1px 4px rgba(0,0,0,0.03)'; this.style.transform='none'; }">
             
@@ -834,6 +936,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                     <input type="hidden" name="post_type" id="card-input-post-type-${d.id}" value="${escapeHtml(d.post_type || '')}">
 
                     <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border-primary);">
+                        {{-- Assignee --}}
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -845,6 +948,19 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             </select>
                         </div>
 
+                        {{-- Approver --}}
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            <select name="approver_id" 
+                                    id="card-input-approver-${d.id}"
+                                    style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
+                                ${approverOptions}
+                            </select>
+                        </div>
+
+                        {{-- Deadline --}}
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -857,6 +973,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                    style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
                         </div>
 
+                        {{-- Priority --}}
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/>

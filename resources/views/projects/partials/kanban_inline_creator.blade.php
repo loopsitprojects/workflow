@@ -56,6 +56,20 @@
                 </select>
             </div>
 
+            {{-- Add Approver --}}
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                <select name="approver_id" 
+                        style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
+                    <option value="">Add approver…</option>
+                    @foreach($selectableUsers as $u)
+                        <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->role }})</option>
+                    @endforeach
+                </select>
+            </div>
+
             {{-- Add Dates --}}
             <div style="display: flex; align-items: center; gap: 8px;">
                 <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">

@@ -38,17 +38,52 @@
             (object)['name' => 'Pitch Deck'],
         ]);
     }
+
+    $currentUserId = auth()->id();
+    $currentUser = auth()->user();
+    $isAdminOrManager = $currentUser && ($currentUser->isAdmin() || in_array($currentUser->role, ['Admin', 'Owner', 'Operations Manager']));
+
+    $assignedUserId = $task->writer_id ?: ($task->designer_id ?: null);
+    $isAssignee = $assignedUserId && $currentUserId == $assignedUserId;
+    $isUnassigned = !$assignedUserId;
+
+    // Approver resolution
+    $approverUser = $task->approver ?: ($task->brandManager ?: ($task->project?->approver ?: $task->project?->brandManager));
+    $approverId = $task->approver_id ?: ($task->brand_manager_id ?: ($task->project?->approver_id ?: ($task->project?->brand_manager_id ?: null)));
+    $isApprover = ($approverId && $currentUserId == $approverId) ||
+                  (!$approverId && in_array($currentUser?->role, ['Approver', 'Approver Coordinator', 'Brand Manager']));
+
+    $statusLower = strtolower(trim($task->status ?? ''));
+    $isInApproval = in_array($statusLower, ['approval stage', 'approval', 'review', 'under review']);
+    $isCompleted = in_array($statusLower, ['done', 'completed', 'complete']);
+
+    if ($isAdminOrManager) {
+        $canMove = true;
+        $moveRestrictionReason = '';
+    } elseif ($isInApproval) {
+        $canMove = $isApprover;
+        $moveRestrictionReason = $canMove ? '' : 'Submitted to approver. Only the approver can move this deliverable.';
+    } elseif ($isCompleted) {
+        $canMove = $isApprover;
+        $moveRestrictionReason = $canMove ? '' : 'Deliverable is completed. Only an approver or admin can move it.';
+    } else {
+        $canMove = $isAssignee || $isUnassigned;
+        $moveRestrictionReason = $canMove ? '' : 'Only the assigned person (' . ($task->assignee_name ?: 'assignee') . ') can move this deliverable.';
+    }
 @endphp
 
 <div class="kanban-card" 
      id="kanban-card-{{ $task->id }}"
      data-id="{{ $task->id }}"
      data-status="{{ $task->status ?? 'To Do' }}"
-     draggable="true"
+     data-can-move="{{ $canMove ? 'true' : 'false' }}"
+     data-restriction-reason="{{ $moveRestrictionReason }}"
+     draggable="{{ $canMove ? 'true' : 'false' }}"
      ondragstart="kanbanOnDragStart(event, {{ $task->id }})"
      ondragend="kanbanOnDragEnd(event)"
      onclick="handleCardClick({{ $task->id }})"
-     style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); {{ $statusBorder }} border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); cursor: pointer; transition: all 0.15s ease; position: relative;"
+     style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); {{ $statusBorder }} border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); cursor: {{ $canMove ? 'grab' : 'pointer' }}; transition: all 0.15s ease; position: relative;"
+     title="{{ $moveRestrictionReason }}"
      onmouseover="if(!isCardEditorOpen({{ $task->id }})) { this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-1px)'; }"
      onmouseout="if(!isCardEditorOpen({{ $task->id }})) { this.style.boxShadow='0 1px 4px rgba(0,0,0,0.03)'; this.style.transform='none'; }">
     
@@ -165,6 +200,23 @@
                         <option value="">Add assignee…</option>
                         @foreach($cardSelectableUsers as $u)
                             <option value="{{ $u->id }}" {{ ($task->writer_id == $u->id || (!$task->writer_id && $task->designer_id == $u->id)) ? 'selected' : '' }}>
+                                {{ $u->name }} ({{ $u->role }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Approver --}}
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    <select name="approver_id" 
+                            id="card-input-approver-{{ $task->id }}"
+                            style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
+                        <option value="">Add approver…</option>
+                        @foreach($cardSelectableUsers as $u)
+                            <option value="{{ $u->id }}" {{ ($task->approver_id == $u->id || (!$task->approver_id && $task->brand_manager_id == $u->id)) ? 'selected' : '' }}>
                                 {{ $u->name }} ({{ $u->role }})
                             </option>
                         @endforeach

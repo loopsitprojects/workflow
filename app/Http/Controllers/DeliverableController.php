@@ -2210,6 +2210,7 @@ class DeliverableController extends Controller
             'status' => 'nullable|string|in:To Do,In Progress,Approval Stage,Done,To commence,Completed,Review,Approval',
             'post_type' => 'nullable|string|max:100',
             'writer_id' => 'nullable|exists:users,id',
+            'approver_id' => 'nullable|exists:users,id',
             'deadline' => 'nullable|date',
             'priority' => 'nullable|string|in:Low,Medium,High Priority,Urgent',
         ]);
@@ -2231,6 +2232,10 @@ class DeliverableController extends Controller
             $bmId = auth()->id();
         }
 
+        $approverId = !empty($validated['approver_id']) 
+            ? (int) $validated['approver_id'] 
+            : ($project->approver_id ?? $bmId);
+
         $deliverable = Deliverable::create([
             'project_id' => $project->id,
             'title' => $validated['title'],
@@ -2238,6 +2243,7 @@ class DeliverableController extends Controller
             'priority' => $validated['priority'] ?? 'Medium',
             'post_type' => $postType,
             'writer_id' => $assignee?->id,
+            'approver_id' => $approverId,
             'assignee_name' => $assigneeName,
             'deadline' => $validated['deadline'] ?? $project->deadline,
             'approval_stage' => $stage,
@@ -2269,6 +2275,7 @@ class DeliverableController extends Controller
             'title' => 'required|string|max:255',
             'post_type' => 'nullable|string|max:100',
             'writer_id' => 'nullable',
+            'approver_id' => 'nullable',
             'deadline' => 'nullable|date',
             'priority' => 'nullable|string|in:Low,Medium,High Priority,Urgent,High',
         ]);
@@ -2294,6 +2301,13 @@ class DeliverableController extends Controller
                 $deliverable->assignee_name = 'Unassigned';
             }
         }
+        if (array_key_exists('approver_id', $validated)) {
+            if (!empty($validated['approver_id']) && is_numeric($validated['approver_id'])) {
+                $deliverable->approver_id = (int) $validated['approver_id'];
+            } else {
+                $deliverable->approver_id = null;
+            }
+        }
 
         $deliverable->save();
         $deliverable->load(['writer', 'brandManager', 'approver', 'designer']);
@@ -2307,6 +2321,8 @@ class DeliverableController extends Controller
 
     /**
      * Update deliverable status via Kanban drag-and-drop or card action.
+     * Enforces role-based flow: only assigned person can move to In Progress & submit to Approver;
+     * once in Approval Stage, only the Approver can move it.
      */
     public function updateKanbanStatus(Request $request, Deliverable $deliverable)
     {
@@ -2321,24 +2337,208 @@ class DeliverableController extends Controller
 
         $newStatus = $validated['status'];
         if (in_array($newStatus, ['Review', 'Approval'])) $newStatus = 'Approval Stage';
-        $deliverable->status = $newStatus;
 
-        if ($newStatus === 'Done') {
-            $deliverable->progress_percent = 100;
-        } elseif ($deliverable->progress_percent == 100) {
-            $deliverable->progress_percent = $deliverable->getStageProgress();
+        $oldStatus = $deliverable->status ?? 'To Do';
+        if (in_array($oldStatus, ['Review', 'Approval'])) $oldStatus = 'Approval Stage';
+
+        if ($oldStatus === $newStatus) {
+            return response()->json([
+                'success' => true, 
+                'status' => $newStatus, 
+                'approval_stage' => $deliverable->approval_stage,
+                'can_move' => true,
+            ]);
         }
-        $deliverable->save();
+
+        $user = auth()->user();
+        $isAdminOrManager = $user && ($user->isAdmin() || in_array($user->role, ['Admin', 'Owner', 'Operations Manager']));
+
+        // Assigned person check
+        $assignedUserId = $deliverable->writer_id ?: ($deliverable->designer_id ?: null);
+        $isAssigned = $assignedUserId && $user && $user->id == $assignedUserId;
+        $isUnassigned = !$assignedUserId;
+
+        // Approver check
+        $approverId = $deliverable->approver_id ?: ($deliverable->brand_manager_id ?: ($project->approver_id ?: ($project->brand_manager_id ?: null)));
+        $isApprover = ($approverId && $user && $user->id == $approverId) ||
+                      (!$approverId && $user && in_array($user->role, ['Approver', 'Approver Coordinator', 'Brand Manager']));
+
+        $oldStatusLower = strtolower(trim($oldStatus));
+        $isInApproval = in_array($oldStatusLower, ['approval stage', 'approval', 'review', 'under review']);
+        $isCompleted = in_array($oldStatusLower, ['done', 'completed', 'complete']);
+
+        // Flow authorization rules
+        if (!$isAdminOrManager) {
+            if ($isInApproval) {
+                // If it is currently in Approval Stage: ONLY the Approver can move it
+                if (!$isApprover) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This deliverable is submitted for approval. Only the assigned approver can move it.',
+                    ], 403);
+                }
+            } elseif ($isCompleted) {
+                // If currently Completed: ONLY Approver or Admin can move it
+                if (!$isApprover) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This deliverable is completed. Only an approver or admin can move it.',
+                    ], 403);
+                }
+            } else {
+                // Currently in To Do or In Progress: ONLY the assigned worker can move it
+                if (!$isAssigned && !$isUnassigned) {
+                    $assigneeName = $deliverable->assignee_name ?: ($deliverable->writer?->name ?? 'the assigned person');
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Only the assigned person ({$assigneeName}) can move this deliverable.",
+                    ], 403);
+                }
+
+                // An assignee cannot jump straight to Complete without going through Approval Stage
+                if ($newStatus === 'Done' && !$isApprover) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Deliverables must be submitted to the Approval Stage for review before completing.',
+                    ], 403);
+                }
+            }
+        }
+
+        // Apply state transition
+        $isOutline = in_array(strtolower($deliverable->post_type ?? ''), ['outlines', 'outline']);
+
+        if ($newStatus === 'Approval Stage') {
+            $deliverable->status = 'Approval Stage';
+            $deliverable->approval_stage = $isOutline ? 'Approver' : 'Approve';
+            if (!$deliverable->approver_id) {
+                $deliverable->approver_id = $project->approver_id ?? $project->brand_manager_id ?? $project->lead_id;
+            }
+            $deliverable->progress_percent = 60;
+            $deliverable->save();
+
+            // Record audit log
+            $deliverable->approvalsHistory()->create([
+                'user_id' => $user->id,
+                'stage'   => 'Approval Stage',
+                'notes'   => 'Submitted to approver via Kanban board',
+            ]);
+
+            // Notify Approver
+            $notifyApprover = $deliverable->approver ?? $deliverable->brandManager ?? $project->approver ?? $project->brandManager;
+            if ($notifyApprover && $notifyApprover->id !== $user->id) {
+                try {
+                    $notifyApprover->notify(new \App\Notifications\DeliverableUpdated(
+                        $deliverable,
+                        "submitted **{$deliverable->title}** for your approval",
+                        'stage_update',
+                        $user
+                    ));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Kanban approval notification error: ' . $e->getMessage());
+                }
+            }
+        } elseif ($newStatus === 'Done') {
+            $deliverable->status = 'Done';
+            $deliverable->approval_stage = 'Closed';
+            $deliverable->progress_percent = 100;
+            $deliverable->save();
+
+            // Record audit log
+            $deliverable->approvalsHistory()->create([
+                'user_id' => $user->id,
+                'stage'   => 'Approved',
+                'notes'   => 'Approved and completed via Kanban board',
+            ]);
+
+            // Notify Worker
+            $notifyWorker = $deliverable->writer ?? $deliverable->designer;
+            if ($notifyWorker && $notifyWorker->id !== $user->id) {
+                try {
+                    $notifyWorker->notify(new \App\Notifications\DeliverableUpdated(
+                        $deliverable,
+                        "approved and completed **{$deliverable->title}**",
+                        'stage_update',
+                        $user
+                    ));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Kanban completion notification error: ' . $e->getMessage());
+                }
+            }
+        } else {
+            // Moving back to To Do or In Progress
+            if ($isUnassigned && $newStatus === 'In Progress') {
+                $deliverable->writer_id = $user->id;
+                $deliverable->assignee_name = $user->name;
+            }
+
+            $deliverable->status = $newStatus;
+            $deliverable->approval_stage = $isOutline ? 'Assignee' : 'Assign';
+            $deliverable->progress_percent = ($newStatus === 'In Progress') ? 25 : 0;
+
+            if ($isInApproval) {
+                // Sent back from approval for revisions/updates
+                $deliverable->revisions = ($deliverable->revisions ?? 0) + 1;
+                $deliverable->save();
+
+                $deliverable->revisionsHistory()->create([
+                    'user_id'           => $user->id,
+                    'instructions'      => 'Returned to ' . $newStatus . ' by approver via Kanban board',
+                    'stage_at_revision' => 'Approval Stage',
+                ]);
+
+                // Notify Worker
+                $notifyWorker = $deliverable->writer ?? $deliverable->designer;
+                if ($notifyWorker && $notifyWorker->id !== $user->id) {
+                    try {
+                        $notifyWorker->notify(new \App\Notifications\DeliverableUpdated(
+                            $deliverable,
+                            "returned **{$deliverable->title}** to {$newStatus} for updates",
+                            'revision_request',
+                            $user
+                        ));
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('Kanban return notification error: ' . $e->getMessage());
+                    }
+                }
+            } else {
+                $deliverable->save();
+            }
+        }
+
+        // Real-time synchronization
+        try {
+            \App\Events\DeliverablesUpdated::dispatch($project->id);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('DeliverablesUpdated broadcast error: ' . $e->getMessage());
+        }
 
         if ($deliverable->subtasks()->count() > 0) {
-            $deliverable->subtasks()->update(['status' => $newStatus]);
+            $deliverable->subtasks()->update([
+                'status' => $newStatus,
+                'approval_stage' => $deliverable->approval_stage,
+            ]);
         }
+
+        // Recalculate if the current user can move it now in its new state
+        $updatedAssignedId = $deliverable->writer_id ?: ($deliverable->designer_id ?: null);
+        $updatedIsAssignee = $updatedAssignedId && $user && $user->id == $updatedAssignedId;
+        $updatedApproverId = $deliverable->approver_id ?: ($deliverable->brand_manager_id ?: ($project->approver_id ?: ($project->brand_manager_id ?: null)));
+        $updatedIsApprover = ($updatedApproverId && $user && $user->id == $updatedApproverId) ||
+                             (!$updatedApproverId && $user && in_array($user->role, ['Approver', 'Approver Coordinator', 'Brand Manager']));
+
+        $canUserMoveNow = $isAdminOrManager ||
+            ($newStatus === 'Approval Stage' ? $updatedIsApprover :
+            ($newStatus === 'Done' ? $updatedIsApprover : ($updatedIsAssignee || !$updatedAssignedId)));
 
         return response()->json([
             'success' => true,
             'message' => "Status updated to '{$newStatus}'.",
             'status' => $newStatus,
+            'approval_stage' => $deliverable->approval_stage,
             'deliverable_id' => $deliverable->id,
+            'assignee_name' => $deliverable->assignee_name,
+            'can_move' => $canUserMoveNow,
         ]);
     }
 }
