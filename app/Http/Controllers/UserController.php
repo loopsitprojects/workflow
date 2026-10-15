@@ -36,18 +36,20 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'username' => 'required|string|max:30|alpha_dash|unique:users',
-            'email'    => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'role'     => ['required', Rule::in(['Admin', 'Operations Manager', 'Writer', 'Approver', 'Approver Coordinator', 'Brand Manager', 'Designer', 'Coordinator'])],
+            'username'  => 'required|string|max:30|alpha_dash|unique:users',
+            'job_title' => 'nullable|string|max:100',
+            'email'     => 'required|string|email|max:255|unique:users',
+            'password'  => 'required|string|min:8|confirmed',
+            'role'      => ['required', Rule::in(['Admin', 'Operations Manager', 'Writer', 'Approver', 'Approver Coordinator', 'Brand Manager', 'Designer', 'Coordinator'])],
         ]);
 
         $user = User::create([
-            'name'     => strtolower($validated['username']),
-            'username' => strtolower($validated['username']),
-            'email'    => strtolower($validated['email']),
-            'password' => Hash::make($validated['password']),
-            'role'     => $validated['role'],
+            'name'      => strtolower($validated['username']),
+            'username'  => strtolower($validated['username']),
+            'job_title' => $validated['job_title'] ?? null,
+            'email'     => strtolower($validated['email']),
+            'password'  => Hash::make($validated['password']),
+            'role'      => $validated['role'],
         ]);
 
         if ($user->role === 'Operations Manager') {
@@ -71,16 +73,18 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
-            'username' => ['required', 'string', 'max:30', 'alpha_dash', Rule::unique('users')->ignore($user->id)],
-            'email'    => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'password' => 'nullable|string|min:8|confirmed',
-            'role'     => ['required', Rule::in(['Admin', 'Operations Manager', 'Writer', 'Approver', 'Approver Coordinator', 'Brand Manager', 'Designer', 'Coordinator'])],
+            'username'  => ['required', 'string', 'max:30', 'alpha_dash', Rule::unique('users')->ignore($user->id)],
+            'job_title' => 'nullable|string|max:100',
+            'email'     => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'password'  => 'nullable|string|min:8|confirmed',
+            'role'      => ['required', Rule::in(['Admin', 'Operations Manager', 'Writer', 'Approver', 'Approver Coordinator', 'Brand Manager', 'Designer', 'Coordinator'])],
         ]);
 
-        $user->name     = strtolower($validated['username']);
-        $user->username = strtolower($validated['username']);
-        $user->email    = strtolower($validated['email']);
-        $user->role     = $validated['role'];
+        $user->name      = strtolower($validated['username']);
+        $user->username  = strtolower($validated['username']);
+        $user->job_title = $validated['job_title'] ?? null;
+        $user->email     = strtolower($validated['email']);
+        $user->role      = $validated['role'];
 
         if ($request->filled('password')) {
             $user->password = Hash::make($validated['password']);

@@ -30,12 +30,21 @@
         @csrf
 
         <div class="f-section">
-            <div>
-                <label class="f-label blue">Username</label>
-                <input type="text" name="username" required placeholder="e.g. jsmith" class="f-input"
-                       value="{{ old('username') }}" autocomplete="username" pattern="[a-zA-Z0-9_\-]+" maxlength="30">
-                <p style="font-size:11px;color:var(--color-text-secondary);margin-top:6px;font-weight:500;">Letters, numbers, underscores, and hyphens only.</p>
-                @error('username')<p class="f-err">{{ $message }}</p>@enderror
+            <div class="f-grid">
+                <div>
+                    <label class="f-label blue">Username</label>
+                    <input type="text" name="username" required placeholder="e.g. jsmith" class="f-input"
+                           value="{{ old('username') }}" autocomplete="username" pattern="[a-zA-Z0-9_\-]+" maxlength="30">
+                    <p style="font-size:11px;color:var(--color-text-secondary);margin-top:6px;font-weight:500;">Letters, numbers, underscores, and hyphens only.</p>
+                    @error('username')<p class="f-err">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="f-label">Job Title</label>
+                    <input type="text" name="job_title" placeholder="e.g. Senior Brand Strategist" class="f-input"
+                           value="{{ old('job_title') }}" maxlength="100">
+                    <p style="font-size:11px;color:var(--color-text-secondary);margin-top:6px;font-weight:500;">Optional professional title or designation.</p>
+                    @error('job_title')<p class="f-err">{{ $message }}</p>@enderror
+                </div>
             </div>
         </div>
 

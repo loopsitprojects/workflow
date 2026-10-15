@@ -59,11 +59,11 @@
                     alert('Copied to clipboard!');
                 }
             },
-            users: {{ \Illuminate\Support\Js::from($users->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'email' => $u->email ?? ''])) }},
+            users: {{ \Illuminate\Support\Js::from($users->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'email' => $u->email ?? '', 'job_title' => $u->job_title ?? ''])) }},
             get filteredIds() {
                 if (!this.search.trim()) return null;
                 const s = this.search.toLowerCase();
-                return this.users.filter(u => u.name.toLowerCase().includes(s) || u.role.toLowerCase().includes(s) || u.email.toLowerCase().includes(s)).map(u => u.id);
+                return this.users.filter(u => u.name.toLowerCase().includes(s) || u.role.toLowerCase().includes(s) || u.email.toLowerCase().includes(s) || (u.job_title && u.job_title.toLowerCase().includes(s))).map(u => u.id);
             },
             deleteTarget: null,
             deleteForm: null,
@@ -194,9 +194,12 @@
                                 @endif
                             </div>
 
-                            <!-- Name Only -->
+                            <!-- Name & Job Title -->
                             <div class="flex-1 min-w-0">
                                 <h3 class="text-[12px] font-bold text-gray-900 dark:text-white truncate tracking-tight capitalize">{{ preg_replace('/\s*\(.*?\)\s*/', '', $user->name) }}</h3>
+                                @if($user->job_title)
+                                    <p class="text-[10px] text-gray-400 dark:text-slate-500 truncate font-medium mt-0.5 leading-tight" title="{{ $user->job_title }}">{{ $user->job_title }}</p>
+                                @endif
                             </div>
 
                             <!-- Action Buttons -->

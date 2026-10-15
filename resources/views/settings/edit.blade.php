@@ -32,6 +32,15 @@
                     </div>
 
                     <div>
+                        <label for="job_title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Job Title</label>
+                        <input type="text" name="job_title" id="job_title" value="{{ old('job_title', $user->job_title) }}" placeholder="e.g. Senior Brand Strategist"
+                            class="mt-1 block w-full rounded-lg border-gray-300 dark:border-white/[0.1] dark:bg-black/[0.2] dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-4 py-2.5 transition-colors">
+                        @error('job_title')
+                            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
                         <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
                         <input type="email" name="email" id="email" value="{{ old('email', $user->email) }}" required
                             class="mt-1 block w-full rounded-lg border-gray-300 dark:border-white/[0.1] dark:bg-black/[0.2] dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-4 py-2.5 transition-colors">

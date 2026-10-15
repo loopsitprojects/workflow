@@ -37,19 +37,22 @@ class RegisterController extends Controller
         }
 
         $request->validate([
-            'username' => ['required', 'string', 'max:255', 'unique:users', 'regex:/^[a-zA-Z0-9_-]+$/'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'name'      => ['nullable', 'string', 'max:255'],
+            'username'  => ['required', 'string', 'max:255', 'unique:users', 'regex:/^[a-zA-Z0-9_-]+$/'],
+            'job_title' => ['nullable', 'string', 'max:100'],
+            'email'     => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password'  => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
         $role = $invitation->role;
 
         $user = User::create([
-            'name' => strtolower($request->username),
-            'username' => strtolower($request->username),
-            'email' => strtolower($request->email),
-            'password' => Hash::make($request->password),
-            'role' => $role,
+            'name'      => $request->name ?: strtolower($request->username),
+            'username'  => strtolower($request->username),
+            'job_title' => $request->job_title ?: null,
+            'email'     => strtolower($request->email),
+            'password'  => Hash::make($request->password),
+            'role'      => $role,
         ]);
 
         if ($role === 'Operations Manager') {

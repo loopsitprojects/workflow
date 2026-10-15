@@ -21,6 +21,7 @@ class SettingsController extends Controller
 
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'job_title' => ['nullable', 'string', 'max:100'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'current_password' => ['nullable', 'required_with:password', 'string'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
@@ -33,6 +34,7 @@ class SettingsController extends Controller
         }
 
         $user->name = $request->name;
+        $user->job_title = $request->job_title ?? null;
         $user->email = $request->email;
 
         if ($request->filled('password')) {
