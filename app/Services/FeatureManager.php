@@ -31,6 +31,11 @@ class FeatureManager
     {
         return [
             'client_review_enabled' => true,
+            'enabled_project_types' => [
+                'retainer' => true,
+                'campaign' => true,
+                'pitch' => true,
+            ],
         ];
     }
 
@@ -53,5 +58,74 @@ class FeatureManager
         $current['updated_at'] = now()->toDateTimeString();
 
         Storage::disk('local')->put(self::SETTINGS_FILE, json_encode($current, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Get the enabled project types array: ['retainer' => bool, 'campaign' => bool, 'pitch' => bool]
+     */
+    public static function getProjectTypesStatus(): array
+    {
+        $settings = self::getAll();
+        $defaults = [
+            'retainer' => true,
+            'campaign' => true,
+            'pitch' => true,
+        ];
+
+        $saved = $settings['enabled_project_types'] ?? [];
+        return array_merge($defaults, is_array($saved) ? $saved : []);
+    }
+
+    /**
+     * Get list of currently enabled project type keys, e.g. ['retainer', 'campaign', 'pitch']
+     */
+    public static function getEnabledProjectTypes(): array
+    {
+        $status = self::getProjectTypesStatus();
+        return array_keys(array_filter($status));
+    }
+
+    /**
+     * Check if a specific project type is enabled.
+     */
+    public static function isProjectTypeEnabled(string $type): bool
+    {
+        $status = self::getProjectTypesStatus();
+        return (bool) ($status[$type] ?? false);
+    }
+
+    /**
+     * Set a project type enabled or disabled.
+     */
+    public static function setProjectTypeEnabled(string $type, bool $enabled): void
+    {
+        $current = self::getAll();
+        $types = self::getProjectTypesStatus();
+        $types[$type] = $enabled;
+        $current['enabled_project_types'] = $types;
+        $current['updated_at'] = now()->toDateTimeString();
+
+        Storage::disk('local')->put(self::SETTINGS_FILE, json_encode($current, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Toggle a project type. Returns new status.
+     * Throws exception if attempting to disable the last enabled type.
+     */
+    public static function toggleProjectType(string $type): bool
+    {
+        $types = self::getProjectTypesStatus();
+        $currentStatus = (bool) ($types[$type] ?? true);
+        $newStatus = !$currentStatus;
+
+        if (!$newStatus) {
+            $activeCount = count(array_filter($types));
+            if ($activeCount <= 1 && $currentStatus) {
+                throw new \InvalidArgumentException('At least one project type must remain enabled.');
+            }
+        }
+
+        self::setProjectTypeEnabled($type, $newStatus);
+        return $newStatus;
     }
 }

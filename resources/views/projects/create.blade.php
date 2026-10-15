@@ -142,20 +142,26 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
         <div class="f-section">
             <label class="f-label">Project Type</label>
             <div class="type-group">
-                <div class="type-opt active" id="option-retainer" onclick="setWorkflow('retainer')">
+                @if($enabledProjectTypes['retainer'] ?? true)
+                <div class="type-opt {{ ($defaultWorkflowType ?? 'retainer') === 'retainer' ? 'active' : '' }}" id="option-retainer" onclick="setWorkflow('retainer')">
                     <h4>Retainer</h4>
                     <p>7-stage approval flow</p>
                 </div>
-                <div class="type-opt" id="option-campaign" onclick="setWorkflow('campaign')">
+                @endif
+                @if($enabledProjectTypes['campaign'] ?? true)
+                <div class="type-opt {{ ($defaultWorkflowType ?? 'retainer') === 'campaign' ? 'active' : '' }}" id="option-campaign" onclick="setWorkflow('campaign')">
                     <h4>Campaign</h4>
                     <p>4-stage initiative</p>
                 </div>
-                <div class="type-opt" id="option-pitch" onclick="setWorkflow('pitch')">
+                @endif
+                @if($enabledProjectTypes['pitch'] ?? true)
+                <div class="type-opt {{ ($defaultWorkflowType ?? 'retainer') === 'pitch' ? 'active' : '' }}" id="option-pitch" onclick="setWorkflow('pitch')">
                     <h4>Pitch</h4>
                     <p>Business proposal</p>
                 </div>
+                @endif
             </div>
-            <input type="hidden" name="workflow_type" id="workflow_type" value="retainer">
+            <input type="hidden" name="workflow_type" id="workflow_type" value="{{ old('workflow_type', $defaultWorkflowType ?? 'retainer') }}">
         </div>
 
         {{-- Project Brief --}}
@@ -616,10 +622,12 @@ function reindexBatchNumbers() {
 }
 
 function setWorkflow(type) {
-    document.getElementById('workflow_type').value = type;
-    ['retainer','campaign','pitch'].forEach(t =>
-        document.getElementById('option-'+t).classList.toggle('active', t === type)
-    );
+    const input = document.getElementById('workflow_type');
+    if (input) input.value = type;
+    ['retainer','campaign','pitch'].forEach(t => {
+        const el = document.getElementById('option-'+t);
+        if (el) el.classList.toggle('active', t === type);
+    });
 
     const batchesSection = document.getElementById('project-batches-section');
     const container = document.getElementById('batches-container');
@@ -638,8 +646,8 @@ function setWorkflow(type) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Determine the workflow type (from old input, or default to retainer)
-    const oldWorkflowType = "{{ old('workflow_type', request('workflow_type', request('type', 'retainer'))) }}";
+    // Determine the workflow type (from old input, request query, or default enabled type)
+    const oldWorkflowType = "{{ old('workflow_type', request('workflow_type', request('type', $defaultWorkflowType ?? 'retainer'))) }}";
     setWorkflow(oldWorkflowType);
 
     // If there are old batches from a validation error and workflow is retainer, reconstruct them

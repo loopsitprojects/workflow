@@ -104,18 +104,24 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
         <div class="f-section">
             <label class="f-label">Project Type</label>
             <div class="type-group">
+                @if(($enabledProjectTypes['retainer'] ?? true) || $project->workflow_type === 'retainer')
                 <div class="type-opt {{ $project->workflow_type === 'retainer' ? 'active' : '' }}" id="option-retainer" onclick="setWorkflow('retainer')">
                     <h4>Retainer</h4>
                     <p>7-stage approval flow</p>
                 </div>
+                @endif
+                @if(($enabledProjectTypes['campaign'] ?? true) || $project->workflow_type === 'campaign')
                 <div class="type-opt {{ $project->workflow_type === 'campaign' ? 'active' : '' }}" id="option-campaign" onclick="setWorkflow('campaign')">
                     <h4>Campaign</h4>
                     <p>4-stage initiative</p>
                 </div>
+                @endif
+                @if(($enabledProjectTypes['pitch'] ?? true) || $project->workflow_type === 'pitch')
                 <div class="type-opt {{ $project->workflow_type === 'pitch' ? 'active' : '' }}" id="option-pitch" onclick="setWorkflow('pitch')">
                     <h4>Pitch</h4>
                     <p>Business proposal</p>
                 </div>
+                @endif
             </div>
             <input type="hidden" name="workflow_type" id="workflow_type" value="{{ old('workflow_type', $project->workflow_type) }}">
         </div>
@@ -199,10 +205,12 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.4
 
 <script>
 function setWorkflow(type) {
-    document.getElementById('workflow_type').value = type;
-    ['retainer','campaign','pitch'].forEach(t =>
-        document.getElementById('option-'+t).classList.toggle('active', t === type)
-    );
+    const input = document.getElementById('workflow_type');
+    if (input) input.value = type;
+    ['retainer','campaign','pitch'].forEach(t => {
+        const el = document.getElementById('option-'+t);
+        if (el) el.classList.toggle('active', t === type);
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

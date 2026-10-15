@@ -137,7 +137,8 @@ class UserController extends Controller
     {
         $maintenance = \App\Http\Controllers\Admin\MaintenanceController::getStatus();
         $clientReviewEnabled = \App\Services\FeatureManager::isClientReviewEnabled();
-        return view('admin.settings', compact('maintenance', 'clientReviewEnabled'));
+        $projectTypesStatus = \App\Services\FeatureManager::getProjectTypesStatus();
+        return view('admin.settings', compact('maintenance', 'clientReviewEnabled', 'projectTypesStatus'));
     }
 
     public function toggleClientReview(Request $request)
@@ -152,6 +153,27 @@ class UserController extends Controller
             : 'Send to Client feature has been DISABLED. External client review sessions are now paused.';
 
         return redirect()->route('admin.settings')->with('success', $msg);
+    }
+
+    public function toggleProjectType(Request $request)
+    {
+        $validated = $request->validate([
+            'project_type' => 'required|string|in:retainer,campaign,pitch',
+        ]);
+
+        $type = $validated['project_type'];
+
+        try {
+            $newStatus = \App\Services\FeatureManager::toggleProjectType($type);
+            $typeName = ucfirst($type);
+            $msg = $newStatus
+                ? "{$typeName} project type has been ENABLED. Team members can now create {$typeName} projects."
+                : "{$typeName} project type has been DISABLED. {$typeName} is now hidden from project creation.";
+
+            return redirect()->route('admin.settings')->with('success', $msg);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->route('admin.settings')->with('error', $e->getMessage());
+        }
     }
 }
 

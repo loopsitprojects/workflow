@@ -58,13 +58,29 @@ class ProjectController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('projects.create', compact('brands', 'writers', 'approvers', 'managers', 'designers', 'users', 'allUsers', 'groupedUsers', 'subtaskTypes', 'selectedBrand', 'allCrmJobs'));
+        $enabledProjectTypes = \App\Services\FeatureManager::getProjectTypesStatus();
+        $enabledTypesList = \App\Services\FeatureManager::getEnabledProjectTypes();
+        if (empty($enabledTypesList)) {
+            $enabledTypesList = ['retainer', 'campaign', 'pitch'];
+        }
+
+        $requestedType = request('workflow_type', request('type'));
+        $defaultWorkflowType = ($requestedType && in_array($requestedType, $enabledTypesList))
+            ? $requestedType
+            : ($enabledTypesList[0] ?? 'retainer');
+
+        return view('projects.create', compact('brands', 'writers', 'approvers', 'managers', 'designers', 'users', 'allUsers', 'groupedUsers', 'subtaskTypes', 'selectedBrand', 'allCrmJobs', 'enabledProjectTypes', 'defaultWorkflowType'));
     }
 
     public function store(Request $request)
     {
         $user = auth()->user();
         if (!$user->isAdmin() && !in_array($user->role, ['Operations Manager', 'Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
+
+        $enabledTypes = \App\Services\FeatureManager::getEnabledProjectTypes();
+        if (empty($enabledTypes)) {
+            $enabledTypes = ['retainer', 'campaign', 'pitch'];
+        }
 
         $isCampaignOrPitch = in_array($request->input('workflow_type'), ['campaign', 'pitch']);
 
@@ -78,7 +94,7 @@ class ProjectController extends Controller
             'deadline' => 'nullable|date',
             'priority' => 'required|string',
             'type' => 'required|string',
-            'workflow_type' => 'required|string|in:retainer,campaign,pitch',
+            'workflow_type' => ['required', 'string', 'in:retainer,campaign,pitch', \Illuminate\Validation\Rule::in($enabledTypes)],
             'writer_id' => 'nullable|exists:users,id',
             'approver_id' => 'nullable|exists:users,id',
             'brand_manager_id' => 'nullable|exists:users,id',
@@ -95,6 +111,8 @@ class ProjectController extends Controller
             'batches.*.deadline' => 'nullable',
             'batches.*.post_types' => 'nullable|array',
             'batches.*.posts_count' => 'nullable',
+        ], [
+            'workflow_type.in' => 'The selected project type is currently disabled by administrator.',
         ]);
 
         if (!$isCampaignOrPitch) {
@@ -575,13 +593,22 @@ class ProjectController extends Controller
         
         $groupedUsers = $users->groupBy('role');
         
-        return view('projects.edit', compact('project', 'brands', 'writers', 'approvers', 'managers', 'designers', 'users', 'groupedUsers'));
+        $enabledProjectTypes = \App\Services\FeatureManager::getProjectTypesStatus();
+
+        return view('projects.edit', compact('project', 'brands', 'writers', 'approvers', 'managers', 'designers', 'users', 'groupedUsers', 'enabledProjectTypes'));
     }
 
     public function update(Request $request, Project $project)
     {
         $user = auth()->user();
         if (!$user->isAdmin() && !in_array($user->role, ['Operations Manager', 'Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
+
+        $enabledTypes = \App\Services\FeatureManager::getEnabledProjectTypes();
+        if (empty($enabledTypes)) {
+            $enabledTypes = ['retainer', 'campaign', 'pitch'];
+        }
+        $allowedTypes = array_unique(array_merge($enabledTypes, [$project->workflow_type]));
+
         $validated = $request->validate([
             'brand_id' => 'required|exists:brands,id',
             'job_number' => 'nullable|string|max:255',
@@ -592,7 +619,7 @@ class ProjectController extends Controller
             'deadline' => 'nullable|date',
             'priority' => 'required|string',
             'type' => 'required|string',
-            'workflow_type' => 'required|string|in:retainer,campaign,pitch',
+            'workflow_type' => ['required', 'string', \Illuminate\Validation\Rule::in($allowedTypes)],
             'writer_id' => 'nullable|exists:users,id',
             'approver_id' => 'nullable|exists:users,id',
             'brand_manager_id' => 'nullable|exists:users,id',
@@ -601,6 +628,8 @@ class ProjectController extends Controller
             'sub_type' => 'nullable|string',
             'lead_id' => 'nullable|exists:users,id',
             'brief_file' => 'nullable|file|mimes:pdf,doc,docx,ppt,pptx,txt,jpg,jpeg,png|max:10240',
+        ], [
+            'workflow_type.in' => 'The selected project type is currently disabled by administrator.',
         ]);
 
         if ($request->hasFile('brief_file')) {
