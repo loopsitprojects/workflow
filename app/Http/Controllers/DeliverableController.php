@@ -2274,7 +2274,8 @@ class DeliverableController extends Controller
         ]);
 
         $deliverable->title = $validated['title'];
-        if (array_key_exists('post_type', $validated) && !empty($validated['post_type'])) {
+        // Once a deliverable is set for a task type it cannot be changed
+        if (array_key_exists('post_type', $validated) && !empty($validated['post_type']) && empty($deliverable->post_type)) {
             $deliverable->post_type = $validated['post_type'];
         }
         if (array_key_exists('priority', $validated) && !empty($validated['priority'])) {

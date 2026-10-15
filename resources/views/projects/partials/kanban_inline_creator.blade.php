@@ -31,9 +31,10 @@
         </div>
 
         {{-- Row 2: List / Post Type selector --}}
-        <div style="margin-bottom: 10px;">
+        <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary);">
+            <span style="opacity: 0.75;">Type:</span>
             <select name="post_type" 
-                    style="border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; padding: 0; outline: none;">
+                    style="border: none; background: transparent; font-size: 11.5px; font-weight: 700; color: var(--color-text-primary); cursor: pointer; padding: 0; outline: none;">
                 @foreach($subtaskTypes as $st)
                     <option value="{{ $st->name }}" {{ strtolower($st->name) === 'outlines' ? 'selected' : '' }}>
                         {{ $st->name }}

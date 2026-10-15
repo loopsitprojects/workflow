@@ -810,12 +810,11 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         </button>
                     </div>
 
-                    <div style="margin-bottom: 10px;">
-                        <select name="post_type" 
-                                id="card-input-post-type-${d.id}"
-                                style="border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; padding: 0; outline: none;">
-                            ${postTypeOptions}
-                        </select>
+                    {{-- Row 2: Deliverable Type (Locked once set) --}}
+                    <div style="margin-bottom: 10px; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); display: flex; align-items: center; gap: 4px;">
+                        <span style="opacity: 0.75;">Type:</span>
+                        <span style="font-weight: 700; color: var(--color-text-primary);">${escapeHtml(d.post_type || 'Deliverable')}</span>
+                        <input type="hidden" name="post_type" id="card-input-post-type-${d.id}" value="${escapeHtml(d.post_type || '')}">
                     </div>
 
                     <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border-primary);">

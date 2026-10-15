@@ -137,17 +137,11 @@
                 </button>
             </div>
 
-            {{-- Row 2: Post Type selector --}}
-            <div style="margin-bottom: 10px;">
-                <select name="post_type" 
-                        id="card-input-post-type-{{ $task->id }}"
-                        style="border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; padding: 0; outline: none;">
-                    @foreach($cardSubtaskTypes as $st)
-                        <option value="{{ $st->name }}" {{ strtolower($st->name) === strtolower($task->post_type ?? '') ? 'selected' : '' }}>
-                            {{ $st->name }}
-                        </option>
-                    @endforeach
-                </select>
+            {{-- Row 2: Deliverable Type (Locked once set) --}}
+            <div style="margin-bottom: 10px; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); display: flex; align-items: center; gap: 4px;">
+                <span style="opacity: 0.75;">Type:</span>
+                <span style="font-weight: 700; color: var(--color-text-primary);">{{ $task->post_type ?: 'Deliverable' }}</span>
+                <input type="hidden" name="post_type" id="card-input-post-type-{{ $task->id }}" value="{{ $task->post_type }}">
             </div>
 
             {{-- Row 3: Action Pickers with Icons (Matching reference layout) --}}

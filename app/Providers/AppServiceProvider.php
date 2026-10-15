@@ -27,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \Illuminate\Support\Facades\Gate::define('create-deliverable', function (\App\Models\User $user) {
-            return in_array($user->role, ['Brand Manager', 'Writer', 'Operations Manager']);
+            return in_array($user->role, ['Brand Manager', 'Writer', 'Operations Manager', 'Coordinator', 'Approver Coordinator', 'Assignee']);
         });
     }
 }
