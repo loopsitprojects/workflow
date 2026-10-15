@@ -81,6 +81,14 @@
                 <span>{{ \Carbon\Carbon::parse($task->deadline)->format('M d') }}</span>
             </div>
             @endif
+
+            {{-- Revision Due Date --}}
+            @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
+            <div style="display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 800; color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 1px 5px; border-radius: 4px;" title="Revision Due {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d, Y') }}">
+                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}</span>
+            </div>
+            @endif
         </div>
 
         {{-- Right Action/Info Icons: Priority Flag + Tag icon --}}

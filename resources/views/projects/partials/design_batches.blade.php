@@ -144,6 +144,12 @@
                             @else
                                 <span style="color:var(--color-text-secondary); opacity:0.5;">—</span>
                             @endif
+                            @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
+                                <div style="margin-top:2px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                    <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}
+                                </div>
+                            @endif
                         </td>
 
                         {{-- Concept / Brief --}}
@@ -401,6 +407,12 @@
                                     <span style="font-size:11px; color:var(--color-text-secondary);">
                                         {{ $subDeadline ? \Carbon\Carbon::parse($subDeadline)->format('M d, Y') : '—' }}
                                     </span>
+                                    @if($sub->revision_deadline && ($sub->revision_instructions || ($sub->revisions && $sub->revisions > 0)))
+                                        <div style="margin-top:2px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                            <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            Rev: {{ \Carbon\Carbon::parse($sub->revision_deadline)->format('M d') }}
+                                        </div>
+                                    @endif
                                 </td>
 
                                 {{-- Concept / Brief --}}
@@ -554,6 +566,15 @@
             @csrf
             <textarea name="revision_instructions" required placeholder="Specify what needs to be changed in the artwork..."
                       style="width:100%; min-height:100px; padding:12px; background:var(--color-bg-secondary); border:1.5px solid var(--color-border-primary); border-radius:8px; font-family:inherit; font-size:13px; color:var(--color-text-primary); outline:none; resize:vertical; box-sizing:border-box; margin-bottom:14px;"></textarea>
+
+            {{-- Optional Revision Deadline --}}
+            <div style="margin-bottom:14px;">
+                <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#ef4444; margin-bottom:6px;">
+                    Revision Deadline <span style="font-weight:500; opacity:0.6; text-transform:none; letter-spacing:0;">(optional)</span>
+                </label>
+                <input type="date" id="directRevisionDeadlineInput" name="revision_deadline" min="{{ date('Y-m-d') }}"
+                       style="width:100%; padding:8px 12px; background:var(--color-bg-secondary); border:1.5px solid var(--color-border-primary); border-radius:8px; font-family:inherit; font-size:13px; color:var(--color-text-primary); outline:none; box-sizing:border-box;">
+            </div>
 
             {{-- Optional Image or File Attachment --}}
             <div style="margin-bottom:18px;">

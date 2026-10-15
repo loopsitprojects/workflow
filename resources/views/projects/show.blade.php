@@ -948,6 +948,12 @@
                                             @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
                                             <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
+                                            @if($subtask->revision_deadline && ($subtask->revision_instructions || ($subtask->revisions && $subtask->revisions > 0)))
+                                                <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                                    <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                    Rev: {{ \Carbon\Carbon::parse($subtask->revision_deadline)->format('M d') }}
+                                                </div>
+                                            @endif
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
@@ -1150,7 +1156,12 @@
                                             @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
                                             <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
-
+                                            @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
+                                                <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                                    <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                    Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}
+                                                </div>
+                                            @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="concept" placeholder="Concept..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ html_entity_decode(strip_tags($task->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
@@ -2183,6 +2194,52 @@
             });
         }
 
+        function showSaveRevisionDeadlineBtn() {
+            const btn = document.getElementById('saveRevisionDeadlineBtn');
+            if (btn) btn.style.display = 'inline-block';
+        }
+
+        function saveRevisionDeadline(btn) {
+            if (!currentTaskData) return;
+            const input = document.getElementById('modalRevisionDeadlineInputBox');
+            if (!input) return;
+            const deadlineVal = input.value;
+            const originalText = btn.textContent;
+            btn.textContent = 'Saving...';
+            btn.style.opacity = '0.7';
+            fetch(`/deliverables/${currentTaskData.id}/revision-deadline`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ revision_deadline: deadlineVal })
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    btn.textContent = 'Saved!';
+                    btn.style.background = '#10b981';
+                    btn.style.opacity = '1';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    alert(data.message || 'Error updating revision deadline.');
+                    btn.textContent = originalText;
+                    btn.style.opacity = '1';
+                }
+            }).catch(e => {
+                console.error(e);
+                btn.textContent = 'Error';
+                btn.style.background = '#ef4444';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#ef4444';
+                    btn.style.opacity = '1';
+                }, 2000);
+            });
+        }
+
         async function openTaskModal(task) {
             try {
                 if (typeof task === 'number' || typeof task === 'string' || (task && typeof task === 'object' && !task.title && !task.approval_stage && task.id)) {
@@ -2854,6 +2911,17 @@
                                 <img src="${rev.image_path}" alt="Revision reference" style="max-width:100%;max-height:260px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;cursor:pointer;">
                                </div>`
                             : '';
+                        let revDeadHtml = '';
+                        if (rev.revision_deadline) {
+                            const revDeadDate = new Date(rev.revision_deadline);
+                            const revDeadStr = isNaN(revDeadDate.getTime()) ? rev.revision_deadline : revDeadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            revDeadHtml = `
+                                <div style="display:inline-flex; align-items:center; gap:5px; margin-top:6px; font-size:10px; font-weight:700; color:#ef4444; background:rgba(239, 68, 68, 0.08); padding:3px 8px; border-radius:6px; border:1px solid rgba(239, 68, 68, 0.2);">
+                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Revision Deadline: ${revDeadStr}
+                                </div>`;
+                        }
+
                         row.innerHTML = `
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div style="font-size:11px; font-weight:800; color:#ef4444; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
@@ -2865,6 +2933,7 @@
                             </div>
                             <div style="font-size:13px; font-weight:500; color:var(--color-text-primary); line-height:1.5; padding:10px; background:var(--color-bg-primary); border-radius:8px; border:1px solid rgba(239,68,68,0.1); margin-top:4px;">${(rev.instructions || '').replace(/\n/g, '<br>')}</div>
                             ${imageHtml}
+                            ${revDeadHtml}
                             ${fixedBadge}
                         `;
                         revHistory.appendChild(row);
@@ -3745,6 +3814,15 @@
                     </div>
                     <label class="detail-label" style="color:#ef4444;">Revision Instructions</label>
                     <textarea id="batchRevisionInstructions" placeholder="Describe what needs to be fixed in this entire batch..." style="width:100%; height:120px; padding:12px; border-radius:12px; border:1.5px solid rgba(239, 68, 68, 0.2); font-size:13px; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); resize:none;"></textarea>
+                    
+                    <!-- Revision Deadline in Batch Modal -->
+                    <div style="margin-top:14px;">
+                        <label class="detail-label" style="color:#ef4444; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px; display:block;">
+                            Revision Deadline <span style="font-weight:500; opacity:0.6; text-transform:none; letter-spacing:0;">(optional)</span>
+                        </label>
+                        <input type="date" id="batchRevisionDeadlineInput" min="{{ date('Y-m-d') }}" style="width:100%; padding:9px 14px; border-radius:10px; border:1.5px solid rgba(239,68,68,0.25); font-size:13px; font-weight:600; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
+                    </div>
+
                     <p id="batchRevisionNote" style="font-size: 10px; color: #ef4444; font-weight: 700; margin-top: 8px;">
                         The task will be sent back to the Writer.
                     </p>
@@ -3846,6 +3924,8 @@
                 confirmBtn.style.background = '#ef4444';
 
                 document.querySelector('#batchRevisionGroup textarea').placeholder = isIndividual ? "Describe what needs to be fixed..." : "Describe what needs to be fixed in this entire batch...";
+                const batchRevDeadline = document.getElementById('batchRevisionDeadlineInput');
+                if (batchRevDeadline) batchRevDeadline.value = '';
 
                 // Show "send back to" toggle for post-designer review stages
                 const postDesignerStages = ['Writer Review', 'Approver Review', 'AM/BD', 'Final Approval'];
@@ -4070,6 +4150,8 @@
             document.getElementById('batchRevisionImageLabel').textContent = 'Choose image…';
             const prev = document.getElementById('batchRevisionImagePreview');
             prev.src = ''; prev.style.display = 'none';
+            const bRevDead = document.getElementById('batchRevisionDeadlineInput');
+            if (bRevDead) bRevDead.value = '';
         }
 
         async function executeBatchAction() {
@@ -4103,6 +4185,8 @@
                 if (revisionTarget) formData.append('revision_target', revisionTarget);
                 const imgFile = document.getElementById('batchRevisionImageInput').files[0];
                 if (imgFile) formData.append('revision_image', imgFile);
+                const batchDeadline = document.getElementById('batchRevisionDeadlineInput') ? document.getElementById('batchRevisionDeadlineInput').value : '';
+                if (batchDeadline) formData.append('revision_deadline', batchDeadline);
 
                 const response = await fetch(`/deliverables/${currentBatchTask}/batch-revisions`, {
                     method: 'POST',

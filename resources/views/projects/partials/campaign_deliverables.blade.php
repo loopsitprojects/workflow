@@ -142,6 +142,12 @@
                                 <td>
                                     @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
                                     <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                    @if($subtask->revision_deadline && ($subtask->revision_instructions || ($subtask->revisions && $subtask->revisions > 0)))
+                                        <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                            <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            Rev: {{ \Carbon\Carbon::parse($subtask->revision_deadline)->format('M d') }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td onclick="event.stopPropagation()">
                                     @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ html_entity_decode(strip_tags($subtask->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
@@ -275,6 +281,12 @@
                             <td>
                                 @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
                                 <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
+                                    <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                        <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}
+                                    </div>
+                                @endif
                             </td>
                             <td onclick="event.stopPropagation()">
                                 @if($task->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($task->concept) }})">{{ html_entity_decode(strip_tags($task->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
@@ -591,6 +603,12 @@
                                 <td>
                                     @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
                                     <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                    @if($subtask->revision_deadline && ($subtask->revision_instructions || ($subtask->revisions && $subtask->revisions > 0)))
+                                        <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                            <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            Rev: {{ \Carbon\Carbon::parse($subtask->revision_deadline)->format('M d') }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td style="overflow:hidden;">
                                     @php $colors = $subtaskTypeColors[$subtask->subtask_type ?: ($subtask->post_type ?: 'default')] ?? ($subtaskTypeColors['default'] ?? ['bg' => 'rgba(14,165,233,0.1)', 'text' => '#0ea5e9', 'border' => 'rgba(14,165,233,0.25)']); @endphp
@@ -750,6 +768,12 @@
                             <td>
                                 @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
                                 <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
+                                    <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                        <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}
+                                    </div>
+                                @endif
                             </td>
                             <td style="overflow:hidden;">
                                 @php $colors = $subtaskTypeColors[$task->subtask_type ?: ($task->post_type ?: 'default')] ?? ($subtaskTypeColors['default'] ?? ['bg' => 'rgba(14,165,233,0.1)', 'text' => '#0ea5e9', 'border' => 'rgba(14,165,233,0.25)']); @endphp
