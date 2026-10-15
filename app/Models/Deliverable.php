@@ -51,11 +51,13 @@ class Deliverable extends Model
         'work_hours',
         'client_status',
         'designer_deadline',
+        'revision_deadline',
         'artwork_uploaded_by',
     ];
 
     protected $casts = [
         'designer_deadline' => 'datetime',
+        'revision_deadline' => 'datetime',
     ];
 
     protected $appends = [

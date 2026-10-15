@@ -336,6 +336,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
         $deliverable->approval_stage = $nextStage;
         $deliverable->progress_percent = $this->getStageProgress($deliverable);
         $deliverable->revision_instructions = null;
+        $deliverable->revision_deadline = null;
         $deliverable->status = ($nextStage === 'Closed') ? 'Done' : 'To Do';
         $deliverable->is_ready = false;
         if ($hoursSpent) {
@@ -388,6 +389,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
         $deliverable->progress_percent = $this->getStageProgress($deliverable);
         $deliverable->revisions += 1;
         $deliverable->revision_instructions = $validatedData['revision_instructions'];
+        $deliverable->revision_deadline = $validatedData['revision_deadline'] ?? null;
         $deliverable->save();
 
         // History
@@ -396,6 +398,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
             'instructions'      => $validatedData['revision_instructions'],
             'image_path'        => $imagePath,
             'stage_at_revision' => $oldStage,
+            'revision_deadline' => $validatedData['revision_deadline'] ?? null,
         ]);
 
         // Notify Designer

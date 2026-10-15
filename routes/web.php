@@ -54,6 +54,8 @@ Route::middleware('auth')->group(function () {
     Route::post('deliverables/{deliverable}/reassign-designer', [DeliverableController::class, 'reassignDesigner'])->name('deliverables.reassign-designer');
     Route::post('deliverables/{deliverable}/designer-deadline', [DeliverableController::class, 'updateDesignerDeadline'])->name('deliverables.update-designer-deadline');
     Route::patch('deliverables/{deliverable}/designer-deadline', [DeliverableController::class, 'updateDesignerDeadline']);
+    Route::post('deliverables/{deliverable}/revision-deadline', [DeliverableController::class, 'updateRevisionDeadline'])->name('deliverables.update-revision-deadline');
+    Route::patch('deliverables/{deliverable}/revision-deadline', [DeliverableController::class, 'updateRevisionDeadline']);
     Route::post('deliverables/{deliverable}/batch-revisions', [DeliverableController::class, 'batchRevisions'])->name('deliverables.batchRevisions');
     Route::post('deliverables/{deliverable}/revisions', [DeliverableController::class, 'requestRevisions'])->name('deliverables.revisions');
     Route::post('deliverables/{deliverable}/add-to-batch', [DeliverableController::class, 'addToBatch'])->name('deliverables.addToBatch');

@@ -810,6 +810,41 @@ class DeliverableController extends Controller
         return redirect()->back()->with('success', 'Designer deadline updated successfully.');
     }
 
+    public function updateRevisionDeadline(Request $request, Deliverable $deliverable)
+    {
+        $user = auth()->user();
+        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver Coordinator', 'Operations Manager'])) {
+            abort(403, 'Unauthorized to update revision deadline.');
+        }
+
+        $validated = $request->validate([
+            'revision_deadline' => 'nullable|date',
+        ]);
+
+        $deliverable->update([
+            'revision_deadline' => $validated['revision_deadline'] ?: null,
+        ]);
+
+        // Also update the latest revision entry if one exists
+        $latestRev = $deliverable->revisionsHistory()->latest()->first();
+        if ($latestRev) {
+            $latestRev->update([
+                'revision_deadline' => $validated['revision_deadline'] ?: null,
+            ]);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Revision deadline updated successfully.',
+                'revision_deadline' => $deliverable->revision_deadline ? $deliverable->revision_deadline->format('Y-m-d') : null,
+                'revision_deadline_formatted' => $deliverable->revision_deadline ? $deliverable->revision_deadline->format('d M Y') : '—',
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Revision deadline updated successfully.');
+    }
+
     public function updateChecklist(Request $request, Deliverable $deliverable)
     {
         if ($request->wantsJson()) {
@@ -1489,6 +1524,7 @@ class DeliverableController extends Controller
                 'revision_instructions' => 'required|string|max:1000',
                 'revision_target'       => 'nullable|in:writer,designer',
                 'revision_image'        => 'nullable', // allow string or file
+                'revision_deadline'     => 'nullable|date',
             ]);
 
             // Handle optional image upload
@@ -1522,6 +1558,7 @@ class DeliverableController extends Controller
             'revision_instructions' => 'required|string|max:2000',
             'revision_target'       => 'nullable|in:writer,designer',
             'revision_image'        => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm,pdf|max:512000',
+            'revision_deadline'     => 'nullable|date',
         ]);
 
         // Handle optional image upload once for the whole batch

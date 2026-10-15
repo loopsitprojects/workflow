@@ -1,9 +1,13 @@
 @php
     $assigneeInitial = !empty($task->assignee_name) && $task->assignee_name !== 'Unassigned'
         ? mb_strtoupper(mb_substr(trim($task->assignee_name), 0, 1))
-        : (!empty($task->writer?->name) ? mb_strtoupper(mb_substr(trim($task->writer->name), 0, 1)) : 'U');
+        : (!empty($task->writer?->name) 
+            ? mb_strtoupper(mb_substr(trim($task->writer->name), 0, 1)) 
+            : (!empty($task->designer?->name) 
+                ? mb_strtoupper(mb_substr(trim($task->designer->name), 0, 1)) 
+                : 'U'));
     
-    $assigneeFullName = $task->assignee_name ?: ($task->writer?->name ?? 'Unassigned');
+    $assigneeFullName = $task->assignee_name ?: ($task->writer?->name ?? ($task->designer?->name ?? 'Unassigned'));
 
     $prio = $task->priority ?? 'Medium';
     $prioColor = match($prio) {
@@ -14,7 +18,7 @@
 
     $subtasksCount = $task->subtasks ? $task->subtasks->count() : 0;
     
-    $postTypeLabel = $task->post_type ?: 'Outlines';
+    $postTypeLabel = $task->post_type ?: ($task->flow_type === 'direct_design' ? 'Design' : 'Deliverable');
     
     $stage = $task->approval_stage ?: 'Assignee';
 

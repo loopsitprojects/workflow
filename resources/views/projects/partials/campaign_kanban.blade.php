@@ -1,5 +1,5 @@
 @php
-    $tasks = $project->deliverables->whereNull('parent_deliverable_id')->filter(fn($t) => $t->flow_type !== 'direct_design');
+    $tasks = $project->deliverables->whereNull('parent_deliverable_id');
 
     $todoTasks = $tasks->filter(function($t) {
         $st = strtolower(trim($t->status ?? ''));

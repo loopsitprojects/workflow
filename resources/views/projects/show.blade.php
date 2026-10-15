@@ -673,11 +673,13 @@
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         New Deliverable
                     </a>
+                    @if($project->workflow_type === 'retainer')
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'flow' => 'design']) }}"
                        style="padding: 8px 16px; background: #6366f1; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(99,102,241,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         Fast Track Deliverable
                     </a>
+                    @endif
                     @endcan
                 </div>
             </div>
@@ -733,7 +735,7 @@
             ];
             $fastTrackTasks = $project->deliverables->whereNull('parent_deliverable_id')->where('flow_type', 'direct_design');
             $contentTasks = $project->deliverables->whereNull('parent_deliverable_id')->filter(fn($t) => $t->flow_type !== 'direct_design');
-            $hasFastTrack = $fastTrackTasks->count() > 0;
+            $hasFastTrack = $fastTrackTasks->count() > 0 && $project->workflow_type === 'retainer';
         @endphp
 
         <div x-data="{ activeBoardTab: 'all' }" style="margin-bottom: 24px;">
@@ -1556,8 +1558,8 @@
                 </div>
 
 
-                <div style="display:flex; gap:16px; margin-bottom:24px;">
-                    <div class="detail-item" id="modalDeliverableDeadlineBox" style="flex:1;">
+                <div style="display:flex; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
+                    <div class="detail-item" id="modalDeliverableDeadlineBox" style="flex:1; min-width:180px;">
                         <label class="detail-label" style="color:#3b82f6;">Deliverable Deadline</label>
                         <div style="display:flex; gap:8px;">
                             <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm" min="{{ date('Y-m-d') }}"
@@ -1566,13 +1568,29 @@
                             <button type="button" id="saveDeadlineBtn" style="display:none; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
                         </div>
                     </div>
+                    <div class="detail-item" id="modalRevisionDeadlineBox" style="display:none; flex:1; min-width:180px;">
+                        <label class="detail-label" style="color:#ef4444;">Revision Deadline</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="date" id="modalRevisionDeadlineInputBox" name="revision_deadline" form="submitStageForm"
+                                style="flex:1; padding:8px 12px; border:1.5px solid rgba(239,68,68,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='rgba(239,68,68,0.25)'"
+                                onchange="showSaveRevisionDeadlineBtn()">
+                            <button type="button" id="saveRevisionDeadlineBtn" style="display:none; padding:8px 16px; background:#ef4444; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;" onclick="saveRevisionDeadline(this)">Save</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Revision Alert Banner -->
-                <div id="modalRevisionAlert" style="display:none; padding:16px; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.2); border-radius:16px; margin-bottom:24px;">
-                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
-                        <svg width="20" height="20" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        <span style="color:#ef4444; font-weight:900; font-size:14px; text-transform:uppercase; letter-spacing:0.05em;">Revision Requested</span>
+                <div id="modalRevisionAlert" style="display:none; padding:16px; background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.25); border-radius:16px; margin-bottom:24px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <svg width="20" height="20" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            <span style="color:#ef4444; font-weight:900; font-size:14px; text-transform:uppercase; letter-spacing:0.05em;">Revision Requested</span>
+                        </div>
+                        <div id="modalRevisionDeadlineBadge" style="display:none; align-items:center; gap:6px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; letter-spacing:0.02em;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span id="modalRevisionDeadlineText"></span>
+                        </div>
                     </div>
                     <div id="modalRevisionAlertText" style="color:#ef4444; font-size:13px; font-weight:500; line-height:1.5; background:var(--color-bg-primary); padding:12px; border-radius:10px; border:1px solid rgba(239, 68, 68, 0.3); margin-top:8px;"></div>
                 </div>
@@ -1865,6 +1883,11 @@
                             </div>
                         </div>
                         <textarea name="revision_instructions" required placeholder="Describe specifically what needs to be fixed..." style="width:100%; height:160px; padding:16px; border-radius:16px; border:1.5px solid rgba(239, 68, 68, 0.2); font-size:14px; resize:none; font-family:inherit; margin-bottom:12px; display:block; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); transition:all 0.2s;"></textarea>
+                        <!-- Revision Deadline -->
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;margin-bottom:6px;">Revision Deadline <span style="font-weight:500;opacity:0.6;text-transform:none;letter-spacing:0;">(optional)</span></label>
+                            <input type="date" id="modalRevisionDeadlineInput" name="revision_deadline" style="width:100%; max-width:260px; padding:9px 14px; border-radius:10px; border:1.5px solid rgba(239,68,68,0.25); font-size:13px; font-weight:600; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
+                        </div>
                         <!-- Optional revision image -->
                         <div style="margin-bottom:20px;">
                             <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;margin-bottom:8px;">Attach Image <span style="font-weight:500;opacity:0.6;text-transform:none;letter-spacing:0;">(optional)</span></label>
@@ -2388,8 +2411,61 @@
                         dueBadge.textContent = `Due: ${dateStr}`;
                         topDeadlinesEl.appendChild(dueBadge);
                     }
-                    
+
+                    // 2. Designer Due Date
+                    if (task.designer_deadline && !isOtherDeliverable && !isDirectDesign) {
+                        const desDate = new Date(task.designer_deadline);
+                        const desDateStr = desDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                        const desBadge = document.createElement('div');
+                        desBadge.style.cssText = 'background: rgba(236, 72, 153, 0.08); color: #ec4899; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(236, 72, 153, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
+                        desBadge.textContent = `Designer Due: ${desDateStr}`;
+                        topDeadlinesEl.appendChild(desBadge);
+                    }
+
+                    // 3. Revision Due Date
+                    if (task.revision_deadline && (task.revision_instructions || (task.revisions && task.revisions > 0))) {
+                        const revDate = new Date(task.revision_deadline);
+                        const revDateStr = revDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                        const revBadge = document.createElement('div');
+                        revBadge.style.cssText = 'background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.25); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em; display:flex; align-items:center; gap:4px;';
+                        revBadge.innerHTML = `<svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Revision Due: ${revDateStr}`;
+                        topDeadlinesEl.appendChild(revBadge);
+                    }
                 }
+
+                // Revision Deadline Input Population in Metadata Area
+                const revDeadlineBox = document.getElementById('modalRevisionDeadlineBox');
+                const revDeadlineInputBox = document.getElementById('modalRevisionDeadlineInputBox');
+                if (revDeadlineBox && revDeadlineInputBox) {
+                    const hasRevision = Boolean(task.revision_instructions || task.revision_deadline);
+                    revDeadlineBox.style.display = hasRevision ? 'flex' : 'none';
+                    let rDateStr = '';
+                    if (task.revision_deadline) {
+                        if (typeof task.revision_deadline === 'string' && /^\d{4}-\d{2}-\d{2}/.test(task.revision_deadline)) {
+                            rDateStr = task.revision_deadline.substring(0, 10);
+                        } else {
+                            const rDate = new Date(task.revision_deadline);
+                            const pad = n => String(n).padStart(2,'0');
+                            rDateStr = `${rDate.getFullYear()}-${pad(rDate.getMonth()+1)}-${pad(rDate.getDate())}`;
+                        }
+                    }
+                    revDeadlineInputBox.value = rDateStr;
+                    const canEditRevDeadline = isAdmin || ['brandmanager', 'coordinator', 'approvercoordinator', 'operationsmanager'].includes(userRole);
+                    revDeadlineInputBox.readOnly = !canEditRevDeadline;
+                    const saveRevBtn = document.getElementById('saveRevisionDeadlineBtn');
+                    if (saveRevBtn) saveRevBtn.style.display = 'none';
+                    if (!canEditRevDeadline) {
+                        revDeadlineInputBox.style.opacity = '0.7';
+                        revDeadlineInputBox.style.pointerEvents = 'none';
+                    } else {
+                        revDeadlineInputBox.style.opacity = '1';
+                        revDeadlineInputBox.style.pointerEvents = 'auto';
+                    }
+                }
+
+                // Reset revision deadline in revision request form
+                const reqRevDeadlineInput = document.getElementById('modalRevisionDeadlineInput');
+                if (reqRevDeadlineInput) reqRevDeadlineInput.value = '';
 
                 // Hide designer deadline box for Other Deliverables & Fast Track (where deliverable deadline is used directly)
                 const desDeadlineBox = document.getElementById('modalDesignerDeadlineBox');
@@ -2819,6 +2895,19 @@
                         img.onclick = () => openImagePreview(latestRev.image_path);
                         alertTextEl.appendChild(img);
                     }
+
+                    // Revision Deadline in Alert Banner
+                    const revDeadlineBadge = document.getElementById('modalRevisionDeadlineBadge');
+                    const revDeadlineText = document.getElementById('modalRevisionDeadlineText');
+                    if (task.revision_deadline && revDeadlineBadge && revDeadlineText) {
+                        const d = new Date(task.revision_deadline);
+                        const dStr = d.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                        revDeadlineText.textContent = `Due: ${dStr}`;
+                        revDeadlineBadge.style.display = 'inline-flex';
+                    } else if (revDeadlineBadge) {
+                        revDeadlineBadge.style.display = 'none';
+                    }
+
                     revAlert.style.display = 'block';
                 } else revAlert.style.display = 'none';
 
@@ -3344,6 +3433,8 @@
                 document.getElementById('revisionImageLabel').textContent = 'Choose image…';
                 const prev = document.getElementById('revisionImagePreview');
                 prev.src = ''; prev.style.display = 'none';
+                const dInp = document.getElementById('modalRevisionDeadlineInput');
+                if (dInp) dInp.value = '';
             }
         }
 
