@@ -58,7 +58,7 @@
     <div class="kanban-card-view" id="kanban-card-view-{{ $task->id }}">
         {{-- Card Header: Type & Assignee --}}
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
-            <span id="card-view-post-type-{{ $task->id }}" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 2px 6px; border-radius: 5px;">
+            <span id="card-view-post-type-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                 {{ $postTypeLabel }}
             </span>
             <span id="card-view-assignee-badge-{{ $task->id }}" 
