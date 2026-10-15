@@ -564,9 +564,12 @@ class ProjectController extends Controller
         $approvers = \App\Models\User::whereIn('role', ['Approver', 'Approver Coordinator', 'Operations Manager'])
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
             ->get();
-        $writers = \App\Models\User::where('role', 'Writer')
+        $writers = \App\Models\User::whereIn('role', ['Writer', 'Assignee'])
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
             ->get();
+        if ($writers->isEmpty()) {
+            $writers = \App\Models\User::whereIn('role', ['Writer', 'Assignee'])->get();
+        }
         $coordinators = \App\Models\User::whereIn('role', ['Coordinator', 'Approver Coordinator'])
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
             ->get();

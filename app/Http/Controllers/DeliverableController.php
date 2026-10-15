@@ -34,7 +34,10 @@ class DeliverableController extends Controller
         $brand = $deliverable->project->brand()->with('members')->first();
         $users = $brand ? $brand->members : collect();
         
-        $writers = $users->where('role', 'Writer');
+        $writers = $users->whereIn('role', ['Writer', 'Assignee']);
+        if ($writers->isEmpty()) {
+            $writers = User::whereIn('role', ['Writer', 'Assignee'])->get();
+        }
         $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator']);
         $brandManagers = $users->where('role', 'Brand Manager');
         $coordinators = $users->whereIn('role', ['Coordinator', 'Approver Coordinator']);
@@ -77,8 +80,13 @@ class DeliverableController extends Controller
         if ($flow === 'design' || ($parentTask && $parentTask->isDirectDesign())) {
             $projects = Project::with('brand')->get();
             $designers = \App\Models\User::where('role', 'Designer')->orderBy('name')->get();
+            $brandId = $project?->brand_id;
+            $writers = $brandId ? \App\Models\User::whereIn('role', ['Writer', 'Assignee'])->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))->orderBy('name')->get() : collect();
+            if ($writers->isEmpty()) {
+                $writers = \App\Models\User::whereIn('role', ['Writer', 'Assignee'])->orderBy('name')->get();
+            }
             $subtaskTypes = \App\Models\SubtaskType::all();
-            return view('deliverables.create_design', compact('projects', 'project', 'designers', 'selectedProjectId', 'parentId', 'parentTask', 'workflowType', 'subtaskTypes'));
+            return view('deliverables.create_design', compact('projects', 'project', 'designers', 'writers', 'selectedProjectId', 'parentId', 'parentTask', 'workflowType', 'subtaskTypes'));
         }
 
         $users = ($workflowType === 'retainer')
@@ -293,7 +301,9 @@ class DeliverableController extends Controller
 
         // Fast Track batches do NOT assign a designer to the parent batch; designers are assigned strictly to individual deliverables
         $batchDesignerFallback = $validated['designer_id'] ?? null;
+        $batchWriterFallback = $validated['writer_id'] ?? ($project?->writer_id ?? null);
         $designerId = $isBatch ? null : ($validated['designer_id'] ?? null);
+        $writerId = $isBatch ? $batchWriterFallback : ($validated['writer_id'] ?? ($project?->writer_id ?? null));
         $designerUser = $designerId ? User::find($designerId) : null;
         $designerName = $designerUser?->name ?? ($isBatch ? null : 'Unassigned');
         if (in_array($creator->role, ['Brand Manager', 'Operations Manager'])) {
@@ -318,6 +328,7 @@ class DeliverableController extends Controller
         $taskData['progress_percent'] = 20;
         $taskData['brand_manager_id'] = $brandManagerId;
         $taskData['designer_id'] = $designerId;
+        $taskData['writer_id'] = $writerId;
         $taskData['assignee_name'] = $designerName;
         $taskData['revisions'] = 0;
         $taskData['priority'] = $taskData['priority'] ?? 'Medium';
@@ -348,6 +359,10 @@ class DeliverableController extends Controller
                 $taskData['designer_id'] = $singleDesignerId;
                 $d = User::find($singleDesignerId);
                 if ($d) $taskData['assignee_name'] = $d->name;
+            }
+            $singleWriterId = !empty($sub['writer_id']) ? $sub['writer_id'] : $batchWriterFallback;
+            if ($singleWriterId) {
+                $taskData['writer_id'] = $singleWriterId;
             }
             $subDeadline = !empty($sub['deadline']) ? $sub['deadline'] : (!empty($sub['designer_deadline']) ? $sub['designer_deadline'] : $taskData['deadline']);
             if ($subDeadline) {
@@ -433,6 +448,7 @@ class DeliverableController extends Controller
                         'designer_deadline'     => $subDeadline,
                     'priority'              => $sub['priority'] ?? ($parentTask->priority ?? 'Medium'),
                     'designer_id'           => $subDesignerId,
+                    'writer_id'             => $sub['writer_id'] ?? $batchWriterFallback,
                     'brand_manager_id'      => $parentTask->brand_manager_id,
                     'assignee_name'         => $subDesignerName,
                     'revisions'             => 0,

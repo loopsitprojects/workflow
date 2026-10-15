@@ -422,6 +422,25 @@ function updateCardViewElements(taskId, d) {
         prioFlag.setAttribute('fill', prioColor);
         prioFlag.title = d.priority || 'Medium';
     }
+
+    const assigneeBadge = document.getElementById('card-view-assignee-badge-' + taskId);
+    if (assigneeBadge) {
+        const hasAssignee = d.assignee_name && d.assignee_name !== 'Unassigned';
+        const name = hasAssignee ? d.assignee_name : 'Unassigned';
+        const span = assigneeBadge.querySelector('span') || assigneeBadge;
+        span.textContent = name;
+        if (hasAssignee) {
+            assigneeBadge.style.color = '#3b82f6';
+            assigneeBadge.style.background = 'rgba(59,130,246,0.1)';
+            assigneeBadge.style.border = '1px solid rgba(59,130,246,0.2)';
+            assigneeBadge.title = 'Assigned to ' + name;
+        } else {
+            assigneeBadge.style.color = 'var(--color-text-secondary)';
+            assigneeBadge.style.background = 'var(--color-bg-secondary)';
+            assigneeBadge.style.border = '1px solid var(--color-border-primary)';
+            assigneeBadge.title = 'No assignee';
+        }
+    }
 }
 
 function kanbanOnDragStart(event, taskId) {
@@ -710,6 +729,12 @@ function insertCreatedCardIntoColumn(colKey, d) {
         assigneeOptions += `<option value="${u.id}" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
     });
 
+    const hasAssignee = d.assignee_name && d.assignee_name !== 'Unassigned';
+    const assigneeDisplay = hasAssignee ? d.assignee_name : 'Unassigned';
+    const badgeColor = hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)';
+    const badgeBg = hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--color-bg-secondary)';
+    const badgeBorder = hasAssignee ? '1px solid rgba(59,130,246,0.2)' : '1px solid var(--color-border-primary)';
+
     const cardHtml = `
         <div class="kanban-card" 
              id="kanban-card-${d.id}"
@@ -729,8 +754,10 @@ function insertCreatedCardIntoColumn(colKey, d) {
                     <span id="card-view-post-type-${d.id}" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 2px 6px; border-radius: 5px;">
                         ${escapeHtml(d.post_type || 'Outlines')}
                     </span>
-                    <span style="font-size: 10px; font-weight: 700; color: #3b82f6; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); padding: 1px 6px; border-radius: 5px;">
-                        ${escapeHtml(d.approval_stage || 'Assignee')}
+                    <span id="card-view-assignee-badge-${d.id}" 
+                          style="font-size: 10px; font-weight: 700; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;"
+                          title="${hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) : 'No assignee'}">
+                        <span>${escapeHtml(assigneeDisplay)}</span>
                     </span>
                 </div>
 

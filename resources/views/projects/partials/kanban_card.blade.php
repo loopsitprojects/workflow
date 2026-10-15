@@ -1,13 +1,10 @@
 @php
-    $assigneeInitial = !empty($task->assignee_name) && $task->assignee_name !== 'Unassigned'
-        ? mb_strtoupper(mb_substr(trim($task->assignee_name), 0, 1))
-        : (!empty($task->writer?->name) 
-            ? mb_strtoupper(mb_substr(trim($task->writer->name), 0, 1)) 
-            : (!empty($task->designer?->name) 
-                ? mb_strtoupper(mb_substr(trim($task->designer->name), 0, 1)) 
-                : 'U'));
-    
     $assigneeFullName = $task->assignee_name ?: ($task->writer?->name ?? ($task->designer?->name ?? 'Unassigned'));
+    $hasAssignee = !empty($assigneeFullName) && strtolower($assigneeFullName) !== 'unassigned';
+    $assigneeDisplay = $hasAssignee ? $assigneeFullName : 'Unassigned';
+    $assigneeInitial = $hasAssignee
+        ? mb_strtoupper(mb_substr(trim($assigneeFullName), 0, 1))
+        : 'U';
 
     $prio = $task->priority ?? 'Medium';
     $prioColor = match($prio) {
@@ -59,13 +56,15 @@
     {{-- COLLAPSED CARD VIEW                                       --}}
     {{-- ========================================================= --}}
     <div class="kanban-card-view" id="kanban-card-view-{{ $task->id }}">
-        {{-- Card Header: Type & Stage --}}
+        {{-- Card Header: Type & Assignee --}}
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
             <span id="card-view-post-type-{{ $task->id }}" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 2px 6px; border-radius: 5px;">
                 {{ $postTypeLabel }}
             </span>
-            <span style="font-size: 10px; font-weight: 700; color: #3b82f6; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); padding: 1px 6px; border-radius: 5px;">
-                {{ $stage }}
+            <span id="card-view-assignee-badge-{{ $task->id }}" 
+                  style="font-size: 10px; font-weight: 700; color: {{ $hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--color-bg-secondary)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--color-border-primary)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;" 
+                  title="{{ $hasAssignee ? 'Assigned to ' . $assigneeFullName : 'No assignee' }}">
+                <span>{{ $assigneeDisplay }}</span>
             </span>
         </div>
 

@@ -599,7 +599,7 @@
                         </div>
 
                         {{-- Details Grid --}}
-                        <div class="form-grid-3 form-field-group">
+                        <div class="form-grid-2 form-field-group">
                             <div>
                                 <label class="field-label purple">Assigned Designer <span style="color:#ef4444;">*</span></label>
                                 <select name="designer_id" class="styled-input" :disabled="mode !== 'single'" :required="mode === 'single'">
@@ -612,6 +612,20 @@
                                 </select>
                             </div>
 
+                            <div>
+                                <label class="field-label" style="color:#0ea5e9;">Reviewing Writer <span style="font-size:10px;text-transform:none;opacity:0.7;font-weight:500;">(optional)</span></label>
+                                <select name="writer_id" class="styled-input" :disabled="mode !== 'single'">
+                                    <option value="">Select Writer...</option>
+                                    @foreach($writers as $w)
+                                        <option value="{{ $w->id }}" {{ (old('writer_id', $parentTask->writer_id ?? ($project->writer_id ?? '')) == $w->id) ? 'selected' : '' }}>
+                                            {{ $w->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-grid-2 form-field-group">
                             <div>
                                 <label class="field-label">Deliverable Deadline</label>
                                 <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'single'"
@@ -723,8 +737,20 @@
                             @error('title') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:5px;">{{ $message }}</p> @enderror
                         </div>
 
-                        {{-- Batch Date & Priority (Clean 2-Column Row) --}}
-                        <div class="form-grid-2 form-field-group">
+                        {{-- Batch Date, Priority & Reviewing Writer (Clean 3-Column Row) --}}
+                        <div class="form-grid-3 form-field-group">
+                            <div>
+                                <label class="field-label" style="color:#0ea5e9;">Batch Reviewing Writer <span style="font-size:10px;text-transform:none;opacity:0.7;font-weight:500;">(optional)</span></label>
+                                <select name="writer_id" class="styled-input" :disabled="mode !== 'batch'">
+                                    <option value="">Select Writer...</option>
+                                    @foreach($writers as $w)
+                                        <option value="{{ $w->id }}" {{ (old('writer_id', $parentTask->writer_id ?? ($project->writer_id ?? '')) == $w->id) ? 'selected' : '' }}>
+                                            {{ $w->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                             <div>
                                 <label class="field-label">Batch Deliverable Deadline</label>
                                 <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'batch'"
@@ -807,8 +833,8 @@
                                             </div>
                                         </div>
 
-                                        {{-- Row 2: Assigned Designer & Custom Due Date --}}
-                                        <div class="form-grid-2" style="margin-bottom:12px;">
+                                        {{-- Row 2: Assigned Designer, Reviewing Writer & Custom Due Date --}}
+                                        <div class="form-grid-3" style="margin-bottom:12px;">
                                             <div>
                                                 <label class="field-label purple">Assigned Designer <span style="color:#ef4444;">*</span></label>
                                                 <select :name="`subtasks[${index}][designer_id]`" x-model="subtask.designer_id" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
@@ -819,7 +845,16 @@
                                                 </select>
                                             </div>
                                             <div>
-                                                <label class="field-label">Deliverable Deadline <span style="font-size:10px;text-transform:none;opacity:0.6;font-weight:500;">(Defaults to batch deadline if blank)</span></label>
+                                                <label class="field-label" style="color:#0ea5e9;">Reviewing Writer <span style="font-size:10px;text-transform:none;opacity:0.6;font-weight:500;">(optional)</span></label>
+                                                <select :name="`subtasks[${index}][writer_id]`" x-model="subtask.writer_id" class="styled-input" :disabled="mode !== 'batch'">
+                                                    <option value="">Default (Batch Writer)</option>
+                                                    @foreach($writers as $w)
+                                                        <option value="{{ $w->id }}">{{ $w->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="field-label">Deliverable Deadline <span style="font-size:10px;text-transform:none;opacity:0.6;font-weight:500;">(Defaults to batch)</span></label>
                                                 <input type="date" :name="`subtasks[${index}][deadline]`" x-model="subtask.deadline" @input="subtask.designer_deadline = subtask.deadline" class="styled-input" :disabled="mode !== 'batch'">
                                                 <input type="hidden" :name="`subtasks[${index}][designer_deadline]`" :value="subtask.deadline || subtask.designer_deadline" :disabled="mode !== 'batch'">
                                             </div>
@@ -961,6 +996,7 @@
                         deadline: '',
                         designer_deadline: '',
                         designer_id: '{{ $designers->first()->id ?? '' }}',
+                        writer_id: '',
                         concept: '',
                         reference: ''
                     });

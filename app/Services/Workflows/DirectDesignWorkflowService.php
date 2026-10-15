@@ -179,11 +179,15 @@ class DirectDesignWorkflowService implements WorkflowInterface
 
             // Require writer selection to advance to Writer Review
             if (empty($data['writer_id']) && !$deliverable->writer_id) {
-                return [
-                    'success' => false,
-                    'message' => 'Please select a writer for writer approval.',
-                    'code'    => 422,
-                ];
+                if ($deliverable->project?->writer_id) {
+                    $deliverable->writer_id = $deliverable->project->writer_id;
+                } else {
+                    return [
+                        'success' => false,
+                        'message' => 'Please select a writer for writer approval.',
+                        'code'    => 422,
+                    ];
+                }
             }
         } elseif ($oldStage === 'Writer Review') {
             $isAssignedWriter = $deliverable->writer_id && $user && $user->id == $deliverable->writer_id;
