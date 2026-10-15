@@ -709,14 +709,14 @@
             </div>
             <div style="display: flex; align-items: center; gap: 12px; flex-shrink:0;">
                 <div style="display: flex; gap: 8px;">
-                    @if(auth()->user()->isAdmin() || in_array(auth()->user()->role, ['Brand Manager', 'Coordinator', 'Approver']))
+                    @if(auth()->user()->isAdmin() || in_array(auth()->user()->role, ['Admin', 'Owner', 'Brand Manager', 'Coordinator', 'Approver', 'Operations Manager']))
                     <a href="{{ route('projects.edit', $project) }}"
                        style="padding: 8px 16px; background: var(--color-bg-primary); border: 1.5px solid var(--color-border-primary); border-radius: 9px; font-size: 12px; font-weight: 600; color: var(--color-text-secondary); text-decoration: none; transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         Edit Project
                     </a>
                     @endif
-                    @can('create-deliverable')
+                    @if(in_array($project->workflow_type, ['campaign', 'pitch']) || auth()->user()->can('create-deliverable', $project))
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id]) }}"
                        style="padding: 8px 16px; background: #0055D4; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(0,85,212,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
@@ -729,7 +729,7 @@
                         Fast Track Deliverable
                     </a>
                     @endif
-                    @endcan
+                    @endif
                 </div>
             </div>
         </div>
@@ -1479,13 +1479,13 @@
                         </button>
                     </div>
 
-                    @can('create-deliverable')
+                    @if(in_array($project->workflow_type, ['campaign', 'pitch']) || auth()->user()->can('create-deliverable', $project))
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id]) }}"
                        style="padding: 7px 16px; background: #0055D4; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(0,85,212,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         <span>New Deliverable</span>
                     </a>
-                    @endcan
+                    @endif
                 </div>
 
                 {{-- Kanban View --}}
