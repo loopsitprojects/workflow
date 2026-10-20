@@ -77,11 +77,32 @@ class Deliverable extends Model
         if (empty($this->reference_file)) {
             return [];
         }
+        if (is_array($this->reference_file)) {
+            return array_values(array_filter($this->reference_file));
+        }
         $val = trim(trim($this->reference_file), '"\'');
         if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
             $decoded = json_decode($val, true);
             if (is_array($decoded)) {
-                return array_values(array_filter(array_map(fn($item) => is_string($item) ? trim($item, '"\'') : $item, $decoded)));
+                $cleaned = [];
+                foreach ($decoded as $item) {
+                    if (is_string($item)) {
+                        $itemTrim = trim($item, '"\'');
+                        if (str_starts_with($itemTrim, '[') && str_ends_with($itemTrim, ']')) {
+                            $subDecoded = json_decode($itemTrim, true);
+                            if (is_array($subDecoded)) {
+                                foreach ($subDecoded as $subItem) {
+                                    if (!empty($subItem)) $cleaned[] = is_string($subItem) ? trim($subItem, '"\'') : $subItem;
+                                }
+                                continue;
+                            }
+                        }
+                        if (!empty($itemTrim)) $cleaned[] = $itemTrim;
+                    } elseif (!empty($item)) {
+                        $cleaned[] = $item;
+                    }
+                }
+                return array_values(array_filter($cleaned));
             }
         }
         return [$val];
@@ -91,6 +112,9 @@ class Deliverable extends Model
     {
         if (empty($this->reference)) {
             return [];
+        }
+        if (is_array($this->reference)) {
+            return array_values(array_filter($this->reference));
         }
         $val = trim(trim($this->reference), '"\'');
         if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
@@ -108,11 +132,32 @@ class Deliverable extends Model
         if (empty($this->final_designs)) {
             return [];
         }
+        if (is_array($this->final_designs)) {
+            return array_values(array_filter($this->final_designs));
+        }
         $val = trim(trim($this->final_designs), '"\'');
         if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
             $decoded = json_decode($val, true);
             if (is_array($decoded)) {
-                return array_values(array_filter(array_map(fn($item) => is_string($item) ? trim($item, '"\'') : $item, $decoded)));
+                $cleaned = [];
+                foreach ($decoded as $item) {
+                    if (is_string($item)) {
+                        $itemTrim = trim($item, '"\'');
+                        if (str_starts_with($itemTrim, '[') && str_ends_with($itemTrim, ']')) {
+                            $subDecoded = json_decode($itemTrim, true);
+                            if (is_array($subDecoded)) {
+                                foreach ($subDecoded as $subItem) {
+                                    if (!empty($subItem)) $cleaned[] = is_string($subItem) ? trim($subItem, '"\'') : $subItem;
+                                }
+                                continue;
+                            }
+                        }
+                        if (!empty($itemTrim)) $cleaned[] = $itemTrim;
+                    } elseif (!empty($item)) {
+                        $cleaned[] = $item;
+                    }
+                }
+                return array_values(array_filter($cleaned));
             }
         }
         return [$val];
@@ -156,6 +201,9 @@ class Deliverable extends Model
     {
         if (empty($this->final_designs_link)) {
             return [];
+        }
+        if (is_array($this->final_designs_link)) {
+            return array_values(array_filter($this->final_designs_link));
         }
         $val = trim(trim($this->final_designs_link), '"\'');
         if (str_starts_with($val, '[') && str_ends_with($val, ']')) {

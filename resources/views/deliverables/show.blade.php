@@ -3560,6 +3560,20 @@ document.getElementById('sendArtworkModalOverlay').addEventListener('click', fun
 
 // Image Preview Functions
 function openImagePreview(url, canRemove = false, deliverableId = null) {
+    if (!url) return;
+    if (typeof url === 'string' && url.trim().startsWith('[')) {
+        try {
+            const parsed = JSON.parse(url.trim());
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                if (parsed.length > 1 && typeof openMediaGallery === 'function') {
+                    return openMediaGallery('Artwork Media', parsed, [], canRemove, deliverableId);
+                }
+                url = parsed[0];
+            }
+        } catch(e) {}
+    }
+    if (!url || typeof url !== 'string') return;
+
     if (url.match(/\.pdf(?:$|\?)/i)) {
         window.open(url, '_blank');
         return;
