@@ -539,62 +539,69 @@
                 </div>
 
                 <!-- 2. Compact Metadata Bar -->
-                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; background:var(--color-bg-secondary); padding:10px 16px; border-radius:12px; border:1px solid var(--color-border-primary);">
-                    <div class="detail-item" style="display:flex; align-items:center; gap:8px; flex:1; min-width:130px; margin:0;">
-                        <label class="detail-label" style="margin:0; flex-shrink:0;">Current Stage:</label>
-                        <div id="modalStage" class="detail-val" style="font-weight:900; color:#0055D4; font-size:13px;">-</div>
-                    </div>
-                    <div class="detail-item" style="display:flex; align-items:center; gap:8px; flex:1; min-width:140px; margin:0;">
-                        <label class="detail-label" style="margin:0; flex-shrink:0;">Priority:</label>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <input type="hidden" id="modalPriorityTaskId" value="">
-                            @if($isAdmin || in_array($userRole, ['brandmanager', 'writer', 'approver', 'approvercoordinator', 'coordinator']))
-                                <select id="prioritySelect" onchange="updatePriorityInlineModal(this, document.getElementById('modalPriorityTaskId').value)" class="cd-btn cd-btn-outline" style="padding:3px 6px; border-radius:6px; font-size:12px; font-weight:800; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
-                                    <option value="High Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">High Priority (Urgent)</option>
-                                    <option value="Medium" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Medium (Stable)</option>
-                                    <option value="Low Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Low Priority (Paused)</option>
-                                </select>
-                            @else
-                                <div id="modalPriorityDisplay" class="detail-val" style="font-weight:800; font-size:12px; color:var(--color-text-primary);"></div>
-                            @endif
+                <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px; background:var(--color-bg-secondary); padding:12px 16px; border-radius:12px; border:1px solid var(--color-border-primary);">
+                    <!-- Row 1: Core Stage, Priority & Client Status -->
+                    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px;">
+                        <div class="detail-item" style="display:flex; align-items:center; gap:8px; margin:0;">
+                            <label class="detail-label" style="margin:0; flex-shrink:0;">Current Stage:</label>
+                            <div id="modalStage" class="detail-val" style="font-weight:900; color:#0055D4; font-size:13px;">-</div>
+                        </div>
+                        <div class="detail-item" style="display:flex; align-items:center; gap:8px; margin:0;">
+                            <label class="detail-label" style="margin:0; flex-shrink:0;">Priority:</label>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <input type="hidden" id="modalPriorityTaskId" value="">
+                                @if($isAdmin || in_array($userRole, ['brandmanager', 'writer', 'approver', 'approvercoordinator', 'coordinator']))
+                                    <select id="prioritySelect" onchange="updatePriorityInlineModal(this, document.getElementById('modalPriorityTaskId').value)" class="cd-btn cd-btn-outline" style="padding:3px 6px; border-radius:6px; font-size:12px; font-weight:800; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
+                                        <option value="High Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">High Priority (Urgent)</option>
+                                        <option value="Medium" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Medium (Stable)</option>
+                                        <option value="Low Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Low Priority (Paused)</option>
+                                    </select>
+                                @else
+                                    <div id="modalPriorityDisplay" class="detail-val" style="font-weight:800; font-size:12px; color:var(--color-text-primary);"></div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="detail-item" style="display:flex; align-items:center; gap:8px; margin:0;">
+                            <label class="detail-label" style="margin:0; flex-shrink:0;">Client Status:</label>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <div id="modalClientStatusDisplay" class="detail-val" style="font-weight:800; font-size:12px; color:var(--color-text-primary);">Not Sent</div>
+                                <a id="modalClientReviewLink" href="#" target="_blank" style="display:none; align-items:center; gap:3px; font-size:11px; font-weight:800; color:#3b82f6; text-decoration:none;" title="Open Client Review Page">
+                                    🔗 Review Link
+                                </a>
+                            </div>
                         </div>
                     </div>
-                    <div class="detail-item" style="display:flex; align-items:center; gap:8px; flex:1; min-width:150px; margin:0;">
-                        <label class="detail-label" style="margin:0; flex-shrink:0;">Client Status:</label>
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <div id="modalClientStatusDisplay" class="detail-val" style="font-weight:800; font-size:12px; color:var(--color-text-primary);">Not Sent</div>
-                            <a id="modalClientReviewLink" href="#" target="_blank" style="display:none; align-items:center; gap:3px; font-size:11px; font-weight:800; color:#3b82f6; text-decoration:none;" title="Open Client Review Page">
-                                🔗 Review Link
-                            </a>
+
+                    <!-- Row 2: Deadlines (with dedicated breathing room and clean alignment) -->
+                    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:20px; padding-top:10px; border-top:1px solid var(--color-border-primary);">
+                        <div class="detail-item" id="modalDeliverableDeadlineBox" style="display:flex; align-items:center; gap:8px; margin:0;">
+                            <label class="detail-label" style="color:#3b82f6; margin:0; flex-shrink:0;">Deadline:</label>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm" min="{{ date('Y-m-d') }}"
+                                    style="width:130px; padding:4px 8px; border:1.5px solid rgba(59,130,246,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
+                                <button type="button" id="saveDeadlineBtn" style="display:none; padding:4px 8px; background:#3b82f6; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="detail-item" id="modalDeliverableDeadlineBox" style="display:flex; align-items:center; gap:8px; flex:1; min-width:180px; margin:0;">
-                        <label class="detail-label" style="color:#3b82f6; margin:0; flex-shrink:0;">Deadline:</label>
-                        <div style="display:flex; gap:6px; align-items:center; flex:1;">
-                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm" min="{{ date('Y-m-d') }}"
-                                style="flex:1; padding:4px 8px; border:1.5px solid rgba(59,130,246,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
-                            <button type="button" id="saveDeadlineBtn" style="display:none; padding:4px 8px; background:#3b82f6; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
+                        <div class="detail-item" id="modalDesignerDeadlineBox" style="display:flex; align-items:center; gap:8px; margin:0;">
+                            <label class="detail-label" style="color:#ec4899; margin:0; flex-shrink:0;">Designer Due:</label>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <input type="date" id="modalDesignerDeadlineInput" name="designer_deadline" form="submitStageForm"
+                                    style="width:130px; padding:4px 8px; border:1.5px solid rgba(236,72,153,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='#ec4899'" onblur="this.style.borderColor='rgba(236,72,153,0.25)'"
+                                    onchange="showSaveDesignerDeadlineBtn()">
+                                <button type="button" id="saveDesignerDeadlineBtn" style="display:none; padding:4px 8px; background:#ec4899; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDesignerDeadline(this)">Save</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="detail-item" id="modalDesignerDeadlineBox" style="display:flex; align-items:center; gap:8px; flex:1; min-width:180px; margin:0;">
-                        <label class="detail-label" style="color:#ec4899; margin:0; flex-shrink:0;">Designer Due:</label>
-                        <div style="display:flex; gap:6px; align-items:center; flex:1;">
-                            <input type="date" id="modalDesignerDeadlineInput" name="designer_deadline" form="submitStageForm"
-                                style="flex:1; padding:4px 8px; border:1.5px solid rgba(236,72,153,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                onfocus="this.style.borderColor='#ec4899'" onblur="this.style.borderColor='rgba(236,72,153,0.25)'"
-                                onchange="showSaveDesignerDeadlineBtn()">
-                            <button type="button" id="saveDesignerDeadlineBtn" style="display:none; padding:4px 8px; background:#ec4899; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDesignerDeadline(this)">Save</button>
-                        </div>
-                    </div>
-                    <div class="detail-item" id="modalRevisionDeadlineBox" style="display:none; align-items:center; gap:8px; flex:1; min-width:180px; margin:0;">
-                        <label class="detail-label" style="color:#ef4444; margin:0; flex-shrink:0;">Revision Due:</label>
-                        <div style="display:flex; gap:6px; align-items:center; flex:1;">
-                            <input type="date" id="modalRevisionDeadlineInputBox" name="revision_deadline" form="submitStageForm"
-                                style="flex:1; padding:4px 8px; border:1.5px solid rgba(239,68,68,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='rgba(239,68,68,0.25)'"
-                                onchange="showSaveRevisionDeadlineBtn()">
-                            <button type="button" id="saveRevisionDeadlineBtn" style="display:none; padding:4px 8px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveRevisionDeadline(this)">Save</button>
+                        <div class="detail-item" id="modalRevisionDeadlineBox" style="display:none; align-items:center; gap:8px; margin:0;">
+                            <label class="detail-label" style="color:#ef4444; margin:0; flex-shrink:0;">Revision Due:</label>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <input type="date" id="modalRevisionDeadlineInputBox" name="revision_deadline" form="submitStageForm"
+                                    style="width:130px; padding:4px 8px; border:1.5px solid rgba(239,68,68,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                    onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='rgba(239,68,68,0.25)'"
+                                    onchange="showSaveRevisionDeadlineBtn()">
+                                <button type="button" id="saveRevisionDeadlineBtn" style="display:none; padding:4px 8px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveRevisionDeadline(this)">Save</button>
+                            </div>
                         </div>
                     </div>
                 </div>

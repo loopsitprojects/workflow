@@ -57,11 +57,14 @@
     $isInApproval = in_array($statusLower, ['approval stage', 'approval', 'review', 'under review']);
     $isCompleted = in_array($statusLower, ['done', 'completed', 'complete']);
 
-    if ($isInApproval) {
-        $canMove = $isApprover || $isAdminOrManager;
+    if ($isAdminOrManager) {
+        $canMove = true;
+        $moveRestrictionReason = '';
+    } elseif ($isInApproval) {
+        $canMove = $isApprover;
         $moveRestrictionReason = $canMove ? '' : 'Submitted to approver. Only the assigned approver can move this deliverable.';
     } elseif ($isCompleted) {
-        $canMove = $isApprover || $isAdminOrManager;
+        $canMove = $isApprover;
         $moveRestrictionReason = $canMove ? '' : 'Deliverable is completed. Only an approver or admin can move it.';
     } else {
         if ($isUnassigned) {

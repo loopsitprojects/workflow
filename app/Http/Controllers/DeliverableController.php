@@ -2459,48 +2459,50 @@ class DeliverableController extends Controller
         $isInApproval = in_array($oldStatusLower, ['approval stage', 'approval', 'review', 'under review']);
         $isCompleted = in_array($oldStatusLower, ['done', 'completed', 'complete']);
 
-        // Flow authorization rules
-        if ($isInApproval) {
-            // If it is currently in Approval Stage: ONLY the Approver or Admin/Manager can move it
-            if (!$isApprover && !$isAdminOrManager) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This deliverable is submitted for approval. Only the assigned approver can move it.',
-                ], 403);
-            }
-        } elseif ($isCompleted) {
-            // If currently Completed: ONLY Approver or Admin/Manager can move it
-            if (!$isApprover && !$isAdminOrManager) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This deliverable is completed. Only an approver or admin can move it.',
-                ], 403);
-            }
-        } else {
-            // Currently in To Do or In Progress:
-            // 1. If unassigned: Cannot be moved until assigned
-            if ($isUnassigned) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Please assign a team member before moving this deliverable.',
-                ], 403);
-            }
+        // Flow authorization rules: Admins and Operations Managers can move anything anywhere
+        if (!$isAdminOrManager) {
+            if ($isInApproval) {
+                // If it is currently in Approval Stage: ONLY the Approver can move it
+                if (!$isApprover) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This deliverable is submitted for approval. Only the assigned approver can move it.',
+                    ], 403);
+                }
+            } elseif ($isCompleted) {
+                // If currently Completed: ONLY Approver can move it
+                if (!$isApprover) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This deliverable is completed. Only an approver or admin can move it.',
+                    ], 403);
+                }
+            } else {
+                // Currently in To Do or In Progress:
+                // 1. If unassigned: Cannot be moved until assigned
+                if ($isUnassigned) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Please assign a team member before moving this deliverable.',
+                    ], 403);
+                }
 
-            // 2. ONLY the assigned person can move it from To Do / In Progress!
-            if (!$isAssigned) {
-                $assigneeName = $deliverable->assignee_name ?: ($deliverable->writer?->name ?? 'the assigned person');
-                return response()->json([
-                    'success' => false,
-                    'message' => "Only the assigned person ({$assigneeName}) can move this deliverable.",
-                ], 403);
-            }
+                // 2. ONLY the assigned person can move it from To Do / In Progress!
+                if (!$isAssigned) {
+                    $assigneeName = $deliverable->assignee_name ?: ($deliverable->writer?->name ?? 'the assigned person');
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Only the assigned person ({$assigneeName}) can move this deliverable.",
+                    ], 403);
+                }
 
-            // 3. An assignee cannot jump straight to Complete without going through Approval Stage
-            if ($newStatus === 'Done') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Deliverables must be submitted to the Approval Stage for review before completing.',
-                ], 403);
+                // 3. An assignee cannot jump straight to Complete without going through Approval Stage
+                if ($newStatus === 'Done') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Deliverables must be submitted to the Approval Stage for review before completing.',
+                    ], 403);
+                }
             }
         }
 
@@ -2621,10 +2623,10 @@ class DeliverableController extends Controller
         $updatedIsApprover = ($updatedApproverId && $user && $user->id == $updatedApproverId) ||
                              (!$updatedApproverId && $user && in_array($user->role, ['Approver', 'Approver Coordinator', 'Brand Manager']));
 
-        if ($newStatus === 'Approval Stage') {
-            $canUserMoveNow = $updatedIsApprover || $isAdminOrManager;
-        } elseif ($newStatus === 'Done') {
-            $canUserMoveNow = $updatedIsApprover || $isAdminOrManager;
+        if ($isAdminOrManager) {
+            $canUserMoveNow = true;
+        } elseif ($newStatus === 'Approval Stage' || $newStatus === 'Done') {
+            $canUserMoveNow = $updatedIsApprover;
         } else {
             // In To Do or In Progress: only the assigned user can move it; if unassigned, false
             $canUserMoveNow = $updatedAssignedId ? $updatedIsAssignee : false;

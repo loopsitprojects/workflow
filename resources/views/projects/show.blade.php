@@ -842,7 +842,7 @@
                         <thead>
                             <tr>
                                 <th style="width:140px;">Deliverable</th>
-                                <th style="width:75px;">Due</th>
+                                <th style="width:110px;">Due</th>
                                 <th style="width:85px;">Concept</th>
                                 <th style="width:115px;">Type</th>
                                 <th style="width:85px;">Caption</th>
@@ -995,12 +995,24 @@
                                         </td>
                                         <td>
                                             @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
-                                            <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
-                                            <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
-                                            @if($subtask->revision_deadline && ($subtask->revision_instructions || ($subtask->revisions && $subtask->revisions > 0)))
-                                                <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
-                                                    <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                    Rev: {{ \Carbon\Carbon::parse($subtask->revision_deadline)->format('M d') }}
+                                            <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                            @if($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00')
+                                                <div style="font-size:9px; color:var(--color-text-secondary); margin-bottom:2px;">{{ \Carbon\Carbon::parse($displayDeadline)->format('H:i') }}</div>
+                                            @endif
+                                            @if($subtask->designer_deadline || $subtask->revision_deadline)
+                                                <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
+                                                    @if($subtask->designer_deadline)
+                                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ec4899; background:rgba(236,72,153,0.08); border:1px solid rgba(236,72,153,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Designer Deadline">
+                                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                                            <span>Des: {{ \Carbon\Carbon::parse($subtask->designer_deadline)->format('M d, Y') }}</span>
+                                                        </div>
+                                                    @endif
+                                                    @if($subtask->revision_deadline)
+                                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Revision Deadline">
+                                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                            <span>Rev: {{ \Carbon\Carbon::parse($subtask->revision_deadline)->format('M d, Y') }}</span>
+                                                        </div>
+                                                    @endif
                                                 </div>
                                             @endif
                                         </td>
@@ -1216,12 +1228,24 @@
                                         </td>
                                         <td>
                                             @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
-                                            <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
-                                            <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
-                                            @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
-                                                <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
-                                                    <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                    Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}
+                                            <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                            @if($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00')
+                                                <div style="font-size:9px; color:var(--color-text-secondary); margin-bottom:2px;">{{ \Carbon\Carbon::parse($displayDeadline)->format('H:i') }}</div>
+                                            @endif
+                                            @if($task->designer_deadline || $task->revision_deadline)
+                                                <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
+                                                    @if($task->designer_deadline)
+                                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ec4899; background:rgba(236,72,153,0.08); border:1px solid rgba(236,72,153,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Designer Deadline">
+                                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                                            <span>Des: {{ \Carbon\Carbon::parse($task->designer_deadline)->format('M d, Y') }}</span>
+                                                        </div>
+                                                    @endif
+                                                    @if($task->revision_deadline)
+                                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Revision Deadline">
+                                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                            <span>Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d, Y') }}</span>
+                                                        </div>
+                                                    @endif
                                                 </div>
                                             @endif
                                         </td>
@@ -1480,7 +1504,7 @@
                                 @endif
                             @empty
                             <tr>
-                                <td colspan="5" style="padding:60px 24px; text-align:center;">
+                                <td colspan="12" style="padding:60px 24px; text-align:center;">
                                     <div style="display:inline-flex;flex-direction:column;align-items:center;gap:14px;">
                                         <div style="width:56px;height:56px;border-radius:50%;background:var(--color-bg-secondary);border:2px dashed var(--color-border-primary);display:flex;align-items:center;justify-content:center;">
                                             <svg width="22" height="22" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
