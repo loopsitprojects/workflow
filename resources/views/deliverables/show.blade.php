@@ -575,7 +575,7 @@
                     <!-- Row 2: Deadlines (with dedicated breathing room and clean alignment) -->
                     <div style="display:flex; flex-wrap:wrap; align-items:center; gap:20px; padding-top:10px; border-top:1px solid var(--color-border-primary);">
                         <div class="detail-item" id="modalDeliverableDeadlineBox" style="display:flex; align-items:center; gap:8px; margin:0;">
-                            <label class="detail-label" style="color:#3b82f6; margin:0; flex-shrink:0;">Deadline:</label>
+                            <label class="detail-label" style="color:#3b82f6; margin:0; flex-shrink:0;">Deliverable Due:</label>
                             <div style="display:flex; gap:6px; align-items:center;">
                                 <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm" min="{{ date('Y-m-d') }}"
                                     style="width:130px; padding:4px 8px; border:1.5px solid rgba(59,130,246,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
@@ -1748,7 +1748,7 @@
                         const dateStr = dDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
                         const dueBadge = document.createElement('div');
                         dueBadge.style.cssText = 'background: rgba(59, 130, 246, 0.08); color: #3b82f6; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
-                        dueBadge.textContent = `Due: ${dateStr}`;
+                        dueBadge.textContent = `Del: ${dateStr}`;
                         topDeadlinesEl.appendChild(dueBadge);
                     }
 

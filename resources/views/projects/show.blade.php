@@ -995,7 +995,7 @@
                                         </td>
                                         <td>
                                             @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
-                                            <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                            <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? 'Del: ' . \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                             @if($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00')
                                                 <div style="font-size:9px; color:var(--color-text-secondary); margin-bottom:2px;">{{ \Carbon\Carbon::parse($displayDeadline)->format('H:i') }}</div>
                                             @endif
@@ -1228,7 +1228,7 @@
                                         </td>
                                         <td>
                                             @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
-                                            <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                                            <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? 'Del: ' . \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                             @if($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00')
                                                 <div style="font-size:9px; color:var(--color-text-secondary); margin-bottom:2px;">{{ \Carbon\Carbon::parse($displayDeadline)->format('H:i') }}</div>
                                             @endif
@@ -2591,7 +2591,7 @@
                         const dateStr = dDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
                         const dueBadge = document.createElement('div');
                         dueBadge.style.cssText = 'background: rgba(59, 130, 246, 0.08); color: #3b82f6; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
-                        dueBadge.textContent = `Due: ${dateStr}`;
+                        dueBadge.textContent = `Del: ${dateStr}`;
                         topDeadlinesEl.appendChild(dueBadge);
                     }
 

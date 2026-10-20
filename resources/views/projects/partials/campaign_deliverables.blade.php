@@ -75,7 +75,7 @@
                         </td>
                         <td>
                             @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
-                            <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                            <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? 'Del: ' . \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                             @if($task->designer_deadline || $task->revision_deadline)
                                 <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
                                     @if($task->designer_deadline)
@@ -341,7 +341,7 @@
                         </td>
                         <td>
                             @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
-                            <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
+                            <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? 'Del: ' . \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                             @if($task->designer_deadline || $task->revision_deadline)
                                 <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
                                     @if($task->designer_deadline)
