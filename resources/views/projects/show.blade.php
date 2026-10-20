@@ -2667,40 +2667,52 @@
                 const removeRefBtnHtml = canRemoveRef ? `
                     <button type="button" onclick="document.getElementById('modalReference').innerHTML='<span style=\\'color:#94a3b8; font-size:13px; font-weight:500;\\'>Reference will be removed on save</span>'; document.getElementById('deleteReferenceFile').value='1';" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
                 ` : '';
-                if (task.reference_file) {
-                    const isVideo = task.reference_file.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
-                    const isPdf = task.reference_file.match(/\.pdf(?:$|\?)/i);
-                    if (isPdf) {
-                        refHtml = `
-                        <div style="display:flex; align-items:flex-end; gap:16px; margin-top:8px;">
-                            <div onclick="window.open('${task.reference_file}', '_blank')" style="display:inline-block; cursor:pointer;">
-                                <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:12px; margin-bottom:8px;">
-                                    <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
-                                    <span style="font-size:12px; font-weight:800; color:#ef4444;">VIEW PDF</span>
-                                </div>
-                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">Reference PDF</span>
-                            </div>
-                            ${removeRefBtnHtml}
-                        </div>`;
-                    } else if (isVideo) {
-                        refHtml = `
-                        <div style="display:flex; align-items:flex-end; gap:16px; margin-top:8px;">
-                            <div style="display:inline-block;">
-                                <video controls src="${task.reference_file}" style="width:100%; max-width:300px; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;"></video>
-                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">Reference Video</span>
-                            </div>
-                            ${removeRefBtnHtml}
-                        </div>`;
+                let refFiles = [];
+                if (task.reference_files_list && Array.isArray(task.reference_files_list)) {
+                    refFiles = task.reference_files_list;
+                } else if (task.reference_file) {
+                    if (typeof task.reference_file === 'string' && task.reference_file.startsWith('[')) {
+                        try { refFiles = JSON.parse(task.reference_file); } catch(e) { refFiles = [task.reference_file]; }
+                    } else if (Array.isArray(task.reference_file)) {
+                        refFiles = task.reference_file;
                     } else {
-                        refHtml = `
-                        <div style="display:flex; align-items:flex-end; gap:16px; margin-top:8px;">
-                            <div onclick="openImagePreview('${task.reference_file}', false)" style="display:inline-block; cursor:pointer;">
-                                <img src="${task.reference_file}" style="width:100%; max-width:200px; height:auto; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;">
-                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">View Reference Image</span>
-                            </div>
-                            ${removeRefBtnHtml}
-                        </div>`;
+                        refFiles = [task.reference_file];
                     }
+                }
+
+                if (refFiles && refFiles.length > 0) {
+                    refHtml = '<div style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; margin-top:8px;">';
+                    refFiles.forEach((refUrl, rIdx) => {
+                        const isVideo = refUrl.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
+                        const isPdf = refUrl.match(/\.pdf(?:$|\?)/i);
+                        const rLabel = refFiles.length > 1 ? `Ref #${rIdx + 1}` : 'Reference';
+                        if (isPdf) {
+                            refHtml += `
+                                <div onclick="window.open('${refUrl}', '_blank')" style="display:inline-block; cursor:pointer;">
+                                    <div style="display:flex; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px;">
+                                        <svg width="22" height="22" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                        <span style="font-size:11px; font-weight:800; color:#ef4444;">VIEW PDF</span>
+                                    </div>
+                                    <span style="display:block; font-size:9px; font-weight:800; color:#0055D4; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
+                                </div>`;
+                        } else if (isVideo) {
+                            refHtml += `
+                                <div style="display:inline-block;">
+                                    <video controls src="${refUrl}" style="width:100%; max-width:260px; border-radius:10px; border:1px solid var(--color-border-primary);"></video>
+                                    <span style="display:block; font-size:9px; font-weight:800; color:#0055D4; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
+                                </div>`;
+                        } else {
+                            refHtml += `
+                                <div onclick="openImagePreview('${refUrl}', false)" style="display:inline-block; cursor:pointer;">
+                                    <img src="${refUrl}" style="width:100%; max-width:180px; height:auto; border-radius:10px; border:1px solid var(--color-border-primary);">
+                                    <span style="display:block; font-size:9px; font-weight:800; color:#0055D4; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
+                                </div>`;
+                        }
+                    });
+                    if (removeRefBtnHtml) {
+                        refHtml += removeRefBtnHtml;
+                    }
+                    refHtml += '</div>';
                 } else if (task.reference) {
                     refHtml = `<a href="${task.reference}" target="_blank" class="ref-chip">
                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
