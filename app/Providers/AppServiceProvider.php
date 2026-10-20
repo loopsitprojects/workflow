@@ -21,13 +21,27 @@ class AppServiceProvider extends ServiceProvider
         }
 
         \Illuminate\Support\Facades\Gate::before(function (\App\Models\User $user, $ability) {
-            if ($user->isAdmin()) {
+            if ($user->isAdmin() || in_array($user->role, ['Admin', 'Owner'])) {
                 return true;
             }
         });
 
-        \Illuminate\Support\Facades\Gate::define('create-deliverable', function (\App\Models\User $user) {
-            return in_array($user->role, ['Brand Manager', 'Writer', 'Operations Manager']);
+        \Illuminate\Support\Facades\Gate::define('create-deliverable', function (\App\Models\User $user, ?\App\Models\Project $project = null) {
+            if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
+                return true;
+            }
+            return in_array($user->role, [
+                'Admin',
+                'Owner',
+                'Brand Manager',
+                'Operations Manager',
+                'Writer',
+                'Assignee',
+                'Coordinator',
+                'Approver Coordinator',
+                'Approver',
+                'Designer',
+            ]);
         });
     }
 }

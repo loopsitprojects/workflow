@@ -40,12 +40,46 @@ class DeliverableUpdated extends Notification
         $url = route('projects.show', $this->deliverable->project_id)
             . '?deliverable_id=' . $this->deliverable->id;
 
+        $project = $this->deliverable->project;
+        $brand = $project?->brand;
+
+        if ($this->type === 'assignment') {
+            $mail = (new MailMessage)
+                ->subject('[Loops Work] Assigned to: ' . $this->deliverable->title)
+                ->greeting('Hi ' . $notifiable->name . ',')
+                ->line($this->actor->name . ' has assigned you to a deliverable.');
+
+            if ($brand) {
+                $mail->line('**Brand:** ' . $brand->name);
+            }
+            if ($project) {
+                $mail->line('**Project:** ' . $project->name);
+            }
+
+            $mail->line('**Deliverable:** ' . $this->deliverable->title);
+
+            if (!empty($this->deliverable->post_type)) {
+                $mail->line('**Type:** ' . $this->deliverable->post_type);
+            }
+            if (!empty($this->deliverable->priority)) {
+                $mail->line('**Priority:** ' . $this->deliverable->priority);
+            }
+            if (!empty($this->deliverable->deadline)) {
+                try {
+                    $dueDate = \Carbon\Carbon::parse($this->deliverable->deadline)->format('M d, Y');
+                    $mail->line('**Due Date:** ' . $dueDate);
+                } catch (\Throwable $e) {}
+            }
+
+            return $mail
+                ->line("Please log in to your dashboard to review task details, and drag this deliverable to 'In Progress' when you begin work.")
+                ->action('View Deliverable', $url)
+                ->salutation('— Loops Work');
+        }
+
         $plainMessage = strip_tags(
             str_replace(['**', '**'], '', $this->message)
         );
-
-        $project = $this->deliverable->project;
-        $brand = $project?->brand;
 
         $mail = (new MailMessage)
             ->subject('[Loops Work] ' . $this->deliverable->title)

@@ -60,8 +60,17 @@ test('direct design workflow calculates 3-stage progress milestones accurately',
 
     expect($task->getStageProgress())->toBe(20);
 
-    $task->approval_stage = 'Manager Review';
+    $task->approval_stage = 'Writer Review';
+    expect($task->getStageProgress())->toBe(40);
+
+    $task->approval_stage = 'Approver Review';
     expect($task->getStageProgress())->toBe(60);
+
+    $task->approval_stage = 'Further Approver';
+    expect($task->getStageProgress())->toBe(75);
+
+    $task->approval_stage = 'Final Approval';
+    expect($task->getStageProgress())->toBe(85);
 
     $task->approval_stage = 'Closed';
     expect($task->getStageProgress())->toBe(100);
@@ -119,11 +128,13 @@ test('manager can create a direct design batch with subtasks', function () {
     expect($subtasks[0]->designer_id)->toBe($designer->id);
 });
 
-test('designer can submit artwork and advance stage to Manager Review', function () {
+test('designer can submit artwork and advance stage to Writer Review', function () {
     $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-4']);
     $manager = User::factory()->create(['role' => 'Brand Manager']);
     $designer = User::factory()->create(['role' => 'Designer']);
+    $writer = User::factory()->create(['role' => 'Writer']);
     $otherUser = User::factory()->create(['role' => 'Writer']);
+    $brand->members()->attach([$manager->id, $designer->id, $writer->id, $otherUser->id]);
 
     $project = Project::create([
         'brand_id' => $brand->id,
@@ -145,17 +156,20 @@ test('designer can submit artwork and advance stage to Manager Review', function
     // Unauthorized user cannot advance Designer stage
     $failResponse = $this->actingAs($otherUser)->postJson(route('deliverables.submit', $task->id), [
         'final_designs_link' => 'https://figma.com/file/12345',
+        'writer_id' => $writer->id,
     ]);
     expect($failResponse->status())->toBe(403);
 
     // Assigned designer advances stage
     $successResponse = $this->actingAs($designer)->post(route('deliverables.submit', $task->id), [
         'final_designs_link' => 'https://figma.com/file/12345',
+        'writer_id' => $writer->id,
     ]);
 
     $task->refresh();
-    expect($task->approval_stage)->toBe('Manager Review');
-    expect($task->progress_percent)->toBe(60);
+    expect($task->approval_stage)->toBe('Writer Review');
+    expect($task->writer_id)->toBe($writer->id);
+    expect($task->progress_percent)->toBe(40);
     expect($task->final_designs_link)->toBe('https://figma.com/file/12345');
 });
 
@@ -302,6 +316,10 @@ test('can access fast track creation form and store direct design for campaign a
     $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-fasttrack-allow']);
     $manager = User::factory()->create(['role' => 'Brand Manager']);
     $designer = User::factory()->create(['role' => 'Designer']);
+    $writer = User::factory()->create(['role' => 'Writer']);
+    $approver = User::factory()->create(['role' => 'Approver']);
+    $furtherApprover = User::factory()->create(['role' => 'Approver']);
+    $brand->members()->attach([$manager->id, $designer->id, $writer->id, $approver->id, $furtherApprover->id]);
 
     $campaignProject = Project::create([
         'brand_id' => $brand->id,
@@ -334,16 +352,41 @@ test('can access fast track creation form and store direct design for campaign a
     expect($deliverable->approval_stage)->toBe('Designer');
     expect($deliverable->progress_percent)->toBe(20);
 
-    // Designer can submit artwork in Campaign Fast Track deliverable -> advances to Manager Review
+    // Designer submits artwork in Campaign Direct Design deliverable -> advances to Writer Review
     $resDesignerSubmit = $this->actingAs($designer)->post(route('deliverables.submit', $deliverable->id), [
         'final_designs_link' => 'https://example.com/artwork.png',
+        'writer_id' => $writer->id,
     ]);
     $resDesignerSubmit->assertRedirect();
     $deliverable->refresh();
-    expect($deliverable->approval_stage)->toBe('Manager Review');
+    expect($deliverable->approval_stage)->toBe('Writer Review');
+    expect($deliverable->progress_percent)->toBe(40);
+
+    // Writer advances to Approver Review
+    $this->actingAs($writer)->post(route('deliverables.submit', $deliverable->id), [
+        'approver_id' => $approver->id,
+    ]);
+    $deliverable->refresh();
+    expect($deliverable->approval_stage)->toBe('Approver Review');
     expect($deliverable->progress_percent)->toBe(60);
 
-    // Manager can approve Campaign Fast Track deliverable -> moves to Closed
+    // Approver advances to Further Approver
+    $this->actingAs($approver)->post(route('deliverables.submit', $deliverable->id), [
+        'further_approver_id' => $furtherApprover->id,
+    ]);
+    $deliverable->refresh();
+    expect($deliverable->approval_stage)->toBe('Further Approver');
+    expect($deliverable->progress_percent)->toBe(75);
+
+    // Further Approver advances to Final Approval
+    $this->actingAs($furtherApprover)->post(route('deliverables.submit', $deliverable->id), [
+        'brand_manager_id' => $manager->id,
+    ]);
+    $deliverable->refresh();
+    expect($deliverable->approval_stage)->toBe('Final Approval');
+    expect($deliverable->progress_percent)->toBe(85);
+
+    // Manager can approve Direct Design deliverable -> moves to Closed
     $resManagerApprove = $this->actingAs($manager)->post(route('deliverables.submit', $deliverable->id));
     $resManagerApprove->assertRedirect();
     $deliverable->refresh();
@@ -540,7 +583,7 @@ test('fast track batch deliverable does not put designer for batch and assigns o
     $project = Project::create([
         'brand_id' => $brand->id,
         'name' => 'Project Fast Track Batch Isolation',
-        'workflow_type' => 'campaign',
+        'workflow_type' => 'retainer',
         'brand_manager_id' => $manager->id,
     ]);
 
@@ -597,3 +640,140 @@ test('fast track batch deliverable does not put designer for batch and assigns o
     $projectView->assertSee('Alice Designer');
     $projectView->assertSee('Bob Designer');
 });
+
+test('fast track deliverable creation persists writer_id in single and batch mode', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-writer']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $writer1 = User::factory()->create(['name' => 'Charlie Writer', 'role' => 'Writer']);
+    $writer2 = User::factory()->create(['name' => 'Dave Writer', 'role' => 'Writer']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Fast Track Writer',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    // Single deliverable creation
+    $response = $this->actingAs($manager)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'creation_mode' => 'single',
+        'title' => 'Single Fast Track Item',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 20,
+        'designer_id' => $designer->id,
+        'writer_id' => $writer1->id,
+        'concept' => 'Single creative brief',
+    ]);
+    $response->assertRedirect(route('projects.show', $project->id));
+
+    $single = Deliverable::where('title', 'Single Fast Track Item')->first();
+    expect($single)->not->toBeNull();
+    expect($single->writer_id)->toBe($writer1->id);
+
+    // Batch creation with batch fallback and subtask specific writer
+    $batchResponse = $this->actingAs($manager)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'creation_mode' => 'batch',
+        'title' => 'Batch Fast Track Group',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 20,
+        'writer_id' => $writer1->id,
+        'subtasks' => [
+            [
+                'title' => 'Subtask 1 with fallback writer',
+                'designer_id' => $designer->id,
+                'concept' => 'Brief 1',
+            ],
+            [
+                'title' => 'Subtask 2 with explicit writer',
+                'designer_id' => $designer->id,
+                'writer_id' => $writer2->id,
+                'concept' => 'Brief 2',
+            ],
+        ],
+    ]);
+    $batchResponse->assertRedirect(route('projects.show', $project->id));
+
+    $batchParent = Deliverable::where('title', 'Batch Fast Track Group')->first();
+    expect($batchParent)->not->toBeNull();
+    expect($batchParent->writer_id)->toBe($writer1->id);
+
+    $sub1 = Deliverable::where('title', 'Subtask 1 with fallback writer')->first();
+    expect($sub1->writer_id)->toBe($writer1->id);
+
+    $sub2 = Deliverable::where('title', 'Subtask 2 with explicit writer')->first();
+    expect($sub2->writer_id)->toBe($writer2->id);
+});
+
+test('brand manager can advance direct design deliverable and assign writer for Writer Review', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-bm-advance']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $writer = User::factory()->create(['name' => 'Emma Writer', 'role' => 'Writer']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project BM Advance',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $task = Deliverable::create([
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'title' => 'Fast Track Submit Test',
+        'approval_stage' => 'Designer',
+        'designer_id' => $designer->id,
+        'brand_manager_id' => $manager->id,
+        'final_designs' => 'artwork/sample.jpg',
+    ]);
+
+    // Brand manager submits deliverable to Writer Review via batch-submit endpoint
+    $response = $this->actingAs($manager)->postJson(route('deliverables.batchSubmit', $task->id), [
+        'writer_id' => $writer->id,
+    ]);
+
+    $response->assertOk();
+    $task->refresh();
+    expect($task->approval_stage)->toBe('Writer Review');
+    expect($task->writer_id)->toBe($writer->id);
+});
+
+test('designer advance to Writer Review falls back to project writer when writer_id omitted', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-fallback-writer']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $projectWriter = User::factory()->create(['name' => 'Default Writer', 'role' => 'Writer']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Fallback Writer',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+        'writer_id' => $projectWriter->id,
+    ]);
+
+    $task = Deliverable::create([
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'title' => 'Auto Fallback Task',
+        'approval_stage' => 'Designer',
+        'designer_id' => $designer->id,
+        'final_designs' => 'artwork/sample.jpg',
+    ]);
+
+    // Advance without passing writer_id
+    $response = $this->actingAs($designer)->post(route('deliverables.submit', $task->id), []);
+    $response->assertSessionHasNoErrors();
+
+    $task->refresh();
+    expect($task->approval_stage)->toBe('Writer Review');
+    expect($task->writer_id)->toBe($projectWriter->id);
+});
+

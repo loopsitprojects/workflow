@@ -138,6 +138,55 @@
             color: #ffffff;
         }
 
+        /* Campaign / Pitch View Switcher Toggle */
+        .campaign-view-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--color-bg-secondary);
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid var(--color-border-primary);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        .campaign-view-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 7px !important;
+            padding: 7px 16px !important;
+            border-radius: 9px !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            border: 1px solid transparent !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            color: var(--color-text-secondary) !important;
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            user-select: none !important;
+            line-height: 1 !important;
+            white-space: nowrap !important;
+            text-decoration: none !important;
+        }
+        .campaign-view-btn:hover:not(.is-active) {
+            color: var(--color-text-primary) !important;
+            background: rgba(148, 163, 184, 0.08) !important;
+        }
+        .campaign-view-btn.is-active {
+            background: var(--color-bg-primary) !important;
+            color: var(--color-text-primary) !important;
+            font-weight: 700 !important;
+            border-color: var(--color-border-primary) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+        }
+        .dark .campaign-view-btn.is-active {
+            background: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+        }
+
         /* Modal Styles - Fullscreen View */
         .cd-modal-overlay { 
             position: fixed; 
@@ -207,7 +256,8 @@
         }
         #batchModalOverlay,
         #cellEditorOverlay,
-        #addPostTypeOverlay {
+        #addPostTypeOverlay,
+        #reassignDesignerModalOverlay {
             display: none;
             justify-content: center !important;
             align-items: center !important;
@@ -216,7 +266,8 @@
         }
         #batchModalOverlay .cd-modal,
         #cellEditorOverlay .cd-modal,
-        #addPostTypeOverlay .cd-modal {
+        #addPostTypeOverlay .cd-modal,
+        #reassignDesignerModalOverlay .cd-modal {
             position: relative !important;
             inset: auto !important;
             margin: auto !important;
@@ -232,7 +283,8 @@
         }
         #batchModalOverlay .cd-modal.active,
         #cellEditorOverlay .cd-modal.active,
-        #addPostTypeOverlay .cd-modal.active {
+        #addPostTypeOverlay .cd-modal.active,
+        #reassignDesignerModalOverlay .cd-modal.active {
             transform: scale(1) !important;
         }
         #batchModalOverlay .cd-modal {
@@ -243,6 +295,9 @@
         }
         #addPostTypeOverlay .cd-modal {
             max-width: 420px !important;
+        }
+        #reassignDesignerModalOverlay .cd-modal {
+            max-width: 480px !important;
         }
         #batchModalOverlay .cd-modal-header {
             display: flex !important;
@@ -654,14 +709,14 @@
             </div>
             <div style="display: flex; align-items: center; gap: 12px; flex-shrink:0;">
                 <div style="display: flex; gap: 8px;">
-                    @if(auth()->user()->isAdmin() || in_array(auth()->user()->role, ['Brand Manager', 'Coordinator', 'Approver']))
+                    @if(auth()->user()->isAdmin() || in_array(auth()->user()->role, ['Admin', 'Owner', 'Brand Manager', 'Coordinator', 'Approver', 'Operations Manager']))
                     <a href="{{ route('projects.edit', $project) }}"
                        style="padding: 8px 16px; background: var(--color-bg-primary); border: 1.5px solid var(--color-border-primary); border-radius: 9px; font-size: 12px; font-weight: 600; color: var(--color-text-secondary); text-decoration: none; transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         Edit Project
                     </a>
                     @endif
-                    @can('create-deliverable')
+                    @if(in_array($project->workflow_type, ['campaign', 'pitch']) || auth()->user()->can('create-deliverable', $project))
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id]) }}"
                        style="padding: 8px 16px; background: #0055D4; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(0,85,212,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
@@ -674,7 +729,7 @@
                         Direct Design
                     </a>
                     @endif
-                    @endcan
+                    @endif
                 </div>
             </div>
         </div>
@@ -729,7 +784,7 @@
             ];
             $fastTrackTasks = $project->deliverables->whereNull('parent_deliverable_id')->where('flow_type', 'direct_design');
             $contentTasks = $project->deliverables->whereNull('parent_deliverable_id')->filter(fn($t) => $t->flow_type !== 'direct_design');
-            $hasFastTrack = $fastTrackTasks->count() > 0;
+            $hasFastTrack = $fastTrackTasks->count() > 0 && $project->workflow_type === 'retainer';
         @endphp
 
         <div x-data="{ activeBoardTab: 'all' }" style="margin-bottom: 24px;">
@@ -942,6 +997,12 @@
                                             @php $displayDeadline = $subtask->deadline ?? $task->deadline ?? $project->deadline; @endphp
                                             <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
+                                            @if($subtask->revision_deadline && ($subtask->revision_instructions || ($subtask->revisions && $subtask->revisions > 0)))
+                                                <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                                    <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                    Rev: {{ \Carbon\Carbon::parse($subtask->revision_deadline)->format('M d') }}
+                                                </div>
+                                            @endif
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
@@ -983,7 +1044,11 @@
                                                 @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
                                                     <video src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Video" preload="metadata"></video>
                                                 @else
-                                                    <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Image">
+                                                    <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Image" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+                                                    <button type="button" onclick="event.stopPropagation(); openImagePreview('{{ $singleRef }}', false)" style="display:none; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;" title="View Reference">
+                                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                        Ref (1)
+                                                    </button>
                                                 @endif
                                             @elseif($totalSubRefs === 1 && $totalSubRefUrls === 1)
                                                 <a href="{{ $subRefUrls[0] }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4);" title="Visit Link">
@@ -1015,17 +1080,26 @@
                                                 @php $singleArt = $artFiles[0]; @endphp
                                                 @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $singleArt))
                                                     @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
-                                                        <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ $singleArt }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="View Video" preload="metadata"></video>
+                                                        <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="View Video" preload="metadata"></video>
                                                     @else
-                                                        <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ $singleArt }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork">
+                                                        <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+                                                        <button type="button" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" style="display:none; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;" title="View Artwork">
+                                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                            Artwork (1)
+                                                        </button>
                                                     @endif
+                                                @elseif(preg_match('/\.pdf(?:$|\?)/i', $singleArt))
+                                                    <a href="{{ $singleArt }}" target="_blank" onclick="event.stopPropagation();" class="ref-chip" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.25); padding:4px 8px; font-size:9px; font-weight:800; display:inline-flex; align-items:center; gap:4px;">
+                                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                                        PDF
+                                                    </a>
                                                 @else
                                                     <a href="{{ $singleArt }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
                                                 @endif
                                             @elseif($totalArt === 1 && $totalArtUrls === 1)
                                                 <a href="{{ $artUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
                                             @elseif($totalArt > 1)
-                                                <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($artFiles) }}, {{ json_encode($artUrls) }}, {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalArt }} artworks">
+                                                <button type="button" onclick="event.stopPropagation(); openMediaGallery('Artwork Media', {{ json_encode($artFiles) }}, {{ json_encode($artUrls) }}, {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalArt }} artworks">
                                                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                                     Artwork ({{ $totalArt }})
                                                 </button>
@@ -1144,7 +1218,12 @@
                                             @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
                                             <div style="font-weight:800;">{{ $displayDeadline ? \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
                                             <div style="font-size:9px; color:var(--color-text-secondary);">{{ ($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00') ? \Carbon\Carbon::parse($displayDeadline)->format('H:i') : '' }}</div>
-
+                                            @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
+                                                <div style="margin-top:3px; display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.25); padding:1px 5px; border-radius:4px;" title="Revision Deadline">
+                                                    <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                    Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}
+                                                </div>
+                                            @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="concept" placeholder="Concept..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ html_entity_decode(strip_tags($task->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
@@ -1165,48 +1244,80 @@
                                         <td onclick="event.stopPropagation()">
                                             <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="post_copy" placeholder="Copy..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ html_entity_decode(strip_tags($task->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
                                         </td>
-                                        <td onclick="event.stopPropagation()">
-                                            @if($task->reference_file)
-                                                  @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->reference_file))
-                                                      <video src="{{ $task->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $task->reference_file }}', false)" title="View Video" preload="metadata"></video>
-                                                  @elseif(preg_match('/\.pdf(?:$|\?)/i', $task->reference_file))
-                                                      <div class="rtb-ref-preview" style="margin-bottom:0; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.3); color:#ef4444; font-size:9px; font-weight:800;" onclick="window.open('{{ $task->reference_file }}', '_blank')" title="View PDF">PDF</div>
-                                                  @else
-                                                      <img src="{{ $task->reference_file }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $task->reference_file }}', false)" title="View Image">
-                                                  @endif
-                                            @elseif($task->reference)
-                                                <a href="{{ $task->reference }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15);" title="Visit Link">
+                                        <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
+                                            @php
+                                                $taskRefFiles = $task->getReferenceFilesArray();
+                                                $taskRefUrls  = $task->getReferenceUrlsArray();
+                                                $totalTaskRefFiles = count($taskRefFiles);
+                                                $totalTaskRefUrls  = count($taskRefUrls);
+                                                $totalTaskRefs     = $totalTaskRefFiles + $totalTaskRefUrls;
+                                            @endphp
+                                            @if($totalTaskRefs === 1 && $totalTaskRefFiles === 1)
+                                                @php $singleRef = $taskRefFiles[0]; @endphp
+                                                @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
+                                                    <video src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ addslashes($singleRef) }}', false)" title="View Video" preload="metadata"></video>
+                                                @elseif(preg_match('/\.pdf(?:$|\?)/i', $singleRef))
+                                                    <div class="rtb-ref-preview" style="margin-bottom:0; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.3); color:#ef4444; font-size:9px; font-weight:800;" onclick="window.open('{{ $singleRef }}', '_blank')" title="View PDF">PDF</div>
+                                                @else
+                                                    <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ addslashes($singleRef) }}', false)" title="View Image" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+                                                    <button type="button" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleRef) }}', false)" style="display:none; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;" title="View Reference">
+                                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                        Ref (1)
+                                                    </button>
+                                                @endif
+                                            @elseif($totalTaskRefs === 1 && $totalTaskRefUrls === 1)
+                                                <a href="{{ $taskRefUrls[0] }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15);" title="Visit Link">
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                                                 </a>
+                                            @elseif($totalTaskRefs > 1)
+                                                <button type="button" onclick="event.stopPropagation(); openMediaGallery('Reference Media', {{ json_encode($taskRefFiles) }}, {{ json_encode($taskRefUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskRefs }} references">
+                                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                    Ref ({{ $totalTaskRefs }})
+                                                </button>
                                             @else
                                                 <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                             @endif
                                         </td>
-                                        <td>
-                                            @if($task->final_designs)
-                                                @php
-                                                    $isPdf = preg_match('/\.pdf(?:$|\?)/i', $task->final_designs);
-                                                    $isImg = preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $task->final_designs);
-                                                    $isAssignedDesigner = $currentUserId == $task->designer_id;
-                                                    $designerEditPermission = $isAssignedDesigner;
-                                                    $canRemoveTask = ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
-                                                @endphp
-                                                @if($isPdf)
-                                                    <a href="{{ $task->final_designs }}" target="_blank" onclick="event.stopPropagation();" class="ref-chip" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.25); padding:4px 8px; font-size:9px; font-weight:800; display:inline-flex; align-items:center; gap:4px;">
+                                        <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
+                                            @php
+                                                $taskArtFiles = $task->getFinalDesignsArray();
+                                                $taskArtUrls  = $task->getFinalDesignsUrlsArray();
+                                                $totalTaskArtFiles = count($taskArtFiles);
+                                                $totalTaskArtUrls  = count($taskArtUrls);
+                                                $totalTaskArt      = $totalTaskArtFiles + $totalTaskArtUrls;
+
+                                                $isAssignedDesigner = $currentUserId == $task->designer_id;
+                                                $designerEditPermission = $isAssignedDesigner;
+                                                $canRemoveTask = $task->canUserRemoveArtwork() || ($designerEditPermission && $task->approval_stage === 'Designer') || $currentUserIsAdmin;
+                                            @endphp
+
+                                            @if($totalTaskArt === 1 && $totalTaskArtFiles === 1)
+                                                @php $singleArt = $taskArtFiles[0]; @endphp
+                                                @if(preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $singleArt))
+                                                    @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
+                                                        <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="View Video" preload="metadata"></video>
+                                                    @else
+                                                        <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="Click to view artwork" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+                                                        <button type="button" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" style="display:none; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;" title="View Artwork">
+                                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                            Artwork (1)
+                                                        </button>
+                                                    @endif
+                                                @elseif(preg_match('/\.pdf(?:$|\?)/i', $singleArt))
+                                                    <a href="{{ $singleArt }}" target="_blank" onclick="event.stopPropagation();" class="ref-chip" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.25); padding:4px 8px; font-size:9px; font-weight:800; display:inline-flex; align-items:center; gap:4px;">
                                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                                                         PDF
                                                     </a>
-                                                @elseif($isImg)
-                                                      @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $task->final_designs))
-                                                          <video src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="View Video" preload="metadata"></video>
-                                                      @else
-                                                          <img src="{{ $task->final_designs }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3);" onclick="event.stopPropagation(); openImagePreview('{{ $task->final_designs }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="Click to view artwork">
-                                                      @endif
                                                 @else
-                                                    <a href="{{ $task->final_designs }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
+                                                    <a href="{{ $singleArt }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">View</a>
                                                 @endif
-                                            @elseif($task->final_designs_link)
-                                                <a href="{{ $task->final_designs_link }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
+                                            @elseif($totalTaskArt === 1 && $totalTaskArtUrls === 1)
+                                                <a href="{{ $taskArtUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
+                                            @elseif($totalTaskArt > 1)
+                                                <button type="button" onclick="event.stopPropagation(); openMediaGallery('Artwork Media', {{ json_encode($taskArtFiles) }}, {{ json_encode($taskArtUrls) }}, {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskArt }} artworks">
+                                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                    Artwork ({{ $totalTaskArt }})
+                                                </button>
                                             @else
                                                 @php
                                                     $isAssignedDesigner = $currentUserId == $task->designer_id;
@@ -1387,7 +1498,51 @@
             </div>
         </div>
         @else
-            @include('projects.partials.campaign_deliverables')
+            <div x-data="{ 
+                campaignView: localStorage.getItem('campaign_view_mode_{{ $project->id }}') || 'kanban',
+                setView(view) {
+                    this.campaignView = view;
+                    localStorage.setItem('campaign_view_mode_{{ $project->id }}', view);
+                }
+            }">
+                {{-- View Switcher Bar --}}
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+                    <div class="campaign-view-toggle">
+                        <button type="button" 
+                                @click="setView('kanban')"
+                                class="campaign-view-btn"
+                                :class="campaignView === 'kanban' ? 'is-active' : ''">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z"/></svg>
+                            <span>Kanban Board</span>
+                        </button>
+                        <button type="button" 
+                                @click="setView('table')"
+                                class="campaign-view-btn"
+                                :class="campaignView === 'table' ? 'is-active' : ''">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                            <span>Table View</span>
+                        </button>
+                    </div>
+
+                    @if(in_array($project->workflow_type, ['campaign', 'pitch']) || auth()->user()->can('create-deliverable', $project))
+                    <a href="{{ route('deliverables.create', ['project_id' => $project->id]) }}"
+                       style="padding: 7px 16px; background: #0055D4; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(0,85,212,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                        <span>New Deliverable</span>
+                    </a>
+                    @endif
+                </div>
+
+                {{-- Kanban View --}}
+                <div x-show="campaignView === 'kanban'">
+                    @include('projects.partials.campaign_kanban')
+                </div>
+
+                {{-- Table View --}}
+                <div x-show="campaignView === 'table'" x-cloak>
+                    @include('projects.partials.campaign_deliverables')
+                </div>
+            </div>
         @endif
             </div>
 
@@ -1433,6 +1588,12 @@
                         </div>
                     </div>
                     <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                        @if($isAdmin || in_array($userRole, ['brandmanager', 'coordinator', 'approvercoordinator']))
+                        <button type="button" id="btnOpenReassignDesignerModal" onclick="openReassignDesignerModal()" style="display:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:800; background:rgba(236,72,153,0.1); color:#ec4899; border:1px solid rgba(236,72,153,0.3); align-items:center; gap:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap;" onmouseover="this.style.background='rgba(236,72,153,0.2)'" onmouseout="this.style.background='rgba(236,72,153,0.1)'" title="Reassign Designer">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            Reassign Designer
+                        </button>
+                        @endif
                         <div style="display:flex; gap:8px; margin-right:8px; border-right:1px solid var(--color-border-primary); padding-right:12px;">
                             <a id="btnExportPpt" href="#" class="cd-btn cd-btn-outline" style="padding:6px 12px; font-size:11px; font-weight:800;" title="Download PPT">PPT</a>
                         </div>
@@ -1495,36 +1656,7 @@
                     @endforeach
                 </div>
 
-                <!-- Reassign Designer Area -->
-                @if($isAdmin || in_array($userRole, ['brandmanager', 'coordinator', 'approvercoordinator']))
-                <div id="reassignDesignerArea" style="display:none; margin-bottom:24px; padding:16px; background:rgba(236,72,153,0.05); border:1px solid rgba(236,72,153,0.15); border-radius:12px;">
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                        <svg width="18" height="18" fill="none" stroke="#ec4899" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        <span style="font-size:12px; font-weight:900; color:#ec4899; text-transform:uppercase; letter-spacing:0.05em;">Reassign Designer</span>
-                    </div>
-                    <div style="display:flex; gap:10px; align-items:flex-end;">
-                        <div style="flex:1;">
-                            <label style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px;">New Designer</label>
-                            <select id="reassignDesignerSelect" style="width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none;">
-                                <option value="" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Select Designer...</option>
-                                @foreach($designers as $designer)
-                                    <option value="{{ $designer->id }}" style="background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $designer->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px;">Designer Due Date</label>
-                            <input type="date" id="reassignDesignerDeadline" style="width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-size:10px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; display:block; margin-bottom:4px;">Reason (Optional)</label>
-                            <input type="text" id="reassignDesignerReason" placeholder="e.g. Designer unavailable" style="width:100%; padding:8px 12px; border-radius:8px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
-                        </div>
-                        <button type="button" onclick="reassignDesigner(this)" style="padding:8px 16px; background:#ec4899; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0;">Reassign</button>
-                    </div>
-                    <div id="reassignDesignerCurrentName" style="margin-top:8px; font-size:11px; color:var(--color-text-secondary); font-weight:600;"></div>
-                </div>
-                @endif
+
 
                 <!-- Latest Comment Banner -->
                 <div id="modalLatestCommentAlert" style="display:none; padding:16px; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.2); border-radius:16px; margin-bottom:24px;">
@@ -1539,8 +1671,8 @@
                 </div>
 
 
-                <div style="display:flex; gap:16px; margin-bottom:24px;">
-                    <div class="detail-item" id="modalDeliverableDeadlineBox" style="flex:1;">
+                <div style="display:flex; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
+                    <div class="detail-item" id="modalDeliverableDeadlineBox" style="flex:1; min-width:180px;">
                         <label class="detail-label" style="color:#3b82f6;">Deliverable Deadline</label>
                         <div style="display:flex; gap:8px;">
                             <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm" min="{{ date('Y-m-d') }}"
@@ -1549,38 +1681,54 @@
                             <button type="button" id="saveDeadlineBtn" style="display:none; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
                         </div>
                     </div>
+                    <div class="detail-item" id="modalRevisionDeadlineBox" style="display:none; flex:1; min-width:180px;">
+                        <label class="detail-label" style="color:#ef4444;">Revision Deadline</label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="date" id="modalRevisionDeadlineInputBox" name="revision_deadline" form="submitStageForm"
+                                style="flex:1; padding:8px 12px; border:1.5px solid rgba(239,68,68,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='rgba(239,68,68,0.25)'"
+                                onchange="showSaveRevisionDeadlineBtn()">
+                            <button type="button" id="saveRevisionDeadlineBtn" style="display:none; padding:8px 16px; background:#ef4444; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;" onclick="saveRevisionDeadline(this)">Save</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Revision Alert Banner -->
-                <div id="modalRevisionAlert" style="display:none; padding:16px; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.2); border-radius:16px; margin-bottom:24px;">
-                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
-                        <svg width="20" height="20" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        <span style="color:#ef4444; font-weight:900; font-size:14px; text-transform:uppercase; letter-spacing:0.05em;">Revision Requested</span>
+                <div id="modalRevisionAlert" style="display:none; padding:16px; background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.25); border-radius:16px; margin-bottom:24px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <svg width="20" height="20" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            <span style="color:#ef4444; font-weight:900; font-size:14px; text-transform:uppercase; letter-spacing:0.05em;">Revision Requested</span>
+                        </div>
+                        <div id="modalRevisionDeadlineBadge" style="display:none; align-items:center; gap:6px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; letter-spacing:0.02em;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span id="modalRevisionDeadlineText"></span>
+                        </div>
                     </div>
                     <div id="modalRevisionAlertText" style="color:#ef4444; font-size:13px; font-weight:500; line-height:1.5; background:var(--color-bg-primary); padding:12px; border-radius:10px; border:1px solid rgba(239, 68, 68, 0.3); margin-top:8px;"></div>
                 </div>
 
                 <div class="detail-grid">
-                    <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 24px;">
+                    <div class="detail-item full" style="margin-bottom: 24px !important; padding-top: 16px;">
                         <div id="modalConceptLabel" class="detail-label" style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Concept</div>
                         <input type="hidden" id="modalConcept" name="concept" form="submitStageForm">
-                        <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
+                        <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px; border-radius:10px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 40px;">
+                    <div class="detail-item full" style="margin-bottom: 24px !important; padding-top: 24px;">
                         <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Copy</div>
                         <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
                         <input type="hidden" id="deleteReferenceFile" name="delete_reference_file" value="0" form="submitStageForm">
-                        <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:180px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
+                        <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:180px; border-radius:10px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full" style="margin-bottom: 40px !important; padding-top: 40px;">
+                    <div class="detail-item full" style="margin-bottom: 24px !important; padding-top: 24px;">
                         <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Caption</div>
                         <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
-                        <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px; border-bottom-left-radius:0; border-bottom-right-radius:0; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
+                        <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px; border-radius:10px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full">
-                        <label class="detail-label">Reference</label>
-                        <div id="modalReference" class="detail-val" style="margin-bottom: 12px;"></div>
-                        <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.1); border-radius:16px;">
+                    <div class="detail-item full" id="modalReferenceGroup" style="clear:both; position:relative; z-index:10; margin-top:32px !important; padding-top:16px;">
+                        <div id="modalReferenceLabel" class="detail-label" style="font-size:12px; font-weight:900; color:#fff; background:#0ea5e9; padding:6px 12px; border-radius:6px; margin-bottom:14px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(14,165,233,0.3); position:relative; z-index:20;">Reference</div>
+                        <div id="modalReference" class="detail-val" style="margin-bottom: 12px; margin-top: 8px;"></div>
+                        <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.1); border-radius:16px; margin-top: 14px;">
                             <div>
                                 <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Upload New Reference File</div>
                                 <input type="file" id="modalReferenceFileInput" name="reference_file" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
@@ -1653,6 +1801,19 @@
                             <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                         <div id="modalApprovalHistory" class="hist-body" style="display:none; flex-direction:column; gap:10px;"></div>
+                    </div>
+
+                    <div id="writerSelectionArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(14,165,233,0.05); border:1px solid rgba(14,165,233,0.1); border-radius:16px;">
+                        <label class="detail-label" style="color:#0ea5e9; margin-bottom:12px;">Assign Writer for Review</label>
+                        <select name="writer_id" form="submitStageForm" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                            <option value="">Select Writer...</option>
+                            @if(isset($writers))
+                                @foreach($writers as $writer)
+                                    <option value="{{ $writer->id }}">{{ $writer->name }}</option>
+                                @endforeach
+                            @endif
+                        </select>
+                        <p style="font-size:11px; color:#0ea5e9; margin-top:8px; font-weight:600;">Selection required to advance to Writer Review stage.</p>
                     </div>
 
                     <div id="approverSelectionArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(234,88,12,0.05); border:1px solid rgba(234,88,12,0.1); border-radius:16px;">
@@ -1835,6 +1996,11 @@
                             </div>
                         </div>
                         <textarea name="revision_instructions" required placeholder="Describe specifically what needs to be fixed..." style="width:100%; height:160px; padding:16px; border-radius:16px; border:1.5px solid rgba(239, 68, 68, 0.2); font-size:14px; resize:none; font-family:inherit; margin-bottom:12px; display:block; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); transition:all 0.2s;"></textarea>
+                        <!-- Revision Deadline -->
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;margin-bottom:6px;">Revision Deadline <span style="font-weight:500;opacity:0.6;text-transform:none;letter-spacing:0;">(optional)</span></label>
+                            <input type="date" id="modalRevisionDeadlineInput" name="revision_deadline" style="width:100%; max-width:260px; padding:9px 14px; border-radius:10px; border:1.5px solid rgba(239,68,68,0.25); font-size:13px; font-weight:600; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
+                        </div>
                         <!-- Optional revision image -->
                         <div style="margin-bottom:20px;">
                             <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;margin-bottom:8px;">Attach Image <span style="font-weight:500;opacity:0.6;text-transform:none;letter-spacing:0;">(optional)</span></label>
@@ -2130,6 +2296,52 @@
             });
         }
 
+        function showSaveRevisionDeadlineBtn() {
+            const btn = document.getElementById('saveRevisionDeadlineBtn');
+            if (btn) btn.style.display = 'inline-block';
+        }
+
+        function saveRevisionDeadline(btn) {
+            if (!currentTaskData) return;
+            const input = document.getElementById('modalRevisionDeadlineInputBox');
+            if (!input) return;
+            const deadlineVal = input.value;
+            const originalText = btn.textContent;
+            btn.textContent = 'Saving...';
+            btn.style.opacity = '0.7';
+            fetch(`/deliverables/${currentTaskData.id}/revision-deadline`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ revision_deadline: deadlineVal })
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    btn.textContent = 'Saved!';
+                    btn.style.background = '#10b981';
+                    btn.style.opacity = '1';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    alert(data.message || 'Error updating revision deadline.');
+                    btn.textContent = originalText;
+                    btn.style.opacity = '1';
+                }
+            }).catch(e => {
+                console.error(e);
+                btn.textContent = 'Error';
+                btn.style.background = '#ef4444';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#ef4444';
+                    btn.style.opacity = '1';
+                }, 2000);
+            });
+        }
+
         async function openTaskModal(task) {
             try {
                 if (typeof task === 'number' || typeof task === 'string' || (task && typeof task === 'object' && !task.title && !task.approval_stage && task.id)) {
@@ -2171,6 +2383,7 @@
                 const isAssignedBrandMgr    = AUTH_USER_ID == task.brand_manager_id;
                 const isAssignedCoordinator = AUTH_USER_ID == task.coordinator_id;
                 const isAssignedDesigner    = AUTH_USER_ID == task.designer_id;
+                const isAssignedFurtherApprover = AUTH_USER_ID == task.further_approver_id;
                 const hasWriterRole = userRole === 'writer' || userRole === 'assignee';
                 const hasDesignerRole = userRole === 'designer';
                 const isWriterStage = ['Writer', 'Assignee', 'Writer Review', 'Assign'].includes(task.approval_stage || 'Writer');
@@ -2283,18 +2496,29 @@
                 
                 if (document.getElementById('modalClientStatusEdit')) document.getElementById('modalClientStatusEdit').style.display = 'none';
 
-                // Reassign Designer Area visibility
-                const reassignArea = document.getElementById('reassignDesignerArea');
-                if (reassignArea) {
+                // Reassign Designer Button and Modal Setup
+                const reassignBtn = document.getElementById('btnOpenReassignDesignerModal');
+                const reassignModalOverlay = document.getElementById('reassignDesignerModalOverlay');
+                if (reassignBtn) {
                     if (!isOtherDeliverable && task.approval_stage === 'Designer') {
-                        reassignArea.style.display = 'block';
-                        const currentDesignerName = task.designer?.name || 'Unassigned';
-                        document.getElementById('reassignDesignerCurrentName').textContent = `Current designer: ${currentDesignerName}`;
-                        document.getElementById('reassignDesignerSelect').value = '';
-                        document.getElementById('reassignDesignerReason').value = '';
-                        reassignArea.setAttribute('data-task-id', task.id);
+                        reassignBtn.style.display = 'inline-flex';
+                        reassignBtn.setAttribute('data-task-id', task.id);
+                        if (reassignModalOverlay) {
+                            reassignModalOverlay.setAttribute('data-task-id', task.id);
+                            const currentDesignerName = task.designer?.name || 'Unassigned';
+                            const currentNameEl = document.getElementById('reassignDesignerCurrentName');
+                            if (currentNameEl) currentNameEl.textContent = `Current designer: ${currentDesignerName}`;
+                            const sel = document.getElementById('reassignDesignerSelect');
+                            if (sel) sel.value = '';
+                            const reasonEl = document.getElementById('reassignDesignerReason');
+                            if (reasonEl) reasonEl.value = '';
+                            const deadlineEl = document.getElementById('reassignDesignerDeadline');
+                            if (deadlineEl) {
+                                deadlineEl.value = task.designer_deadline ? task.designer_deadline.split('T')[0] : '';
+                            }
+                        }
                     } else {
-                        reassignArea.style.display = 'none';
+                        reassignBtn.style.display = 'none';
                     }
                 }
 
@@ -2346,8 +2570,61 @@
                         dueBadge.textContent = `Due: ${dateStr}`;
                         topDeadlinesEl.appendChild(dueBadge);
                     }
-                    
+
+                    // 2. Designer Due Date
+                    if (task.designer_deadline && !isOtherDeliverable && !isDirectDesign) {
+                        const desDate = new Date(task.designer_deadline);
+                        const desDateStr = desDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                        const desBadge = document.createElement('div');
+                        desBadge.style.cssText = 'background: rgba(236, 72, 153, 0.08); color: #ec4899; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(236, 72, 153, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
+                        desBadge.textContent = `Designer Due: ${desDateStr}`;
+                        topDeadlinesEl.appendChild(desBadge);
+                    }
+
+                    // 3. Revision Due Date
+                    if (task.revision_deadline && (task.revision_instructions || (task.revisions && task.revisions > 0))) {
+                        const revDate = new Date(task.revision_deadline);
+                        const revDateStr = revDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                        const revBadge = document.createElement('div');
+                        revBadge.style.cssText = 'background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.25); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em; display:flex; align-items:center; gap:4px;';
+                        revBadge.innerHTML = `<svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Revision Due: ${revDateStr}`;
+                        topDeadlinesEl.appendChild(revBadge);
+                    }
                 }
+
+                // Revision Deadline Input Population in Metadata Area
+                const revDeadlineBox = document.getElementById('modalRevisionDeadlineBox');
+                const revDeadlineInputBox = document.getElementById('modalRevisionDeadlineInputBox');
+                if (revDeadlineBox && revDeadlineInputBox) {
+                    const hasRevision = Boolean(task.revision_instructions || task.revision_deadline);
+                    revDeadlineBox.style.display = hasRevision ? 'flex' : 'none';
+                    let rDateStr = '';
+                    if (task.revision_deadline) {
+                        if (typeof task.revision_deadline === 'string' && /^\d{4}-\d{2}-\d{2}/.test(task.revision_deadline)) {
+                            rDateStr = task.revision_deadline.substring(0, 10);
+                        } else {
+                            const rDate = new Date(task.revision_deadline);
+                            const pad = n => String(n).padStart(2,'0');
+                            rDateStr = `${rDate.getFullYear()}-${pad(rDate.getMonth()+1)}-${pad(rDate.getDate())}`;
+                        }
+                    }
+                    revDeadlineInputBox.value = rDateStr;
+                    const canEditRevDeadline = isAdmin || ['brandmanager', 'coordinator', 'approvercoordinator', 'operationsmanager'].includes(userRole);
+                    revDeadlineInputBox.readOnly = !canEditRevDeadline;
+                    const saveRevBtn = document.getElementById('saveRevisionDeadlineBtn');
+                    if (saveRevBtn) saveRevBtn.style.display = 'none';
+                    if (!canEditRevDeadline) {
+                        revDeadlineInputBox.style.opacity = '0.7';
+                        revDeadlineInputBox.style.pointerEvents = 'none';
+                    } else {
+                        revDeadlineInputBox.style.opacity = '1';
+                        revDeadlineInputBox.style.pointerEvents = 'auto';
+                    }
+                }
+
+                // Reset revision deadline in revision request form
+                const reqRevDeadlineInput = document.getElementById('modalRevisionDeadlineInput');
+                if (reqRevDeadlineInput) reqRevDeadlineInput.value = '';
 
                 // Hide designer deadline box for Other Deliverables & Fast Track (where deliverable deadline is used directly)
                 const desDeadlineBox = document.getElementById('modalDesignerDeadlineBox');
@@ -2390,40 +2667,52 @@
                 const removeRefBtnHtml = canRemoveRef ? `
                     <button type="button" onclick="document.getElementById('modalReference').innerHTML='<span style=\\'color:#94a3b8; font-size:13px; font-weight:500;\\'>Reference will be removed on save</span>'; document.getElementById('deleteReferenceFile').value='1';" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
                 ` : '';
-                if (task.reference_file) {
-                    const isVideo = task.reference_file.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
-                    const isPdf = task.reference_file.match(/\.pdf(?:$|\?)/i);
-                    if (isPdf) {
-                        refHtml = `
-                        <div style="display:flex; align-items:flex-end; gap:16px;">
-                            <div onclick="window.open('${task.reference_file}', '_blank')" style="display:inline-block; cursor:pointer;">
-                                <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:12px; margin-bottom:8px;">
-                                    <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
-                                    <span style="font-size:12px; font-weight:800; color:#ef4444;">VIEW PDF</span>
-                                </div>
-                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">Reference PDF</span>
-                            </div>
-                            ${removeRefBtnHtml}
-                        </div>`;
-                    } else if (isVideo) {
-                        refHtml = `
-                        <div style="display:flex; align-items:flex-end; gap:16px;">
-                            <div style="display:inline-block;">
-                                <video controls src="${task.reference_file}" style="width:100%; max-width:300px; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;"></video>
-                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">Reference Video</span>
-                            </div>
-                            ${removeRefBtnHtml}
-                        </div>`;
+                let refFiles = [];
+                if (task.reference_files_list && Array.isArray(task.reference_files_list)) {
+                    refFiles = task.reference_files_list;
+                } else if (task.reference_file) {
+                    if (typeof task.reference_file === 'string' && task.reference_file.startsWith('[')) {
+                        try { refFiles = JSON.parse(task.reference_file); } catch(e) { refFiles = [task.reference_file]; }
+                    } else if (Array.isArray(task.reference_file)) {
+                        refFiles = task.reference_file;
                     } else {
-                        refHtml = `
-                        <div style="display:flex; align-items:flex-end; gap:16px;">
-                            <div onclick="openImagePreview('${task.reference_file}', false)" style="display:inline-block; cursor:pointer;">
-                                <img src="${task.reference_file}" style="width:100%; max-width:200px; height:auto; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:8px;">
-                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">View Reference Image</span>
-                            </div>
-                            ${removeRefBtnHtml}
-                        </div>`;
+                        refFiles = [task.reference_file];
                     }
+                }
+
+                if (refFiles && refFiles.length > 0) {
+                    refHtml = '<div style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; margin-top:8px;">';
+                    refFiles.forEach((refUrl, rIdx) => {
+                        const isVideo = refUrl.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
+                        const isPdf = refUrl.match(/\.pdf(?:$|\?)/i);
+                        const rLabel = refFiles.length > 1 ? `Ref #${rIdx + 1}` : 'Reference';
+                        if (isPdf) {
+                            refHtml += `
+                                <div onclick="window.open('${refUrl}', '_blank')" style="display:inline-block; cursor:pointer;">
+                                    <div style="display:flex; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px;">
+                                        <svg width="22" height="22" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                        <span style="font-size:11px; font-weight:800; color:#ef4444;">VIEW PDF</span>
+                                    </div>
+                                    <span style="display:block; font-size:9px; font-weight:800; color:#0055D4; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
+                                </div>`;
+                        } else if (isVideo) {
+                            refHtml += `
+                                <div style="display:inline-block;">
+                                    <video controls src="${refUrl}" style="width:100%; max-width:260px; border-radius:10px; border:1px solid var(--color-border-primary);"></video>
+                                    <span style="display:block; font-size:9px; font-weight:800; color:#0055D4; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
+                                </div>`;
+                        } else {
+                            refHtml += `
+                                <div onclick="openImagePreview('${refUrl}', false)" style="display:inline-block; cursor:pointer;">
+                                    <img src="${refUrl}" style="width:100%; max-width:180px; height:auto; border-radius:10px; border:1px solid var(--color-border-primary);">
+                                    <span style="display:block; font-size:9px; font-weight:800; color:#0055D4; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
+                                </div>`;
+                        }
+                    });
+                    if (removeRefBtnHtml) {
+                        refHtml += removeRefBtnHtml;
+                    }
+                    refHtml += '</div>';
                 } else if (task.reference) {
                     refHtml = `<a href="${task.reference}" target="_blank" class="ref-chip">
                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
@@ -2457,11 +2746,16 @@
                             {key: 'brand_manager', label: 'Brand Manager'},
                         ];
                     } else if (task.flow_type === 'direct_design' || task.is_direct_design) {
-                        // Direct Design: Designer -> Manager Review -> Closed
+                        // Direct Design: Designer -> Writer Review -> Approver Review -> Further Approver -> Final Approval -> Closed
                         roles = [
                             {key: 'designer', label: 'Designer'},
-                            {key: 'brand_manager', label: 'Brand Manager'},
+                            {key: 'writer', label: 'Writer'},
+                            {key: 'approver', label: 'Approver'},
                         ];
+                        if (task.associates && task.associates.further_approver && task.associates.further_approver !== 'None') {
+                            roles.push({key: 'further_approver', label: 'Further Approver'});
+                        }
+                        roles.push({key: 'brand_manager', label: 'Brand Manager'});
                     } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
                         // Campaign / Pitch Outlines
                         roles = [
@@ -2731,6 +3025,17 @@
                                 <img src="${rev.image_path}" alt="Revision reference" style="max-width:100%;max-height:260px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;cursor:pointer;">
                                </div>`
                             : '';
+                        let revDeadHtml = '';
+                        if (rev.revision_deadline) {
+                            const revDeadDate = new Date(rev.revision_deadline);
+                            const revDeadStr = isNaN(revDeadDate.getTime()) ? rev.revision_deadline : revDeadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                            revDeadHtml = `
+                                <div style="display:inline-flex; align-items:center; gap:5px; margin-top:6px; font-size:10px; font-weight:700; color:#ef4444; background:rgba(239, 68, 68, 0.08); padding:3px 8px; border-radius:6px; border:1px solid rgba(239, 68, 68, 0.2);">
+                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Revision Deadline: ${revDeadStr}
+                                </div>`;
+                        }
+
                         row.innerHTML = `
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div style="font-size:11px; font-weight:800; color:#ef4444; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
@@ -2742,6 +3047,7 @@
                             </div>
                             <div style="font-size:13px; font-weight:500; color:var(--color-text-primary); line-height:1.5; padding:10px; background:var(--color-bg-primary); border-radius:8px; border:1px solid rgba(239,68,68,0.1); margin-top:4px;">${(rev.instructions || '').replace(/\n/g, '<br>')}</div>
                             ${imageHtml}
+                            ${revDeadHtml}
                             ${fixedBadge}
                         `;
                         revHistory.appendChild(row);
@@ -2772,13 +3078,26 @@
                         img.onclick = () => openImagePreview(latestRev.image_path);
                         alertTextEl.appendChild(img);
                     }
+
+                    // Revision Deadline in Alert Banner
+                    const revDeadlineBadge = document.getElementById('modalRevisionDeadlineBadge');
+                    const revDeadlineText = document.getElementById('modalRevisionDeadlineText');
+                    if (task.revision_deadline && revDeadlineBadge && revDeadlineText) {
+                        const d = new Date(task.revision_deadline);
+                        const dStr = d.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                        revDeadlineText.textContent = `Due: ${dStr}`;
+                        revDeadlineBadge.style.display = 'inline-flex';
+                    } else if (revDeadlineBadge) {
+                        revDeadlineBadge.style.display = 'none';
+                    }
+
                     revAlert.style.display = 'block';
                 } else revAlert.style.display = 'none';
 
                 // Workflow Tracker dots
                 let taskStages;
                 if (isDirectDesign || task.is_direct_design) {
-                    taskStages = ['Designer', 'Manager Review', 'Closed'];
+                    taskStages = ['Designer', 'Writer Review', 'Approver Review', 'Further Approver', 'Final Approval'];
                 } else if (isOtherDeliverable) {
                     taskStages = ['Assign', 'Approve', 'Close'];
                 } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
@@ -2789,6 +3108,7 @@
 
                 let currentStageIdx = taskStages.indexOf(task.approval_stage);
                 if (currentStageIdx === -1) {
+                    if (task.approval_stage === 'Manager Review') currentStageIdx = taskStages.indexOf('Final Approval');
                     if (task.approval_stage === 'Assignee') currentStageIdx = taskStages.indexOf('Writer') !== -1 ? taskStages.indexOf('Writer') : taskStages.indexOf('Assign');
                     if (task.approval_stage === 'Assign') currentStageIdx = taskStages.indexOf('Assignee');
                     if (task.approval_stage === 'Closed') currentStageIdx = taskStages.length;
@@ -2809,6 +3129,7 @@
                 const captionItem = document.getElementById('quillCaption')?.closest('.detail-item');
                 const copyItem = document.getElementById('quillCopy')?.closest('.detail-item');
                 const conceptLabel = document.getElementById('modalConceptLabel') || document.getElementById('quillConcept')?.closest('.detail-item')?.querySelector('.detail-label');
+                const refGroup = document.getElementById('modalReferenceGroup') || document.getElementById('modalReference')?.closest('.detail-item');
                 const submitNotesArea = document.getElementById('submitNotesArea');
                 const isBriefOnly = isOtherDeliverable || isDirectDesign || task.is_direct_design;
                 if (isBriefOnly) {
@@ -2820,6 +3141,10 @@
                             conceptLabel.style.background = '#6366f1';
                         }
                     }
+                    if (refGroup) {
+                        refGroup.style.marginTop = '36px';
+                        refGroup.style.paddingTop = '20px';
+                    }
                     if (submitNotesArea && isOtherDeliverable) submitNotesArea.style.display = 'none';
                 } else {
                     if (captionItem) captionItem.style.display = '';
@@ -2828,6 +3153,10 @@
                         conceptLabel.textContent = 'Concept';
                         conceptLabel.style.background = '#3b82f6';
                     }
+                    if (refGroup) {
+                        refGroup.style.marginTop = '24px';
+                        refGroup.style.paddingTop = '12px';
+                    }
                     if (submitNotesArea) submitNotesArea.style.display = '';
                 }
 
@@ -2835,6 +3164,7 @@
                 const submitBtnForm = document.getElementById('submitStageForm');
                 const showRevisionBtn = document.getElementById('showRevisionBtn');
                 const saveContentBtn = document.getElementById('saveContentBtn');
+                const writerArea = document.getElementById('writerSelectionArea');
                 const apprArea = document.getElementById('approverSelectionArea');
                 const bmArea = document.getElementById('brandManagerSelectionArea');
                 const coordArea = document.getElementById('coordinatorSelectionArea');
@@ -2848,6 +3178,14 @@
                 if (nextBtn) nextBtn.style.display = 'none';
                 if (showRevisionBtn) showRevisionBtn.style.display = 'none';
                 saveContentBtn.style.display = 'none';
+                if (writerArea) {
+                    writerArea.style.display = 'none';
+                    const wSel = writerArea.querySelector('select');
+                    if (wSel) {
+                        wSel.disabled = true;
+                        wSel.value = '';
+                    }
+                }
                 apprArea.style.display = 'none';
                 apprArea.querySelector('select').disabled = true;
                 bmArea.style.display = 'none';
@@ -2878,8 +3216,11 @@
                     ? (
                         isAdmin ||
                         userRole === 'operationsmanager' ||
-                        (stage === 'Designer' && (isAssignedDesigner || (!task.designer_id && hasDesignerRole))) ||
-                        (stage === 'Manager Review' && (userRole === 'brandmanager' || userRole === 'operationsmanager'))
+                        (stage === 'Designer' && (isAssignedDesigner || (!task.designer_id && hasDesignerRole) || userRole === 'brandmanager')) ||
+                        (stage === 'Writer Review' && (isAssignedWriter || (!task.writer_id && hasWriterRole))) ||
+                        (stage === 'Approver Review' && (isAssignedApprover || (!task.approver_id && (userRole === 'approver' || userRole === 'approvercoordinator')))) ||
+                        (stage === 'Further Approver' && (isAssignedFurtherApprover || (!task.further_approver_id && (userRole === 'approver' || userRole === 'approvercoordinator')))) ||
+                        ((stage === 'Final Approval' || stage === 'Manager Review') && (isAssignedBrandMgr || (!task.brand_manager_id && (userRole === 'brandmanager' || isManager))))
                     )
                     : (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee' || stage === 'Writer'))
                     ? isAssignedPerson
@@ -2911,8 +3252,11 @@
 
                 // Check if the current user is specifically assigned to handle this current stage
                 const isCurrentStageAssignee = (isDirectDesign || task.is_direct_design) ? (
-                    (stage === 'Designer') ? (isAssignedDesigner || (!task.designer_id && hasDesignerRole)) :
-                    (stage === 'Manager Review') ? (isAssignedBrandMgr || (!task.brand_manager_id && isManager)) : false
+                    (stage === 'Designer') ? (isAssignedDesigner || (!task.designer_id && hasDesignerRole) || userRole === 'brandmanager') :
+                    (stage === 'Writer Review') ? (isAssignedWriter || (!task.writer_id && hasWriterRole)) :
+                    (stage === 'Approver Review') ? (isAssignedApprover || (!task.approver_id && (userRole === 'approver' || userRole === 'approvercoordinator'))) :
+                    (stage === 'Further Approver') ? (isAssignedFurtherApprover || (!task.further_approver_id && (userRole === 'approver' || userRole === 'approvercoordinator'))) :
+                    (stage === 'Final Approval' || stage === 'Manager Review') ? (isAssignedBrandMgr || (!task.brand_manager_id && (userRole === 'brandmanager' || isManager))) : false
                 ) : isOtherDeliverable ? (
                     (stage === 'Assign' || stage === 'Assignee') ? isAssignedPerson :
                     (stage === 'Approve') ? isManager : false
@@ -2948,9 +3292,18 @@
                             nextBtn.style.boxShadow = '0 4px 12px rgba(0,85,212,0.4)';
                             if (isDirectDesign || task.is_direct_design) {
                                 if (stage === 'Designer') {
-                                    nextBtn.textContent = 'Submit';
-                                    nextBtn.style.background = '#10b981';
-                                } else if (stage === 'Manager Review') {
+                                    nextBtn.textContent = 'Submit for Writer Review';
+                                    nextBtn.style.background = '#0055D4';
+                                } else if (stage === 'Writer Review') {
+                                    nextBtn.textContent = 'Submit to Approver';
+                                    nextBtn.style.background = '#0055D4';
+                                } else if (stage === 'Approver Review') {
+                                    nextBtn.textContent = 'Approve & Submit';
+                                    nextBtn.style.background = '#0055D4';
+                                } else if (stage === 'Further Approver') {
+                                    nextBtn.textContent = 'Submit to Brand Manager';
+                                    nextBtn.style.background = '#0055D4';
+                                } else if (stage === 'Final Approval' || stage === 'Manager Review') {
                                     nextBtn.textContent = 'Approve & Close';
                                     nextBtn.style.background = '#10b981';
                                 } else {
@@ -2974,7 +3327,49 @@
                         }
                     }
 
-                    if (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee')) {
+                    if (isDirectDesign || task.is_direct_design) {
+                        if (stage === 'Designer') {
+                            if (writerArea) {
+                                writerArea.style.display = 'block';
+                                const sel = writerArea.querySelector('select');
+                                if (sel) {
+                                    sel.disabled = false;
+                                    const projectWriterId = {!! json_encode($project->writer_id) !!};
+                                    if (task.writer_id) {
+                                        sel.value = task.writer_id;
+                                    } else if (projectWriterId && sel.querySelector(`option[value="${projectWriterId}"]`)) {
+                                        sel.value = projectWriterId;
+                                    } else if (sel.options.length > 1 && !sel.value) {
+                                        sel.value = sel.options[1].value;
+                                    }
+                                }
+                            }
+                        } else if (stage === 'Writer Review') {
+                            if (apprArea) {
+                                apprArea.style.display = 'block';
+                                const sel = apprArea.querySelector('select');
+                                if (sel) sel.disabled = false;
+                            }
+                        } else if (stage === 'Approver Review') {
+                            const faArea = document.getElementById('modalFurtherApproverGroup');
+                            if (faArea) {
+                                faArea.style.display = 'block';
+                                const sel = faArea.querySelector('select');
+                                if (sel) sel.disabled = false;
+                            }
+                            if (!task.brand_manager_id && bmArea) {
+                                bmArea.style.display = 'block';
+                                const sel = bmArea.querySelector('select');
+                                if (sel) sel.disabled = false;
+                            }
+                        } else if (stage === 'Further Approver') {
+                            if (!task.brand_manager_id && bmArea) {
+                                bmArea.style.display = 'block';
+                                const sel = bmArea.querySelector('select');
+                                if (sel) sel.disabled = false;
+                            }
+                        }
+                    } else if (isOtherDeliverable && (stage === 'Assign' || stage === 'Assignee')) {
                         if (!task.brand_manager_id && bmArea) {
                             bmArea.style.display = 'block';
                             const sel = bmArea.querySelector('select');
@@ -2995,7 +3390,7 @@
                             }
                         }
                     }
-                    if (stage === 'Approver') {
+                    if (!isDirectDesign && !task.is_direct_design && stage === 'Approver') {
                         if (bmArea) {
                             bmArea.style.display = 'block';
                             const sel = bmArea.querySelector('select');
@@ -3068,21 +3463,29 @@
                     saveContentBtn.style.display = 'block';
                 }
 
-                const isReviewStage = ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Writer Review', 'Approver Review', 'Approve', 'Manager Review'].includes(stage);
+                const isReviewStage = ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Writer Review', 'Approver Review', 'Further Approver', 'Approve', 'Manager Review'].includes(stage);
                 const isAuthorizedToReview = isAdmin ||
-                    (stage === 'Approver' && (userRole === 'approver' || userRole === 'operationsmanager')) ||
-                    ((stage === 'Brand Manager' || stage === 'Final Approval') && (userRole === 'brandmanager' || userRole === 'operationsmanager')) ||
-                    (stage === 'Manager Review' && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isManager)) ||
-                    (stage === 'Approve' && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isManager || canEditBriefAndRef)) ||
-                    (stage === 'Writer Review' && (userRole === 'writer' || userRole === 'assignee')) ||
-                    (stage === 'Approver Review' && (userRole === 'approver' || userRole === 'operationsmanager'));
+                    (isDirectDesign || task.is_direct_design ? (
+                        (stage === 'Writer Review' && (hasWriterRole || isAssignedWriter || userRole === 'operationsmanager')) ||
+                        (stage === 'Approver Review' && (userRole === 'approver' || userRole === 'approvercoordinator' || isAssignedApprover || userRole === 'operationsmanager')) ||
+                        (stage === 'Further Approver' && (userRole === 'approver' || userRole === 'approvercoordinator' || isAssignedFurtherApprover || userRole === 'operationsmanager')) ||
+                        ((stage === 'Final Approval' || stage === 'Manager Review') && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isAssignedBrandMgr))
+                    ) : (
+                        (stage === 'Approver' && (userRole === 'approver' || userRole === 'operationsmanager')) ||
+                        ((stage === 'Brand Manager' || stage === 'Final Approval') && (userRole === 'brandmanager' || userRole === 'operationsmanager')) ||
+                        (stage === 'Manager Review' && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isManager)) ||
+                        (stage === 'Approve' && (userRole === 'brandmanager' || userRole === 'operationsmanager' || isManager || canEditBriefAndRef)) ||
+                        (stage === 'Writer Review' && (userRole === 'writer' || userRole === 'assignee')) ||
+                        (stage === 'Approver Review' && (userRole === 'approver' || userRole === 'operationsmanager')) ||
+                        (stage === 'Further Approver' && (userRole === 'approver' || userRole === 'approvercoordinator' || userRole === 'operationsmanager'))
+                    ));
 
                 if (isReviewStage && isAuthorizedToReview && showRevisionBtn) {
                     showRevisionBtn.style.display = 'block';
                 }
 
                 // Show/reset revision target toggle for post-designer stages
-                const postDesignerStages = ['Writer Review', 'Approver Review', 'Final Approval', 'Manager Review'];
+                const postDesignerStages = ['Writer Review', 'Approver Review', 'Further Approver', 'Final Approval', 'Manager Review'];
                 const modalRevisionTargetGroup = document.getElementById('modalRevisionTargetGroup');
                 const modalRevisionTarget = document.getElementById('modalRevisionTarget');
                 if (modalRevisionTargetGroup) {
@@ -3090,6 +3493,10 @@
                         modalRevisionTargetGroup.style.display = 'none';
                         modalRevisionTarget.value = 'writer';
                         document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the assigned person.';
+                    } else if (isDirectDesign || task.is_direct_design) {
+                        modalRevisionTargetGroup.style.display = 'none';
+                        modalRevisionTarget.value = 'designer';
+                        document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the Designer.';
                     } else if (postDesignerStages.includes(stage)) {
                         modalRevisionTargetGroup.style.display = 'block';
                         document.getElementById('modalReviseTargetDesigner').checked = true;
@@ -3219,6 +3626,8 @@
                 document.getElementById('revisionImageLabel').textContent = 'Choose image…';
                 const prev = document.getElementById('revisionImagePreview');
                 prev.src = ''; prev.style.display = 'none';
+                const dInp = document.getElementById('modalRevisionDeadlineInput');
+                if (dInp) dInp.value = '';
             }
         }
 
@@ -3529,6 +3938,15 @@
                     </div>
                     <label class="detail-label" style="color:#ef4444;">Revision Instructions</label>
                     <textarea id="batchRevisionInstructions" placeholder="Describe what needs to be fixed in this entire batch..." style="width:100%; height:120px; padding:12px; border-radius:12px; border:1.5px solid rgba(239, 68, 68, 0.2); font-size:13px; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); resize:none;"></textarea>
+                    
+                    <!-- Revision Deadline in Batch Modal -->
+                    <div style="margin-top:14px;">
+                        <label class="detail-label" style="color:#ef4444; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px; display:block;">
+                            Revision Deadline <span style="font-weight:500; opacity:0.6; text-transform:none; letter-spacing:0;">(optional)</span>
+                        </label>
+                        <input type="date" id="batchRevisionDeadlineInput" min="{{ date('Y-m-d') }}" style="width:100%; padding:9px 14px; border-radius:10px; border:1.5px solid rgba(239,68,68,0.25); font-size:13px; font-weight:600; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
+                    </div>
+
                     <p id="batchRevisionNote" style="font-size: 10px; color: #ef4444; font-weight: 700; margin-top: 8px;">
                         The task will be sent back to the Writer.
                     </p>
@@ -3591,6 +4009,7 @@
     <script id="managers-data" type="application/json">{!! json_encode($brandManagers) !!}</script>
     <script id="coordinators-data" type="application/json">{!! json_encode($coordinators) !!}</script>
     <script id="designers-data" type="application/json">{!! json_encode($designers) !!}</script>
+    <script id="writers-data" type="application/json">{!! json_encode($writers) !!}</script>
 
     <script>
         let currentBatchTask = null;
@@ -3630,6 +4049,8 @@
                 confirmBtn.style.background = '#ef4444';
 
                 document.querySelector('#batchRevisionGroup textarea').placeholder = isIndividual ? "Describe what needs to be fixed..." : "Describe what needs to be fixed in this entire batch...";
+                const batchRevDeadline = document.getElementById('batchRevisionDeadlineInput');
+                if (batchRevDeadline) batchRevDeadline.value = '';
 
                 // Show "send back to" toggle for post-designer review stages
                 const postDesignerStages = ['Writer Review', 'Approver Review', 'AM/BD', 'Final Approval'];
@@ -3784,6 +4205,11 @@
                     title.textContent = `Assign Designer`;
                     subtitle.textContent = `Assign a designer for this deliverable.`;
                 }
+            } else if (nextStage === 'Writer Review') {
+                roleToFill = 'writer_id';
+                const writersEl = document.getElementById('writers-data');
+                roleUsers = writersEl ? JSON.parse(writersEl.textContent) : [];
+                label = "Select Writer for Review";
             }
 
             if (roleToFill && type === 'submit') {
@@ -3795,6 +4221,10 @@
                     stakeholderGroup.style.display = 'none';
                     genericConfirm.style.display = 'block';
                     genericConfirm.textContent = isIndividual ? `Are you sure you want to submit this task to the Brand Manager stage?` : `Are you sure you want to submit this entire batch to the Brand Manager stage?`;
+                } else if (nextStage === 'Writer Review' && stakeholders.writer && stakeholders.writerName) {
+                    stakeholderGroup.style.display = 'none';
+                    genericConfirm.style.display = 'block';
+                    genericConfirm.innerHTML = isIndividual ? `Are you sure you want to submit this task to <b>${stakeholders.writerName}</b> for review?` : `Are you sure you want to submit this entire batch to <b>${stakeholders.writerName}</b> for review?`;
                 } else {
                     stakeholderGroup.style.display = 'block';
                     genericConfirm.style.display = 'none';
@@ -3817,6 +4247,11 @@
                         preSelectId = stakeholders.coordinator || {!! json_encode($project->coordinator_id) !!};
                     } else if (nextStage === 'Designer') {
                         preSelectId = !isIndividual ? 'individual' : (stakeholders.designer || {!! json_encode($project->designer_id) !!});
+                    } else if (nextStage === 'Writer Review') {
+                        preSelectId = stakeholders.writer || {!! json_encode($project->writer_id) !!};
+                        if (!preSelectId && roleUsers.length > 0) {
+                            preSelectId = roleUsers[0].id;
+                        }
                     }
 
                     if (stakeholderSelect.style.display !== 'none') {
@@ -3854,6 +4289,8 @@
             document.getElementById('batchRevisionImageLabel').textContent = 'Choose image…';
             const prev = document.getElementById('batchRevisionImagePreview');
             prev.src = ''; prev.style.display = 'none';
+            const bRevDead = document.getElementById('batchRevisionDeadlineInput');
+            if (bRevDead) bRevDead.value = '';
         }
 
         async function executeBatchAction() {
@@ -3887,6 +4324,8 @@
                 if (revisionTarget) formData.append('revision_target', revisionTarget);
                 const imgFile = document.getElementById('batchRevisionImageInput').files[0];
                 if (imgFile) formData.append('revision_image', imgFile);
+                const batchDeadline = document.getElementById('batchRevisionDeadlineInput') ? document.getElementById('batchRevisionDeadlineInput').value : '';
+                if (batchDeadline) formData.append('revision_deadline', batchDeadline);
 
                 const response = await fetch(`/deliverables/${currentBatchTask}/batch-revisions`, {
                     method: 'POST',
@@ -3962,6 +4401,12 @@
                 else if (currentBatchNextStage === 'Brand Manager' || currentBatchNextStage === 'Final Approval' || currentBatchNextStage === 'AM/BD' || currentBatchNextStage === 'Approve') roleField = 'brand_manager_id';
                 else if (currentBatchNextStage === 'Coordinator') roleField = 'coordinator_id';
                 else if (currentBatchNextStage === 'Designer') roleField = 'designer_id';
+                else if (currentBatchNextStage === 'Writer Review') roleField = 'writer_id';
+            }
+
+            if (!assigneeId && currentBatchNextStage === 'Writer Review' && currentBatchStakeholders.writer) {
+                assigneeId = currentBatchStakeholders.writer;
+                roleField = 'writer_id';
             }
 
             btn.innerHTML = '<svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Submitting...';
@@ -4273,7 +4718,11 @@
                     } else if (isImg) {
                         html += `
                             <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="closeMediaGallery(); openImagePreview('${fileUrl}', ${canRemove ? 'true' : 'false'}, ${deliverableId || 'null'})">
-                                <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; flex-direction:column; gap:6px; color:var(--color-text-secondary); background:rgba(0,0,0,0.03);">
+                                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <span style="font-size:10px; font-weight:700;">View Artwork</span>
+                                </div>
                             </div>`;
                     } else {
                         html += `
@@ -4424,6 +4873,20 @@
 
         // Image Preview Functions
         function openImagePreview(url, canRemove = false, deliverableId = null) {
+            if (!url) return;
+            if (typeof url === 'string' && url.trim().startsWith('[')) {
+                try {
+                    const parsed = JSON.parse(url.trim());
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        if (parsed.length > 1 && typeof openMediaGallery === 'function') {
+                            return openMediaGallery('Artwork Media', parsed, [], canRemove, deliverableId);
+                        }
+                        url = parsed[0];
+                    }
+                } catch(e) {}
+            }
+            if (!url || typeof url !== 'string') return;
+
             if (url.match(/\.pdf(?:$|\?)/i)) {
                 window.open(url, '_blank');
                 return;
@@ -4576,6 +5039,51 @@
         </div>
     </div>
 
+    <!-- Reassign Designer Modal Popup -->
+    @if($isAdmin || in_array($userRole, ['brandmanager', 'coordinator', 'approvercoordinator']))
+    <div id="reassignDesignerModalOverlay" class="cd-modal-overlay" onclick="closeReassignDesignerModal(event)" style="z-index: 10001; justify-content: center; align-items: center;">
+        <div class="cd-modal" style="max-width: 480px; width: 92%; position: relative !important; inset: auto !important; margin: auto !important; height: auto !important; max-height: 90vh !important; border-radius: 20px !important; overflow: hidden !important; border: 1px solid rgba(236,72,153,0.3) !important; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.5) !important;" onclick="event.stopPropagation()">
+            <div class="cd-modal-header" style="padding: 18px 24px; background: var(--color-bg-secondary); align-items: center; border-bottom: 1px solid var(--color-border-primary); display:flex; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:32px; height:32px; border-radius:8px; background:rgba(236,72,153,0.1); border:1px solid rgba(236,72,153,0.25); display:flex; align-items:center; justify-content:center;">
+                        <svg width="18" height="18" fill="none" stroke="#ec4899" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    </div>
+                    <div>
+                        <h2 style="font-size: 15px; font-weight: 900; color: #ec4899; margin: 0; text-transform:uppercase; letter-spacing:0.04em;">Reassign Designer</h2>
+                        <div id="reassignDesignerCurrentName" style="font-size: 11px; color: var(--color-text-secondary); font-weight: 600; margin-top:2px;">Current designer: -</div>
+                    </div>
+                </div>
+                <button type="button" onclick="closeReassignDesignerModal()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer; padding:4px;" title="Close">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="cd-modal-body" style="padding: 24px; display:flex; flex-direction:column; gap:16px;">
+                <div>
+                    <label class="detail-label" style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">New Designer</label>
+                    <select id="reassignDesignerSelect" required style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-weight:600; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none;">
+                        <option value="" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Select Designer...</option>
+                        @foreach($designers as $designer)
+                            <option value="{{ $designer->id }}" style="background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $designer->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="detail-label" style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">Designer Due Date</label>
+                    <input type="date" id="reassignDesignerDeadline" style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-weight:600; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none; box-sizing:border-box;">
+                </div>
+                <div>
+                    <label class="detail-label" style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">Reason (Optional)</label>
+                    <input type="text" id="reassignDesignerReason" placeholder="e.g. Designer unavailable" style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-weight:500; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none; box-sizing:border-box;">
+                </div>
+            </div>
+            <div class="cd-modal-footer" style="padding: 16px 24px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" onclick="closeReassignDesignerModal()" class="cd-btn cd-btn-outline" style="padding: 8px 18px; font-size: 12px; font-weight: 700;">Cancel</button>
+                <button type="button" onclick="reassignDesigner(this)" class="cd-btn" style="padding: 8px 20px; background:#ec4899; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(236,72,153,0.35);">Reassign</button>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <script>
     const allSubtaskTypes = @json($allSubtaskTypes);
     function openAddPostTypeModal(e, taskId, workflowType, defaultPostType) {
@@ -4633,6 +5141,29 @@
         setTimeout(() => {
             overlay.style.display = 'none';
         }, 300);
+    }
+
+    function openReassignDesignerModal() {
+        const overlay = document.getElementById('reassignDesignerModalOverlay');
+        if (!overlay) return;
+        overlay.style.display = 'flex';
+        setTimeout(() => {
+            overlay.style.opacity = '1';
+            const modal = overlay.querySelector('.cd-modal');
+            if (modal) modal.classList.add('active');
+        }, 10);
+    }
+
+    function closeReassignDesignerModal(e) {
+        if (e && e.target !== document.getElementById('reassignDesignerModalOverlay')) return;
+        const overlay = document.getElementById('reassignDesignerModalOverlay');
+        if (!overlay) return;
+        overlay.style.opacity = '0';
+        const modal = overlay.querySelector('.cd-modal');
+        if (modal) modal.classList.remove('active');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 200);
     }
     </script>
 </x-layout>
@@ -5311,9 +5842,10 @@ async function updatePriorityInlineModal(selectEl, taskId) {
 }
 
 async function reassignDesigner(btn) {
-    const area = document.getElementById('reassignDesignerArea');
-    const taskId = area?.getAttribute('data-task-id');
+    const overlay = document.getElementById('reassignDesignerModalOverlay');
+    const taskId = overlay?.getAttribute('data-task-id') || document.getElementById('btnOpenReassignDesignerModal')?.getAttribute('data-task-id');
     const designerId = document.getElementById('reassignDesignerSelect').value;
+    const designerDeadline = document.getElementById('reassignDesignerDeadline')?.value || null;
     const reason = document.getElementById('reassignDesignerReason').value;
 
     if (!designerId) {
@@ -5336,12 +5868,17 @@ async function reassignDesigner(btn) {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Accept': 'application/json'
             },
-            body: JSON.stringify({ designer_id: designerId, reason: reason })
+            body: JSON.stringify({ 
+                designer_id: designerId, 
+                designer_deadline: designerDeadline,
+                reason: reason 
+            })
         });
 
         const result = await response.json();
         if (response.ok && result.success) {
             alert(result.message || 'Designer reassigned successfully.');
+            closeReassignDesignerModal();
             window.location.reload();
         } else {
             alert(result.message || 'Error reassigning designer.');

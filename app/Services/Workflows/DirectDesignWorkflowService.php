@@ -11,10 +11,13 @@ use Illuminate\Support\Facades\Log;
 /**
  * DirectDesignWorkflowService
  *
- * Implements the lean Manager -> Designer -> Manager Approval -> Closed workflow:
- * 1. Designer (In Design / Artwork Upload)
- * 2. Manager Review (Approval or Revisions)
- * 3. Closed (Finalized)
+ * Implements the Direct Design workflow:
+ * 1. Designer (In Design / Artwork Upload -> Assigns Writer)
+ * 2. Writer Review (Writer Approval -> Assigns Approver)
+ * 3. Approver Review (Approver Review -> Optionally assigns Further Approver or sends to Brand Manager)
+ * 4. Further Approver (Further Review -> Sends to Brand Manager)
+ * 5. Final Approval (Brand Manager -> Closes deliverable)
+ * 6. Closed (Finalized)
  *
  * Completely isolated from RetainerWorkflowService, CampaignWorkflowService,
  * and OtherDeliverableWorkflowService.
@@ -25,7 +28,10 @@ class DirectDesignWorkflowService implements WorkflowInterface
 
     public const STAGES = [
         'Designer',
-        'Manager Review',
+        'Writer Review',
+        'Approver Review',
+        'Further Approver',
+        'Final Approval',
         'Closed'
     ];
 
@@ -37,7 +43,10 @@ class DirectDesignWorkflowService implements WorkflowInterface
         if (!$stage) return self::STAGES[0];
         $lower = strtolower(trim($stage));
         if (in_array($lower, ['designer', 'design', 'in design', 'artwork'])) return 'Designer';
-        if (in_array($lower, ['manager review', 'review', 'approve', 'manager approval', 'am/bd', 'final approval'])) return 'Manager Review';
+        if (in_array($lower, ['writer review', 'writer', 'writer approval'])) return 'Writer Review';
+        if (in_array($lower, ['approver review', 'approver', 'approver approval'])) return 'Approver Review';
+        if (in_array($lower, ['further approver', 'further approval', 'further approver review'])) return 'Further Approver';
+        if (in_array($lower, ['final approval', 'brand manager', 'manager review', 'bm review', 'manager approval', 'am/bd'])) return 'Final Approval';
         if (in_array($lower, ['closed', 'close', 'done'])) return 'Closed';
         return $stage;
     }
@@ -52,16 +61,19 @@ class DirectDesignWorkflowService implements WorkflowInterface
 
     /**
      * Calculate stage progress percentage.
-     * Designer: 20%, Manager Review: 60%, Closed: 100%
+     * Designer: 20%, Writer Review: 40%, Approver Review: 60%, Further Approver: 75%, Final Approval: 85%, Closed: 100%
      */
     public function getStageProgress(Deliverable $deliverable): int
     {
         $stage = $this->normalizeStage($deliverable->approval_stage);
         return match ($stage) {
-            'Designer'       => 20,
-            'Manager Review' => 60,
-            'Closed'         => 100,
-            default          => 20,
+            'Designer'         => 20,
+            'Writer Review'    => 40,
+            'Approver Review'  => 60,
+            'Further Approver' => 75,
+            'Final Approval'   => 85,
+            'Closed'           => 100,
+            default            => 20,
         };
     }
 
@@ -72,9 +84,12 @@ class DirectDesignWorkflowService implements WorkflowInterface
     {
         $currentStage = $this->normalizeStage($deliverable->approval_stage);
         return match ($currentStage) {
-            'Designer'       => 'Manager Review',
-            'Manager Review' => 'Closed',
-            default          => null,
+            'Designer'         => 'Writer Review',
+            'Writer Review'    => 'Approver Review',
+            'Approver Review'  => !empty($data['further_approver_id']) ? 'Further Approver' : 'Final Approval',
+            'Further Approver' => 'Final Approval',
+            'Final Approval'   => 'Closed',
+            default            => null,
         };
     }
 
@@ -85,9 +100,12 @@ class DirectDesignWorkflowService implements WorkflowInterface
     {
         $currentStage = $this->normalizeStage($deliverable->approval_stage);
         return match ($currentStage) {
-            'Closed'         => 'Manager Review',
-            'Manager Review' => 'Designer',
-            default          => null,
+            'Closed'           => 'Final Approval',
+            'Final Approval'   => $deliverable->further_approver_id ? 'Further Approver' : 'Approver Review',
+            'Further Approver' => 'Approver Review',
+            'Approver Review'  => 'Writer Review',
+            'Writer Review'    => 'Designer',
+            default            => null,
         };
     }
 
@@ -98,9 +116,12 @@ class DirectDesignWorkflowService implements WorkflowInterface
     {
         $norm = $this->normalizeStage($stage);
         return match ($norm) {
-            'Designer'       => 'designer_id',
-            'Manager Review' => 'brand_manager_id',
-            default          => null,
+            'Designer'         => 'designer_id',
+            'Writer Review'    => 'writer_id',
+            'Approver Review'  => 'approver_id',
+            'Further Approver' => 'further_approver_id',
+            'Final Approval'   => 'brand_manager_id',
+            default            => null,
         };
     }
 
@@ -111,10 +132,13 @@ class DirectDesignWorkflowService implements WorkflowInterface
     {
         $norm = $this->normalizeStage($stage);
         $target = match ($norm) {
-            'Designer'       => $deliverable->designer ?? ($deliverable->designer_id ? User::find($deliverable->designer_id) : null),
-            'Manager Review' => $deliverable->brandManager ?? $deliverable->project?->brandManager ?? $deliverable->project?->lead,
-            'Closed'         => $deliverable->designer ?? $deliverable->brandManager,
-            default          => null,
+            'Designer'         => $deliverable->designer ?? ($deliverable->designer_id ? User::find($deliverable->designer_id) : null),
+            'Writer Review'    => $deliverable->writer ?? ($deliverable->writer_id ? User::find($deliverable->writer_id) : null),
+            'Approver Review'  => $deliverable->approver ?? ($deliverable->approver_id ? User::find($deliverable->approver_id) : null),
+            'Further Approver' => $deliverable->furtherApprover ?? ($deliverable->further_approver_id ? User::find($deliverable->further_approver_id) : null),
+            'Final Approval'   => $deliverable->brandManager ?? $deliverable->project?->brandManager ?? $deliverable->project?->lead,
+            'Closed'           => $deliverable->designer ?? $deliverable->brandManager,
+            default            => null,
         };
 
         if (!$target && $deliverable->project) {
@@ -138,13 +162,12 @@ class DirectDesignWorkflowService implements WorkflowInterface
         }
 
         $oldStage = $this->normalizeStage($deliverable->approval_stage);
+        $userRole = strtolower(str_replace(' ', '', $user->role ?? ''));
+        $isPrivileged = $user && ($user->isAdmin() || in_array($userRole, ['operationsmanager', 'brandmanager']));
 
-        // Role authorization check
         if ($oldStage === 'Designer') {
-            $userRole = strtolower(str_replace(' ', '', $user->role ?? ''));
             $isAssignedDesigner = $deliverable->designer_id && $user && $user->id == $deliverable->designer_id;
             $isUnassignedDesigner = !$deliverable->designer_id && $userRole === 'designer';
-            $isPrivileged = $user && ($user->isAdmin() || in_array($userRole, ['operationsmanager', 'brandmanager']));
 
             if (!$isAssignedDesigner && !$isUnassignedDesigner && !$isPrivileged) {
                 return [
@@ -153,10 +176,69 @@ class DirectDesignWorkflowService implements WorkflowInterface
                     'code'    => 403,
                 ];
             }
-        } elseif ($oldStage === 'Manager Review') {
-            $userRole = strtolower(str_replace(' ', '', $user->role ?? ''));
+
+            // Require writer selection to advance to Writer Review
+            if (empty($data['writer_id']) && !$deliverable->writer_id) {
+                if ($deliverable->project?->writer_id) {
+                    $deliverable->writer_id = $deliverable->project->writer_id;
+                } else {
+                    $fallbackWriter = $deliverable->project?->brand?->members()->whereIn('role', ['Writer', 'Assignee'])->first()
+                        ?? User::whereIn('role', ['Writer', 'Assignee'])->first();
+                    if ($fallbackWriter) {
+                        $deliverable->writer_id = $fallbackWriter->id;
+                    } else {
+                        return [
+                            'success' => false,
+                            'message' => 'Please select a writer for writer approval.',
+                            'code'    => 422,
+                        ];
+                    }
+                }
+            }
+        } elseif ($oldStage === 'Writer Review') {
+            $isAssignedWriter = $deliverable->writer_id && $user && $user->id == $deliverable->writer_id;
+            $isUnassignedWriter = !$deliverable->writer_id && in_array($userRole, ['writer', 'assignee']);
+
+            if (!$isAssignedWriter && !$isUnassignedWriter && !$isPrivileged) {
+                return [
+                    'success' => false,
+                    'message' => 'Only the assigned writer can approve and advance this deliverable.',
+                    'code'    => 403,
+                ];
+            }
+
+            // Require approver selection to advance to Approver Review
+            if (empty($data['approver_id']) && !$deliverable->approver_id) {
+                return [
+                    'success' => false,
+                    'message' => 'Please select an approver for approver review.',
+                    'code'    => 422,
+                ];
+            }
+        } elseif ($oldStage === 'Approver Review') {
+            $isAssignedApprover = $deliverable->approver_id && $user && $user->id == $deliverable->approver_id;
+            $isApproverRole = in_array($userRole, ['approver', 'approvercoordinator']);
+
+            if (!$isAssignedApprover && !$isApproverRole && !$isPrivileged) {
+                return [
+                    'success' => false,
+                    'message' => 'Only the assigned approver can approve and advance this deliverable.',
+                    'code'    => 403,
+                ];
+            }
+        } elseif ($oldStage === 'Further Approver') {
+            $isAssignedFurtherApprover = $deliverable->further_approver_id && $user && $user->id == $deliverable->further_approver_id;
+            $isApproverRole = in_array($userRole, ['approver', 'approvercoordinator']);
+
+            if (!$isAssignedFurtherApprover && !$isApproverRole && !$isPrivileged) {
+                return [
+                    'success' => false,
+                    'message' => 'Only the assigned further approver can approve and advance this deliverable.',
+                    'code'    => 403,
+                ];
+            }
+        } elseif ($oldStage === 'Final Approval') {
             $isBrandManager = $deliverable->brand_manager_id && $user && $user->id == $deliverable->brand_manager_id;
-            $isPrivileged = $user && ($user->isAdmin() || in_array($userRole, ['brandmanager', 'operationsmanager']));
 
             if (!$isBrandManager && !$isPrivileged) {
                 return [
@@ -171,7 +253,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
     }
 
     /**
-     * Advance Direct Design Deliverable to next stage (Designer -> Manager Review -> Closed).
+     * Advance Direct Design Deliverable to next stage.
      */
     public function advanceStage(Deliverable $deliverable, array $data, ?User $user, bool $dryRun = false): array
     {
@@ -195,8 +277,25 @@ class DirectDesignWorkflowService implements WorkflowInterface
             $deliverable->designer_id = $user->id;
         }
 
-        // Auto-assign manager if not set
-        if (!$deliverable->brand_manager_id && $deliverable->project?->brand_manager_id) {
+        // Assign writer if passed
+        if (!empty($data['writer_id'])) {
+            $deliverable->writer_id = $data['writer_id'];
+        }
+
+        // Assign approver if passed
+        if (!empty($data['approver_id'])) {
+            $deliverable->approver_id = $data['approver_id'];
+        }
+
+        // Assign further approver if passed (or clear if empty when transitioning from Approver Review)
+        if (array_key_exists('further_approver_id', $data)) {
+            $deliverable->further_approver_id = !empty($data['further_approver_id']) ? $data['further_approver_id'] : null;
+        }
+
+        // Assign or auto-assign brand manager
+        if (!empty($data['brand_manager_id'])) {
+            $deliverable->brand_manager_id = $data['brand_manager_id'];
+        } elseif (!$deliverable->brand_manager_id && $deliverable->project?->brand_manager_id) {
             $deliverable->brand_manager_id = $deliverable->project->brand_manager_id;
         }
 
@@ -221,6 +320,8 @@ class DirectDesignWorkflowService implements WorkflowInterface
         if (isset($data['title'])) $deliverable->title = $data['title'];
         if (isset($data['concept'])) $deliverable->concept = $data['concept'];
         if (isset($data['notes'])) $deliverable->notes = $data['notes'];
+        if (isset($data['caption'])) $deliverable->caption = $data['caption'];
+        if (isset($data['post_copy'])) $deliverable->post_copy = $data['post_copy'];
         if (isset($data['reference'])) {
             $deliverable->reference = $data['reference'];
             $deliverable->reference_uploaded_by = $user->id;
@@ -229,8 +330,6 @@ class DirectDesignWorkflowService implements WorkflowInterface
             $deliverable->final_designs_link = $data['final_designs_link'];
             $deliverable->artwork_uploaded_by = $user->id;
         }
-        if (isset($data['designer_id'])) $deliverable->designer_id = $data['designer_id'];
-        if (isset($data['brand_manager_id'])) $deliverable->brand_manager_id = $data['brand_manager_id'];
         if (isset($data['designer_deadline'])) {
             $deliverable->designer_deadline = $data['designer_deadline'];
             $deliverable->deadline = $data['designer_deadline'];
@@ -247,6 +346,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
         $deliverable->approval_stage = $nextStage;
         $deliverable->progress_percent = $this->getStageProgress($deliverable);
         $deliverable->revision_instructions = null;
+        $deliverable->revision_deadline = null;
         $deliverable->status = ($nextStage === 'Closed') ? 'Done' : 'To Do';
         $deliverable->is_ready = false;
         if ($hoursSpent) {
@@ -271,16 +371,19 @@ class DirectDesignWorkflowService implements WorkflowInterface
         $deliverable->notifyStageChange($oldStage, $nextStage, $user ?? auth()->user());
 
         $msg = match ($nextStage) {
-            'Manager Review' => 'Artwork submitted and sent to Manager for review.',
-            'Closed'         => 'Deliverable approved and closed.',
-            default          => "Deliverable advanced to {$nextStage} stage.",
+            'Writer Review'    => 'Artwork submitted and sent to Writer for review.',
+            'Approver Review'  => 'Deliverable approved by Writer and sent to Approver.',
+            'Further Approver' => 'Deliverable sent to Further Approver.',
+            'Final Approval'   => 'Deliverable sent to Brand Manager for final approval.',
+            'Closed'           => 'Deliverable approved and closed.',
+            default            => "Deliverable advanced to {$nextStage} stage.",
         };
         return ['success' => true, 'message' => $msg];
     }
 
     /**
      * Handle revision request in Direct Design workflow.
-     * Routes back from Manager Review to Designer.
+     * Routes back to Designer from any review stage.
      */
     public function requestRevisions(Deliverable $deliverable, array $validatedData, ?string $imagePath, ?User $user): array
     {
@@ -296,6 +399,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
         $deliverable->progress_percent = $this->getStageProgress($deliverable);
         $deliverable->revisions += 1;
         $deliverable->revision_instructions = $validatedData['revision_instructions'];
+        $deliverable->revision_deadline = $validatedData['revision_deadline'] ?? null;
         $deliverable->save();
 
         // History
@@ -304,6 +408,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
             'instructions'      => $validatedData['revision_instructions'],
             'image_path'        => $imagePath,
             'stage_at_revision' => $oldStage,
+            'revision_deadline' => $validatedData['revision_deadline'] ?? null,
         ]);
 
         // Notify Designer

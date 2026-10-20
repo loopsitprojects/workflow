@@ -697,7 +697,7 @@
 
             {{-- Mode Switcher: Single vs Batch --}}
             @if(!isset($parentId))
-            <div class="mode-toggle-group">
+            <div class="mode-toggle-group" x-show="workflowType !== 'campaign' && workflowType !== 'pitch'">
                 <button type="button" @click="setMode('single')" :class="{'active': mode === 'single'}" class="mode-toggle-btn">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
@@ -1424,6 +1424,9 @@
                 },
                 init() {
                     this.singlePostType = '';
+                    if (this.workflowType === 'campaign' || this.workflowType === 'pitch') {
+                        this.mode = 'single';
+                    }
                     this.addSubtask();
                 },
                 isOutlinesType(type) {
@@ -1433,6 +1436,10 @@
                     return t === 'outlines' || t === 'outline';
                 },
                 setMode(newMode) {
+                    if (this.workflowType === 'campaign' || this.workflowType === 'pitch') {
+                        this.mode = 'single';
+                        return;
+                    }
                     this.mode = newMode;
                     if (newMode === 'batch' && this.subtasks.length === 0) {
                         this.addSubtask();
@@ -1464,6 +1471,9 @@
                     if (projectId && projectWorkflows[projectId]) {
                         this.workflowType = projectWorkflows[projectId];
                         this.singlePostType = '';
+                        if (this.workflowType === 'campaign' || this.workflowType === 'pitch') {
+                            this.setMode('single');
+                        }
                     }
                 }
             }

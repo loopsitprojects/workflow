@@ -51,11 +51,13 @@ class Deliverable extends Model
         'work_hours',
         'client_status',
         'designer_deadline',
+        'revision_deadline',
         'artwork_uploaded_by',
     ];
 
     protected $casts = [
         'designer_deadline' => 'datetime',
+        'revision_deadline' => 'datetime',
     ];
 
     protected $appends = [
@@ -70,50 +72,101 @@ class Deliverable extends Model
         'is_other_deliverable',
     ];
 
-    public function getReferenceFilesArray(): array
+    public static function parseMediaArray(mixed $raw): array
     {
-        if (empty($this->reference_file)) {
+        if (empty($raw)) {
             return [];
         }
-        $val = trim(trim($this->reference_file), '"\'');
-        if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
-            $decoded = json_decode($val, true);
-            if (is_array($decoded)) {
-                return array_values(array_filter(array_map(fn($item) => is_string($item) ? trim($item, '"\'') : $item, $decoded)));
+        if (is_array($raw)) {
+            $flat = [];
+            foreach ($raw as $r) {
+                $sub = static::parseMediaArray($r);
+                foreach ($sub as $s) {
+                    $flat[] = $s;
+                }
             }
+            return array_values(array_filter($flat));
         }
-        return [$val];
+
+        if (!is_string($raw)) {
+            return [];
+        }
+
+        $val = trim($raw);
+        if ($val === '') {
+            return [];
+        }
+
+        // Decode HTML entities if present (e.g. &quot;, &#34;)
+        if (str_contains($val, '&quot;') || str_contains($val, '&#')) {
+            $val = html_entity_decode($val, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        // Strip wrapping quotes
+        $val = trim($val, '"\'');
+
+        // Loop up to 3 times to unwrap double/triple JSON encoding or escaped strings
+        for ($i = 0; $i < 3; $i++) {
+            $valTrim = trim($val, '"\'');
+            if ((str_starts_with($valTrim, '[') && str_ends_with($valTrim, ']')) || (str_starts_with($valTrim, '{') && str_ends_with($valTrim, '}'))) {
+                $decoded = json_decode($valTrim, true);
+                if ($decoded === null) {
+                    $stripped = stripslashes($valTrim);
+                    $decoded = json_decode($stripped, true);
+                }
+                if (is_array($decoded)) {
+                    $flat = [];
+                    foreach ($decoded as $item) {
+                        $sub = static::parseMediaArray($item);
+                        foreach ($sub as $s) {
+                            $flat[] = $s;
+                        }
+                    }
+                    return array_values(array_filter($flat));
+                }
+                if (is_string($decoded)) {
+                    $val = $decoded;
+                    continue;
+                }
+            }
+            break;
+        }
+
+        // If after all attempts $val still starts with [ and ends with ], extract URLs via regex
+        if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
+            preg_match_all('/https?:\/\/[^\s"\'\\,\\]]+|\/[a-zA-Z0-9_\-\.\/]+/i', $val, $matches);
+            if (!empty($matches[0])) {
+                return array_values(array_unique(array_filter(array_map(fn($u) => trim($u, '"\'\\'), $matches[0]))));
+            }
+            return []; // Safeguard: Never return an unparsed JSON bracketed string as an image URL
+        }
+
+        // Split on commas or newlines if it's a comma-separated list
+        $urls = preg_split('/[\r\n,]+/', $val);
+        $cleaned = [];
+        foreach ($urls as $u) {
+            $uClean = trim($u, '"\'\\ ');
+            if ($uClean === '[' || $uClean === ']' || $uClean === '') {
+                continue;
+            }
+            $cleaned[] = $uClean;
+        }
+        return array_values(array_filter($cleaned));
+    }
+
+    public function getReferenceFilesArray(): array
+    {
+        return static::parseMediaArray($this->reference_file);
     }
 
     public function getReferenceUrlsArray(): array
     {
-        if (empty($this->reference)) {
-            return [];
-        }
-        $val = trim(trim($this->reference), '"\'');
-        if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
-            $decoded = json_decode($val, true);
-            if (is_array($decoded)) {
-                return array_values(array_filter(array_map(fn($item) => is_string($item) ? trim($item, '"\'') : $item, $decoded)));
-            }
-        }
-        $urls = preg_split('/[\r\n,]+/', $val);
-        return array_values(array_filter(array_map(fn($u) => trim($u, '"\' '), $urls)));
+        return static::parseMediaArray($this->reference);
     }
 
     public function getFinalDesignsArray(): array
     {
-        if (empty($this->final_designs)) {
-            return [];
-        }
-        $val = trim(trim($this->final_designs), '"\'');
-        if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
-            $decoded = json_decode($val, true);
-            if (is_array($decoded)) {
-                return array_values(array_filter(array_map(fn($item) => is_string($item) ? trim($item, '"\'') : $item, $decoded)));
-            }
-        }
-        return [$val];
+        return static::parseMediaArray($this->final_designs);
     }
 
     public function getAllArtworkFiles(): array
@@ -152,18 +205,7 @@ class Deliverable extends Model
 
     public function getFinalDesignsUrlsArray(): array
     {
-        if (empty($this->final_designs_link)) {
-            return [];
-        }
-        $val = trim(trim($this->final_designs_link), '"\'');
-        if (str_starts_with($val, '[') && str_ends_with($val, ']')) {
-            $decoded = json_decode($val, true);
-            if (is_array($decoded)) {
-                return array_values(array_filter(array_map(fn($item) => is_string($item) ? trim($item, '"\'') : $item, $decoded)));
-            }
-        }
-        $urls = preg_split('/[\r\n,]+/', $val);
-        return array_values(array_filter(array_map(fn($u) => trim($u, '"\' '), $urls)));
+        return static::parseMediaArray($this->final_designs_link);
     }
 
     public function getReferenceFilesListAttribute(): array
@@ -237,7 +279,10 @@ class Deliverable extends Model
 
     const DIRECT_DESIGN_STAGES = [
         'Designer',
-        'Manager Review',
+        'Writer Review',
+        'Approver Review',
+        'Further Approver',
+        'Final Approval',
         'Closed'
     ];
 

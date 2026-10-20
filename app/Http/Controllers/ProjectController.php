@@ -564,6 +564,12 @@ class ProjectController extends Controller
         $approvers = \App\Models\User::whereIn('role', ['Approver', 'Approver Coordinator', 'Operations Manager'])
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
             ->get();
+        $writers = \App\Models\User::whereIn('role', ['Writer', 'Assignee'])
+            ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
+            ->get();
+        if ($writers->isEmpty()) {
+            $writers = \App\Models\User::whereIn('role', ['Writer', 'Assignee'])->get();
+        }
         $coordinators = \App\Models\User::whereIn('role', ['Coordinator', 'Approver Coordinator'])
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
             ->get();
@@ -575,7 +581,7 @@ class ProjectController extends Controller
             $project->deliverables->sortBy(fn($d) => $d->status === 'Done' ? 1 : 0)->values()
         );
 
-        return view('projects.show', compact('project', 'brandManagers', 'designers', 'approvers', 'coordinators', 'stages'));
+        return view('projects.show', compact('project', 'brandManagers', 'designers', 'approvers', 'writers', 'coordinators', 'stages'));
     }
 
     public function edit(Project $project)

@@ -54,11 +54,18 @@ Route::middleware('auth')->group(function () {
     Route::post('deliverables/{deliverable}/reassign-designer', [DeliverableController::class, 'reassignDesigner'])->name('deliverables.reassign-designer');
     Route::post('deliverables/{deliverable}/designer-deadline', [DeliverableController::class, 'updateDesignerDeadline'])->name('deliverables.update-designer-deadline');
     Route::patch('deliverables/{deliverable}/designer-deadline', [DeliverableController::class, 'updateDesignerDeadline']);
+    Route::post('deliverables/{deliverable}/revision-deadline', [DeliverableController::class, 'updateRevisionDeadline'])->name('deliverables.update-revision-deadline');
+    Route::patch('deliverables/{deliverable}/revision-deadline', [DeliverableController::class, 'updateRevisionDeadline']);
     Route::post('deliverables/{deliverable}/batch-revisions', [DeliverableController::class, 'batchRevisions'])->name('deliverables.batchRevisions');
     Route::post('deliverables/{deliverable}/revisions', [DeliverableController::class, 'requestRevisions'])->name('deliverables.revisions');
     Route::post('deliverables/{deliverable}/add-to-batch', [DeliverableController::class, 'addToBatch'])->name('deliverables.addToBatch');
     Route::get('deliverables/{deliverable}/batch', [DeliverableController::class, 'showBatch'])->name('deliverables.showBatch');
     Route::post('/deliverables/{deliverable}/checklist', [DeliverableController::class, 'updateChecklist'])->name('deliverables.update-checklist');
+
+    // Campaign & Pitch Kanban Actions
+    Route::post('/projects/{project}/campaign-kanban/quick-store', [DeliverableController::class, 'quickStoreCampaignKanban'])->name('campaign-kanban.quick-store');
+    Route::post('/deliverables/{deliverable}/campaign-kanban/quick-update', [DeliverableController::class, 'quickUpdateCampaignKanban'])->name('campaign-kanban.quick-update');
+    Route::post('/deliverables/{deliverable}/update-kanban-status', [DeliverableController::class, 'updateKanbanStatus'])->name('deliverables.update-kanban-status');
 
     // Deliverable exports
     Route::get('deliverables/{deliverable}/export/docx', [DeliverableController::class, 'exportDocx'])->name('deliverables.export.docx');

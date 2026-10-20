@@ -14,8 +14,14 @@ class DeliverableRevision extends Model
         'instructions',
         'image_path',
         'stage_at_revision',
+        'revision_deadline',
         'fixed_by_user_id',
         'fixed_at',
+    ];
+
+    protected $casts = [
+        'revision_deadline' => 'datetime',
+        'fixed_at' => 'datetime',
     ];
 
     public function fixedByUser()

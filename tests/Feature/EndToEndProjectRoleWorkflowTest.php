@@ -328,20 +328,48 @@ test('comprehensive end-to-end verification of all workflows and roles in a new 
     $ftUnauthResp->assertSessionHas('error');
     expect($fastTrack->fresh()->approval_stage)->toBe('Designer');
 
-    // Step 1: Designer Bravin submits Fast Track -> moves to Manager Review (60%)
+    // Step 1: Designer Bravin submits Direct Design -> moves to Writer Review (40%)
     $ftFakeArt = UploadedFile::fake()->image('flash_sale_banner.png', 1080, 1920);
     $ftS1Resp = $this->actingAs($designer)->post(route('deliverables.submit', $fastTrack), [
         'final_designs_file' => $ftFakeArt,
         'work_hours' => 2.0,
+        'writer_id' => $writer->id,
     ]);
     expect($ftS1Resp->status())->toBeIn([200, 302]);
     $fastTrack->refresh();
-    expect($fastTrack->approval_stage)->toBe('Manager Review');
+    expect($fastTrack->approval_stage)->toBe('Writer Review');
+    expect($fastTrack->getStageProgress())->toBe(40);
+
+    // Step 2: Writer Review -> moves to Approver Review (60%)
+    $ftS2Resp = $this->actingAs($writer)->post(route('deliverables.submit', $fastTrack), [
+        'approver_id' => $approver->id,
+    ]);
+    expect($ftS2Resp->status())->toBeIn([200, 302]);
+    $fastTrack->refresh();
+    expect($fastTrack->approval_stage)->toBe('Approver Review');
     expect($fastTrack->getStageProgress())->toBe(60);
 
-    // Step 2: Manager Review: Brand Manager approves -> moves to Closed (100%)
-    $ftS2Resp = $this->actingAs($brandManager)->post(route('deliverables.submit', $fastTrack), []);
-    expect($ftS2Resp->status())->toBeIn([200, 302]);
+    // Step 3: Approver Review -> moves to Further Approver (75%)
+    $ftS3Resp = $this->actingAs($approver)->post(route('deliverables.submit', $fastTrack), [
+        'further_approver_id' => $furtherApprover->id,
+    ]);
+    expect($ftS3Resp->status())->toBeIn([200, 302]);
+    $fastTrack->refresh();
+    expect($fastTrack->approval_stage)->toBe('Further Approver');
+    expect($fastTrack->getStageProgress())->toBe(75);
+
+    // Step 4: Further Approver -> moves to Final Approval (85%)
+    $ftS4Resp = $this->actingAs($furtherApprover)->post(route('deliverables.submit', $fastTrack), [
+        'brand_manager_id' => $brandManager->id,
+    ]);
+    expect($ftS4Resp->status())->toBeIn([200, 302]);
+    $fastTrack->refresh();
+    expect($fastTrack->approval_stage)->toBe('Final Approval');
+    expect($fastTrack->getStageProgress())->toBe(85);
+
+    // Step 5: Final Approval: Brand Manager approves -> moves to Closed (100%)
+    $ftS5Resp = $this->actingAs($brandManager)->post(route('deliverables.submit', $fastTrack), []);
+    expect($ftS5Resp->status())->toBeIn([200, 302]);
     $fastTrack->refresh();
     expect($fastTrack->approval_stage)->toBe('Closed');
     expect($fastTrack->getStageProgress())->toBe(100);
