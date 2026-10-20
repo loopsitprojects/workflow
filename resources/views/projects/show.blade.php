@@ -1044,7 +1044,11 @@
                                                 @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleRef))
                                                     <video src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Video" preload="metadata"></video>
                                                 @else
-                                                    <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Image">
+                                                    <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ $singleRef }}', false)" title="View Image" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+                                                    <button type="button" onclick="event.stopPropagation(); openImagePreview('{{ $singleRef }}', false)" style="display:none; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;" title="View Reference">
+                                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                        Ref (1)
+                                                    </button>
                                                 @endif
                                             @elseif($totalSubRefs === 1 && $totalSubRefUrls === 1)
                                                 <a href="{{ $subRefUrls[0] }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4);" title="Visit Link">
@@ -1078,7 +1082,11 @@
                                                     @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
                                                         <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="View Video" preload="metadata"></video>
                                                     @else
-                                                        <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork">
+                                                        <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="Click to view artwork" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+                                                        <button type="button" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" style="display:none; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;" title="View Artwork">
+                                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                            Artwork (1)
+                                                        </button>
                                                     @endif
                                                 @elseif(preg_match('/\.pdf(?:$|\?)/i', $singleArt))
                                                     <a href="{{ $singleArt }}" target="_blank" onclick="event.stopPropagation();" class="ref-chip" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.25); padding:4px 8px; font-size:9px; font-weight:800; display:inline-flex; align-items:center; gap:4px;">
@@ -1091,27 +1099,10 @@
                                             @elseif($totalArt === 1 && $totalArtUrls === 1)
                                                 <a href="{{ $artUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
                                             @elseif($totalArt > 1)
-                                                @php
-                                                    $firstSubArtIsVisual = !empty($artFiles) && preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $artFiles[0]);
-                                                @endphp
-                                                @if($firstSubArtIsVisual)
-                                                    <div style="position:relative; display:inline-block; cursor:pointer;" onclick="openMediaGallery('Artwork Media', {{ json_encode($artFiles) }}, {{ json_encode($artUrls) }}, {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" title="View all {{ $totalArt }} artworks">
-                                                        @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $artFiles[0]))
-                                                            <video src="{{ $artFiles[0] }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" preload="metadata"></video>
-                                                        @else
-                                                            <img src="{{ $artFiles[0] }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" alt="Artwork">
-                                                        @endif
-                                                        <span style="position:absolute; bottom:2px; right:2px; background:rgba(16,185,129,0.9); color:#fff; font-size:9px; font-weight:800; padding:1px 5px; border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.3); pointer-events:none; display:flex; align-items:center; gap:2px;">
-                                                            <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                                            +{{ $totalArt - 1 }}
-                                                        </span>
-                                                    </div>
-                                                @else
-                                                    <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($artFiles) }}, {{ json_encode($artUrls) }}, {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalArt }} artworks">
-                                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                                        Artwork ({{ $totalArt }})
-                                                    </button>
-                                                @endif
+                                                <button type="button" onclick="event.stopPropagation(); openMediaGallery('Artwork Media', {{ json_encode($artFiles) }}, {{ json_encode($artUrls) }}, {{ $canRemoveSubtask ? 'true' : 'false' }}, {{ $subtask->id }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalArt }} artworks">
+                                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                    Artwork ({{ $totalArt }})
+                                                </button>
                                             @else
                                                 <span style="color:var(--color-text-secondary); opacity:0.5; font-size:10px;">Pending</span>
                                             @endif
@@ -1268,31 +1259,21 @@
                                                 @elseif(preg_match('/\.pdf(?:$|\?)/i', $singleRef))
                                                     <div class="rtb-ref-preview" style="margin-bottom:0; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.3); color:#ef4444; font-size:9px; font-weight:800;" onclick="window.open('{{ $singleRef }}', '_blank')" title="View PDF">PDF</div>
                                                 @else
-                                                    <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ addslashes($singleRef) }}', false)" title="View Image">
+                                                    <img src="{{ $singleRef }}" class="rtb-ref-preview" style="margin-bottom:0; display:block; cursor:pointer;" onclick="openImagePreview('{{ addslashes($singleRef) }}', false)" title="View Image" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+                                                    <button type="button" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleRef) }}', false)" style="display:none; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;" title="View Reference">
+                                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                        Ref (1)
+                                                    </button>
                                                 @endif
                                             @elseif($totalTaskRefs === 1 && $totalTaskRefUrls === 1)
                                                 <a href="{{ $taskRefUrls[0] }}" target="_blank" style="display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:6px; cursor:pointer; color:#0055D4; border:1px solid rgba(0,85,212,0.35); background:rgba(0,85,212,0.1); box-shadow:0 0 8px rgba(0,85,212,0.4), 0 0 0 1px rgba(0,85,212,0.15);" title="Visit Link">
                                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                                                 </a>
                                             @elseif($totalTaskRefs > 1)
-                                                @php
-                                                    $firstRefIsVisual = !empty($taskRefFiles) && preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $taskRefFiles[0]);
-                                                @endphp
-                                                @if($firstRefIsVisual)
-                                                    <div style="position:relative; display:inline-block; cursor:pointer;" onclick="openMediaGallery('Reference Media', {{ json_encode($taskRefFiles) }}, {{ json_encode($taskRefUrls) }})" title="View all {{ $totalTaskRefs }} references">
-                                                        @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $taskRefFiles[0]))
-                                                            <video src="{{ $taskRefFiles[0] }}" class="rtb-ref-preview" style="margin-bottom:0; display:block;" preload="metadata"></video>
-                                                        @else
-                                                            <img src="{{ $taskRefFiles[0] }}" class="rtb-ref-preview" style="margin-bottom:0; display:block;" alt="Reference">
-                                                        @endif
-                                                        <span style="position:absolute; bottom:2px; right:2px; background:rgba(0,85,212,0.9); color:#fff; font-size:9px; font-weight:800; padding:1px 5px; border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.3); pointer-events:none;">+{{ $totalTaskRefs - 1 }}</span>
-                                                    </div>
-                                                @else
-                                                    <button type="button" onclick="openMediaGallery('Reference Media', {{ json_encode($taskRefFiles) }}, {{ json_encode($taskRefUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskRefs }} references">
-                                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                                        Ref ({{ $totalTaskRefs }})
-                                                    </button>
-                                                @endif
+                                                <button type="button" onclick="event.stopPropagation(); openMediaGallery('Reference Media', {{ json_encode($taskRefFiles) }}, {{ json_encode($taskRefUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskRefs }} references">
+                                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                    Ref ({{ $totalTaskRefs }})
+                                                </button>
                                             @else
                                                 <span style="font-size:10px;font-weight:700;color:var(--color-text-secondary);opacity:0.7;">N/A</span>
                                             @endif
@@ -1316,7 +1297,11 @@
                                                     @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleArt))
                                                         <video src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="View Video" preload="metadata"></video>
                                                     @else
-                                                        <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="Click to view artwork">
+                                                        <img src="{{ $singleArt }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="Click to view artwork" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+                                                        <button type="button" onclick="event.stopPropagation(); openImagePreview('{{ addslashes($singleArt) }}', {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" style="display:none; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;" title="View Artwork">
+                                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                            Artwork (1)
+                                                        </button>
                                                     @endif
                                                 @elseif(preg_match('/\.pdf(?:$|\?)/i', $singleArt))
                                                     <a href="{{ $singleArt }}" target="_blank" onclick="event.stopPropagation();" class="ref-chip" style="background:rgba(239,68,68,0.1); color:#ef4444; border-color:rgba(239,68,68,0.25); padding:4px 8px; font-size:9px; font-weight:800; display:inline-flex; align-items:center; gap:4px;">
@@ -1329,27 +1314,10 @@
                                             @elseif($totalTaskArt === 1 && $totalTaskArtUrls === 1)
                                                 <a href="{{ $taskArtUrls[0] }}" target="_blank" class="ref-chip" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2); padding:4px 8px; font-size:9px;">Link</a>
                                             @elseif($totalTaskArt > 1)
-                                                @php
-                                                    $firstArtIsVisual = !empty($taskArtFiles) && preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $taskArtFiles[0]);
-                                                @endphp
-                                                @if($firstArtIsVisual)
-                                                    <div style="position:relative; display:inline-block; cursor:pointer;" onclick="event.stopPropagation(); openMediaGallery('Artwork Media', {{ json_encode($taskArtFiles) }}, {{ json_encode($taskArtUrls) }}, {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" title="View all {{ $totalTaskArt }} artworks">
-                                                        @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $taskArtFiles[0]))
-                                                            <video src="{{ $taskArtFiles[0] }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" preload="metadata"></video>
-                                                        @else
-                                                            <img src="{{ $taskArtFiles[0] }}" class="rtb-ref-preview" style="border-color:rgba(16,185,129,0.3); margin-bottom:0; display:block;" alt="Artwork">
-                                                        @endif
-                                                        <span style="position:absolute; bottom:2px; right:2px; background:rgba(16,185,129,0.9); color:#fff; font-size:9px; font-weight:800; padding:1px 5px; border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.3); pointer-events:none; display:flex; align-items:center; gap:2px;">
-                                                            <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                                            +{{ $totalTaskArt - 1 }}
-                                                        </span>
-                                                    </div>
-                                                @else
-                                                    <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($taskArtFiles) }}, {{ json_encode($taskArtUrls) }}, {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskArt }} artworks">
-                                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                                        Artwork ({{ $totalTaskArt }})
-                                                    </button>
-                                                @endif
+                                                <button type="button" onclick="event.stopPropagation(); openMediaGallery('Artwork Media', {{ json_encode($taskArtFiles) }}, {{ json_encode($taskArtUrls) }}, {{ $canRemoveTask ? 'true' : 'false' }}, {{ $task->id }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalTaskArt }} artworks">
+                                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                    Artwork ({{ $totalTaskArt }})
+                                                </button>
                                             @else
                                                 @php
                                                     $isAssignedDesigner = $currentUserId == $task->designer_id;
@@ -4738,7 +4706,11 @@
                     } else if (isImg) {
                         html += `
                             <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="closeMediaGallery(); openImagePreview('${fileUrl}', ${canRemove ? 'true' : 'false'}, ${deliverableId || 'null'})">
-                                <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; flex-direction:column; gap:6px; color:var(--color-text-secondary); background:rgba(0,0,0,0.03);">
+                                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <span style="font-size:10px; font-weight:700;">View Artwork</span>
+                                </div>
                             </div>`;
                     } else {
                         html += `

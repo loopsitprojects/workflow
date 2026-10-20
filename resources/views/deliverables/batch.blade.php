@@ -351,7 +351,11 @@
                     @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleBRef))
                         <video src="{{ $singleBRef }}" class="artwork-thumb" onclick="openImg('{{ $singleBRef }}')" preload="metadata"></video>
                     @else
-                        <img src="{{ $singleBRef }}" class="artwork-thumb" onclick="openImg('{{ $singleBRef }}')" alt="Reference">
+                        <img src="{{ $singleBRef }}" class="artwork-thumb" onclick="openImg('{{ $singleBRef }}')" alt="Reference" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+                        <button type="button" onclick="openImg('{{ $singleBRef }}')" style="display:none; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;" title="View Reference">
+                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            Ref (1)
+                        </button>
                     @endif
                 @elseif($totalBRefs === 1 && $totalBRefUrls === 1)
                     <a href="{{ $bRefUrls[0] }}" target="_blank" class="ref-link">
@@ -383,7 +387,11 @@
                         @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $singleBArt))
                             <video src="{{ $singleBArt }}" class="artwork-thumb" onclick="openImg('{{ $singleBArt }}')" preload="metadata"></video>
                         @else
-                            <img src="{{ $singleBArt }}" class="artwork-thumb" onclick="openImg('{{ $singleBArt }}')" alt="Artwork">
+                            <img src="{{ $singleBArt }}" class="artwork-thumb" onclick="openImg('{{ $singleBArt }}')" alt="Artwork" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+                            <button type="button" onclick="openImg('{{ $singleBArt }}')" style="display:none; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;" title="View Artwork">
+                                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                Artwork (1)
+                            </button>
                         @endif
                     @else
                         <a href="{{ $singleBArt }}" target="_blank" class="ref-link" style="color:#10b981;background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.2);">Download</a>
@@ -391,27 +399,10 @@
                 @elseif($totalBArt === 1 && $totalBArtUrls === 1)
                     <a href="{{ $bArtUrls[0] }}" target="_blank" class="ref-link" style="color:#10b981;background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.2);">View Link</a>
                 @elseif($totalBArt > 1)
-                    @php
-                        $firstBArtIsVisual = !empty($bArtFiles) && preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)(?:$|\?)/i', $bArtFiles[0]);
-                    @endphp
-                    @if($firstBArtIsVisual)
-                        <div style="position:relative; display:inline-block; cursor:pointer;" onclick="openMediaGallery('Artwork Media', {{ json_encode($bArtFiles) }}, {{ json_encode($bArtUrls) }})" title="View all {{ $totalBArt }} artworks">
-                            @if(preg_match('/\.(mp4|webm|ogg|mov)(?:$|\?)/i', $bArtFiles[0]))
-                                <video src="{{ $bArtFiles[0] }}" class="artwork-thumb" preload="metadata"></video>
-                            @else
-                                <img src="{{ $bArtFiles[0] }}" class="artwork-thumb" alt="Artwork">
-                            @endif
-                            <span style="position:absolute; bottom:2px; right:2px; background:rgba(16,185,129,0.9); color:#fff; font-size:9px; font-weight:800; padding:1px 5px; border-radius:4px; box-shadow:0 1px 4px rgba(0,0,0,0.3); pointer-events:none; display:flex; align-items:center; gap:2px;">
-                                <svg width="8" height="8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                +{{ $totalBArt - 1 }}
-                            </span>
-                        </div>
-                    @else
-                        <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($bArtFiles) }}, {{ json_encode($bArtUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalBArt }} artworks">
-                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            Artwork ({{ $totalBArt }})
-                        </button>
-                    @endif
+                    <button type="button" onclick="openMediaGallery('Artwork Media', {{ json_encode($bArtFiles) }}, {{ json_encode($bArtUrls) }})" style="background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:6px; padding:4px 8px; font-size:10px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; transition:all 0.15s;" title="View all {{ $totalBArt }} artworks">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Artwork ({{ $totalBArt }})
+                    </button>
                 @else
                     <div class="pc-val pc-empty">No artwork yet</div>
                 @endif
@@ -694,7 +685,11 @@ document.addEventListener('keydown', e => {
                     } else if (isImg) {
                         html += `
                             <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="closeMediaGallery(); openLightbox('${fileUrl}')">
-                                <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; flex-direction:column; gap:6px; color:var(--color-text-secondary); background:rgba(0,0,0,0.03);">
+                                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    <span style="font-size:10px; font-weight:700;">View Artwork</span>
+                                </div>
                             </div>`;
                     } else {
                         html += `

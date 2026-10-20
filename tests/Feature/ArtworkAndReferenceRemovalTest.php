@@ -157,7 +157,7 @@ test('removing one artwork file via indices with save_only action preserves rema
     expect($fresh->artwork_uploaded_by)->toBe($artUploader->id);
 });
 
-test('deliverable table in projects show renders multi-artwork files with valid thumbnail previews and no broken json in src', function () {
+test('deliverable table in projects show renders multi-artwork files with gallery button and no broken image tag', function () {
     $admin = User::factory()->create(['role' => 'Admin']);
     $brand = Brand::create(['name' => 'Brand Multi Art', 'slug' => 'brand-multi-art']);
     $project = Project::create([
@@ -188,10 +188,37 @@ test('deliverable table in projects show renders multi-artwork files with valid 
     // Must NOT contain broken JSON array in img src
     expect($content)->not->toContain('src="[&quot;');
     expect($content)->not->toContain('src="[\"');
-    // Must render the first artwork URL cleanly in src
-    expect($content)->toContain('src="https://loops-lws.s3.amazonaws.com/artwork/art1.png"');
-    // Must render the first reference URL cleanly in src
-    expect($content)->toContain('src="https://loops-lws.s3.amazonaws.com/references/ref1.png"');
-    // Must render +1 badge
-    expect($content)->toContain('+1');
+    // For multiple artworks, should render a clean gallery button instead of an img thumbnail
+    expect($content)->toContain('Artwork (2)');
+    expect($content)->toContain('Ref (2)');
+    expect($content)->toContain("openMediaGallery('Artwork Media'");
+    expect($content)->toContain("openMediaGallery('Reference Media'");
+});
+
+test('deliverable table in projects show renders single artwork with thumbnail and onerror fallback', function () {
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $brand = Brand::create(['name' => 'Brand Single Art', 'slug' => 'brand-single-art']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Retainer Project Single Art',
+        'workflow_type' => 'retainer',
+    ]);
+
+    $deliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Single 1',
+        'status' => 'In Progress',
+        'approval_stage' => 'Designer',
+        'final_designs' => 'https://loops-lws.s3.amazonaws.com/artwork/single-art.png',
+        'reference_file' => 'https://loops-lws.s3.amazonaws.com/references/single-ref.png',
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('projects.show', $project));
+    $response->assertStatus(200);
+
+    $content = $response->getContent();
+    expect($content)->toContain('src="https://loops-lws.s3.amazonaws.com/artwork/single-art.png"');
+    expect($content)->toContain('src="https://loops-lws.s3.amazonaws.com/references/single-ref.png"');
+    expect($content)->toContain('Artwork (1)');
+    expect($content)->toContain('Ref (1)');
 });
