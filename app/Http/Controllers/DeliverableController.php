@@ -200,6 +200,18 @@ class DeliverableController extends Controller
             $taskData['reference_uploaded_by'] = $taskData['reference_uploaded_by'] ?? auth()->id();
 
             $singleTask = Deliverable::create($taskData);
+            if ($project && in_array($project->workflow_type, ['campaign', 'pitch']) && $singleTask->writer) {
+                try {
+                    $singleTask->writer->notify(new \App\Notifications\DeliverableUpdated(
+                        $singleTask,
+                        "assigned you to deliverable **{$singleTask->title}**",
+                        'assignment',
+                        auth()->user()
+                    ));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Campaign deliverable store assignment notification error: ' . $e->getMessage());
+                }
+            }
             return redirect()->route('projects.show', $singleTask->project_id)->with('success', 'Deliverable created.');
         }
 
@@ -259,7 +271,7 @@ class DeliverableController extends Controller
                     $refUploadedBy = auth()->id();
                 }
 
-                Deliverable::create([
+                $subDeliverable = Deliverable::create([
                     'parent_deliverable_id' => $parentTask->id,
                     'project_id' => $parentTask->project_id,
                     'title' => $subTitle,
@@ -284,6 +296,17 @@ class DeliverableController extends Controller
                     'brand_manager_id' => $parentTask->brand_manager_id,
                     'revisions' => 0,
                 ]);
+
+                if ($parentTask->project && in_array($parentTask->project->workflow_type, ['campaign', 'pitch']) && $subDeliverable->writer) {
+                    try {
+                        $subDeliverable->writer->notify(new \App\Notifications\DeliverableUpdated(
+                            $subDeliverable,
+                            "assigned you to deliverable **{$subDeliverable->title}**",
+                            'assignment',
+                            auth()->user()
+                        ));
+                    } catch (\Throwable $e) {}
+                }
             }
         }
 
@@ -686,7 +709,26 @@ class DeliverableController extends Controller
         }
 
         $oldStage = $deliverable->approval_stage;
+        $previousWriterId = $deliverable->writer_id;
         $deliverable->update($validated);
+
+        if ($deliverable->project && in_array($deliverable->project->workflow_type, ['campaign', 'pitch'])) {
+            if (!empty($validated['writer_id']) && $validated['writer_id'] != $previousWriterId) {
+                $newAssignee = User::find($validated['writer_id']);
+                if ($newAssignee) {
+                    try {
+                        $newAssignee->notify(new \App\Notifications\DeliverableUpdated(
+                            $deliverable,
+                            "assigned you to deliverable **{$deliverable->title}**",
+                            'assignment',
+                            auth()->user()
+                        ));
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('Campaign deliverable update assignment notification error: ' . $e->getMessage());
+                    }
+                }
+            }
+        }
 
         if (isset($validated['approval_stage']) && $validated['approval_stage'] !== $oldStage) {
             $deliverable->notifyStageChange($oldStage, $validated['approval_stage'], auth()->user());
@@ -2254,6 +2296,25 @@ class DeliverableController extends Controller
 
         $deliverable->load(['writer', 'brandManager', 'approver', 'designer']);
 
+        if ($assignee) {
+            try {
+                $assignee->notify(new \App\Notifications\DeliverableUpdated(
+                    $deliverable,
+                    "assigned you to deliverable **{$deliverable->title}**",
+                    'assignment',
+                    auth()->user()
+                ));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Campaign deliverable quickStore assignment notification error: ' . $e->getMessage());
+            }
+        }
+
+        try {
+            \App\Events\DeliverablesUpdated::dispatch($project->id);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('DeliverablesUpdated broadcast error: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Deliverable created successfully.',
@@ -2291,11 +2352,20 @@ class DeliverableController extends Controller
         if (array_key_exists('deadline', $validated)) {
             $deliverable->deadline = !empty($validated['deadline']) ? $validated['deadline'] : null;
         }
+
+        $previousAssigneeId = $deliverable->writer_id;
+        $newAssignee = null;
+        $isNewlyAssigned = false;
+
         if (array_key_exists('writer_id', $validated)) {
             if (!empty($validated['writer_id']) && is_numeric($validated['writer_id'])) {
                 $assignee = User::find($validated['writer_id']);
                 $deliverable->writer_id = $assignee?->id;
                 $deliverable->assignee_name = $assignee?->name ?? 'Unassigned';
+                if ($assignee && $assignee->id != $previousAssigneeId) {
+                    $newAssignee = $assignee;
+                    $isNewlyAssigned = true;
+                }
             } else {
                 $deliverable->writer_id = null;
                 $deliverable->assignee_name = 'Unassigned';
@@ -2312,9 +2382,31 @@ class DeliverableController extends Controller
         $deliverable->save();
         $deliverable->load(['writer', 'brandManager', 'approver', 'designer']);
 
+        $message = 'Deliverable updated successfully.';
+        if ($isNewlyAssigned && $newAssignee) {
+            try {
+                $newAssignee->notify(new \App\Notifications\DeliverableUpdated(
+                    $deliverable,
+                    "assigned you to deliverable **{$deliverable->title}**",
+                    'assignment',
+                    auth()->user()
+                ));
+                $message = "Assigned to {$newAssignee->name}. Assignment email sent.";
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Campaign deliverable assignment notification error: ' . $e->getMessage());
+                $message = "Assigned to {$newAssignee->name}.";
+            }
+        }
+
+        try {
+            \App\Events\DeliverablesUpdated::dispatch($project->id);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('DeliverablesUpdated broadcast error: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Deliverable updated successfully.',
+            'message' => $message,
             'deliverable' => $deliverable,
         ]);
     }
@@ -2368,40 +2460,47 @@ class DeliverableController extends Controller
         $isCompleted = in_array($oldStatusLower, ['done', 'completed', 'complete']);
 
         // Flow authorization rules
-        if (!$isAdminOrManager) {
-            if ($isInApproval) {
-                // If it is currently in Approval Stage: ONLY the Approver can move it
-                if (!$isApprover) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'This deliverable is submitted for approval. Only the assigned approver can move it.',
-                    ], 403);
-                }
-            } elseif ($isCompleted) {
-                // If currently Completed: ONLY Approver or Admin can move it
-                if (!$isApprover) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'This deliverable is completed. Only an approver or admin can move it.',
-                    ], 403);
-                }
-            } else {
-                // Currently in To Do or In Progress: ONLY the assigned worker can move it
-                if (!$isAssigned && !$isUnassigned) {
-                    $assigneeName = $deliverable->assignee_name ?: ($deliverable->writer?->name ?? 'the assigned person');
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Only the assigned person ({$assigneeName}) can move this deliverable.",
-                    ], 403);
-                }
+        if ($isInApproval) {
+            // If it is currently in Approval Stage: ONLY the Approver or Admin/Manager can move it
+            if (!$isApprover && !$isAdminOrManager) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This deliverable is submitted for approval. Only the assigned approver can move it.',
+                ], 403);
+            }
+        } elseif ($isCompleted) {
+            // If currently Completed: ONLY Approver or Admin/Manager can move it
+            if (!$isApprover && !$isAdminOrManager) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This deliverable is completed. Only an approver or admin can move it.',
+                ], 403);
+            }
+        } else {
+            // Currently in To Do or In Progress:
+            // 1. If unassigned: Cannot be moved until assigned
+            if ($isUnassigned) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please assign a team member before moving this deliverable.',
+                ], 403);
+            }
 
-                // An assignee cannot jump straight to Complete without going through Approval Stage
-                if ($newStatus === 'Done' && !$isApprover) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Deliverables must be submitted to the Approval Stage for review before completing.',
-                    ], 403);
-                }
+            // 2. ONLY the assigned person can move it from To Do / In Progress!
+            if (!$isAssigned) {
+                $assigneeName = $deliverable->assignee_name ?: ($deliverable->writer?->name ?? 'the assigned person');
+                return response()->json([
+                    'success' => false,
+                    'message' => "Only the assigned person ({$assigneeName}) can move this deliverable.",
+                ], 403);
+            }
+
+            // 3. An assignee cannot jump straight to Complete without going through Approval Stage
+            if ($newStatus === 'Done') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Deliverables must be submitted to the Approval Stage for review before completing.',
+                ], 403);
             }
         }
 
@@ -2467,11 +2566,6 @@ class DeliverableController extends Controller
             }
         } else {
             // Moving back to To Do or In Progress
-            if ($isUnassigned && $newStatus === 'In Progress') {
-                $deliverable->writer_id = $user->id;
-                $deliverable->assignee_name = $user->name;
-            }
-
             $deliverable->status = $newStatus;
             $deliverable->approval_stage = $isOutline ? 'Assignee' : 'Assign';
             $deliverable->progress_percent = ($newStatus === 'In Progress') ? 25 : 0;
@@ -2527,9 +2621,14 @@ class DeliverableController extends Controller
         $updatedIsApprover = ($updatedApproverId && $user && $user->id == $updatedApproverId) ||
                              (!$updatedApproverId && $user && in_array($user->role, ['Approver', 'Approver Coordinator', 'Brand Manager']));
 
-        $canUserMoveNow = $isAdminOrManager ||
-            ($newStatus === 'Approval Stage' ? $updatedIsApprover :
-            ($newStatus === 'Done' ? $updatedIsApprover : ($updatedIsAssignee || !$updatedAssignedId)));
+        if ($newStatus === 'Approval Stage') {
+            $canUserMoveNow = $updatedIsApprover || $isAdminOrManager;
+        } elseif ($newStatus === 'Done') {
+            $canUserMoveNow = $updatedIsApprover || $isAdminOrManager;
+        } else {
+            // In To Do or In Progress: only the assigned user can move it; if unassigned, false
+            $canUserMoveNow = $updatedAssignedId ? $updatedIsAssignee : false;
+        }
 
         return response()->json([
             'success' => true,

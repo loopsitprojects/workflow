@@ -265,9 +265,6 @@ const kanbanIsAdminOrManager = {{ (auth()->user() && (auth()->user()->isAdmin() 
 const kanbanProjectApproverId = {{ $project->approver_id ?? ($project->brand_manager_id ?? ($project->lead_id ?? 'null')) }};
 
 function checkCardMovePermission(d) {
-    if (kanbanIsAdminOrManager) {
-        return { canMove: true, reason: '' };
-    }
     const status = (d.status || 'To Do').trim();
     const statusLower = status.toLowerCase();
     const isInApproval = ['approval stage', 'approval', 'review', 'under review'].includes(statusLower);
@@ -282,21 +279,25 @@ function checkCardMovePermission(d) {
                        (!approverId && ['Approver', 'Approver Coordinator', 'Brand Manager'].includes(kanbanCurrentUserRole));
 
     if (isInApproval) {
-        if (isApprover) {
+        if (isApprover || kanbanIsAdminOrManager) {
             return { canMove: true, reason: '' };
         }
         return { canMove: false, reason: 'Submitted to approver. Only the assigned approver can move this deliverable.' };
     }
 
     if (isDone) {
-        if (isApprover) {
+        if (isApprover || kanbanIsAdminOrManager) {
             return { canMove: true, reason: '' };
         }
         return { canMove: false, reason: 'This deliverable is completed. Only an approver or admin can move it.' };
     }
 
-    // In To Do or In Progress
-    if (isAssigned || isUnassigned) {
+    // In To Do or In Progress:
+    if (isUnassigned) {
+        return { canMove: false, reason: 'Please assign a team member before moving this deliverable.' };
+    }
+
+    if (isAssigned) {
         return { canMove: true, reason: '' };
     }
 
@@ -618,7 +619,7 @@ async function kanbanOnDrop(event, targetStatus) {
                 if (!result.can_move) {
                     const reason = (targetStatus === 'Approval Stage')
                         ? 'Submitted to approver. Only the approver can move this deliverable.'
-                        : 'You do not have permission to move this card.';
+                        : (targetStatus === 'Done' ? 'This deliverable is completed. Only an approver or admin can move it.' : 'Only the assigned person can move this deliverable.');
                     card.setAttribute('data-restriction-reason', reason);
                     card.title = reason;
                 } else {

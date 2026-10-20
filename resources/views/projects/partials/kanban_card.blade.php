@@ -57,18 +57,23 @@
     $isInApproval = in_array($statusLower, ['approval stage', 'approval', 'review', 'under review']);
     $isCompleted = in_array($statusLower, ['done', 'completed', 'complete']);
 
-    if ($isAdminOrManager) {
-        $canMove = true;
-        $moveRestrictionReason = '';
-    } elseif ($isInApproval) {
-        $canMove = $isApprover;
-        $moveRestrictionReason = $canMove ? '' : 'Submitted to approver. Only the approver can move this deliverable.';
+    if ($isInApproval) {
+        $canMove = $isApprover || $isAdminOrManager;
+        $moveRestrictionReason = $canMove ? '' : 'Submitted to approver. Only the assigned approver can move this deliverable.';
     } elseif ($isCompleted) {
-        $canMove = $isApprover;
+        $canMove = $isApprover || $isAdminOrManager;
         $moveRestrictionReason = $canMove ? '' : 'Deliverable is completed. Only an approver or admin can move it.';
     } else {
-        $canMove = $isAssignee || $isUnassigned;
-        $moveRestrictionReason = $canMove ? '' : 'Only the assigned person (' . ($task->assignee_name ?: 'assignee') . ') can move this deliverable.';
+        if ($isUnassigned) {
+            $canMove = false;
+            $moveRestrictionReason = 'Please assign a team member before moving this deliverable.';
+        } elseif ($isAssignee) {
+            $canMove = true;
+            $moveRestrictionReason = '';
+        } else {
+            $canMove = false;
+            $moveRestrictionReason = 'Only the assigned person (' . ($task->assignee_name ?: 'assignee') . ') can move this deliverable.';
+        }
     }
 @endphp
 
