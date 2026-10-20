@@ -184,6 +184,7 @@ test('retainer workflow handles Further Approver routing independently', functio
 
 test('retainer workflow revision targeting routes to Designer or Writer as specified', function () {
     $admin = User::factory()->create(['role' => 'Admin']);
+    $approver = User::factory()->create(['role' => 'Approver']);
     $designer = User::factory()->create(['role' => 'Designer']);
     $writer = User::factory()->create(['role' => 'Writer']);
 
@@ -213,7 +214,7 @@ test('retainer workflow revision targeting routes to Designer or Writer as speci
     expect($deliverable->fresh()->approval_stage)->toBe('Designer')
         ->and($deliverable->fresh()->revisions)->toBe(1);
 
-    // Now test revision targeting writer
+    // Now test revision targeting writer from post-designer stage routes to Writer Review
     $deliverable->approval_stage = 'Final Approval';
     $deliverable->save();
 
@@ -222,8 +223,39 @@ test('retainer workflow revision targeting routes to Designer or Writer as speci
         'revision_target' => 'writer',
     ], null, $admin);
 
-    expect($deliverable->fresh()->approval_stage)->toBe('Writer')
+    expect($deliverable->fresh()->approval_stage)->toBe('Writer Review')
         ->and($deliverable->fresh()->revisions)->toBe(2);
+
+    // Test that revisions from Writer Review stage ALWAYS route to Designer
+    $deliverable->approval_stage = 'Writer Review';
+    $deliverable->approver_id = $approver->id;
+    $deliverable->save();
+
+    $service->requestRevisions($deliverable, [
+        'revision_instructions' => 'Fix artwork alignment',
+        'revision_target' => 'writer', // Even if writer target is accidentally passed
+    ], null, $admin);
+
+    expect($deliverable->fresh()->approval_stage)->toBe('Designer')
+        ->and($deliverable->fresh()->approver_id)->toBe($approver->id) // approver_id preserved!
+        ->and($deliverable->fresh()->revisions)->toBe(3);
+
+    // Test that revisions from Approver Review stage targeting writer route to Writer Review
+    $deliverable->approval_stage = 'Approver Review';
+    $deliverable->save();
+
+    $service->requestRevisions($deliverable, [
+        'revision_instructions' => 'Tweak copy in caption',
+        'revision_target' => 'writer',
+    ], null, $admin);
+
+    expect($deliverable->fresh()->approval_stage)->toBe('Writer Review')
+        ->and($deliverable->fresh()->approver_id)->toBe($approver->id) // approver_id preserved!
+        ->and($deliverable->fresh()->revisions)->toBe(4);
+
+    // Test that submitting from Writer Review advances to Approver Review (NOT Approver)
+    $nextStage = $service->getNextStage($deliverable->fresh());
+    expect($nextStage)->toBe('Approver Review');
 });
 
 test('campaign deliverable can be created without top fields and inherits title from first post', function () {

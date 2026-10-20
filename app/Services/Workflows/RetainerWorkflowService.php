@@ -367,10 +367,16 @@ class RetainerWorkflowService implements WorkflowInterface
 
         $oldStage = $deliverable->approval_stage;
 
-        if (in_array($oldStage, ['Final Approval', 'Writer Review', 'Approver Review'])) {
+        if ($oldStage === 'Writer Review') {
+            // At Writer Review, the Writer is reviewing Designer's artwork.
+            // Revisions must always route back to Designer.
+            $deliverable->approval_stage = 'Designer';
+        } elseif (in_array($oldStage, ['Final Approval', 'Approver Review'])) {
             $target = $validatedData['revision_target'] ?? 'designer';
             if ($target === 'writer') {
-                $deliverable->approval_stage = $firstStage;
+                // Route back to Writer Review so the Writer can adjust copy/caption
+                // without resetting the entire pre-designer workflow back to Stage 1.
+                $deliverable->approval_stage = 'Writer Review';
             } else {
                 $deliverable->approval_stage = 'Designer';
             }
@@ -378,7 +384,8 @@ class RetainerWorkflowService implements WorkflowInterface
             $deliverable->approval_stage = $firstStage;
         }
 
-        // Reset approver so the submitter can pick a fresh one on resubmission
+        // Reset approver so the submitter can pick a fresh one on resubmission,
+        // only when sent back to the very first stage (Writer).
         if ($deliverable->approval_stage === $firstStage) {
             $deliverable->approver_id = null;
         }

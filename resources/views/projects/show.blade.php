@@ -1161,7 +1161,7 @@
                                                     elseif ($subStage === 'Designer') $btnLabel = 'Send';
                                                     elseif ($subStage === 'Writer Review') $btnLabel = 'Approve';
                                                     elseif ($subStage === 'Approver Review') $btnLabel = 'Approve';
-                                                    elseif ($subStage === 'Scheduled') $btnLabel = 'Scheduled';
+                                                    elseif ($subStage === 'Scheduled') $btnLabel = 'Scheduled and Closed';
                                                 @endphp
 
                                                 @php
@@ -1174,7 +1174,7 @@
                                                     </button>
                                                 @endif
                                                 @if($canApproveSub && $subNextStage)
-                                                    <button type="button" onclick="openBatchModal(event, {{ $subtask->id }}, '{{ $subNextStage }}', 1, 'submit', {{ $subStakeholders }}, {{ $subtask->revision_instructions ? 'true' : 'false' }})" class="quick-action-btn btn-approve-quick">
+                                                    <button type="button" onclick="openBatchModal(event, {{ $subtask->id }}, '{{ $subNextStage }}', 1, 'submit', {{ $subStakeholders }}, {{ $subtask->revision_instructions ? 'true' : 'false' }})" class="quick-action-btn btn-approve-quick" @if($subStage === 'Scheduled') style="grid-column:span 2; white-space:nowrap;" @endif>
                                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                                         {{ $btnLabel }}
                                                     </button>
@@ -1444,7 +1444,7 @@
                                                     </button>
                                                 @endif
                                                 @if($canApproveIndividual && $nextStage)
-                                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {{ $taskStakeholders }}, {{ $task->revision_instructions ? 'true' : 'false' }})" class="quick-action-btn btn-approve-quick">
+                                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', 1, 'submit', {{ $taskStakeholders }}, {{ $task->revision_instructions ? 'true' : 'false' }})" class="quick-action-btn btn-approve-quick" @if($stage === 'Scheduled') style="grid-column:span 2; white-space:nowrap;" @endif>
                                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                                         {{ $btnLabel }}
                                                     </button>
@@ -1980,8 +1980,8 @@
                     </div>
                     <form id="revisionsForm" method="POST" enctype="multipart/form-data">
                         @csrf
-                        <input type="hidden" name="revision_target" id="modalRevisionTarget" value="writer">
-                        <!-- Post-designer revision target toggle (shown only for Writer Review / Approver Review / Final Approval) -->
+                        <input type="hidden" name="revision_target" id="modalRevisionTarget" value="designer">
+                        <!-- Post-designer revision target toggle (shown only for Approver Review / Further Approver / Final Approval) -->
                         <div id="modalRevisionTargetGroup" style="display:none; margin-bottom:16px; padding:12px 14px; border-radius:10px; border:1.5px solid rgba(239,68,68,0.15); background:rgba(239,68,68,0.04);">
                             <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;display:block;margin-bottom:8px;">Send back to</span>
                             <div style="display:flex;gap:16px;">
@@ -3375,7 +3375,7 @@
                             const sel = bmArea.querySelector('select');
                             if (sel) sel.disabled = false;
                         }
-                    } else if (stage === 'Writer' || stage === 'Assignee') {
+                    } else if (stage === 'Writer' || stage === 'Assignee' || stage === 'Writer Review') {
                         if (task.approver_id) {
                             if (apprArea) {
                                 apprArea.style.display = 'none';
@@ -3484,8 +3484,8 @@
                     showRevisionBtn.style.display = 'block';
                 }
 
-                // Show/reset revision target toggle for post-designer stages
-                const postDesignerStages = ['Writer Review', 'Approver Review', 'Further Approver', 'Final Approval', 'Manager Review'];
+                // Show/reset revision target toggle for post-designer stages where a choice between Designer and Writer makes sense
+                const postDesignerStagesWithChoice = ['Approver Review', 'Further Approver', 'Final Approval', 'Manager Review'];
                 const modalRevisionTargetGroup = document.getElementById('modalRevisionTargetGroup');
                 const modalRevisionTarget = document.getElementById('modalRevisionTarget');
                 if (modalRevisionTargetGroup) {
@@ -3493,11 +3493,12 @@
                         modalRevisionTargetGroup.style.display = 'none';
                         modalRevisionTarget.value = 'writer';
                         document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the assigned person.';
-                    } else if (isDirectDesign || task.is_direct_design) {
+                    } else if (isDirectDesign || task.is_direct_design || stage === 'Writer Review') {
+                        // At Writer Review, the reviewer is the Writer, so revisions always route back to the Designer
                         modalRevisionTargetGroup.style.display = 'none';
                         modalRevisionTarget.value = 'designer';
                         document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the Designer.';
-                    } else if (postDesignerStages.includes(stage)) {
+                    } else if (postDesignerStagesWithChoice.includes(stage)) {
                         modalRevisionTargetGroup.style.display = 'block';
                         document.getElementById('modalReviseTargetDesigner').checked = true;
                         modalRevisionTarget.value = 'designer';
@@ -4052,14 +4053,18 @@
                 const batchRevDeadline = document.getElementById('batchRevisionDeadlineInput');
                 if (batchRevDeadline) batchRevDeadline.value = '';
 
-                // Show "send back to" toggle for post-designer review stages
-                const postDesignerStages = ['Writer Review', 'Approver Review', 'AM/BD', 'Final Approval'];
+                // Show "send back to" toggle for post-designer review stages where choice applies
+                const postDesignerStages = ['Approver Review', 'AM/BD', 'Final Approval'];
                 const revisionTargetGroup = document.getElementById('batchRevisionTargetGroup');
                 const revisionNote = document.getElementById('batchRevisionNote');
                 const projectWorkflow = '{{ $project->workflow_type }}';
                 if (projectWorkflow !== 'retainer') {
                     if (revisionTargetGroup) revisionTargetGroup.style.display = 'none';
                     if (revisionNote) revisionNote.textContent = isIndividual ? "The task will be sent back to the assigned person." : "The entire batch will be sent back to the assigned person.";
+                } else if (nextStage === 'Writer Review') {
+                    // At Writer Review, revisions always route back to Designer
+                    if (revisionTargetGroup) revisionTargetGroup.style.display = 'none';
+                    if (revisionNote) revisionNote.textContent = isIndividual ? "The task will be sent back to the Designer." : "The batch will be sent back to the Designer.";
                 } else if (postDesignerStages.includes(nextStage)) {
                     if (revisionTargetGroup) {
                         revisionTargetGroup.style.display = 'block';
@@ -4177,10 +4182,10 @@
             let roleUsers = [];
             let label = "";
 
-            if (nextStage === 'Approver') {
+            if (nextStage === 'Approver' || nextStage === 'Approver Review') {
                 roleToFill = 'approver_id';
                 roleUsers = JSON.parse(document.getElementById('approvers-data').textContent);
-                label = "Select Approver";
+                label = nextStage === 'Approver Review' ? "Select Approver for Review" : "Select Approver";
                 stickyHint.style.display = 'block'; // As per user request "till its end"
             } else if (nextStage === 'Brand Manager' || nextStage === 'Final Approval' || nextStage === 'AM/BD' || nextStage === 'Approve') {
                 roleToFill = 'brand_manager_id';
@@ -4213,10 +4218,10 @@
             }
 
             if (roleToFill && type === 'submit') {
-                if (nextStage === 'Approver' && stakeholders.approver) {
+                if ((nextStage === 'Approver' || nextStage === 'Approver Review') && stakeholders.approver) {
                     stakeholderGroup.style.display = 'none';
                     genericConfirm.style.display = 'block';
-                    genericConfirm.textContent = isIndividual ? `Are you sure you want to submit this task to the Approver stage?` : `Are you sure you want to submit this entire batch to the Approver stage?`;
+                    genericConfirm.textContent = isIndividual ? `Are you sure you want to submit this task to the ${nextStage} stage?` : `Are you sure you want to submit this entire batch to the ${nextStage} stage?`;
                 } else if (nextStage === 'Further Approver' && stakeholders.brand_manager) {
                     stakeholderGroup.style.display = 'none';
                     genericConfirm.style.display = 'block';
@@ -4239,7 +4244,7 @@
                     
                     // Get pre-selection ID (task level first, then fallback to project)
                     let preSelectId = null;
-                    if (nextStage === 'Approver') {
+                    if (nextStage === 'Approver' || nextStage === 'Approver Review') {
                         preSelectId = stakeholders.approver || {!! json_encode($project->approver_id) !!};
                     } else if (nextStage === 'Brand Manager' || nextStage === 'Final Approval' || nextStage === 'AM/BD' || nextStage === 'Approve') {
                         preSelectId = stakeholders.brand_manager || {!! json_encode($project->brand_manager_id) !!} || {!! json_encode($project->lead_id) !!};
@@ -4315,7 +4320,11 @@
             btn.disabled = true;
 
             const revisionTargetRadio = document.querySelector('input[name="revision_target_radio"]:checked');
-            const revisionTarget = revisionTargetRadio ? revisionTargetRadio.value : null;
+            let revisionTarget = revisionTargetRadio ? revisionTargetRadio.value : null;
+
+            if (currentBatchNextStage === 'Writer Review' || (currentBatchStakeholders && currentBatchStakeholders.currentStage === 'Writer Review')) {
+                revisionTarget = 'designer';
+            }
 
             try {
                 const formData = new FormData();
@@ -4397,13 +4406,17 @@
                     return;
                 }
                 // Determine which role field to send
-                if (currentBatchNextStage === 'Approver') roleField = 'approver_id';
+                if (currentBatchNextStage === 'Approver' || currentBatchNextStage === 'Approver Review') roleField = 'approver_id';
                 else if (currentBatchNextStage === 'Brand Manager' || currentBatchNextStage === 'Final Approval' || currentBatchNextStage === 'AM/BD' || currentBatchNextStage === 'Approve') roleField = 'brand_manager_id';
                 else if (currentBatchNextStage === 'Coordinator') roleField = 'coordinator_id';
                 else if (currentBatchNextStage === 'Designer') roleField = 'designer_id';
                 else if (currentBatchNextStage === 'Writer Review') roleField = 'writer_id';
             }
 
+            if (!assigneeId && (currentBatchNextStage === 'Approver' || currentBatchNextStage === 'Approver Review') && currentBatchStakeholders.approver) {
+                assigneeId = currentBatchStakeholders.approver;
+                roleField = 'approver_id';
+            }
             if (!assigneeId && currentBatchNextStage === 'Writer Review' && currentBatchStakeholders.writer) {
                 assigneeId = currentBatchStakeholders.writer;
                 roleField = 'writer_id';
@@ -4663,7 +4676,7 @@
                 modal.style.cssText = 'position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:999999 !important; display:none; justify-content:center !important; align-items:center !important; opacity:0; transition:opacity 0.2s ease; background:rgba(15,23,42,0.75) !important; backdrop-filter:blur(8px) !important; margin:0 !important; padding:20px !important; box-sizing:border-box !important;';
                 modal.onclick = closeMediaGallery;
                 modal.innerHTML = `
-                    <div class="cd-modal is-windowed cd-modal-dialog" style="position:relative !important; inset:auto !important; margin:auto !important; width:90% !important; max-width:680px !important; max-height:85vh !important; height:auto !important; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
+                    <div class="cd-modal is-windowed cd-modal-dialog" style="position:relative !important; inset:auto !important; margin:auto !important; width:90% !important; max-width:760px !important; max-height:85vh !important; height:auto !important; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
                         <div style="padding:14px 20px; border-bottom:1px solid var(--color-border-primary); display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-secondary);">
                             <h3 id="mediaGalleryTitle" style="margin:0; font-size:15px; font-weight:800; color:var(--color-text-primary); display:flex; align-items:center; gap:8px;"></h3>
                             <div style="display:flex; align-items:center; gap:10px;">
@@ -4673,7 +4686,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div id="mediaGalleryContent" style="padding:20px; overflow-y:auto; flex:1; display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; align-content:start;"></div>
+                        <div id="mediaGalleryContent" style="padding:20px; overflow-y:auto; flex:1; display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:14px; align-content:start;"></div>
                     </div>
                 `;
                 document.body.appendChild(modal);
@@ -4733,17 +4746,17 @@
                     }
 
                     html += `
-                        <div style="width:100%; padding:8px 10px; display:flex; align-items:center; justify-content:flex-end; gap:6px; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary);">
-                            <a href="${fileUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); border-radius:5px; text-decoration:none;" onclick="event.stopPropagation();" title="Open in new tab">
+                        <div style="width:100%; box-sizing:border-box; padding:8px 8px; display:flex; align-items:center; justify-content:space-between; gap:4px; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary);">
+                            <a href="${fileUrl}" target="_blank" style="flex:1; min-width:0; justify-content:center; display:inline-flex; align-items:center; gap:4px; padding:4px 6px; font-size:10px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); border-radius:6px; text-decoration:none; white-space:nowrap; box-sizing:border-box;" onclick="event.stopPropagation();" title="Open in new tab">
                                 <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                                 Open
                             </a>
-                            <button type="button" onclick="event.stopPropagation(); downloadMedia(event, '${fileUrl}')" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:5px; cursor:pointer;" title="Download file">
+                            <button type="button" onclick="event.stopPropagation(); downloadMedia(event, '${fileUrl}')" style="flex:1; min-width:0; justify-content:center; display:inline-flex; align-items:center; gap:4px; padding:4px 6px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:6px; cursor:pointer; white-space:nowrap; box-sizing:border-box;" title="Download file">
                                 <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                                 Download
                             </button>
                             ${canRemove && deliverableId ? `
-                                <button type="button" onclick="event.stopPropagation(); removeGalleryArtwork('${fileUrl}', ${deliverableId})" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:5px; cursor:pointer;" title="Remove this artwork file">
+                                <button type="button" onclick="event.stopPropagation(); removeGalleryArtwork('${fileUrl}', ${deliverableId})" style="flex:1; min-width:0; justify-content:center; display:inline-flex; align-items:center; gap:4px; padding:4px 6px; font-size:10px; font-weight:700; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:6px; cursor:pointer; white-space:nowrap; box-sizing:border-box;" title="Remove this artwork file">
                                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     Remove
                                 </button>

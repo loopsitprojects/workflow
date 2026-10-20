@@ -965,8 +965,8 @@
                     </div>
                     <form id="revisionsForm" method="POST" enctype="multipart/form-data">
                         @csrf
-                        <input type="hidden" name="revision_target" id="modalRevisionTarget" value="writer">
-                        <!-- Post-designer revision target toggle (shown only for Writer Review / Approver Review / Final Approval) -->
+                        <input type="hidden" name="revision_target" id="modalRevisionTarget" value="designer">
+                        <!-- Post-designer revision target toggle (shown only for Approver Review / Further Approver / Final Approval) -->
                         <div id="modalRevisionTargetGroup" style="display:none; margin-bottom:16px; padding:12px 14px; border-radius:10px; border:1.5px solid rgba(239,68,68,0.15); background:rgba(239,68,68,0.04);">
                             <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;display:block;margin-bottom:8px;">Send back to</span>
                             <div style="display:flex;gap:16px;">
@@ -2666,7 +2666,7 @@
                             const sel = bmArea.querySelector('select');
                             if (sel) sel.disabled = false;
                         }
-                    } else if (stage === 'Writer' || stage === 'Assignee') {
+                    } else if (stage === 'Writer' || stage === 'Assignee' || stage === 'Writer Review') {
                         if (task.approver_id) {
                             if (apprArea) {
                                 apprArea.style.display = 'none';
@@ -2796,8 +2796,8 @@
                     showRevisionBtn.style.display = 'block';
                 }
 
-                // Show/reset revision target toggle for post-designer stages
-                const postDesignerStages = ['Writer Review', 'Approver Review', 'Further Approver', 'Final Approval', 'Manager Review'];
+                // Show/reset revision target toggle for post-designer stages where a choice between Designer and Writer makes sense
+                const postDesignerStagesWithChoice = ['Approver Review', 'Further Approver', 'Final Approval', 'Manager Review'];
                 const modalRevisionTargetGroup = document.getElementById('modalRevisionTargetGroup');
                 const modalRevisionTarget = document.getElementById('modalRevisionTarget');
                 if (modalRevisionTargetGroup) {
@@ -2805,11 +2805,12 @@
                         modalRevisionTargetGroup.style.display = 'none';
                         modalRevisionTarget.value = 'writer';
                         document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the assigned person.';
-                    } else if (isDirectDesign || task.is_direct_design) {
+                    } else if (isDirectDesign || task.is_direct_design || stage === 'Writer Review') {
+                        // At Writer Review, the reviewer is the Writer, so revisions always route back to the Designer
                         modalRevisionTargetGroup.style.display = 'none';
                         modalRevisionTarget.value = 'designer';
                         document.getElementById('modalRevisionTargetNote').textContent = 'The task will be sent back to the Designer.';
-                    } else if (postDesignerStages.includes(stage)) {
+                    } else if (postDesignerStagesWithChoice.includes(stage)) {
                         modalRevisionTargetGroup.style.display = 'block';
                         document.getElementById('modalReviseTargetDesigner').checked = true;
                         modalRevisionTarget.value = 'designer';
