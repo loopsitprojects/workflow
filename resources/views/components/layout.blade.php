@@ -184,5 +184,6 @@
     <x-notification-panel />
     <x-toast />
     <x-confirm-modal />
+    <x-highlighted-upload-overlay />
 </body>
 </html>

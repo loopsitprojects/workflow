@@ -1,7 +1,7 @@
 <div id="globalConfirmModalOverlay"
-     style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.75); backdrop-filter:blur(8px); z-index:99999; justify-content:center; align-items:center; opacity:0; transition:opacity 0.2s ease;">
+     style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.7); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:99999999; justify-content:center; align-items:center; opacity:0; transition:opacity 0.2s ease;">
     <div id="globalConfirmModalBox"
-         style="background:var(--color-bg-primary, #1f2937); border:1px solid var(--color-border-primary, rgba(255,255,255,0.1)); border-radius:20px; padding:28px; width:420px; max-width:92vw; box-shadow:0 25px 60px rgba(0,0,0,0.4); transform:scale(0.95); transition:transform 0.2s ease;">
+         style="background:var(--color-bg-primary, #111827); border:1px solid var(--color-border-primary, rgba(255,255,255,0.1)); border-radius:20px; padding:28px 24px; width:420px; max-width:92vw; box-shadow:0 25px 60px rgba(0,0,0,0.4); transform:scale(0.95); transition:transform 0.2s ease; margin:auto;">
         
         <div style="display:flex; align-items:flex-start; gap:16px; margin-bottom:20px;">
             <div id="globalConfirmIconBg" style="width:44px; height:44px; border-radius:12px; background:rgba(239,68,68,0.15); display:flex; align-items:center; justify-content:center; flex-shrink:0;">

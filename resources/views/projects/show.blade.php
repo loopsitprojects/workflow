@@ -859,7 +859,7 @@
                             @forelse($project->deliverables->whereNull('parent_deliverable_id')->filter(fn($t) => $t->flow_type !== 'direct_design') as $task)
                                 @if($task->subtasks->count() > 0)
                                     <!-- Heading Row for Deliverable with Subtasks -->
-                                    <tr class="rtb-heading-row" style="background:var(--color-bg-secondary); border-left:3px solid #3b82f6; cursor:pointer;" onclick="toggleSubtasks(event, {{ $task->id }})">
+                                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" class="rtb-heading-row" style="background:var(--color-bg-secondary); border-left:3px solid #3b82f6; cursor:pointer;" onclick="toggleSubtasks(event, {{ $task->id }})">
                                         <td colspan="4">
                                             <div class="deliverable-name-cell" style="padding: 8px 0; display:flex; align-items:center; gap:10px;">
                                                 <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle active" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:6px; outline:none;"></button>
@@ -978,7 +978,7 @@
                                         $isWriter = ($userRole === 'writer' || $userRole === 'assignee');
                                         $canEditInline = $isAdmin || (($subtask->approval_stage === 'Writer' || $subtask->approval_stage === 'Assignee') && $isWriter && (!$subtask->writer_id || auth()->id() == $subtask->writer_id));
                                     @endphp
-                                    <tr class="subtask-row rtb-subtask-row subtask-of-{{ $task->id }} {{ $subIndex === $task->subtasks->count() - 1 ? 'last-subtask' : '' }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
+                                    <tr id="deliverable-row-{{ $subtask->id }}" data-deliverable-id="{{ $subtask->id }}" class="subtask-row rtb-subtask-row subtask-of-{{ $task->id }} {{ $subIndex === $task->subtasks->count() - 1 ? 'last-subtask' : '' }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                         <td>
                                             <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
                                                 @php
@@ -999,18 +999,21 @@
                                             @if($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00')
                                                 <div style="font-size:9px; color:var(--color-text-secondary); margin-bottom:2px;">{{ \Carbon\Carbon::parse($displayDeadline)->format('H:i') }}</div>
                                             @endif
-                                            @if($subtask->designer_deadline || $subtask->revision_deadline)
+                                            @php
+                                                $displaySubRevDeadline = $subtask->revision_deadline ?? $task->revision_deadline ?? $subtask->revisionsHistory()->latest()->first()?->revision_deadline;
+                                                $subHasRev = !empty($displaySubRevDeadline) || (!empty($subtask->revisions) && (is_numeric($subtask->revisions) ? $subtask->revisions > 0 : $subtask->revisions->count() > 0)) || !empty($subtask->revision_instructions);
+                                            @endphp
+                                            @if($subtask->designer_deadline || $displaySubRevDeadline)
                                                 <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
-                                                    @if($subtask->designer_deadline)
+                                                    @if($displaySubRevDeadline)
+                                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Revision Deadline">
+                                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                            <span>Rev: {{ \Carbon\Carbon::parse($displaySubRevDeadline)->format('M d, Y') }}</span>
+                                                        </div>
+                                                    @elseif($subtask->designer_deadline && !$subHasRev)
                                                         <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ec4899; background:rgba(236,72,153,0.08); border:1px solid rgba(236,72,153,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Designer Deadline">
                                                             <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                                             <span>Des: {{ \Carbon\Carbon::parse($subtask->designer_deadline)->format('M d, Y') }}</span>
-                                                        </div>
-                                                    @endif
-                                                    @if($subtask->revision_deadline)
-                                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Revision Deadline">
-                                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                            <span>Rev: {{ \Carbon\Carbon::parse($subtask->revision_deadline)->format('M d, Y') }}</span>
                                                         </div>
                                                     @endif
                                                 </div>
@@ -1220,7 +1223,7 @@
                                     @endforeach
                                 @else
                                     <!-- Standard Row for Deliverable without Subtasks -->
-                                    <tr class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
+                                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                         <td>
                                             <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
                                                 <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:var(--color-text-primary);">{{ $task->title }}</span>
@@ -1232,18 +1235,21 @@
                                             @if($displayDeadline && \Carbon\Carbon::parse($displayDeadline)->format('H:i') !== '00:00')
                                                 <div style="font-size:9px; color:var(--color-text-secondary); margin-bottom:2px;">{{ \Carbon\Carbon::parse($displayDeadline)->format('H:i') }}</div>
                                             @endif
-                                            @if($task->designer_deadline || $task->revision_deadline)
+                                            @php
+                                                $displayTaskRevDeadline = $task->revision_deadline ?? $task->revisionsHistory()->latest()->first()?->revision_deadline;
+                                                $taskHasRev = !empty($displayTaskRevDeadline) || (!empty($task->revisions) && (is_numeric($task->revisions) ? $task->revisions > 0 : $task->revisions->count() > 0)) || !empty($task->revision_instructions);
+                                            @endphp
+                                            @if($task->designer_deadline || $displayTaskRevDeadline)
                                                 <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
-                                                    @if($task->designer_deadline)
+                                                    @if($displayTaskRevDeadline)
+                                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Revision Deadline">
+                                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                            <span>Rev: {{ \Carbon\Carbon::parse($displayTaskRevDeadline)->format('M d, Y') }}</span>
+                                                        </div>
+                                                    @elseif($task->designer_deadline && !$taskHasRev)
                                                         <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ec4899; background:rgba(236,72,153,0.08); border:1px solid rgba(236,72,153,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Designer Deadline">
                                                             <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                                             <span>Des: {{ \Carbon\Carbon::parse($task->designer_deadline)->format('M d, Y') }}</span>
-                                                        </div>
-                                                    @endif
-                                                    @if($task->revision_deadline)
-                                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Revision Deadline">
-                                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                            <span>Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d, Y') }}</span>
                                                         </div>
                                                     @endif
                                                 </div>
@@ -1754,37 +1760,11 @@
                         <div id="modalReference" class="detail-val" style="margin-bottom: 12px; margin-top: 8px;"></div>
                         <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.1); border-radius:16px; margin-top: 14px;">
                             <div>
-                                <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Upload New Reference File</div>
-                                <input type="file" id="modalReferenceFileInput" name="reference_file" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="
-                                    const f = this.files[0];
-                                    const prev = document.getElementById('modalReferenceImagePreview');
-                                    const vidPrev = document.getElementById('modalReferenceVideoPreview');
-                                    const pdfPrev = document.getElementById('modalReferencePdfPreview');
-                                    const clearBtn = document.getElementById('modalReferenceClearBtn');
-                                    if (f && (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) {
-                                        if (pdfPrev) {
-                                            pdfPrev.style.display = 'flex';
-                                            document.getElementById('modalReferencePdfName').textContent = f.name;
-                                        }
-                                        if (prev) { prev.style.display='none'; prev.src=''; }
-                                        if (vidPrev) { vidPrev.style.display='none'; vidPrev.src=''; }
-                                        if (clearBtn) clearBtn.style.display = 'flex';
-                                    } else if (f && f.type.startsWith('image/')) {
-                                        const r = new FileReader();
-                                        r.onload = e => { prev.src = e.target.result; prev.style.display='block'; vidPrev.style.display='none'; vidPrev.src=''; if (pdfPrev) pdfPrev.style.display='none'; };
-                                        r.readAsDataURL(f);
-                                        if (clearBtn) clearBtn.style.display = 'flex';
-                                    } else if (f && f.type.startsWith('video/')) {
-                                        const url = (window.URL || window.webkitURL).createObjectURL(f);
-                                        vidPrev.src = url; vidPrev.style.display='block'; prev.style.display='none'; prev.src=''; if (pdfPrev) pdfPrev.style.display='none';
-                                        if (clearBtn) clearBtn.style.display = 'flex';
-                                    } else {
-                                        if (prev) { prev.style.display='none'; prev.src=''; }
-                                        if (vidPrev) { vidPrev.style.display='none'; vidPrev.src=''; }
-                                        if (pdfPrev) { pdfPrev.style.display='none'; }
-                                        if (clearBtn) clearBtn.style.display = 'none';
-                                    }
-                                ">
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                                    <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase;">Upload New Reference File</div>
+                                    <div id="modalReferenceUploadStatus" style="display:none; align-items:center; gap:6px; font-size:10px; font-weight:800;"></div>
+                                </div>
+                                <input type="file" id="modalReferenceFileInput" name="reference_file" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" multiple style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="autoUploadModalReference(this)">
                                 <div style="position:relative; display:inline-block; margin-top:10px;">
                                     <div id="modalReferencePdfPreview" style="display:none; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:240px;">
                                         <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
@@ -1899,7 +1879,7 @@
                     <div id="designerDeliveryArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.1); border-radius:16px;">
                         <label class="detail-label" style="color:#10b981; margin-bottom:14px;">Deliver Final Artwork</label>
                         {{-- Self-contained form — avoids cross-form file input bugs --}}
-                        <form id="artworkDeliveryForm" method="POST" enctype="multipart/form-data">
+                        <form id="artworkDeliveryForm" method="POST" enctype="multipart/form-data" onsubmit="event.preventDefault(); submitArtworkDeliveryForm(this);">
                             @csrf
                             <input type="hidden" name="action" value="save_only">
                             <div style="display:flex; flex-direction:column; gap:12px;">
@@ -1910,25 +1890,9 @@
                                     </div>
                                     <div style="flex:1;min-width:0;">
                                         <div style="font-size:12px;font-weight:700;color:#10b981;" id="artworkFileLabel">Choose file…</div>
-                                        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:2px;">PNG, JPG, GIF, WebP, MP4, WebM, PDF</div>
+                                        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:2px;">PNG, JPG, GIF, WebP, MP4, WebM, PDF (auto-saves on select)</div>
                                     </div>
-                                    <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*,video/*,application/pdf,.pdf" style="display:none;" onchange="
-                                        const f = this.files[0];
-                                        document.getElementById('artworkFileLabel').textContent = f?.name || 'Choose file…';
-                                        const imgP = document.getElementById('modalArtworkPreview');
-                                        const vidP = document.getElementById('modalArtworkVideoPreview');
-                                        const pdfP = document.getElementById('modalArtworkPdfPreview');
-                                        if(imgP) imgP.style.display = 'none';
-                                        if(vidP) vidP.style.display = 'none';
-                                        if(pdfP) pdfP.style.display = 'none';
-                                        if (f && (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))) {
-                                            if(pdfP) { pdfP.style.display = 'flex'; document.getElementById('modalArtworkPdfName').textContent = f.name; }
-                                        } else if (f && f.type.startsWith('image/')) {
-                                            if(imgP) { imgP.src = URL.createObjectURL(f); imgP.style.display = 'block'; }
-                                        } else if (f && f.type.startsWith('video/')) {
-                                            if(vidP) { vidP.src = URL.createObjectURL(f); vidP.style.display = 'block'; }
-                                        }
-                                    ">
+                                    <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*,video/*,application/pdf,.pdf" multiple style="display:none;" onchange="autoUploadModalArtwork(this)">
                                 </label>
                                 <div id="modalArtworkPdfPreview" style="display:none; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:240px; margin-top:10px;">
                                     <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
@@ -2633,7 +2597,7 @@
                         }
                     }
                     revDeadlineInputBox.value = rDateStr;
-                    const canEditRevDeadline = isAdmin || ['brandmanager', 'coordinator', 'approvercoordinator', 'operationsmanager'].includes(userRole);
+                    const canEditRevDeadline = isAdmin || ['brandmanager', 'coordinator', 'approvercoordinator', 'operationsmanager', 'writer'].includes(userRole);
                     revDeadlineInputBox.readOnly = !canEditRevDeadline;
                     const saveRevBtn = document.getElementById('saveRevisionDeadlineBtn');
                     if (saveRevBtn) saveRevBtn.style.display = 'none';
@@ -2883,32 +2847,50 @@
                             <a href="${fileUrl}" target="_blank" style="color:#10b981; font-weight:700; display:block; margin-bottom:8px;">${labelText}</a>`;
                     }
 
+                    const boxId = `prjModalArtFileBox_${index}`;
                     finalHtml += `
-                        <div style="display:inline-block; margin-right:12px; margin-bottom:8px; vertical-align:top; text-align:center;">
+                        <div id="${boxId}" class="art-box-item" style="display:inline-block; margin-right:12px; margin-bottom:8px; vertical-align:top; text-align:center;">
                             ${thumb}
                             ${canRemoveArt ? `
-                                <button type="submit" name="delete_final_designs" value="${fileUrl}" form="submitStageForm" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;" onclick="let inp=document.getElementById('imagePreviewTargetFile'); if(!inp){inp=document.createElement('input');inp.type='hidden';inp.name='target_artwork_file';inp.id='imagePreviewTargetFile';document.getElementById('submitStageForm').appendChild(inp);} inp.value='${fileUrl}';">
+                                <button type="button" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;" onclick="removeArtworkImmediately(${task.id}, '${fileUrl}', document.getElementById('${boxId}'), false, ${index})">
                                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     Remove
                                 </button>
                             ` : ''}
                         </div>`;
                 });
-                if (task.final_designs_link) {
+
+                let artUrls = [];
+                if (task.final_designs_urls_list && Array.isArray(task.final_designs_urls_list)) {
+                    artUrls = task.final_designs_urls_list;
+                } else if (task.final_designs_link) {
+                    if (typeof task.final_designs_link === 'string' && task.final_designs_link.startsWith('[')) {
+                        try { artUrls = JSON.parse(task.final_designs_link); } catch(e) { artUrls = [task.final_designs_link]; }
+                    } else if (Array.isArray(task.final_designs_link)) {
+                        artUrls = task.final_designs_link;
+                    } else {
+                        artUrls = [task.final_designs_link];
+                    }
+                }
+
+                artUrls.forEach((url, index) => {
+                    if (!url) return;
+                    const label = artUrls.length > 1 ? `External Link #${index + 1}` : 'External Link';
+                    const linkBoxId = `prjModalArtUrlBox_${index}`;
                     finalHtml += `
-                        <div style="display:inline-block; vertical-align:top; text-align:center; margin-right:12px;">
-                            <a href="${task.final_designs_link}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:10px 16px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:10px; color:#10b981; text-decoration:none; vertical-align:top;">
+                        <div id="${linkBoxId}" class="art-box-item" style="display:inline-block; vertical-align:top; text-align:center; margin-right:12px; margin-bottom:8px;">
+                            <a href="${url}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:10px 16px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:10px; color:#10b981; text-decoration:none; vertical-align:top;">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                                <span style="font-size:11px; font-weight:800; text-transform:uppercase;">External Link</span>
+                                <span style="font-size:11px; font-weight:800; text-transform:uppercase;">${label}</span>
                             </a>
                             ${canRemoveArt ? `
-                                <button type="submit" name="delete_final_designs_link" value="1" form="submitStageForm" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
+                                <button type="button" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;" onclick="removeArtworkImmediately(${task.id}, '${url}', document.getElementById('${linkBoxId}'), true, ${index})">
                                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     Remove Link
                                 </button>
                             ` : ''}
                         </div>`;
-                }
+                });
                 document.getElementById('modalFinal').innerHTML = finalHtml || '<span style="color:#94a3b8; font-size:13px; font-weight:500;">Pending Delivery</span>';
 
                 // History
@@ -3587,7 +3569,14 @@
             overlay.style.opacity = '0';
             overlay.querySelector('.cd-modal').classList.remove('active');
             document.body.style.overflow = '';
-            setTimeout(() => { overlay.style.display = 'none'; toggleRevisionInput(false); }, 300);
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                toggleRevisionInput(false);
+                if (window._deliverableModalModified) {
+                    window._deliverableModalModified = false;
+                    window.location.reload();
+                }
+            }, 300);
         }
 
         async function deleteTaskFromModal() {
@@ -3688,6 +3677,17 @@
                 fd.append('batch_data', JSON.stringify(batchData));
                 Object.entries(sbRefFiles).forEach(([id, file]) => fd.append('reference_files[' + id + ']', file));
                 sbFetchOpts = { method: 'POST', headers: { 'X-CSRF-TOKEN': sbCsrf, 'Accept': 'application/json' }, body: fd };
+
+                if (window.HighlightedUpload) {
+                    const fileNames = Object.values(sbRefFiles).map(f => f.name).join(', ');
+                    window.HighlightedUpload.show({
+                        title: 'Uploading Batch References…',
+                        filename: fileNames,
+                        percent: 45,
+                        status: `Uploading reference files for ${Object.keys(sbRefFiles).length} task(s)…`,
+                        type: 'reference'
+                    });
+                }
             } else {
                 sbFetchOpts = { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': sbCsrf, 'Accept': 'application/json' }, body: JSON.stringify({ batch_data: batchData }) };
             }
@@ -3697,14 +3697,19 @@
 
                 const data = await response.json();
                 if (data.success) {
+                    if (window.HighlightedUpload) {
+                        window.HighlightedUpload.update(100, 'Batch updated successfully! Refreshing…');
+                    }
                     clearBatchDrafts();
                     window.location.reload();
                 } else {
+                    if (window.HighlightedUpload) window.HighlightedUpload.hide();
                     window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Error advancing batch', type: 'error' } }));
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 }
             } catch (error) {
+                if (window.HighlightedUpload) window.HighlightedUpload.hide();
                 window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'An unexpected error occurred while communicating with the server.', type: 'error' } }));
                 btn.innerHTML = originalText;
                 btn.disabled = false;
@@ -4483,6 +4488,17 @@
                 if (payload.designer_deadline) fd.append('designer_deadline', payload.designer_deadline);
                 Object.entries(refFiles).forEach(([id, file]) => fd.append('reference_files[' + id + ']', file));
                 fetchOpts = { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }, body: fd };
+
+                if (window.HighlightedUpload) {
+                    const fileNames = Object.values(refFiles).map(f => f.name).join(', ');
+                    window.HighlightedUpload.show({
+                        title: 'Uploading Batch References…',
+                        filename: fileNames,
+                        percent: 45,
+                        status: `Uploading reference files for ${Object.keys(refFiles).length} task(s)…`,
+                        type: 'reference'
+                    });
+                }
             } else {
                 fetchOpts = { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }, body: JSON.stringify(payload) };
             }
@@ -4501,14 +4517,19 @@
                 }
 
                 if (data.success) {
+                    if (window.HighlightedUpload) {
+                        window.HighlightedUpload.update(100, 'Batch updated successfully! Refreshing…');
+                    }
                     clearBatchDrafts();
                     window.location.reload();
                 } else {
+                    if (window.HighlightedUpload) window.HighlightedUpload.hide();
                     window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Error advancing batch', type: 'error' } }));
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 }
             } catch (error) {
+                if (window.HighlightedUpload) window.HighlightedUpload.hide();
                 console.error("Batch submit error:", error);
                 window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'An unexpected error occurred while communicating with the server.', type: 'error' } }));
                 btn.innerHTML = originalText;
@@ -4687,7 +4708,7 @@
                 modal.style.cssText = 'position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; z-index:999999 !important; display:none; justify-content:center !important; align-items:center !important; opacity:0; transition:opacity 0.2s ease; background:rgba(15,23,42,0.75) !important; backdrop-filter:blur(8px) !important; margin:0 !important; padding:20px !important; box-sizing:border-box !important;';
                 modal.onclick = closeMediaGallery;
                 modal.innerHTML = `
-                    <div class="cd-modal is-windowed cd-modal-dialog" style="position:relative !important; inset:auto !important; margin:auto !important; width:90% !important; max-width:680px !important; max-height:85vh !important; height:auto !important; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
+                    <div class="cd-modal is-windowed cd-modal-dialog" style="position:relative !important; inset:auto !important; margin:auto !important; width:90% !important; max-width:740px !important; max-height:85vh !important; height:auto !important; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
                         <div style="padding:14px 20px; border-bottom:1px solid var(--color-border-primary); display:flex; align-items:center; justify-content:space-between; background:var(--color-bg-secondary);">
                             <h3 id="mediaGalleryTitle" style="margin:0; font-size:15px; font-weight:800; color:var(--color-text-primary); display:flex; align-items:center; gap:8px;"></h3>
                             <div style="display:flex; align-items:center; gap:10px;">
@@ -4697,7 +4718,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div id="mediaGalleryContent" style="padding:20px; overflow-y:auto; flex:1; display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; align-content:start;"></div>
+                        <div id="mediaGalleryContent" style="padding:20px; overflow-y:auto; flex:1; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px; align-content:start;"></div>
                     </div>
                 `;
                 document.body.appendChild(modal);
@@ -4728,12 +4749,14 @@
                 files.forEach((fileUrl, idx) => {
                     const isVideo = fileUrl.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
                     const isImg   = fileUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)(?:$|\?)/i);
+                    const cardId  = `gallery_card_${idx}_${Date.now()}`;
+                    const safeUrl = fileUrl.replace(/'/g, "\\'");
 
-                    html += `<div style="background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; align-items:center; transition:transform 0.15s; box-shadow:0 4px 12px rgba(0,0,0,0.08);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">`;
+                    html += `<div id="${cardId}" class="gallery-media-card" data-file-url="${fileUrl}" style="background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; align-items:center; transition:all 0.2s; box-shadow:0 4px 12px rgba(0,0,0,0.08);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">`;
                     
                     if (isVideo) {
                         html += `
-                            <div style="position:relative; width:100%; height:140px; background:#000; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="closeMediaGallery(); openImagePreview('${fileUrl}', ${canRemove ? 'true' : 'false'}, ${deliverableId || 'null'})">
+                            <div style="position:relative; width:100%; height:140px; background:#000; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="closeMediaGallery(); openImagePreview('${safeUrl}', ${canRemove ? 'true' : 'false'}, ${deliverableId || 'null'})">
                                 <video src="${fileUrl}" style="width:100%; height:100%; object-fit:cover;" preload="metadata"></video>
                                 <div style="position:absolute; background:rgba(0,0,0,0.6); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
                                     <svg width="16" height="16" fill="#fff" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -4741,7 +4764,7 @@
                             </div>`;
                     } else if (isImg) {
                         html += `
-                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="closeMediaGallery(); openImagePreview('${fileUrl}', ${canRemove ? 'true' : 'false'}, ${deliverableId || 'null'})">
+                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;" onclick="closeMediaGallery(); openImagePreview('${safeUrl}', ${canRemove ? 'true' : 'false'}, ${deliverableId || 'null'})">
                                 <img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                 <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; flex-direction:column; gap:6px; color:var(--color-text-secondary); background:rgba(0,0,0,0.03);">
                                     <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -4750,26 +4773,26 @@
                             </div>`;
                     } else {
                         html += `
-                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px; text-align:center; cursor:pointer;" onclick="window.open('${fileUrl}', '_blank')">
+                            <div style="width:100%; height:140px; background:var(--color-bg-primary); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px; text-align:center; cursor:pointer;" onclick="window.open('${safeUrl}', '_blank')">
                                 <svg width="28" height="28" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                                 <span style="font-size:10px; font-weight:700; color:var(--color-text-secondary); word-break:break-all;">${fileUrl.split('/').pop()}</span>
                             </div>`;
                     }
 
                     html += `
-                        <div style="width:100%; padding:8px 10px; display:flex; align-items:center; justify-content:flex-end; gap:6px; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary);">
-                            <a href="${fileUrl}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); border-radius:5px; text-decoration:none;" onclick="event.stopPropagation();" title="Open in new tab">
-                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                                Open
+                        <div style="width:100%; padding:8px 8px; display:flex; align-items:center; justify-content:center; gap:6px; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary); box-sizing:border-box;">
+                            <a href="${fileUrl}" target="_blank" style="flex:1; min-width:0; display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:5px 6px; font-size:10px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); border-radius:6px; text-decoration:none; white-space:nowrap; transition:all 0.15s;" onclick="event.stopPropagation();" title="Open in new tab" onmouseover="this.style.color='var(--color-text-primary)';this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.color='var(--color-text-secondary)';this.style.background='rgba(255,255,255,0.06)'">
+                                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                <span>Open</span>
                             </a>
-                            <button type="button" onclick="event.stopPropagation(); downloadMedia(event, '${fileUrl}')" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:5px; cursor:pointer;" title="Download file">
-                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                Download
+                            <button type="button" onclick="event.stopPropagation(); downloadMedia(event, '${safeUrl}')" style="flex:1; min-width:0; display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:5px 6px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:6px; cursor:pointer; white-space:nowrap; transition:all 0.15s;" title="Download file" onmouseover="this.style.background='rgba(16,185,129,0.18)'" onmouseout="this.style.background='rgba(16,185,129,0.1)'">
+                                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                <span>Download</span>
                             </button>
                             ${canRemove && deliverableId ? `
-                                <button type="button" onclick="event.stopPropagation(); removeGalleryArtwork('${fileUrl}', ${deliverableId})" style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:10px; font-weight:700; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:5px; cursor:pointer;" title="Remove this artwork file">
-                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    Remove
+                                <button type="button" onclick="event.stopPropagation(); removeGalleryArtwork(this, '${safeUrl}', ${deliverableId}, ${idx}, '${cardId}')" style="flex:1; min-width:0; display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:5px 6px; font-size:10px; font-weight:700; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:6px; cursor:pointer; white-space:nowrap; transition:all 0.15s;" title="Remove this artwork file" onmouseover="this.style.background='rgba(239,68,68,0.18)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    <span>Remove</span>
                                 </button>
                             ` : ''}
                         </div>
@@ -4779,18 +4802,28 @@
 
             if (urls && urls.length > 0) {
                 urls.forEach((url, idx) => {
+                    const linkCardId = `gallery_link_card_${idx}_${Date.now()}`;
+                    const safeLink = url.replace(/'/g, "\\'");
                     html += `
-                        <div style="grid-column:1 / -1; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:10px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                        <div id="${linkCardId}" class="gallery-media-card" data-link-url="${url}" style="grid-column:1 / -1; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:10px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px; transition:all 0.2s;">
                             <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
                                 <div style="width:32px; height:32px; border-radius:8px; background:rgba(0,85,212,0.1); color:#0055D4; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                                 </div>
                                 <span style="font-size:11px; font-weight:600; color:var(--color-text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${url}">${url}</span>
                             </div>
-                            <a href="${url}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; padding:5px 12px; font-size:11px; font-weight:700; color:#0055D4; background:rgba(0,85,212,0.1); border:1px solid rgba(0,85,212,0.25); border-radius:6px; text-decoration:none; flex-shrink:0;">
-                                Visit Link
-                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                            </a>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <a href="${url}" target="_blank" style="display:inline-flex; align-items:center; gap:4px; padding:5px 12px; font-size:11px; font-weight:700; color:#0055D4; background:rgba(0,85,212,0.1); border:1px solid rgba(0,85,212,0.25); border-radius:6px; text-decoration:none; flex-shrink:0;">
+                                    Visit Link
+                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                </a>
+                                ${canRemove && deliverableId ? `
+                                    <button type="button" onclick="event.stopPropagation(); removeGalleryLink(this, '${safeLink}', ${deliverableId}, ${idx}, '${linkCardId}')" style="display:inline-flex; align-items:center; gap:4px; padding:5px 10px; font-size:11px; font-weight:700; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:6px; cursor:pointer; flex-shrink:0;" title="Remove this link">
+                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        Remove
+                                    </button>
+                                ` : ''}
+                            </div>
                         </div>`;
                 });
             }
@@ -4853,46 +4886,21 @@
             if (inner) inner.classList.remove('active');
             setTimeout(() => {
                 modal.style.display = 'none';
+                if (window._deliverableModalModified) {
+                    window._deliverableModalModified = false;
+                    window.location.reload();
+                }
             }, 200);
         }
 
-        function removeGalleryArtwork(fileUrl, deliverableId) {
-            if (!confirm('Are you sure you want to remove this artwork file?')) return;
-            let form = document.getElementById('submitStageForm');
-            if (!form) {
-                form = document.createElement('form');
-                form.method = 'POST';
-                form.style.display = 'none';
-                const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                if (csrf) {
-                    const cInp = document.createElement('input');
-                    cInp.type = 'hidden';
-                    cInp.name = '_token';
-                    cInp.value = csrf;
-                    form.appendChild(cInp);
-                }
-                document.body.appendChild(form);
-            }
-            form.action = `/deliverables/${deliverableId}/submit`;
-            let targetInput = document.getElementById('imagePreviewTargetFile');
-            if (!targetInput) {
-                targetInput = document.createElement('input');
-                targetInput.type = 'hidden';
-                targetInput.name = 'target_artwork_file';
-                targetInput.id = 'imagePreviewTargetFile';
-                form.appendChild(targetInput);
-            }
-            targetInput.value = fileUrl;
-            let delInput = document.getElementById('deleteFinalDesignsInput');
-            if (!delInput) {
-                delInput = document.createElement('input');
-                delInput.type = 'hidden';
-                delInput.name = 'delete_final_designs';
-                delInput.id = 'deleteFinalDesignsInput';
-                form.appendChild(delInput);
-            }
-            delInput.value = fileUrl;
-            form.submit();
+        function removeGalleryArtwork(btn, fileUrl, deliverableId, index = null, cardId = null) {
+            const cardEl = cardId ? document.getElementById(cardId) : (btn ? btn.closest('.gallery-media-card') : null);
+            removeArtworkImmediately(deliverableId, fileUrl, cardEl, false, index, btn);
+        }
+
+        function removeGalleryLink(btn, url, deliverableId, index = null, cardId = null) {
+            const cardEl = cardId ? document.getElementById(cardId) : (btn ? btn.closest('.gallery-media-card') : null);
+            removeArtworkImmediately(deliverableId, url, cardEl, true, index, btn);
         }
 
         // Image Preview Functions
@@ -4938,22 +4946,13 @@
             if (removeBtn) {
                 if (canRemove) {
                     removeBtn.style.display = 'inline-flex';
-                    removeBtn.value = url;
-                    let targetInput = document.getElementById('imagePreviewTargetFile');
-                    if (!targetInput) {
-                        targetInput = document.createElement('input');
-                        targetInput.type = 'hidden';
-                        targetInput.name = 'target_artwork_file';
-                        targetInput.id = 'imagePreviewTargetFile';
-                        const targetForm = document.getElementById('submitStageForm') || document.querySelector('form');
-                        if (targetForm) targetForm.appendChild(targetInput);
-                    }
-                    targetInput.value = url;
-                    if (deliverableId) {
-                        document.getElementById('submitStageForm').action = `/deliverables/${deliverableId}/submit`;
-                    }
+                    removeBtn.onclick = function() {
+                        const targetBox = document.querySelector(`.art-box-item img[src="${url}"], .art-box-item video[src="${url}"]`)?.closest('.art-box-item');
+                        removeArtworkImmediately(deliverableId, url, targetBox, false);
+                    };
                 } else {
                     removeBtn.style.display = 'none';
+                    removeBtn.onclick = null;
                 }
             }
             
@@ -4964,6 +4963,375 @@
                 overlay.querySelector('.cd-modal').classList.add('active');
             }, 10);
         }
+
+        window.removeArtworkImmediately = async function(deliverableId, targetItem, boxElement, isLink = false, index = null, triggerBtn = null) {
+            const confirmTitle = isLink ? 'Remove External Link' : 'Remove Artwork File';
+            const confirmMsg = isLink
+                ? 'Are you sure you want to remove this external link?'
+                : 'Are you sure you want to remove this artwork file?';
+
+            let confirmed = false;
+            if (typeof window.customConfirm === 'function') {
+                confirmed = await window.customConfirm({
+                    title: confirmTitle,
+                    message: confirmMsg,
+                    confirmText: 'Remove',
+                    cancelText: 'Cancel',
+                    isDanger: true
+                });
+            } else {
+                confirmed = confirm(confirmMsg);
+            }
+
+            if (!confirmed) {
+                return;
+            }
+
+            const activeBtn = triggerBtn || (boxElement ? boxElement.querySelector('button') : null);
+            let originalHtml = '';
+            if (activeBtn) {
+                originalHtml = activeBtn.innerHTML;
+                activeBtn.innerHTML = '<span style="font-size:10px;">Removing...</span>';
+                activeBtn.disabled = true;
+            }
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            const fd = new FormData();
+            if (csrfToken) fd.append('_token', csrfToken);
+
+            if (isLink) {
+                fd.append('delete_final_designs_link', '1');
+                if (targetItem) {
+                    fd.append('target_artwork_url', targetItem);
+                }
+                if (index !== null && index !== undefined) {
+                    fd.append('delete_final_designs_url_indices[]', index);
+                }
+            } else {
+                fd.append('delete_final_designs', '1');
+                if (targetItem) {
+                    fd.append('target_artwork_file', targetItem);
+                    fd.append('target_artwork_files[]', targetItem);
+                }
+                if (index !== null && index !== undefined) {
+                    fd.append('delete_final_designs_file_indices[]', index);
+                }
+            }
+
+            try {
+                const res = await fetch(`/deliverables/${deliverableId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken || '',
+                        'Accept': 'application/json'
+                    },
+                    body: fd
+                });
+
+                if (!res.ok) {
+                    const text = await res.text();
+                    let errMsg = 'Failed to remove';
+                    try {
+                        const parsed = JSON.parse(text);
+                        if (parsed.message) errMsg = parsed.message;
+                    } catch(e) {
+                        if (text && text.length < 100) errMsg = text;
+                    }
+                    throw new Error(errMsg);
+                }
+
+                const data = await res.json().catch(() => ({ success: true }));
+
+                window._deliverableModalModified = true;
+
+                if (boxElement) {
+                    boxElement.style.transition = 'opacity 0.2s, transform 0.2s';
+                    boxElement.style.opacity = '0';
+                    boxElement.style.transform = 'scale(0.9)';
+                    setTimeout(() => boxElement.remove(), 200);
+                }
+
+                // If inside media gallery modal, update gallery header & counters
+                const galleryModal = document.getElementById('mediaGalleryModal');
+                if (galleryModal && galleryModal.style.display !== 'none') {
+                    if (!isLink && window._currentGalleryFiles) {
+                        window._currentGalleryFiles = window._currentGalleryFiles.filter((f, i) => (index !== null && index !== undefined) ? i !== index : f !== targetItem);
+                    }
+                    setTimeout(() => {
+                        const remainingCards = galleryModal.querySelectorAll('#mediaGalleryContent > .gallery-media-card');
+                        const titleEl = document.getElementById('mediaGalleryTitle');
+                        if (titleEl) {
+                            titleEl.innerHTML = `<svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> Artwork Media (${remainingCards.length})`;
+                        }
+                        const headerActionsEl = document.getElementById('mediaGalleryHeaderActions');
+                        if (headerActionsEl) {
+                            const fileCount = window._currentGalleryFiles ? window._currentGalleryFiles.length : 0;
+                            if (fileCount > 1) {
+                                headerActionsEl.innerHTML = `
+                                    <button type="button" onclick="downloadAllGalleryFiles(event)" style="display:inline-flex; align-items:center; gap:5px; padding:5px 12px; font-size:11px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:7px; cursor:pointer; transition:all 0.15s;" title="Download all ${fileCount} files">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        Download All (${fileCount})
+                                    </button>
+                                `;
+                            } else {
+                                headerActionsEl.innerHTML = '';
+                            }
+                        }
+                        if (remainingCards.length === 0) {
+                            const contentEl = document.getElementById('mediaGalleryContent');
+                            if (contentEl) contentEl.innerHTML = '<div style="grid-column:1 / -1; text-align:center; padding:30px; color:var(--color-text-secondary); font-size:12px;">No items found.</div>';
+                        }
+                    }, 220);
+                }
+
+                // If modalFinal is on page
+                const modalFinal = document.getElementById('modalFinal');
+                if (modalFinal) {
+                    setTimeout(() => {
+                        const remaining = modalFinal.querySelectorAll('.art-box-item');
+                        if (remaining.length === 0) {
+                            modalFinal.innerHTML = '<span style="color:#94a3b8; font-size:13px; font-weight:500;">Pending Delivery</span>';
+                        }
+                    }, 220);
+                }
+
+                const imagePreviewOverlay = document.getElementById('imagePreviewOverlay');
+                if (imagePreviewOverlay && (imagePreviewOverlay.style.display === 'flex' || imagePreviewOverlay.style.display === 'block')) {
+                    if (typeof closeImagePreview === 'function') {
+                        closeImagePreview();
+                    }
+                }
+
+                if (window.currentTaskData && window.currentTaskData.id == deliverableId) {
+                    if (!isLink && window.currentTaskData.final_designs_list) {
+                        window.currentTaskData.final_designs_list = window.currentTaskData.final_designs_list.filter((f, i) => (index !== null && index !== undefined) ? i !== index : f !== targetItem);
+                    }
+                    if (isLink && window.currentTaskData.final_designs_urls_list) {
+                        window.currentTaskData.final_designs_urls_list = window.currentTaskData.final_designs_urls_list.filter((u, i) => (index !== null && index !== undefined) ? i !== index : u !== targetItem);
+                    }
+                }
+                if (window.projectDeliverables && window.projectDeliverables[deliverableId]) {
+                    const pTask = window.projectDeliverables[deliverableId];
+                    if (!isLink && pTask.final_designs_list) {
+                        pTask.final_designs_list = pTask.final_designs_list.filter((f, i) => (index !== null && index !== undefined) ? i !== index : f !== targetItem);
+                    }
+                    if (isLink && pTask.final_designs_urls_list) {
+                        pTask.final_designs_urls_list = pTask.final_designs_urls_list.filter((u, i) => (index !== null && index !== undefined) ? i !== index : u !== targetItem);
+                    }
+                }
+
+                window.dispatchEvent(new CustomEvent('toast', { detail: { message: isLink ? 'External link removed' : 'Artwork removed', type: 'success' } }));
+                if (typeof showToast === 'function') {
+                    showToast(isLink ? 'External link removed' : 'Artwork removed', 'success');
+                }
+            } catch (err) {
+                console.error('Error removing artwork/link:', err);
+                window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Failed to remove: ' + (err.message || 'Please try again'), type: 'error' } }));
+                alert('Failed to remove: ' + (err.message || 'Please try again'));
+                if (activeBtn) {
+                    activeBtn.innerHTML = originalHtml;
+                    activeBtn.disabled = false;
+                }
+            }
+        };
+
+        window.autoUploadModalReference = async function(input) {
+            if (!input || !input.files || input.files.length === 0) return;
+            const taskId = currentTaskData ? currentTaskData.id : null;
+            if (!taskId) return;
+
+            const statusEl = document.getElementById('modalReferenceUploadStatus');
+            if (statusEl) {
+                statusEl.style.display = 'inline-flex';
+                statusEl.style.color = '#0ea5e9';
+                statusEl.innerHTML = `<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25;"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity:0.75;"></path></svg> Saving reference...`;
+            }
+
+            const fd = new FormData();
+            fd.append('action', 'save_only');
+            const files = Array.from(input.files);
+            files.forEach(f => {
+                fd.append('reference_files[]', f);
+            });
+            if (files.length === 1) {
+                fd.append('reference_file', files[0]);
+            }
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            try {
+                const res = await fetch(`/deliverables/${taskId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken || '',
+                        'Accept': 'application/json'
+                    },
+                    body: fd
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    window._deliverableModalModified = true;
+                    if (statusEl) {
+                        statusEl.style.color = '#10b981';
+                        statusEl.innerHTML = `<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg> Saved!`;
+                        setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 2500);
+                    }
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Reference uploaded and saved automatically!', type: 'success' } }));
+
+                    if (data.deliverable) {
+                        if (window.projectDeliverables) window.projectDeliverables[taskId] = data.deliverable;
+                        currentTaskData = data.deliverable;
+                        openTaskModal(data.deliverable);
+                    } else {
+                        const freshTaskRes = await fetch(`/deliverables/${taskId}`, {
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (freshTaskRes.ok) {
+                            const freshTask = await freshTaskRes.json();
+                            if (window.projectDeliverables) window.projectDeliverables[taskId] = freshTask;
+                            currentTaskData = freshTask;
+                            openTaskModal(freshTask);
+                        }
+                    }
+                } else {
+                    if (statusEl) statusEl.style.display = 'none';
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Error saving reference', type: 'error' } }));
+                }
+            } catch (err) {
+                console.error('Auto upload reference error:', err);
+                if (statusEl) statusEl.style.display = 'none';
+                window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Failed to upload reference file.', type: 'error' } }));
+            } finally {
+                input.value = '';
+            }
+        };
+
+        window.autoUploadModalArtwork = async function(input) {
+            if (!input || !input.files || input.files.length === 0) return;
+            const taskId = currentTaskData ? currentTaskData.id : null;
+            if (!taskId) return;
+
+            const labelEl = document.getElementById('artworkFileLabel');
+            const origLabel = labelEl ? labelEl.textContent : 'Choose file…';
+            if (labelEl) {
+                labelEl.innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px;"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25;"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity:0.75;"></path></svg> Uploading artwork...</span>`;
+            }
+
+            const fd = new FormData();
+            fd.append('action', 'save_only');
+            const files = Array.from(input.files);
+            files.forEach(f => {
+                fd.append('final_designs_files[]', f);
+            });
+            if (files.length === 1) {
+                fd.append('final_designs_file', files[0]);
+            }
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            try {
+                const res = await fetch(`/deliverables/${taskId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken || '',
+                        'Accept': 'application/json'
+                    },
+                    body: fd
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    window._deliverableModalModified = true;
+                    if (labelEl) {
+                        labelEl.innerHTML = `<span style="color:#10b981;display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg> Artwork saved!</span>`;
+                        setTimeout(() => { if (labelEl) labelEl.textContent = 'Choose file…'; }, 2500);
+                    }
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Artwork uploaded and saved automatically!', type: 'success' } }));
+
+                    if (data.deliverable) {
+                        if (window.projectDeliverables) window.projectDeliverables[taskId] = data.deliverable;
+                        currentTaskData = data.deliverable;
+                        openTaskModal(data.deliverable);
+                    } else {
+                        const freshTaskRes = await fetch(`/deliverables/${taskId}`, {
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (freshTaskRes.ok) {
+                            const freshTask = await freshTaskRes.json();
+                            if (window.projectDeliverables) window.projectDeliverables[taskId] = freshTask;
+                            currentTaskData = freshTask;
+                            openTaskModal(freshTask);
+                        }
+                    }
+                } else {
+                    if (labelEl) labelEl.textContent = origLabel;
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Error saving artwork', type: 'error' } }));
+                }
+            } catch (err) {
+                console.error('Auto upload artwork error:', err);
+                if (labelEl) labelEl.textContent = origLabel;
+                window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Failed to upload artwork file.', type: 'error' } }));
+            } finally {
+                input.value = '';
+            }
+        };
+
+        window.submitArtworkDeliveryForm = async function(form) {
+            const taskId = currentTaskData ? currentTaskData.id : null;
+            if (!taskId) return;
+            const btn = form.querySelector('button[type="submit"]');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25;"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity:0.75;"></path></svg> Saving...`;
+            }
+
+            const fd = new FormData(form);
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            try {
+                const res = await fetch(`/deliverables/${taskId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken || '',
+                        'Accept': 'application/json'
+                    },
+                    body: fd
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window._deliverableModalModified = true;
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Artwork saved successfully!', type: 'success' } }));
+                    form.reset();
+                    if (data.deliverable) {
+                        if (window.projectDeliverables) window.projectDeliverables[taskId] = data.deliverable;
+                        currentTaskData = data.deliverable;
+                        openTaskModal(data.deliverable);
+                    } else {
+                        const freshTaskRes = await fetch(`/deliverables/${taskId}`, {
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        if (freshTaskRes.ok) {
+                            const freshTask = await freshTaskRes.json();
+                            if (window.projectDeliverables) window.projectDeliverables[taskId] = freshTask;
+                            currentTaskData = freshTask;
+                            openTaskModal(freshTask);
+                        }
+                    }
+                } else {
+                    window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Error saving artwork', type: 'error' } }));
+                }
+            } catch (err) {
+                console.error('Artwork form submit error:', err);
+                window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Failed to save artwork.', type: 'error' } }));
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
+        };
 
         function downloadMedia(event, url) {
             event.preventDefault();
@@ -4998,13 +5366,16 @@
         }
 
         function closeImagePreview(e) {
-            if (e && e.target !== document.getElementById('imagePreviewOverlay')) return;
+            if (e && e.target && e.target !== document.getElementById('imagePreviewOverlay')) return;
             const overlay = document.getElementById('imagePreviewOverlay');
+            if (!overlay) return;
             overlay.style.opacity = '0';
-            overlay.querySelector('.cd-modal').classList.remove('active');
+            const modal = overlay.querySelector('.cd-modal');
+            if (modal) modal.classList.remove('active');
             setTimeout(() => {
                 overlay.style.display = 'none';
-                document.getElementById('imagePreviewSrc').src = '';
+                const img = document.getElementById('imagePreviewSrc');
+                if (img) img.src = '';
             }, 300);
         }
     </script>
@@ -5024,7 +5395,7 @@
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                     Download Original
                 </a>
-                <button type="submit" name="delete_final_designs" value="1" form="submitStageForm" id="imagePreviewRemoveBtn" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding: 10px 24px; font-size: 13px; font-weight: 700; display: none; align-items: center; gap: 8px; justify-content: center; background: rgba(239, 68, 68, 0.1); backdrop-filter: blur(4px);">
+                <button type="button" id="imagePreviewRemoveBtn" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding: 10px 24px; font-size: 13px; font-weight: 700; display: none; align-items: center; gap: 8px; justify-content: center; background: rgba(239, 68, 68, 0.1); backdrop-filter: blur(4px);">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     Remove Artwork
                 </button>
@@ -5644,12 +6015,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     let totalSize = filesToUpload.reduce((acc, f) => acc + f.file.size, 0);
                     let uploadedSize = 0;
 
+                    // If files are present, trigger the highlighted loading animation
+                    if (filesToUpload.length > 0 && window.HighlightedUpload) {
+                        const hasArtwork = filesToUpload.some(item => !item.key.includes('reference') && !item.key.includes('brief') && !item.key.includes('logo'));
+                        const hasRef = filesToUpload.some(item => item.key.includes('reference'));
+                        const mainTitle = hasArtwork ? 'Uploading Artwork…' : (hasRef ? 'Uploading Reference Files…' : 'Uploading Files…');
+                        const fileNames = filesToUpload.map(f => f.file.name).join(', ');
+                        
+                        window.HighlightedUpload.show({
+                            title: mainTitle,
+                            filename: fileNames,
+                            percent: 0,
+                            status: `Uploading 1 of ${filesToUpload.length} file(s)…`,
+                            type: hasArtwork ? 'artwork' : 'reference'
+                        });
+                    }
+
+                    let fileIndex = 0;
                     for (let item of filesToUpload) {
+                        fileIndex++;
                         let folder = 'artwork';
                         if (item.key.includes('reference')) folder = 'references';
                         else if (item.key.includes('brief')) folder = 'briefs';
                         else if (item.key.includes('logo')) folder = 'brand_logos';
                         else if (item.key.includes('revision')) folder = 'revision_images';
+
+                        if (window.HighlightedUpload) {
+                            window.HighlightedUpload.update(
+                                totalSize > 0 ? Math.round((uploadedSize / totalSize) * 100) : 0,
+                                `Uploading ${item.file.name} (${fileIndex}/${filesToUpload.length})…`
+                            );
+                        }
                         
                         const presignedResp = await fetch('/presigned-url', {
                             method: 'POST',
@@ -5681,6 +6077,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                     let currentUploaded = uploadedSize + event.loaded;
                                     let percent = Math.round((currentUploaded / totalSize) * 100);
                                     if (submitter) submitter.innerHTML = getLoadingHtml(percent);
+                                    if (window.HighlightedUpload) {
+                                        window.HighlightedUpload.update(percent, `Uploading ${item.file.name} (${percent}%)…`);
+                                    }
                                 }
                             });
                             
@@ -5704,6 +6103,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (filesToUpload.length === 0 && submitter) {
                         submitter.innerHTML = getLoadingHtml(100);
+                    } else if (filesToUpload.length > 0 && window.HighlightedUpload) {
+                        window.HighlightedUpload.update(100, 'Saving deliverable details…');
                     }
                     
                     // Submit main form to backend
@@ -5715,8 +6116,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     xhr.onload = function() {
                         if (xhr.status >= 200 && xhr.status < 300) {
                             if (submitter) submitter.innerHTML = 'Success!';
+                            if (window.HighlightedUpload) {
+                                window.HighlightedUpload.update(100, 'Upload complete! Refreshing…');
+                            }
                             window.location.reload();
                         } else if (xhr.status === 422) {
+                            if (window.HighlightedUpload) window.HighlightedUpload.hide();
                             try {
                                 const response = JSON.parse(xhr.responseText);
                                 let errMsg = "Validation Error:\n";
@@ -5733,12 +6138,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                             resetButtons();
                         } else {
+                            if (window.HighlightedUpload) window.HighlightedUpload.hide();
                             alert('An error occurred while saving. Server responded with: ' + xhr.status);
                             resetButtons();
                         }
                     };
                     
                     xhr.onerror = function() {
+                        if (window.HighlightedUpload) window.HighlightedUpload.hide();
                         alert('A network error occurred while saving.');
                         resetButtons();
                     };
@@ -5746,6 +6153,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     xhr.send(formData);
                     
                 } catch (error) {
+                    if (window.HighlightedUpload) window.HighlightedUpload.hide();
                     alert(error.message);
                     resetButtons();
                 }
@@ -5971,8 +6379,111 @@ function searchDeliverables(query) {
         }
     }
 }
+
+// Highlight deliverable when arriving from dashboard (e.g. ?deliverable_id=123)
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetId = urlParams.get('deliverable_id');
+    if (!targetId) return;
+
+    // Function to search and highlight target deliverable in table or kanban view
+    function highlightTargetDeliverable() {
+        // Try finding table row or kanban card
+        const row = document.getElementById('deliverable-row-' + targetId);
+        const card = document.getElementById('kanban-card-' + targetId);
+        const targetEl = row || card;
+
+        if (targetEl) {
+            // If it's a subtask in a collapsed group, expand its parent group
+            const subtaskParentClass = Array.from(targetEl.classList).find(c => c.startsWith('subtask-of-'));
+            if (subtaskParentClass) {
+                const parentId = subtaskParentClass.replace('subtask-of-', '');
+                const parentToggle = document.getElementById('toggle-btn-' + parentId);
+                if (parentToggle && !parentToggle.classList.contains('active')) {
+                    parentToggle.click();
+                }
+            }
+
+            // Scroll into view smoothly
+            setTimeout(() => {
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetEl.classList.add('highlighted-deliverable-target');
+
+                // If it's a table row, also highlight its child td cells for strong visibility
+                targetEl.querySelectorAll('td').forEach(td => td.classList.add('highlighted-deliverable-cell'));
+
+                // Remove highlight after attention is captured
+                setTimeout(() => {
+                    targetEl.classList.remove('highlighted-deliverable-target');
+                    targetEl.querySelectorAll('td').forEach(td => td.classList.remove('highlighted-deliverable-cell'));
+                }, 4000);
+            }, 300);
+
+            return true;
+        }
+        return false;
+    }
+
+    // Try immediately, or retry if elements render with a slight delay
+    if (!highlightTargetDeliverable()) {
+        setTimeout(highlightTargetDeliverable, 350);
+        setTimeout(highlightTargetDeliverable, 800);
+    }
+});
 </script>
-<style>@keyframes frmSpin{to{transform:rotate(360deg)}}</style>
+<style>
+@keyframes frmSpin{to{transform:rotate(360deg)}}
+
+@keyframes deliverableGlowPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 85, 212, 0.7), 0 0 20px rgba(59, 130, 246, 0.5);
+        outline-color: #3b82f6;
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(0, 85, 212, 0.25), 0 0 35px rgba(59, 130, 246, 0.8);
+        outline-color: #60a5fa;
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 85, 212, 0), 0 0 10px rgba(59, 130, 246, 0.2);
+        outline-color: #3b82f6;
+    }
+}
+
+.highlighted-deliverable-target {
+    animation: deliverableGlowPulse 1.4s ease-in-out infinite alternate !important;
+    outline: 2.5px solid #3b82f6 !important;
+    outline-offset: -1px !important;
+    position: relative !important;
+    z-index: 20 !important;
+    transition: all 0.3s ease !important;
+}
+
+tr.highlighted-deliverable-target td {
+    background-color: rgba(59, 130, 246, 0.14) !important;
+}
+
+.dark tr.highlighted-deliverable-target td {
+    background-color: rgba(59, 130, 246, 0.22) !important;
+}
+
+.highlighted-deliverable-cell {
+    border-top: 2px solid #3b82f6 !important;
+    border-bottom: 2px solid #3b82f6 !important;
+}
+
+.highlighted-deliverable-cell:first-child {
+    border-left: 4px solid #3b82f6 !important;
+}
+
+.highlighted-deliverable-cell:last-child {
+    border-right: 4px solid #3b82f6 !important;
+}
+
+.kanban-card.highlighted-deliverable-target {
+    transform: scale(1.02) !important;
+    border-color: #3b82f6 !important;
+}
+</style>
 
 
 

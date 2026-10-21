@@ -55,7 +55,7 @@
             <tbody>
                 @forelse($outlineTasks as $task)
                     {{-- Standalone Outline Deliverable --}}
-                    <tr class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
+                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                         @php
                             $canEditStandalone = $isAdmin || (($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || auth()->id() == $task->writer_id));
                         @endphp
@@ -76,18 +76,21 @@
                         <td>
                             @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
                             <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? 'Del: ' . \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
-                            @if($task->designer_deadline || $task->revision_deadline)
+                            @php
+                                $displayTaskRevDeadline = $task->revision_deadline ?? $task->revisionsHistory()->latest()->first()?->revision_deadline;
+                                $taskHasRev = !empty($displayTaskRevDeadline) || (!empty($task->revisions) && (is_numeric($task->revisions) ? $task->revisions > 0 : $task->revisions->count() > 0)) || !empty($task->revision_instructions);
+                            @endphp
+                            @if($task->designer_deadline || $displayTaskRevDeadline)
                                 <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
-                                    @if($task->designer_deadline)
+                                    @if($displayTaskRevDeadline)
+                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Revision Deadline">
+                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            <span>Rev: {{ \Carbon\Carbon::parse($displayTaskRevDeadline)->format('M d, Y') }}</span>
+                                        </div>
+                                    @elseif($task->designer_deadline && !$taskHasRev)
                                         <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ec4899; background:rgba(236,72,153,0.08); border:1px solid rgba(236,72,153,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Designer Deadline">
                                             <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                             <span>Des: {{ \Carbon\Carbon::parse($task->designer_deadline)->format('M d, Y') }}</span>
-                                        </div>
-                                    @endif
-                                    @if($task->revision_deadline)
-                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Revision Deadline">
-                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                            <span>Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d, Y') }}</span>
                                         </div>
                                     @endif
                                 </div>
@@ -320,7 +323,7 @@
             <tbody>
                 @forelse($otherTasks as $task)
                     {{-- Standalone Other Deliverable --}}
-                    <tr class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
+                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                         @php
                             $isAssignedStandalonePerson = ($task->writer_id && auth()->id() == $task->writer_id) || ($task->designer_id && auth()->id() == $task->designer_id);
                             $canEditOtherStandalone = ($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer' || $task->approval_stage === 'Assign' || !$task->approval_stage) && $isAssignedStandalonePerson;
@@ -342,18 +345,21 @@
                         <td>
                             @php $displayDeadline = $task->deadline ?? $project->deadline; @endphp
                             <div style="font-weight:800; white-space:nowrap;">{{ $displayDeadline ? 'Del: ' . \Carbon\Carbon::parse($displayDeadline)->format('M d, Y') : '—' }}</div>
-                            @if($task->designer_deadline || $task->revision_deadline)
+                            @php
+                                $displayTaskRevDeadline = $task->revision_deadline ?? $task->revisionsHistory()->latest()->first()?->revision_deadline;
+                                $taskHasRev = !empty($displayTaskRevDeadline) || (!empty($task->revisions) && (is_numeric($task->revisions) ? $task->revisions > 0 : $task->revisions->count() > 0)) || !empty($task->revision_instructions);
+                            @endphp
+                            @if($task->designer_deadline || $displayTaskRevDeadline)
                                 <div style="display:flex; flex-direction:column; gap:3px; margin-top:4px;">
-                                    @if($task->designer_deadline)
+                                    @if($displayTaskRevDeadline)
+                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Revision Deadline">
+                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            <span>Rev: {{ \Carbon\Carbon::parse($displayTaskRevDeadline)->format('M d, Y') }}</span>
+                                        </div>
+                                    @elseif($task->designer_deadline && !$taskHasRev)
                                         <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ec4899; background:rgba(236,72,153,0.08); border:1px solid rgba(236,72,153,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Designer Deadline">
                                             <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                             <span>Des: {{ \Carbon\Carbon::parse($task->designer_deadline)->format('M d, Y') }}</span>
-                                        </div>
-                                    @endif
-                                    @if($task->revision_deadline)
-                                        <div style="display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:800; color:#ef4444; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.22); padding:1.5px 5px; border-radius:4px; white-space:nowrap; width:fit-content;" title="Revision Deadline">
-                                            <svg width="8.5" height="8.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                            <span>Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d, Y') }}</span>
                                         </div>
                                     @endif
                                 </div>

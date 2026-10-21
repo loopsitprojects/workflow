@@ -832,8 +832,8 @@ test('deliverables table displays designer deadline and revision deadline badges
     // Verify sub1 has Designer deadline badge
     $response->assertSee('Des: Oct 24, 2026');
 
-    // Verify sub2 has both Designer and Revision deadline badges
-    $response->assertSee('Des: Oct 25, 2026');
+    // Verify sub2 has Revision deadline badge, but does NOT show Designer deadline
+    $response->assertDontSee('Des: Oct 25, 2026');
     $response->assertSee('Rev: Oct 28, 2026');
 
     // Verify sub3 has Revision deadline badge

@@ -222,7 +222,7 @@ test('retainer workflow revision targeting routes to Designer or Writer as speci
         'revision_target' => 'writer',
     ], null, $admin);
 
-    expect($deliverable->fresh()->approval_stage)->toBe('Writer')
+    expect($deliverable->fresh()->approval_stage)->toBe('Writer Review')
         ->and($deliverable->fresh()->revisions)->toBe(2);
 });
 

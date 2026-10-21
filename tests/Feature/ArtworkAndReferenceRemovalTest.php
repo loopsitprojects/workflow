@@ -294,3 +294,164 @@ test('deliverable handles double-encoded, escaped, or HTML-entity JSON strings i
     expect($content)->not->toContain('src="[\"');
     expect($content)->toContain('Artwork (2)');
 });
+
+test('artwork file can be deleted immediately via json without saving deliverable', function () {
+    $artUploader = User::factory()->create(['role' => 'Designer']);
+    $brand = Brand::create(['name' => 'Brand Immediate Art', 'slug' => 'brand-imm-art']);
+    $project = Project::create(['brand_id' => $brand->id, 'name' => 'Project Imm Art', 'workflow_type' => 'campaign']);
+
+    $deliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Immediate Art Task',
+        'status' => 'In Progress',
+        'approval_stage' => 'Designer',
+        'final_designs' => json_encode([
+            'https://loops-lws.s3.amazonaws.com/artwork/art1.png',
+            'https://loops-lws.s3.amazonaws.com/artwork/art2.png'
+        ]),
+        'artwork_uploaded_by' => $artUploader->id,
+    ]);
+
+    $res = $this->actingAs($artUploader)->postJson(route('deliverables.submit', $deliverable), [
+        'delete_final_designs' => '1',
+        'target_artwork_file' => 'https://loops-lws.s3.amazonaws.com/artwork/art1.png',
+    ]);
+
+    $res->assertOk();
+    $res->assertJson(['success' => true]);
+
+    $fresh = $deliverable->fresh();
+    expect($fresh->final_designs)->toBe('https://loops-lws.s3.amazonaws.com/artwork/art2.png');
+    expect($fresh->getFinalDesignsArray())->toBe(['https://loops-lws.s3.amazonaws.com/artwork/art2.png']);
+});
+
+test('artwork external link can be deleted immediately via json without saving deliverable', function () {
+    $artUploader = User::factory()->create(['role' => 'Designer']);
+    $brand = Brand::create(['name' => 'Brand Immediate Link', 'slug' => 'brand-imm-link']);
+    $project = Project::create(['brand_id' => $brand->id, 'name' => 'Project Imm Link', 'workflow_type' => 'campaign']);
+
+    $deliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Immediate Link Task',
+        'status' => 'In Progress',
+        'approval_stage' => 'Designer',
+        'final_designs_link' => json_encode([
+            'https://www.figma.com/design/sample1',
+            'https://www.figma.com/design/sample2'
+        ]),
+        'artwork_uploaded_by' => $artUploader->id,
+    ]);
+
+    $res = $this->actingAs($artUploader)->postJson(route('deliverables.submit', $deliverable), [
+        'delete_final_designs_link' => '1',
+        'target_artwork_url' => 'https://www.figma.com/design/sample1',
+    ]);
+
+    $res->assertOk();
+    $res->assertJson(['success' => true]);
+
+    $fresh = $deliverable->fresh();
+    expect($fresh->final_designs_link)->toBe('https://www.figma.com/design/sample2');
+    expect($fresh->getFinalDesignsUrlsArray())->toBe(['https://www.figma.com/design/sample2']);
+});
+
+test('auto saving reference file via json action save_only persists reference and returns deliverable payload', function () {
+    $writer = User::factory()->create(['role' => 'Writer']);
+    $brand = Brand::create(['name' => 'Brand Ref Auto', 'slug' => 'brand-ref-auto']);
+    $project = Project::create(['brand_id' => $brand->id, 'name' => 'Project Ref Auto', 'workflow_type' => 'retainer']);
+
+    $deliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Auto Ref Task',
+        'status' => 'In Progress',
+        'approval_stage' => 'Writer',
+        'writer_id' => $writer->id,
+    ]);
+
+    $file = UploadedFile::fake()->image('ref-photo.png');
+
+    $res = $this->actingAs($writer)->postJson(route('deliverables.submit', $deliverable), [
+        'action' => 'save_only',
+        'reference_files' => [$file],
+        'reference_file' => $file,
+    ]);
+
+    $res->assertOk();
+    $res->assertJson(['success' => true]);
+    $res->assertJsonPath('deliverable.id', $deliverable->id);
+
+    $fresh = $deliverable->fresh();
+    expect($fresh->reference_file)->not->toBeNull();
+    expect(count($fresh->getReferenceFilesArray()))->toBe(1);
+    expect($fresh->reference_uploaded_by)->toBe($writer->id);
+});
+
+test('auto saving artwork file via json action save_only persists artwork and returns deliverable payload', function () {
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $brand = Brand::create(['name' => 'Brand Art Auto', 'slug' => 'brand-art-auto']);
+    $project = Project::create(['brand_id' => $brand->id, 'name' => 'Project Art Auto', 'workflow_type' => 'retainer']);
+
+    $deliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Auto Art Task',
+        'status' => 'In Progress',
+        'approval_stage' => 'Designer',
+        'designer_id' => $designer->id,
+    ]);
+
+    $file1 = UploadedFile::fake()->image('art1.png');
+    $file2 = UploadedFile::fake()->image('art2.png');
+
+    $res = $this->actingAs($designer)->postJson(route('deliverables.submit', $deliverable), [
+        'action' => 'save_only',
+        'final_designs_files' => [$file1, $file2],
+    ]);
+
+    $res->assertOk();
+    $res->assertJson(['success' => true]);
+    $res->assertJsonPath('deliverable.id', $deliverable->id);
+
+    $fresh = $deliverable->fresh();
+    expect($fresh->final_designs)->not->toBeNull();
+    expect(count($fresh->getFinalDesignsArray()))->toBe(2);
+    expect($fresh->artwork_uploaded_by)->toBe($designer->id);
+    // Ensure stage did not advance on auto-save
+    expect($fresh->approval_stage)->toBe('Designer');
+});
+
+test('assigned designer can remove artwork even if artwork_uploaded_by is null', function () {
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $brand = Brand::create(['name' => 'Brand Null Uploader', 'slug' => 'brand-null-uploader']);
+    $project = Project::create(['brand_id' => $brand->id, 'name' => 'Project Null Uploader', 'workflow_type' => 'retainer']);
+
+    $deliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Null Uploader Task',
+        'status' => 'In Progress',
+        'approval_stage' => 'Designer',
+        'designer_id' => $designer->id,
+        'artwork_uploaded_by' => null,
+        'final_designs' => json_encode([
+            'https://loops-lws.s3.amazonaws.com/artwork/rev%20pay.png',
+            'https://loops-lws.s3.amazonaws.com/artwork/google-pay.png'
+        ]),
+    ]);
+
+    expect($deliverable->canUserRemoveArtwork($designer))->toBeTrue();
+
+    $res = $this->actingAs($designer)->postJson(route('deliverables.submit', $deliverable), [
+        'delete_final_designs' => '1',
+        'target_artwork_file' => 'https://loops-lws.s3.amazonaws.com/artwork/rev%20pay.png',
+        'delete_final_designs_file_indices' => [0],
+    ]);
+
+    $res->assertOk();
+    $res->assertJson(['success' => true]);
+
+    $fresh = $deliverable->fresh();
+    expect(count($fresh->getFinalDesignsArray()))->toBe(1);
+    expect($fresh->getFinalDesignsArray()[0])->toBe('https://loops-lws.s3.amazonaws.com/artwork/google-pay.png');
+});
+
+
+

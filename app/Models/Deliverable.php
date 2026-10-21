@@ -575,8 +575,22 @@ class Deliverable extends Model
         if ($user->isAdmin()) {
             return true;
         }
-        if ($this->artwork_uploaded_by) {
-            return (int)$user->id === (int)$this->artwork_uploaded_by;
+        if ($this->artwork_uploaded_by && (int)$user->id === (int)$this->artwork_uploaded_by) {
+            return true;
+        }
+        // If artwork_uploaded_by is not set, or deliverable is in Designer stage, allow the assigned designer
+        if ($this->designer_id && (int)$user->id === (int)$this->designer_id) {
+            if (!$this->artwork_uploaded_by || $this->approval_stage === 'Designer') {
+                return true;
+            }
+        }
+        // Brand manager or project creator
+        $creatorId = $this->brand_manager_id ?? $this->project?->brand_manager_id;
+        if ($creatorId && (int)$user->id === (int)$creatorId) {
+            return true;
+        }
+        if ($this->project && (int)$user->id === (int)$this->project->brand_manager_id) {
+            return true;
         }
         return false;
     }

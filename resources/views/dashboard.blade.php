@@ -255,8 +255,10 @@
                                 $deliverableType = 'Fast Track';
                             }
                         }
+
+                        $targetDeliverableId = $isBatch ? ($group['parent']->id ?? null) : ($subtasks[0]->id ?? null);
                     @endphp
-                    <a href="{{ route('projects.show', $project->id) }}"
+                    <a href="{{ route('projects.show', ['project' => $project->id, 'deliverable_id' => $targetDeliverableId]) }}"
                        class="flex flex-col bg-white dark:bg-[#111827] rounded-xl px-5 py-4 border border-gray-100 dark:border-white/[0.05] card-shadow hover:border-blue-200 dark:hover:border-blue-500/40 hover:shadow-md transition-all mb-2 group block">
                         <div class="flex items-start justify-between min-w-0">
                             <div class="flex items-start gap-4 min-w-0">
@@ -312,7 +314,9 @@
                             <div class="mt-3 ml-6 pl-3 border-l-2 border-gray-100 dark:border-slate-800 flex flex-col gap-2">
                                 @foreach($subtasks as $t)
                                     <div class="flex items-center justify-between">
-                                        <span class="text-[11px] font-semibold text-blue-500 dark:text-blue-400 pr-2">{{ $t->title }}</span>
+                                        <a href="{{ route('projects.show', ['project' => $project->id, 'deliverable_id' => $t->id]) }}" class="text-[11px] font-semibold text-blue-500 dark:text-blue-400 pr-2 hover:underline">
+                                            {{ $t->title }}
+                                        </a>
                                         @if($t->approval_stage)
                                             <span class="text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider flex-shrink-0">{{ $t->approval_stage }}</span>
                                         @endif
@@ -351,6 +355,7 @@
                         $mainTitle = $isBatch ? $group['parent']->title : $group['subtasks'][0]->title;
                         $project = $group['project'];
                         $subtasks = $group['subtasks'];
+                        $targetCompletedId = $isBatch ? ($group['parent']->id ?? null) : ($subtasks[0]->id ?? null);
 
                         $completedType = null;
                         if (!$isBatch && !empty($subtasks[0])) {
@@ -371,7 +376,7 @@
                             }
                         }
                     @endphp
-                    <a href="{{ route('projects.show', $project->id) }}"
+                    <a href="{{ route('projects.show', ['project' => $project->id, 'deliverable_id' => $targetCompletedId]) }}"
                        class="flex flex-col bg-white dark:bg-[#111827] rounded-xl px-5 py-3.5 border border-gray-50 dark:border-white/[0.03] mb-2 opacity-60 hover:opacity-90 transition-opacity group block">
                         <div class="flex items-start justify-between min-w-0">
                             <div class="flex items-start gap-4 min-w-0">
@@ -431,8 +436,9 @@
                         $mainTitle = $isBatch ? $group['parent']->title : $group['subtasks'][0]->title;
                         $project = $group['project'];
                         $deadline = $group['deadline'];
+                        $targetUpcomingId = $isBatch ? ($group['parent']->id ?? null) : ($group['subtasks'][0]->id ?? null);
                     @endphp
-                    <a href="{{ route('projects.show', $project->id) }}" class="flex flex-col gap-2 mb-4 last:mb-0 group block">
+                    <a href="{{ route('projects.show', ['project' => $project->id, 'deliverable_id' => $targetUpcomingId]) }}" class="flex flex-col gap-2 mb-4 last:mb-0 group block">
                         <div class="flex items-start gap-3">
                             @php $daysLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($deadline)->startOfDay(), false); @endphp
                             <div class="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-black

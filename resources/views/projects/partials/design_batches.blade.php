@@ -77,7 +77,7 @@
                     @endphp
 
                     {{-- Parent Row --}}
-                    <tr class="{{ $hasSubtasks ? 'rtb-heading-row' : '' }} {{ $isClosed ? 'task-closed' : '' }}"
+                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" class="{{ $hasSubtasks ? 'rtb-heading-row' : '' }} {{ $isClosed ? 'task-closed' : '' }}"
                         style="{{ $hasSubtasks ? 'background:var(--color-bg-secondary); border-left:3px solid #6366f1; cursor:pointer;' : '' }}"
                         @if($hasSubtasks) onclick="toggleSubtasks(event, {{ $task->id }})" @else onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" style="cursor:pointer;" @endif>
                         
@@ -371,7 +371,7 @@
                                 $subArtFiles = $sub->getFinalDesignsArray();
                                 $subArtUrls = $sub->getFinalDesignsUrlsArray();
                             @endphp
-                            <tr class="subtask-row subtask-of-{{ $task->id }} {{ $subIsClosed ? 'task-closed' : '' }}"
+                            <tr id="deliverable-row-{{ $sub->id }}" data-deliverable-id="{{ $sub->id }}" class="subtask-row subtask-of-{{ $task->id }} {{ $subIsClosed ? 'task-closed' : '' }}"
                                 onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" style="cursor:pointer;">
                                 
                                 {{-- Subtask Title & Format --}}
