@@ -777,3 +777,65 @@ test('designer advance to Writer Review falls back to project writer when writer
     expect($task->writer_id)->toBe($projectWriter->id);
 });
 
+test('deliverables table displays designer deadline and revision deadline badges', function () {
+    $brand = Brand::create(['name' => 'Brand Deadlines Test', 'slug' => 'brand-deadlines-test']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Deadlines Demo',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $batchParent = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Batch 1',
+        'approval_stage' => 'Writer',
+    ]);
+
+    $sub1 = Deliverable::create([
+        'project_id' => $project->id,
+        'parent_deliverable_id' => $batchParent->id,
+        'title' => 'Carousel 1',
+        'approval_stage' => 'Writer',
+        'designer_deadline' => '2026-10-24 18:00:00',
+    ]);
+
+    $sub2 = Deliverable::create([
+        'project_id' => $project->id,
+        'parent_deliverable_id' => $batchParent->id,
+        'title' => 'Carousel 2',
+        'approval_stage' => 'Writer',
+        'designer_deadline' => '2026-10-25 15:00:00',
+        'revision_deadline' => '2026-10-28 18:00:00',
+    ]);
+
+    $sub3 = Deliverable::create([
+        'project_id' => $project->id,
+        'parent_deliverable_id' => $batchParent->id,
+        'title' => 'Static Post 1',
+        'approval_stage' => 'Writer',
+        'revision_deadline' => '2026-10-26 12:00:00',
+    ]);
+
+    $sub4 = Deliverable::create([
+        'project_id' => $project->id,
+        'parent_deliverable_id' => $batchParent->id,
+        'title' => 'Static Post 2',
+        'approval_stage' => 'Writer',
+    ]);
+
+    $response = $this->actingAs($manager)->get(route('projects.show', $project->id));
+    $response->assertOk();
+
+    // Verify sub1 has Designer deadline badge
+    $response->assertSee('Des: Oct 24, 2026');
+
+    // Verify sub2 has Revision deadline badge, but does NOT show Designer deadline
+    $response->assertDontSee('Des: Oct 25, 2026');
+    $response->assertSee('Rev: Oct 28, 2026');
+
+    // Verify sub3 has Revision deadline badge
+    $response->assertSee('Rev: Oct 26, 2026');
+});

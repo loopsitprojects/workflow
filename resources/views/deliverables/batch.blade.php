@@ -199,10 +199,20 @@
         </div>
         <div style="display: flex; flex-direction: column; gap: 14px;">
             @foreach($postsWithRevisions as $p)
+                @php
+                    $pTargetRole = ($p->revision_target ?? $p->active_revision_target)
+                        ? ucfirst($p->revision_target ?? $p->active_revision_target)
+                        : ($p->approval_stage === 'Designer' ? 'Designer' : 'Writer');
+                @endphp
                 <div style="padding: 14px; background: var(--color-bg-primary); border: 1px solid rgba(239, 68, 68, 0.15); border-radius: 10px;">
-                    <div style="font-size: 12px; font-weight: 800; color: var(--color-text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                        <span style="width: 6px; height: 6px; border-radius: 50%; background: #ef4444;"></span>
-                        {{ $p->title }}
+                    <div style="font-size: 12px; font-weight: 800; color: var(--color-text-primary); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="width: 6px; height: 6px; border-radius: 50%; background: #ef4444;"></span>
+                            {{ $p->title }}
+                        </div>
+                        <span style="display:inline-flex; align-items:center; gap:3px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:2px 7px; border-radius:5px; font-size:10px; font-weight:800; text-transform:uppercase;">
+                            For {{ $pTargetRole }}
+                        </span>
                     </div>
                     <div style="font-size: 13px; color: #ef4444; font-weight: 600; line-height: 1.5; white-space: pre-wrap; margin-left: 12px;">{{ $p->revision_instructions }}</div>
                     @php $pLatestRevImg = $p->revisionsHistory->first()?->image_path; @endphp
@@ -289,8 +299,8 @@
                 @endif
                 @php
                     $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
-                    $postWrevs = $revs->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
-                    $postDrevs = $revs->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
+                    $postWrevs = $revs->filter(fn($r) => ($r->target ?? $r->target_role) === 'writer' || (!isset($r->target) && !in_array($r->stage_at_revision, $dsRevStages)))->count();
+                    $postDrevs = $revs->filter(fn($r) => ($r->target ?? $r->target_role) === 'designer' || (!isset($r->target) && in_array($r->stage_at_revision, $dsRevStages)))->count();
                 @endphp
                 @if($postWrevs > 0)
                     <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $postWrevs }}</span>
@@ -710,14 +720,14 @@ document.addEventListener('keydown', e => {
                     }
 
                     html += `
-                        <div style="width:100%; box-sizing:border-box; padding:8px 8px; display:flex; align-items:center; justify-content:space-between; gap:4px; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary);">
-                            <a href="${fileUrl}" target="_blank" style="flex:1; min-width:0; justify-content:center; display:inline-flex; align-items:center; gap:4px; padding:4px 6px; font-size:10px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); border-radius:6px; text-decoration:none; white-space:nowrap; box-sizing:border-box;" onclick="event.stopPropagation();" title="Open in new tab">
-                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                                Open
+                        <div style="width:100%; padding:8px 8px; display:flex; align-items:center; justify-content:center; gap:6px; border-top:1px solid var(--color-border-primary); background:var(--color-bg-secondary); box-sizing:border-box;">
+                            <a href="${fileUrl}" target="_blank" style="flex:1; min-width:0; display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:5px 6px; font-size:10px; font-weight:700; color:var(--color-text-secondary); background:rgba(255,255,255,0.06); border:1px solid var(--color-border-primary); border-radius:6px; text-decoration:none; white-space:nowrap; transition:all 0.15s;" onclick="event.stopPropagation();" title="Open in new tab" onmouseover="this.style.color='var(--color-text-primary)';this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.color='var(--color-text-secondary)';this.style.background='rgba(255,255,255,0.06)'">
+                                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                <span>Open</span>
                             </a>
-                            <button type="button" onclick="event.stopPropagation(); downloadMedia(event, '${fileUrl}')" style="flex:1; min-width:0; justify-content:center; display:inline-flex; align-items:center; gap:4px; padding:4px 6px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:6px; cursor:pointer; white-space:nowrap; box-sizing:border-box;" title="Download file">
-                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                Download
+                            <button type="button" onclick="event.stopPropagation(); downloadMedia(event, '${fileUrl}')" style="flex:1; min-width:0; display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:5px 6px; font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:6px; cursor:pointer; white-space:nowrap; transition:all 0.15s;" title="Download file" onmouseover="this.style.background='rgba(16,185,129,0.18)'" onmouseout="this.style.background='rgba(16,185,129,0.1)'">
+                                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                <span>Download</span>
                             </button>
                         </div>
                     </div>`;

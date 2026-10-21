@@ -376,6 +376,7 @@ class CampaignWorkflowService implements WorkflowInterface
         $deliverable->progress_percent = $this->getStageProgress($deliverable);
         $deliverable->revision_instructions = null;
         $deliverable->revision_deadline = null;
+        $deliverable->revision_target = null;
         $deliverable->status = ($nextStage === 'Closed' || $nextStage === 'closed') ? 'Done' : 'To Do';
         $deliverable->is_ready = false;
         if ($hoursSpent) {
@@ -415,11 +416,12 @@ class CampaignWorkflowService implements WorkflowInterface
         }
 
         $oldStage = $deliverable->approval_stage;
-
+        $target = null;
         if ($oldStage === 'Writer Review') {
             // At Writer Review, the Writer is reviewing Designer's artwork.
             // Revisions must always route back to Designer.
             $deliverable->approval_stage = 'Designer';
+            $target = 'designer';
         } elseif (in_array($oldStage, ['Final Approval', 'AM/BD', 'Approver Review'])) {
             $target = $validatedData['revision_target'] ?? 'designer';
             if ($target === 'writer') {
@@ -430,6 +432,7 @@ class CampaignWorkflowService implements WorkflowInterface
                 $deliverable->approval_stage = 'Designer';
             }
         } else {
+            $target = 'writer';
             $deliverable->approval_stage = $firstStage;
         }
 
@@ -438,6 +441,7 @@ class CampaignWorkflowService implements WorkflowInterface
         $deliverable->revisions += 1;
         $deliverable->revision_instructions = $validatedData['revision_instructions'];
         $deliverable->revision_deadline = $validatedData['revision_deadline'] ?? null;
+        $deliverable->revision_target = $target;
         $deliverable->save();
 
         // History
@@ -447,6 +451,7 @@ class CampaignWorkflowService implements WorkflowInterface
             'image_path' => $imagePath,
             'stage_at_revision' => $oldStage,
             'revision_deadline' => $validatedData['revision_deadline'] ?? null,
+            'target' => $target,
         ]);
 
         // Notify

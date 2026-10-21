@@ -306,6 +306,9 @@ class RetainerWorkflowService implements WorkflowInterface
         if (array_key_exists('designer_deadline', $data)) {
             $deliverable->designer_deadline = $data['designer_deadline'] ?: null;
         }
+        if (array_key_exists('revision_deadline', $data)) {
+            $deliverable->revision_deadline = $data['revision_deadline'] ?: null;
+        }
 
         // Designer Delivery
         if ($oldStage === 'Designer') {
@@ -327,6 +330,8 @@ class RetainerWorkflowService implements WorkflowInterface
         $deliverable->approval_stage = $nextStage;
         $deliverable->progress_percent = $this->getStageProgress($deliverable);
         $deliverable->revision_instructions = null;
+        $deliverable->revision_deadline = null;
+        $deliverable->revision_target = null;
         $deliverable->status = ($nextStage === 'Closed' || $nextStage === 'closed') ? 'Done' : 'To Do';
         $deliverable->is_ready = false;
         if ($hoursSpent) {
@@ -366,11 +371,12 @@ class RetainerWorkflowService implements WorkflowInterface
         }
 
         $oldStage = $deliverable->approval_stage;
-
+        $target = null;
         if ($oldStage === 'Writer Review') {
             // At Writer Review, the Writer is reviewing Designer's artwork.
             // Revisions must always route back to Designer.
             $deliverable->approval_stage = 'Designer';
+            $target = 'designer';
         } elseif (in_array($oldStage, ['Final Approval', 'Approver Review'])) {
             $target = $validatedData['revision_target'] ?? 'designer';
             if ($target === 'writer') {
@@ -381,6 +387,7 @@ class RetainerWorkflowService implements WorkflowInterface
                 $deliverable->approval_stage = 'Designer';
             }
         } else {
+            $target = 'writer';
             $deliverable->approval_stage = $firstStage;
         }
 
@@ -395,6 +402,8 @@ class RetainerWorkflowService implements WorkflowInterface
         $deliverable->progress_percent = $this->getStageProgress($deliverable);
         $deliverable->revisions += 1;
         $deliverable->revision_instructions = $validatedData['revision_instructions'];
+        $deliverable->revision_deadline = $validatedData['revision_deadline'] ?? null;
+        $deliverable->revision_target = $target;
         $deliverable->save();
 
         // History
@@ -403,6 +412,8 @@ class RetainerWorkflowService implements WorkflowInterface
             'instructions' => $validatedData['revision_instructions'],
             'image_path' => $imagePath,
             'stage_at_revision' => $oldStage,
+            'revision_deadline' => $validatedData['revision_deadline'] ?? null,
+            'target' => $target,
         ]);
 
         // Notify target

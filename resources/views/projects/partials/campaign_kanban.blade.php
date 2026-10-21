@@ -265,6 +265,9 @@ const kanbanIsAdminOrManager = {{ (auth()->user() && (auth()->user()->isAdmin() 
 const kanbanProjectApproverId = {{ $project->approver_id ?? ($project->brand_manager_id ?? ($project->lead_id ?? 'null')) }};
 
 function checkCardMovePermission(d) {
+    if (kanbanIsAdminOrManager) {
+        return { canMove: true, reason: '' };
+    }
     const status = (d.status || 'To Do').trim();
     const statusLower = status.toLowerCase();
     const isInApproval = ['approval stage', 'approval', 'review', 'under review'].includes(statusLower);
@@ -279,14 +282,14 @@ function checkCardMovePermission(d) {
                        (!approverId && ['Approver', 'Approver Coordinator', 'Brand Manager'].includes(kanbanCurrentUserRole));
 
     if (isInApproval) {
-        if (isApprover || kanbanIsAdminOrManager) {
+        if (isApprover) {
             return { canMove: true, reason: '' };
         }
         return { canMove: false, reason: 'Submitted to approver. Only the assigned approver can move this deliverable.' };
     }
 
     if (isDone) {
-        if (isApprover || kanbanIsAdminOrManager) {
+        if (isApprover) {
             return { canMove: true, reason: '' };
         }
         return { canMove: false, reason: 'This deliverable is completed. Only an approver or admin can move it.' };

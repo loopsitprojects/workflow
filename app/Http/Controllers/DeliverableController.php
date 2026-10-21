@@ -884,7 +884,9 @@ class DeliverableController extends Controller
     public function updateRevisionDeadline(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver Coordinator', 'Operations Manager'])) {
+        $userRole = strtolower(str_replace([' ', '_'], '', $user->role ?? ''));
+        $allowedRoles = ['brandmanager', 'coordinator', 'approvercoordinator', 'operationsmanager', 'writer', 'approver', 'owner', 'admin'];
+        if (!$user->isAdmin() && !in_array($userRole, $allowedRoles)) {
             abort(403, 'Unauthorized to update revision deadline.');
         }
 
@@ -991,11 +993,19 @@ class DeliverableController extends Controller
                 } elseif (!empty($targetFiles) && count($existingArt) > 1) {
                     foreach ($targetFiles as $tFile) {
                         $cleanedTarget = preg_replace('/\?.*$/', '', $tFile);
-                        $targetFilename = basename(parse_url($cleanedTarget, PHP_URL_PATH));
+                        $targetPath = parse_url($cleanedTarget, PHP_URL_PATH) ?? $cleanedTarget;
+                        $targetFilename = basename($targetPath);
                         foreach ($existingArt as $k => $f) {
                             $cleanedF = preg_replace('/\?.*$/', '', $f);
-                            $fFilename = basename(parse_url($cleanedF, PHP_URL_PATH));
-                            if ($f === $tFile || $cleanedF === $cleanedTarget || $fFilename === $targetFilename) {
+                            $fPath = parse_url($cleanedF, PHP_URL_PATH) ?? $cleanedF;
+                            $fFilename = basename($fPath);
+                            if ($f === $tFile 
+                                || $cleanedF === $cleanedTarget 
+                                || rawurldecode($fFilename) === rawurldecode($targetFilename)
+                                || basename($f) === basename($tFile)
+                                || str_ends_with(rawurldecode($cleanedTarget), rawurldecode($cleanedF))
+                                || str_ends_with(rawurldecode($cleanedF), rawurldecode($cleanedTarget))
+                            ) {
                                 $this->deletePhysicalFile($f);
                                 unset($existingArt[$k]);
                                 break;
@@ -1025,25 +1035,38 @@ class DeliverableController extends Controller
             
             if (!$request->filled('action')) {
                 return $request->wantsJson()
-                    ? response()->json(['success' => true, 'message' => 'Artwork file removed.'])
+                    ? response()->json(['success' => true, 'message' => 'Artwork file removed.', 'deliverable' => $deliverable->fresh()])
                     : redirect()->back()->with('success', 'Artwork file removed successfully.');
             }
         }
 
-        if ($request->has('delete_final_designs_link') || $request->has('delete_final_designs_url_indices')) {
+        if ($request->has('delete_final_designs_link') || $request->has('delete_final_designs_url_indices') || $request->filled('target_artwork_url')) {
             $user = auth()->user();
             if (!$deliverable->canUserRemoveArtwork($user)) {
                 abort(403, 'Unauthorized action: only the person who uploaded this artwork can remove it.');
             }
-            if ($request->has('delete_final_designs_url_indices')) {
-                $delArtUrlIndices = (array)$request->input('delete_final_designs_url_indices');
+            if ($request->has('delete_final_designs_url_indices') || $request->filled('target_artwork_url')) {
                 $existingArtUrls = $deliverable->getFinalDesignsUrlsArray();
-                foreach ($delArtUrlIndices as $idx) {
-                    unset($existingArtUrls[(int)$idx]);
+                if ($request->has('delete_final_designs_url_indices')) {
+                    $delArtUrlIndices = (array)$request->input('delete_final_designs_url_indices');
+                    foreach ($delArtUrlIndices as $idx) {
+                        unset($existingArtUrls[(int)$idx]);
+                    }
+                }
+                if ($request->filled('target_artwork_url')) {
+                    $targetUrl = trim($request->input('target_artwork_url'));
+                    foreach ($existingArtUrls as $k => $u) {
+                        if (trim($u) === $targetUrl) {
+                            unset($existingArtUrls[$k]);
+                            break;
+                        }
+                    }
                 }
                 $artUrlsList = array_values($existingArtUrls);
                 $deliverable->final_designs_link = empty($artUrlsList) ? null : (count($artUrlsList) === 1 ? $artUrlsList[0] : json_encode($artUrlsList));
                 $request->request->remove('delete_final_designs_url_indices');
+                $request->request->remove('target_artwork_url');
+                $request->request->remove('delete_final_designs_link');
             } else {
                 $deliverable->final_designs_link = null;
                 $request->request->remove('delete_final_designs_link');
@@ -1095,7 +1118,7 @@ class DeliverableController extends Controller
                 $canEditContent = $isBrandManagerOrAdmin || ($isWriterStage && ($isAssignedWriter || $isUnassignedWriter));
             }
 
-            $canEditBriefAndRef = !$deliverable->isOtherDeliverable() || $deliverable->canUserRemoveReference($user);
+            $canEditBriefAndRef = !$deliverable->isOtherDeliverable() || ($isAssignedPerson ?? false) || $user->isAdmin() || $deliverable->canUserRemoveReference($user);
 
             if ($canEditContent) {
                 if ($request->has('title')) $deliverable->title = $request->title;
@@ -1213,6 +1236,9 @@ class DeliverableController extends Controller
                 if ($deliverable->isDirectDesign()) {
                     $deliverable->deadline = $newDesDeadline;
                 }
+            }
+            if ($request->has('revision_deadline')) {
+                $deliverable->revision_deadline = $request->revision_deadline ?: null;
             }
             
             if ($canEditBriefAndRef) {
@@ -1381,9 +1407,17 @@ class DeliverableController extends Controller
             
             $deliverable->save();
             
-            return $request->wantsJson() 
-                ? response()->json(['success' => true, 'message' => 'Deliverable content saved successfully.'])
-                : redirect()->back()->with('success', 'Deliverable content saved successfully.');
+            if ($request->wantsJson() || $request->ajax()) {
+                $deliverable->load(['writer', 'designer', 'brandManager', 'approver', 'coordinator', 'furtherApprover', 'project.brand']);
+                $deliverable->append(['subtask_type', 'subtask_copy', 'subtask_type_colors', 'associates', 'revisions_history', 'approvals_history', 'reassignments_history', 'workflow_stages', 'is_other_deliverable', 'is_direct_design']);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Deliverable content saved successfully.',
+                    'deliverable' => $deliverable
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'Deliverable content saved successfully.');
         }
 
         $result = $this->internallyAdvanceStage($deliverable, array_merge($request->all(), $request->allFiles()));
@@ -2468,48 +2502,50 @@ class DeliverableController extends Controller
         $isInApproval = in_array($oldStatusLower, ['approval stage', 'approval', 'review', 'under review']);
         $isCompleted = in_array($oldStatusLower, ['done', 'completed', 'complete']);
 
-        // Flow authorization rules
-        if ($isInApproval) {
-            // If it is currently in Approval Stage: ONLY the Approver or Admin/Manager can move it
-            if (!$isApprover && !$isAdminOrManager) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This deliverable is submitted for approval. Only the assigned approver can move it.',
-                ], 403);
-            }
-        } elseif ($isCompleted) {
-            // If currently Completed: ONLY Approver or Admin/Manager can move it
-            if (!$isApprover && !$isAdminOrManager) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This deliverable is completed. Only an approver or admin can move it.',
-                ], 403);
-            }
-        } else {
-            // Currently in To Do or In Progress:
-            // 1. If unassigned: Cannot be moved until assigned
-            if ($isUnassigned) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Please assign a team member before moving this deliverable.',
-                ], 403);
-            }
+        // Flow authorization rules: Admins and Operations Managers can move anything anywhere
+        if (!$isAdminOrManager) {
+            if ($isInApproval) {
+                // If it is currently in Approval Stage: ONLY the Approver can move it
+                if (!$isApprover) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This deliverable is submitted for approval. Only the assigned approver can move it.',
+                    ], 403);
+                }
+            } elseif ($isCompleted) {
+                // If currently Completed: ONLY Approver can move it
+                if (!$isApprover) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This deliverable is completed. Only an approver or admin can move it.',
+                    ], 403);
+                }
+            } else {
+                // Currently in To Do or In Progress:
+                // 1. If unassigned: Cannot be moved until assigned
+                if ($isUnassigned) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Please assign a team member before moving this deliverable.',
+                    ], 403);
+                }
 
-            // 2. ONLY the assigned person can move it from To Do / In Progress!
-            if (!$isAssigned) {
-                $assigneeName = $deliverable->assignee_name ?: ($deliverable->writer?->name ?? 'the assigned person');
-                return response()->json([
-                    'success' => false,
-                    'message' => "Only the assigned person ({$assigneeName}) can move this deliverable.",
-                ], 403);
-            }
+                // 2. ONLY the assigned person can move it from To Do / In Progress!
+                if (!$isAssigned) {
+                    $assigneeName = $deliverable->assignee_name ?: ($deliverable->writer?->name ?? 'the assigned person');
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Only the assigned person ({$assigneeName}) can move this deliverable.",
+                    ], 403);
+                }
 
-            // 3. An assignee cannot jump straight to Complete without going through Approval Stage
-            if ($newStatus === 'Done') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Deliverables must be submitted to the Approval Stage for review before completing.',
-                ], 403);
+                // 3. An assignee cannot jump straight to Complete without going through Approval Stage
+                if ($newStatus === 'Done') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Deliverables must be submitted to the Approval Stage for review before completing.',
+                    ], 403);
+                }
             }
         }
 
@@ -2630,10 +2666,10 @@ class DeliverableController extends Controller
         $updatedIsApprover = ($updatedApproverId && $user && $user->id == $updatedApproverId) ||
                              (!$updatedApproverId && $user && in_array($user->role, ['Approver', 'Approver Coordinator', 'Brand Manager']));
 
-        if ($newStatus === 'Approval Stage') {
-            $canUserMoveNow = $updatedIsApprover || $isAdminOrManager;
-        } elseif ($newStatus === 'Done') {
-            $canUserMoveNow = $updatedIsApprover || $isAdminOrManager;
+        if ($isAdminOrManager) {
+            $canUserMoveNow = true;
+        } elseif ($newStatus === 'Approval Stage' || $newStatus === 'Done') {
+            $canUserMoveNow = $updatedIsApprover;
         } else {
             // In To Do or In Progress: only the assigned user can move it; if unassigned, false
             $canUserMoveNow = $updatedAssignedId ? $updatedIsAssignee : false;
