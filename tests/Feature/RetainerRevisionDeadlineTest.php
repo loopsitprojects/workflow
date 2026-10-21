@@ -50,10 +50,13 @@ class RetainerRevisionDeadlineTest extends TestCase
         $this->assertEquals('Designer', $deliverable->approval_stage);
         $this->assertEquals('2026-10-27 00:00:00', $deliverable->revision_deadline->format('Y-m-d H:i:s'));
         $this->assertEquals(1, $deliverable->revisions);
+        $this->assertEquals('designer', $deliverable->revision_target);
 
         $latestRev = $deliverable->revisionsHistory()->latest()->first();
         $this->assertNotNull($latestRev);
         $this->assertEquals('2026-10-27 00:00:00', $latestRev->revision_deadline->format('Y-m-d H:i:s'));
+        $this->assertEquals('designer', $latestRev->target);
+        $this->assertEquals('designer', $latestRev->target_role);
     }
 
     public function test_writer_can_update_revision_deadline_endpoint()
@@ -124,5 +127,51 @@ class RetainerRevisionDeadlineTest extends TestCase
         $response = $this->get(route('projects.show', $project));
         $response->assertOk();
         $response->assertSee('Rev: Oct 27, 2026');
+    }
+
+    public function test_revision_targeting_writer_persists_target_and_shows_in_table()
+    {
+        $brand = Brand::create(['name' => 'Brand Test 4', 'slug' => 'brand-test-4']);
+        $writer = User::factory()->create(['role' => 'Writer']);
+        $approver = User::factory()->create(['role' => 'Approver']);
+        $project = Project::create([
+            'brand_id' => $brand->id,
+            'name' => 'Retainer Project 4',
+            'workflow_type' => 'retainer',
+            'writer_id' => $writer->id,
+            'approver_id' => $approver->id,
+        ]);
+
+        $deliverable = Deliverable::create([
+            'project_id' => $project->id,
+            'title' => 'Carousel 2',
+            'approval_stage' => 'Approver Review',
+            'status' => 'To Do',
+            'writer_id' => $writer->id,
+            'approver_id' => $approver->id,
+            'deadline' => '2026-10-29 00:00:00',
+        ]);
+
+        $this->actingAs($approver);
+
+        $response = $this->post(route('deliverables.revisions', $deliverable), [
+            'revision_instructions' => 'Update headline hook',
+            'revision_target' => 'writer',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $deliverable->refresh();
+
+        $this->assertEquals('Writer Review', $deliverable->approval_stage);
+        $this->assertEquals('writer', $deliverable->revision_target);
+
+        $latestRev = $deliverable->revisionsHistory()->latest()->first();
+        $this->assertNotNull($latestRev);
+        $this->assertEquals('writer', $latestRev->target);
+        $this->assertEquals('writer', $latestRev->target_role);
+
+        $pageResponse = $this->get(route('projects.show', $project));
+        $pageResponse->assertOk();
+        $pageResponse->assertSee('Revision Requested (Writer)');
     }
 }

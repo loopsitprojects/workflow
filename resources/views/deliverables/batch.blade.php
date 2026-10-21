@@ -199,10 +199,20 @@
         </div>
         <div style="display: flex; flex-direction: column; gap: 14px;">
             @foreach($postsWithRevisions as $p)
+                @php
+                    $pTargetRole = ($p->revision_target ?? $p->active_revision_target)
+                        ? ucfirst($p->revision_target ?? $p->active_revision_target)
+                        : ($p->approval_stage === 'Designer' ? 'Designer' : 'Writer');
+                @endphp
                 <div style="padding: 14px; background: var(--color-bg-primary); border: 1px solid rgba(239, 68, 68, 0.15); border-radius: 10px;">
-                    <div style="font-size: 12px; font-weight: 800; color: var(--color-text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-                        <span style="width: 6px; height: 6px; border-radius: 50%; background: #ef4444;"></span>
-                        {{ $p->title }}
+                    <div style="font-size: 12px; font-weight: 800; color: var(--color-text-primary); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="width: 6px; height: 6px; border-radius: 50%; background: #ef4444;"></span>
+                            {{ $p->title }}
+                        </div>
+                        <span style="display:inline-flex; align-items:center; gap:3px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:2px 7px; border-radius:5px; font-size:10px; font-weight:800; text-transform:uppercase;">
+                            For {{ $pTargetRole }}
+                        </span>
                     </div>
                     <div style="font-size: 13px; color: #ef4444; font-weight: 600; line-height: 1.5; white-space: pre-wrap; margin-left: 12px;">{{ $p->revision_instructions }}</div>
                     @php $pLatestRevImg = $p->revisionsHistory->first()?->image_path; @endphp
@@ -289,8 +299,8 @@
                 @endif
                 @php
                     $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
-                    $postWrevs = $revs->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
-                    $postDrevs = $revs->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
+                    $postWrevs = $revs->filter(fn($r) => ($r->target ?? $r->target_role) === 'writer' || (!isset($r->target) && !in_array($r->stage_at_revision, $dsRevStages)))->count();
+                    $postDrevs = $revs->filter(fn($r) => ($r->target ?? $r->target_role) === 'designer' || (!isset($r->target) && in_array($r->stage_at_revision, $dsRevStages)))->count();
                 @endphp
                 @if($postWrevs > 0)
                     <span style="display:inline-flex;align-items:baseline;gap:1px;padding:3px 6px;background:rgba(234,179,8,0.1);color:#d97706;border:1.5px solid rgba(234,179,8,0.3);border-radius:5px;font-size:11px;font-weight:900;line-height:1;"><span style="font-size:8px;font-weight:700;opacity:0.7;">W</span>{{ $postWrevs }}</span>

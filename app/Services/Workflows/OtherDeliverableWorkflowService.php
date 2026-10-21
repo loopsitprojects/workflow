@@ -249,6 +249,7 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
         $deliverable->progress_percent = $this->getStageProgress($deliverable);
         $deliverable->revision_instructions = null;
         $deliverable->revision_deadline = null;
+        $deliverable->revision_target = null;
         $deliverable->status = ($nextStage === 'Close') ? 'Done' : 'To Do';
         $deliverable->is_ready = false;
         if ($hoursSpent) {
@@ -299,6 +300,7 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
         $deliverable->revisions += 1;
         $deliverable->revision_instructions = $validatedData['revision_instructions'];
         $deliverable->revision_deadline = $validatedData['revision_deadline'] ?? null;
+        $deliverable->revision_target = 'assignee';
         $deliverable->save();
 
         // History
@@ -308,6 +310,7 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
             'image_path'        => $imagePath,
             'stage_at_revision' => $oldStage,
             'revision_deadline' => $validatedData['revision_deadline'] ?? null,
+            'target'            => 'assignee',
         ]);
 
         // Notify Assignee

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class DeliverableRevision extends Model
 {
     protected $with = ['user', 'fixedByUser'];
+    protected $appends = ['target_role'];
 
     protected $fillable = [
         'deliverable_id',
@@ -15,6 +16,7 @@ class DeliverableRevision extends Model
         'image_path',
         'stage_at_revision',
         'revision_deadline',
+        'target',
         'fixed_by_user_id',
         'fixed_at',
     ];
@@ -23,6 +25,23 @@ class DeliverableRevision extends Model
         'revision_deadline' => 'datetime',
         'fixed_at' => 'datetime',
     ];
+
+    public function getTargetRoleAttribute(): string
+    {
+        if (!empty($this->target)) {
+            return strtolower($this->target);
+        }
+
+        $stage = $this->stage_at_revision ?? '';
+        if (in_array($stage, ['Writer', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator', 'Assignee', 'Assign'])) {
+            return 'writer';
+        }
+        if ($stage === 'Writer Review') {
+            return 'designer';
+        }
+
+        return 'designer';
+    }
 
     public function fixedByUser()
     {

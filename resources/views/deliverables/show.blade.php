@@ -632,6 +632,7 @@
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <svg width="18" height="18" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                 <span style="color:#ef4444; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">Revision Requested</span>
+                                <span id="modalRevisionAlertTargetBadge" style="display:none; align-items:center; gap:3px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:2px 7px; border-radius:5px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;"></span>
                             </div>
                             <div id="modalRevisionDeadlineBadge" style="display:none; align-items:center; gap:6px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:3px 8px; border-radius:6px; font-size:11px; font-weight:800; letter-spacing:0.02em;">
                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -2478,23 +2479,51 @@
                                 }
                             }
 
+                            let targetRole = (rev.target || rev.target_role || '').toLowerCase();
+                            if (!targetRole) {
+                                if (['Writer', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator', 'Assignee', 'Assign'].includes(rev.stage_at_revision)) {
+                                    targetRole = 'writer';
+                                } else if (rev.stage_at_revision === 'Writer Review') {
+                                    targetRole = 'designer';
+                                } else if (task.approval_stage === 'Designer') {
+                                    targetRole = 'designer';
+                                } else {
+                                    targetRole = 'writer';
+                                }
+                            }
+                            const targetLabel = targetRole === 'designer' ? 'Designer' : (targetRole === 'assignee' ? 'Assignee' : 'Writer');
+
                             fixedBadge = `
                                 <div style="display:flex; flex-direction:column; margin-top:4px; padding-top:8px; border-top:1px dashed rgba(239, 68, 68, 0.2);">
                                     <div style="display:flex; justify-content:space-between; align-items:center;">
                                         <div style="display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:800; color:#10b981; text-transform:uppercase; background:rgba(16, 185, 129, 0.1); padding:4px 8px; border-radius:6px;">
                                             <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            Fixed by ${fixedByName || 'Unknown'}
+                                            Fixed by ${fixedByName || 'Unknown'} (${targetLabel})
                                         </div>
                                         <div style="font-size:10px; color:#10b981; opacity:0.8; font-weight:600;">${fixedDate}</div>
                                     </div>
                                     ${noteHtml}
                                 </div>`;
                         } else {
+                            let targetRole = (rev.target || rev.target_role || '').toLowerCase();
+                            if (!targetRole) {
+                                if (['Writer', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator', 'Assignee', 'Assign'].includes(rev.stage_at_revision)) {
+                                    targetRole = 'writer';
+                                } else if (rev.stage_at_revision === 'Writer Review') {
+                                    targetRole = 'designer';
+                                } else if (task.approval_stage === 'Designer') {
+                                    targetRole = 'designer';
+                                } else {
+                                    targetRole = 'writer';
+                                }
+                            }
+                            const targetLabel = targetRole === 'designer' ? 'Designer' : (targetRole === 'assignee' ? 'Assignee' : 'Writer');
+
                             fixedBadge = `
                                 <div style="margin-top:4px; padding-top:8px; border-top:1px dashed rgba(239, 68, 68, 0.2);">
                                     <div style="display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:800; color:#ef4444; text-transform:uppercase; background:rgba(239, 68, 68, 0.1); padding:4px 8px; border-radius:6px;">
                                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        Pending Fix
+                                        Pending Fix (${targetLabel})
                                     </div>
                                 </div>`;
                         }
@@ -2529,14 +2558,32 @@
                                 </div>`;
                         }
 
+                        let targetRole = (rev.target || rev.target_role || '').toLowerCase();
+                        if (!targetRole) {
+                            if (['Writer', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator', 'Assignee', 'Assign'].includes(rev.stage_at_revision)) {
+                                targetRole = 'writer';
+                            } else if (rev.stage_at_revision === 'Writer Review') {
+                                targetRole = 'designer';
+                            } else if (task.approval_stage === 'Designer') {
+                                targetRole = 'designer';
+                            } else {
+                                targetRole = 'writer';
+                            }
+                        }
+                        const targetLabel = targetRole === 'designer' ? 'Designer' : (targetRole === 'assignee' ? 'Assignee' : 'Writer');
+
                         row.innerHTML = `
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <div style="font-size:11px; font-weight:800; color:#ef4444; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                <div style="font-size:11px; font-weight:800; color:#ef4444; text-transform:uppercase; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                                     <span>Requested by ${rev.user ? rev.user.name : 'Unknown'}</span>
                                     <span style="color:#ef4444; opacity:0.5;">•</span>
                                     <span>${rev.stage_at_revision || 'Unknown Stage'}</span>
+                                    <span style="color:#ef4444; opacity:0.5;">•</span>
+                                    <span style="display:inline-flex; align-items:center; gap:3px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:1px 6px; border-radius:4px; font-size:9.5px; font-weight:800; letter-spacing:0.04em;">
+                                        FOR ${targetLabel.toUpperCase()}
+                                    </span>
                                 </div>
-                                <div style="font-size:10px; color:#ef4444; opacity:0.8; font-weight:600;">${dateStr}</div>
+                                <div style="font-size:10px; color:#ef4444; opacity:0.8; font-weight:600; white-space:nowrap;">${dateStr}</div>
                             </div>
                             ${contentHtml}
                             ${revDeadHtml}
@@ -2553,6 +2600,13 @@
                 // Revision Alert
                 const revAlert = document.getElementById('modalRevisionAlert');
                 if (task.revision_instructions) {
+                    const activeTarget = (task.revision_target || task.active_revision_target || (task.approval_stage === 'Designer' ? 'designer' : 'writer')).toLowerCase();
+                    const activeTargetLabel = activeTarget === 'designer' ? 'Designer' : (activeTarget === 'assignee' ? 'Assignee' : 'Writer');
+                    const targetBadge = document.getElementById('modalRevisionAlertTargetBadge');
+                    if (targetBadge) {
+                        targetBadge.textContent = `For: ${activeTargetLabel}`;
+                        targetBadge.style.display = 'inline-flex';
+                    }
                     const alertTextEl = document.getElementById('modalRevisionAlertText');
                     alertTextEl.innerHTML = '';
                     
