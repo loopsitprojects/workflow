@@ -72,6 +72,7 @@ class Deliverable extends Model
         'is_direct_design',
         'is_other_deliverable',
         'active_revision_target',
+        'approver_name',
     ];
 
     public static function parseMediaArray(mixed $raw): array
@@ -336,6 +337,11 @@ class Deliverable extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approver_id');
+    }
+
+    public function getApproverNameAttribute(): ?string
+    {
+        return $this->approver?->name;
     }
 
     public function writer()

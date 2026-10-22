@@ -49,6 +49,22 @@
             (object)['id' => 6, 'name' => 'Pitch Deck'],
         ]);
     }
+    $currentKanbanUser = auth()->user();
+    $currentKanbanUserId = auth()->id();
+    $canManageDeliverables = $currentKanbanUser && (
+        $currentKanbanUser->isAdmin() ||
+        in_array($currentKanbanUser->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
+        $project->lead_id == $currentKanbanUserId ||
+        $project->brand_manager_id == $currentKanbanUserId ||
+        $project->approver_id == $currentKanbanUserId
+    );
+
+    $selectableApprovers = $selectableUsers->filter(function($u) {
+        return in_array($u->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']);
+    })->values();
+    if ($selectableApprovers->isEmpty()) {
+        $selectableApprovers = $selectableUsers;
+    }
 @endphp
 
 <div class="campaign-kanban-wrapper" style="margin-bottom: 30px; overflow-x: auto; padding-bottom: 12px;">
@@ -79,10 +95,12 @@
                 </div>
             </div>
 
+            @if($canManageDeliverables)
             {{-- Inline Add Task Card for TO DO --}}
             <div id="inline-creator-todo" style="display: none;">
                 @include('projects.partials.kanban_inline_creator', ['colStatus' => 'To Do'])
             </div>
+            @endif
 
             {{-- Cards List --}}
             <div class="kanban-cards-list" id="cards-container-todo" style="display: flex; flex-direction: column; gap: 10px; min-height: 40px;">
@@ -91,6 +109,7 @@
                 @endforeach
             </div>
 
+            @if($canManageDeliverables)
             {{-- Add Task Button --}}
             <button type="button" 
                     id="btn-open-creator-todo"
@@ -101,6 +120,7 @@
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 <span>Add Task</span>
             </button>
+            @endif
         </div>
 
         {{-- ========================================================= --}}
@@ -127,10 +147,12 @@
                 </div>
             </div>
 
+            @if($canManageDeliverables)
             {{-- Inline Add Task Card for IN PROGRESS --}}
             <div id="inline-creator-inprogress" style="display: none;">
                 @include('projects.partials.kanban_inline_creator', ['colStatus' => 'In Progress'])
             </div>
+            @endif
 
             {{-- Cards List --}}
             <div class="kanban-cards-list" id="cards-container-inprogress" style="display: flex; flex-direction: column; gap: 10px; min-height: 40px;">
@@ -139,6 +161,7 @@
                 @endforeach
             </div>
 
+            @if($canManageDeliverables)
             {{-- Add Task Button --}}
             <button type="button" 
                     id="btn-open-creator-inprogress"
@@ -149,6 +172,7 @@
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 <span>Add Task</span>
             </button>
+            @endif
         </div>
 
         {{-- ========================================================= --}}
@@ -175,10 +199,12 @@
                 </div>
             </div>
 
+            @if($canManageDeliverables)
             {{-- Inline Add Task Card for APPROVAL STAGE --}}
             <div id="inline-creator-approval" style="display: none;">
                 @include('projects.partials.kanban_inline_creator', ['colStatus' => 'Approval Stage'])
             </div>
+            @endif
 
             {{-- Cards List --}}
             <div class="kanban-cards-list" id="cards-container-approval" style="display: flex; flex-direction: column; gap: 10px; min-height: 40px;">
@@ -187,6 +213,7 @@
                 @endforeach
             </div>
 
+            @if($canManageDeliverables)
             {{-- Add Task Button --}}
             <button type="button" 
                     id="btn-open-creator-approval"
@@ -197,6 +224,7 @@
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 <span>Add Task</span>
             </button>
+            @endif
         </div>
 
         {{-- ========================================================= --}}
@@ -223,10 +251,12 @@
                 </div>
             </div>
 
+            @if($canManageDeliverables)
             {{-- Inline Add Task Card for COMPLETE --}}
             <div id="inline-creator-complete" style="display: none;">
                 @include('projects.partials.kanban_inline_creator', ['colStatus' => 'Done'])
             </div>
+            @endif
 
             {{-- Cards List --}}
             <div class="kanban-cards-list" id="cards-container-complete" style="display: flex; flex-direction: column; gap: 10px; min-height: 40px;">
@@ -235,6 +265,7 @@
                 @endforeach
             </div>
 
+            @if($canManageDeliverables)
             {{-- Add Task Button --}}
             <button type="button" 
                     id="btn-open-creator-complete"
@@ -245,6 +276,7 @@
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 <span>Add Task</span>
             </button>
+            @endif
         </div>
 
     </div>
@@ -256,12 +288,16 @@ let draggedTaskId = null;
 let draggedCardElement = null;
 let currentlyEditingCardId = null;
 let isDraggingKanbanCard = false;
+let pendingApproverAction = null;
+let pendingRevisionAction = null;
 
 const kanbanSelectableUsers = @json($selectableUsers->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role]));
+const kanbanSelectableApprovers = @json($selectableApprovers->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role]));
 const kanbanSubtaskTypes = @json($subtaskTypes->map(fn($st) => ['name' => $st->name]));
 const kanbanCurrentUserId = {{ auth()->id() ?? 'null' }};
 const kanbanCurrentUserRole = "{{ auth()->user()?->role ?? '' }}";
 const kanbanIsAdminOrManager = {{ (auth()->user() && (auth()->user()->isAdmin() || in_array(auth()->user()->role, ['Admin', 'Owner', 'Operations Manager']))) ? 'true' : 'false' }};
+const kanbanCanManageDeliverables = {{ $canManageDeliverables ? 'true' : 'false' }};
 const kanbanProjectApproverId = {{ $project->approver_id ?? ($project->brand_manager_id ?? ($project->lead_id ?? 'null')) }};
 
 function checkCardMovePermission(d) {
@@ -278,14 +314,14 @@ function checkCardMovePermission(d) {
     const isUnassigned = !assignedId;
 
     const approverId = d.approver_id || kanbanProjectApproverId;
-    const isApprover = (approverId && kanbanCurrentUserId == approverId) ||
-                       (!approverId && ['Approver', 'Approver Coordinator', 'Brand Manager'].includes(kanbanCurrentUserRole));
+    const isApprover = (approverId && kanbanCurrentUserId == approverId);
 
     if (isInApproval) {
         if (isApprover) {
             return { canMove: true, reason: '' };
         }
-        return { canMove: false, reason: 'Submitted to approver. Only the assigned approver can move this deliverable.' };
+        const approverName = d.approver_name || 'the assigned approver';
+        return { canMove: false, reason: `Submitted to ${approverName}. Only that approver can approve or return this deliverable.` };
     }
 
     if (isDone) {
@@ -314,6 +350,10 @@ function isCardEditorOpen(taskId) {
 
 function handleCardClick(taskId) {
     if (isDraggingKanbanCard) return;
+    if (!kanbanCanManageDeliverables) {
+        openTaskModal(taskId);
+        return;
+    }
     if (currentlyEditingCardId === taskId) return;
     toggleCardEditor(taskId, true);
 }
@@ -438,6 +478,8 @@ async function submitInlineCardEdit(event, taskId) {
 function updateCardViewElements(taskId, d) {
     const card = document.getElementById('kanban-card-' + taskId);
     if (card) {
+        if (d.approver_id) card.setAttribute('data-approver-id', d.approver_id);
+        if (d.approver_name) card.setAttribute('data-approver-name', d.approver_name);
         const perm = checkCardMovePermission(d);
         card.setAttribute('data-can-move', perm.canMove ? 'true' : 'false');
         card.setAttribute('data-restriction-reason', perm.reason);
@@ -571,6 +613,26 @@ async function kanbanOnDrop(event, targetStatus) {
     const oldStatus = card.getAttribute('data-status');
     if (oldStatus === targetStatus) return;
 
+    // Check if target is Approval Stage
+    const isTargetApproval = ['Approval Stage', 'Approval', 'Review'].includes(targetStatus);
+    const currentApproverId = card.getAttribute('data-approver-id');
+
+    if (isTargetApproval && !currentApproverId) {
+        openAssignApproverModal(taskId, targetStatus, oldStatus, card);
+        return;
+    }
+
+    // Check if moving out of Approval Stage back to In Progress / To Do (Revision)
+    const isOldApproval = ['Approval Stage', 'Approval', 'Review', 'Under Review'].includes(oldStatus);
+    if (isOldApproval && ['In Progress', 'To Do'].includes(targetStatus)) {
+        openRevisionPromptModal(taskId, targetStatus, oldStatus, card);
+        return;
+    }
+
+    executeKanbanMove(taskId, targetStatus, oldStatus, card, { approver_id: currentApproverId });
+}
+
+async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraData = {}) {
     // Target container
     let containerId = 'cards-container-todo';
     if (targetStatus === 'In Progress') containerId = 'cards-container-inprogress';
@@ -591,6 +653,7 @@ async function kanbanOnDrop(event, targetStatus) {
 
     // Call API to persist
     try {
+        const payload = Object.assign({ status: targetStatus }, extraData);
         const response = await fetch('/deliverables/' + taskId + '/update-kanban-status', {
             method: 'POST',
             headers: {
@@ -598,7 +661,7 @@ async function kanbanOnDrop(event, targetStatus) {
                 'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
             },
-            body: JSON.stringify({ status: targetStatus })
+            body: JSON.stringify(payload)
         });
 
         const result = await response.json();
@@ -615,13 +678,20 @@ async function kanbanOnDrop(event, targetStatus) {
                 const stageBadge = document.getElementById('card-view-stage-' + taskId);
                 if (stageBadge) stageBadge.textContent = result.approval_stage;
             }
+            if (result.approver_id) {
+                card.setAttribute('data-approver-id', result.approver_id);
+            }
+            if (result.approver_name) {
+                card.setAttribute('data-approver-name', result.approver_name);
+            }
             if (typeof result.can_move !== 'undefined') {
                 card.setAttribute('data-can-move', result.can_move ? 'true' : 'false');
                 card.setAttribute('draggable', result.can_move ? 'true' : 'false');
                 card.style.cursor = result.can_move ? 'grab' : 'pointer';
                 if (!result.can_move) {
+                    const approverName = result.approver_name || card.getAttribute('data-approver-name') || 'the assigned approver';
                     const reason = (targetStatus === 'Approval Stage')
-                        ? 'Submitted to approver. Only the approver can move this deliverable.'
+                        ? `Submitted to ${approverName}. Only that approver can approve or return this deliverable.`
                         : (targetStatus === 'Done' ? 'This deliverable is completed. Only an approver or admin can move it.' : 'Only the assigned person can move this deliverable.');
                     card.setAttribute('data-restriction-reason', reason);
                     card.title = reason;
@@ -640,6 +710,77 @@ async function kanbanOnDrop(event, targetStatus) {
         recalculateKanbanCounts();
         alert('Network error while updating deliverable status.');
     }
+}
+
+function openAssignApproverModal(taskId, targetStatus, oldStatus, card) {
+    pendingApproverAction = { taskId, targetStatus, oldStatus, card };
+    const modal = document.getElementById('assignApproverModal');
+    const titleEl = document.getElementById('assignApproverModalTaskTitle');
+    const cardTitle = card.querySelector('#card-view-title-' + taskId)?.textContent || 'Deliverable';
+    if (titleEl) titleEl.textContent = cardTitle.trim();
+
+    const select = document.getElementById('assignApproverModalSelect');
+    if (select && select.options.length <= 1) {
+        select.innerHTML = '<option value="">Choose an Approver…</option>';
+        kanbanSelectableApprovers.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            opt.textContent = `${u.name} (${u.role})`;
+            select.appendChild(opt);
+        });
+    }
+    if (select && kanbanProjectApproverId && !select.value) {
+        select.value = kanbanProjectApproverId;
+    }
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeAssignApproverModal() {
+    const modal = document.getElementById('assignApproverModal');
+    if (modal) modal.style.display = 'none';
+    pendingApproverAction = null;
+}
+
+function confirmAssignApprover() {
+    if (!pendingApproverAction) return;
+    const select = document.getElementById('assignApproverModalSelect');
+    const approverId = select ? select.value : '';
+    if (!approverId) {
+        alert('Please select an approver.');
+        return;
+    }
+    const { taskId, targetStatus, oldStatus, card } = pendingApproverAction;
+    closeAssignApproverModal();
+    executeKanbanMove(taskId, targetStatus, oldStatus, card, { approver_id: approverId });
+}
+
+function openRevisionPromptModal(taskId, targetStatus, oldStatus, card) {
+    pendingRevisionAction = { taskId, targetStatus, oldStatus, card };
+    const modal = document.getElementById('revisionPromptModal');
+    const titleEl = document.getElementById('revisionPromptTaskTitle');
+    const cardTitle = card.querySelector('#card-view-title-' + taskId)?.textContent || 'Deliverable';
+    if (titleEl) titleEl.textContent = cardTitle.trim();
+
+    const textarea = document.getElementById('revisionPromptInstructions');
+    if (textarea) textarea.value = '';
+
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeRevisionPromptModal() {
+    const modal = document.getElementById('revisionPromptModal');
+    if (modal) modal.style.display = 'none';
+    pendingRevisionAction = null;
+}
+
+function confirmRevisionPrompt() {
+    if (!pendingRevisionAction) return;
+    const { taskId, targetStatus, oldStatus, card } = pendingRevisionAction;
+    const textarea = document.getElementById('revisionPromptInstructions');
+    const instructions = textarea ? textarea.value.trim() : '';
+
+    closeRevisionPromptModal();
+    executeKanbanMove(taskId, targetStatus, oldStatus, card, { revision_instructions: instructions });
 }
 
 function updateCardStatusUI(card, status) {
@@ -849,6 +990,9 @@ function insertCreatedCardIntoColumn(colKey, d) {
              id="kanban-card-${d.id}"
              data-id="${d.id}"
              data-status="${escapeHtml(d.status || 'To Do')}"
+             data-approver-id="${d.approver_id || ''}"
+             data-approver-name="${escapeHtml(d.approver_name || '')}"
+             data-can-manage="${kanbanCanManageDeliverables ? 'true' : 'false'}"
              data-can-move="${canMove ? 'true' : 'false'}"
              data-restriction-reason="${escapeHtml(restrictionReason)}"
              draggable="${canMove ? 'true' : 'false'}"
@@ -905,6 +1049,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                 </div>
             </div>
 
+            ${kanbanCanManageDeliverables ? `
             {{-- Expanded Inline Editor --}}
             <div class="kanban-card-editor" id="kanban-card-editor-${d.id}" style="display: none;" onclick="event.stopPropagation()">
                 <form onsubmit="submitInlineCardEdit(event, ${d.id})">
@@ -1018,9 +1163,88 @@ function insertCreatedCardIntoColumn(colKey, d) {
                     </div>
                 </form>
             </div>
+            ` : ''}
         </div>
     `;
 
     container.insertAdjacentHTML('afterbegin', cardHtml);
 }
 </script>
+
+{{-- Modal: Assign Approver when moving to Approval Stage --}}
+<div id="assignApproverModal" 
+     style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(0,0,0,0.55); backdrop-filter: blur(3px); padding: 16px;" 
+     onclick="if(event.target === this) closeAssignApproverModal()">
+    <div style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 14px; width: 100%; max-width: 440px; box-shadow: 0 20px 45px rgba(0,0,0,0.25); overflow: hidden;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--color-border-primary); display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); color: #f59e0b; display: flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
+                <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--color-text-primary);">Assign Approver</h3>
+            </div>
+            <button type="button" onclick="closeAssignApproverModal()" style="background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 4px; border-radius: 6px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div style="padding: 20px;">
+            <p style="margin: 0 0 8px 0; font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.4;">
+                Select who will approve <strong id="assignApproverModalTaskTitle" style="color: var(--color-text-primary);">this deliverable</strong>:
+            </p>
+            <div style="margin-top: 12px;">
+                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 6px;">Approver</label>
+                <select id="assignApproverModalSelect" style="width: 100%; padding: 9px 12px; font-size: 13px; font-weight: 600; background: var(--color-bg-secondary); color: var(--color-text-primary); border: 1px solid var(--color-border-primary); border-radius: 8px; outline: none;">
+                    <option value="">Choose an Approver…</option>
+                </select>
+            </div>
+        </div>
+        <div style="padding: 12px 20px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display: flex; justify-content: flex-end; gap: 8px;">
+            <button type="button" onclick="closeAssignApproverModal()" style="background: transparent; border: 1px solid var(--color-border-primary); padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: 8px; color: var(--color-text-primary); cursor: pointer;">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmAssignApprover()" style="background: #f59e0b; border: none; padding: 7px 16px; font-size: 12px; font-weight: 700; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);">
+                <span>Submit to Approver</span>
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+{{-- Modal: Send Back for Revisions --}}
+<div id="revisionPromptModal" 
+     style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(0,0,0,0.55); backdrop-filter: blur(3px); padding: 16px;" 
+     onclick="if(event.target === this) closeRevisionPromptModal()">
+    <div style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 14px; width: 100%; max-width: 440px; box-shadow: 0 20px 45px rgba(0,0,0,0.25); overflow: hidden;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--color-border-primary); display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(239, 68, 68, 0.12); color: #ef4444; display: flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                </div>
+                <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--color-text-primary);">Send Back for Revisions</h3>
+            </div>
+            <button type="button" onclick="closeRevisionPromptModal()" style="background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 4px; border-radius: 6px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div style="padding: 20px;">
+            <p style="margin: 0 0 10px 0; font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.4;">
+                Returning <strong id="revisionPromptTaskTitle" style="color: var(--color-text-primary);">this deliverable</strong> to the assignee. Add feedback or instructions (optional):
+            </p>
+            <div>
+                <textarea id="revisionPromptInstructions" 
+                          rows="3" 
+                          placeholder="Describe the changes or revisions required…" 
+                          style="width: 100%; padding: 10px 12px; font-size: 12.5px; line-height: 1.4; background: var(--color-bg-secondary); color: var(--color-text-primary); border: 1px solid var(--color-border-primary); border-radius: 8px; outline: none; resize: vertical;"></textarea>
+            </div>
+        </div>
+        <div style="padding: 12px 20px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display: flex; justify-content: flex-end; gap: 8px;">
+            <button type="button" onclick="closeRevisionPromptModal()" style="background: transparent; border: 1px solid var(--color-border-primary); padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: 8px; color: var(--color-text-primary); cursor: pointer;">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmRevisionPrompt()" style="background: #ef4444; border: none; padding: 7px 16px; font-size: 12px; font-weight: 700; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);">
+                <span>Request Revision</span>
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+            </button>
+        </div>
+    </div>
+</div>

@@ -716,7 +716,7 @@
                         Edit Project
                     </a>
                     @endif
-                    @if(in_array($project->workflow_type, ['campaign', 'pitch']) || auth()->user()->can('create-deliverable', $project))
+                    @if(auth()->user()->can('create-deliverable', $project))
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id]) }}"
                        style="padding: 8px 16px; background: #0055D4; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(0,85,212,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
@@ -1564,7 +1564,7 @@
                         </button>
                     </div>
 
-                    @if(in_array($project->workflow_type, ['campaign', 'pitch']) || auth()->user()->can('create-deliverable', $project))
+                    @if(auth()->user()->can('create-deliverable', $project))
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id]) }}"
                        style="padding: 7px 16px; background: #0055D4; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(0,85,212,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
@@ -3501,32 +3501,45 @@
                 }
 
                 // Edit Permissions (already computed above)
+                const isCampaignOrPitchProject = ['campaign', 'pitch'].includes(projectWorkflowType);
+                const isManagerOrApprover = isAdmin ||
+                    ['brandmanager', 'operationsmanager', 'approver', 'approvercoordinator', 'owner'].includes(userRole) ||
+                    (typeof isManager !== 'undefined' && isManager) ||
+                    (task.brand_manager_id && AUTH_USER_ID == task.brand_manager_id) ||
+                    (task.approver_id && AUTH_USER_ID == task.approver_id) ||
+                    (task.project && (task.project.lead_id == AUTH_USER_ID || task.project.brand_manager_id == AUTH_USER_ID || task.project.approver_id == AUTH_USER_ID));
+
                 const canEditBriefAndRef = (isDirectDesign || task.is_direct_design)
                     ? (isAdmin || isManager || (task.brand_manager_id && AUTH_USER_ID == task.brand_manager_id))
-                    : (isOtherDeliverable
-                        ? (isAdmin || Boolean(task.can_remove_reference))
-                        : writerEditPermission);
+                    : (isCampaignOrPitchProject
+                        ? isManagerOrApprover
+                        : (isOtherDeliverable
+                            ? (isAdmin || Boolean(task.can_remove_reference))
+                            : writerEditPermission));
 
-                const canEditTitle = isOtherDeliverable
-                    ? (isOtherAssignStage && isOtherAssignedPerson)
-                    : (writerEditPermission || isAdmin || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole));
+                const canEditTitle = isCampaignOrPitchProject
+                    ? isManagerOrApprover
+                    : (isOtherDeliverable
+                        ? (isOtherAssignStage && isOtherAssignedPerson)
+                        : (writerEditPermission || isAdmin || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole)));
+
                 document.getElementById('modalTaskTitle').readOnly = !canEditTitle;
                 quillConcept.enable(canEditBriefAndRef);
                 quillCaption.enable(writerEditPermission);
                 quillCopy.enable(writerEditPermission);
                 
-                // Reference Edit Area
+                // Reference Edit Area (Files & Links)
                 const refEditArea = document.getElementById('modalReferenceEditArea');
-                const canEditReference = canEditBriefAndRef;
+                const canUploadFiles = isAssignedWriter || isAssignedDesigner || isOtherAssignedPerson || isManagerOrApprover || isAdmin || canEditBriefAndRef;
                 if (refEditArea) {
-                    refEditArea.style.display = canEditReference ? 'flex' : 'none';
+                    refEditArea.style.display = canUploadFiles ? 'flex' : 'none';
                     const refInput = document.getElementById('modalReferenceUrl');
                     if (refInput) refInput.value = task.reference || '';
                 }
 
                 const canSaveContent = isOtherDeliverable
-                    ? (isOtherAssignedPerson || canEditBriefAndRef || isManager)
-                    : (canEditReference || (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager');
+                    ? (isOtherAssignedPerson || canUploadFiles || canEditBriefAndRef || isManager)
+                    : (canUploadFiles || canEditBriefAndRef || (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager');
 
                 if (canSaveContent) {
                     submitBtnForm.style.display = 'flex';

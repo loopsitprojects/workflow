@@ -1118,11 +1118,24 @@ class DeliverableController extends Controller
                 $canEditContent = $isBrandManagerOrAdmin || ($isWriterStage && ($isAssignedWriter || $isUnassignedWriter));
             }
 
+            $isCampaignOrPitch = in_array($deliverable->project?->workflow_type ?? '', ['campaign', 'pitch']);
+            if ($isCampaignOrPitch) {
+                $canEditBrief = $user->isAdmin() ||
+                    in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
+                    $deliverable->project?->lead_id == $user->id ||
+                    $deliverable->project?->brand_manager_id == $user->id ||
+                    $deliverable->project?->approver_id == $user->id ||
+                    $deliverable->brand_manager_id == $user->id ||
+                    $deliverable->approver_id == $user->id;
+            } else {
+                $canEditBrief = $canEditBriefAndRef;
+            }
+
             $canEditBriefAndRef = !$deliverable->isOtherDeliverable() || ($isAssignedPerson ?? false) || $user->isAdmin() || $deliverable->canUserRemoveReference($user);
 
             if ($canEditContent) {
-                if ($request->has('title')) $deliverable->title = $request->title;
-                if ($canEditBriefAndRef) {
+                if ($request->has('title') && (!$isCampaignOrPitch || $canEditBrief)) $deliverable->title = $request->title;
+                if ($canEditBrief) {
                     if ($request->has('concept')) {
                         $deliverable->concept = $request->concept;
                         if ($deliverable->isDirectDesign()) {
@@ -2290,6 +2303,18 @@ class DeliverableController extends Controller
             return response()->json(['success' => false, 'message' => 'Quick store is only available for campaign and pitch projects.'], 403);
         }
 
+        $user = auth()->user();
+        $canCreate = $user && (
+            $user->isAdmin() ||
+            in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
+            $project->lead_id == $user->id ||
+            $project->brand_manager_id == $user->id ||
+            $project->approver_id == $user->id
+        );
+        if (!$canCreate) {
+            return response()->json(['success' => false, 'message' => 'Only Managers and Approvers can create deliverables.'], 403);
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'status' => 'nullable|string|in:To Do,In Progress,Approval Stage,Done,To commence,Completed,Review,Approval',
@@ -2373,6 +2398,20 @@ class DeliverableController extends Controller
         $project = $deliverable->project;
         if (!$project || !in_array($project->workflow_type, ['campaign', 'pitch'])) {
             return response()->json(['success' => false, 'message' => 'Quick update is only available for campaign and pitch projects.'], 403);
+        }
+
+        $user = auth()->user();
+        $isManagerOrApprover = $user && (
+            $user->isAdmin() ||
+            in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
+            $project->lead_id == $user->id ||
+            $project->brand_manager_id == $user->id ||
+            $project->approver_id == $user->id ||
+            $deliverable->brand_manager_id == $user->id ||
+            $deliverable->approver_id == $user->id
+        );
+        if (!$isManagerOrApprover) {
+            return response()->json(['success' => false, 'message' => 'Only Managers and Approvers can edit deliverable details (assignee, due date, priority).'], 403);
         }
 
         $validated = $request->validate([
@@ -2468,6 +2507,8 @@ class DeliverableController extends Controller
 
         $validated = $request->validate([
             'status' => 'required|string|in:To Do,In Progress,Approval Stage,Done,Review,Approval',
+            'approver_id' => 'nullable|exists:users,id',
+            'revision_instructions' => 'nullable|string|max:1000',
         ]);
 
         $newStatus = $validated['status'];
@@ -2494,9 +2535,8 @@ class DeliverableController extends Controller
         $isUnassigned = !$assignedUserId;
 
         // Approver check
-        $approverId = $deliverable->approver_id ?: ($deliverable->brand_manager_id ?: ($project->approver_id ?: ($project->brand_manager_id ?: null)));
-        $isApprover = ($approverId && $user && $user->id == $approverId) ||
-                      (!$approverId && $user && in_array($user->role, ['Approver', 'Approver Coordinator', 'Brand Manager']));
+        $approverId = $deliverable->approver_id ?: ($project->approver_id ?: null);
+        $isDesignatedApprover = ($approverId && $user && $user->id == $approverId);
 
         $oldStatusLower = strtolower(trim($oldStatus));
         $isInApproval = in_array($oldStatusLower, ['approval stage', 'approval', 'review', 'under review']);
@@ -2505,16 +2545,17 @@ class DeliverableController extends Controller
         // Flow authorization rules: Admins and Operations Managers can move anything anywhere
         if (!$isAdminOrManager) {
             if ($isInApproval) {
-                // If it is currently in Approval Stage: ONLY the Approver can move it
-                if (!$isApprover) {
+                // If it is currently in Approval Stage: ONLY the designated Approver can move it
+                if (!$isDesignatedApprover) {
+                    $approverName = $deliverable->approver?->name ?? 'the assigned approver';
                     return response()->json([
                         'success' => false,
-                        'message' => 'This deliverable is submitted for approval. Only the assigned approver can move it.',
+                        'message' => "This deliverable is submitted for approval. Only the assigned approver ({$approverName}) can approve or return it.",
                     ], 403);
                 }
             } elseif ($isCompleted) {
                 // If currently Completed: ONLY Approver can move it
-                if (!$isApprover) {
+                if (!$isDesignatedApprover) {
                     return response()->json([
                         'success' => false,
                         'message' => 'This deliverable is completed. Only an approver or admin can move it.',
@@ -2553,11 +2594,21 @@ class DeliverableController extends Controller
         $isOutline = in_array(strtolower($deliverable->post_type ?? ''), ['outlines', 'outline']);
 
         if ($newStatus === 'Approval Stage') {
+            $approverIdToSet = !empty($validated['approver_id']) 
+                ? (int)$validated['approver_id'] 
+                : ($deliverable->approver_id ?: ($project->approver_id ?: null));
+
+            if (!$approverIdToSet) {
+                return response()->json([
+                    'success' => false,
+                    'require_approver' => true,
+                    'message' => 'Please assign an approver for this deliverable before submitting to the Approval Stage.',
+                ], 422);
+            }
+
+            $deliverable->approver_id = $approverIdToSet;
             $deliverable->status = 'Approval Stage';
             $deliverable->approval_stage = $isOutline ? 'Approver' : 'Approve';
-            if (!$deliverable->approver_id) {
-                $deliverable->approver_id = $project->approver_id ?? $project->brand_manager_id ?? $project->lead_id;
-            }
             $deliverable->progress_percent = 60;
             $deliverable->save();
 
@@ -2569,7 +2620,7 @@ class DeliverableController extends Controller
             ]);
 
             // Notify Approver
-            $notifyApprover = $deliverable->approver ?? $deliverable->brandManager ?? $project->approver ?? $project->brandManager;
+            $notifyApprover = $deliverable->approver ?? User::find($approverIdToSet);
             if ($notifyApprover && $notifyApprover->id !== $user->id) {
                 try {
                     $notifyApprover->notify(new \App\Notifications\DeliverableUpdated(
@@ -2617,12 +2668,16 @@ class DeliverableController extends Controller
 
             if ($isInApproval) {
                 // Sent back from approval for revisions/updates
+                $instructions = !empty($validated['revision_instructions']) 
+                    ? $validated['revision_instructions'] 
+                    : ('Returned to ' . $newStatus . ' by approver via Kanban board');
                 $deliverable->revisions = ($deliverable->revisions ?? 0) + 1;
+                $deliverable->revision_instructions = $instructions;
                 $deliverable->save();
 
                 $deliverable->revisionsHistory()->create([
                     'user_id'           => $user->id,
-                    'instructions'      => 'Returned to ' . $newStatus . ' by approver via Kanban board',
+                    'instructions'      => $instructions,
                     'stage_at_revision' => 'Approval Stage',
                 ]);
 
@@ -2632,7 +2687,7 @@ class DeliverableController extends Controller
                     try {
                         $notifyWorker->notify(new \App\Notifications\DeliverableUpdated(
                             $deliverable,
-                            "returned **{$deliverable->title}** to {$newStatus} for updates",
+                            "returned **{$deliverable->title}** to {$newStatus} for updates" . (!empty($validated['revision_instructions']) ? ": \"{$instructions}\"" : ''),
                             'revision_request',
                             $user
                         ));
@@ -2662,9 +2717,8 @@ class DeliverableController extends Controller
         // Recalculate if the current user can move it now in its new state
         $updatedAssignedId = $deliverable->writer_id ?: ($deliverable->designer_id ?: null);
         $updatedIsAssignee = $updatedAssignedId && $user && $user->id == $updatedAssignedId;
-        $updatedApproverId = $deliverable->approver_id ?: ($deliverable->brand_manager_id ?: ($project->approver_id ?: ($project->brand_manager_id ?: null)));
-        $updatedIsApprover = ($updatedApproverId && $user && $user->id == $updatedApproverId) ||
-                             (!$updatedApproverId && $user && in_array($user->role, ['Approver', 'Approver Coordinator', 'Brand Manager']));
+        $updatedApproverId = $deliverable->approver_id ?: ($project->approver_id ?: null);
+        $updatedIsApprover = ($updatedApproverId && $user && $user->id == $updatedApproverId);
 
         if ($isAdminOrManager) {
             $canUserMoveNow = true;
@@ -2682,6 +2736,8 @@ class DeliverableController extends Controller
             'approval_stage' => $deliverable->approval_stage,
             'deliverable_id' => $deliverable->id,
             'assignee_name' => $deliverable->assignee_name,
+            'approver_id' => $deliverable->approver_id,
+            'approver_name' => $deliverable->approver?->name,
             'can_move' => $canUserMoveNow,
         ]);
     }

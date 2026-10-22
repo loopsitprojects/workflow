@@ -48,10 +48,19 @@
     $isUnassigned = !$assignedUserId;
 
     // Approver resolution
-    $approverUser = $task->approver ?: ($task->brandManager ?: ($task->project?->approver ?: $task->project?->brandManager));
-    $approverId = $task->approver_id ?: ($task->brand_manager_id ?: ($task->project?->approver_id ?: ($task->project?->brand_manager_id ?: null)));
-    $isApprover = ($approverId && $currentUserId == $approverId) ||
-                  (!$approverId && in_array($currentUser?->role, ['Approver', 'Approver Coordinator', 'Brand Manager']));
+    $approverUser = $task->approver ?: ($task->project?->approver ?: null);
+    $approverId = $task->approver_id ?: ($task->project?->approver_id ?: null);
+    $isApprover = ($approverId && $currentUserId == $approverId);
+
+    $canManageDeliverables = $currentUser && (
+        $currentUser->isAdmin() ||
+        in_array($currentUser->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
+        $task->project?->lead_id == $currentUserId ||
+        $task->project?->brand_manager_id == $currentUserId ||
+        $task->project?->approver_id == $currentUserId ||
+        $task->brand_manager_id == $currentUserId ||
+        $task->approver_id == $currentUserId
+    );
 
     $statusLower = strtolower(trim($task->status ?? ''));
     $isInApproval = in_array($statusLower, ['approval stage', 'approval', 'review', 'under review']);
@@ -62,7 +71,8 @@
         $moveRestrictionReason = '';
     } elseif ($isInApproval) {
         $canMove = $isApprover;
-        $moveRestrictionReason = $canMove ? '' : 'Submitted to approver. Only the assigned approver can move this deliverable.';
+        $approverDisplayName = $task->approver?->name ?? 'the assigned approver';
+        $moveRestrictionReason = $canMove ? '' : "Submitted to {$approverDisplayName}. Only that approver can approve or return this deliverable.";
     } elseif ($isCompleted) {
         $canMove = $isApprover;
         $moveRestrictionReason = $canMove ? '' : 'Deliverable is completed. Only an approver or admin can move it.';
@@ -84,6 +94,9 @@
      id="kanban-card-{{ $task->id }}"
      data-id="{{ $task->id }}"
      data-status="{{ $task->status ?? 'To Do' }}"
+     data-approver-id="{{ $task->approver_id ?? '' }}"
+     data-approver-name="{{ $task->approver?->name ?? '' }}"
+     data-can-manage="{{ $canManageDeliverables ? 'true' : 'false' }}"
      data-can-move="{{ $canMove ? 'true' : 'false' }}"
      data-restriction-reason="{{ $moveRestrictionReason }}"
      draggable="{{ $canMove ? 'true' : 'false' }}"
@@ -159,8 +172,9 @@
     </div>
 
     {{-- ========================================================= --}}
-    {{-- EXPANDED INLINE EDITOR (Matching user screenshot)         --}}
+    {{-- EXPANDED INLINE EDITOR (Managers and Approvers only)       --}}
     {{-- ========================================================= --}}
+    @if($canManageDeliverables)
     <div class="kanban-card-editor" id="kanban-card-editor-{{ $task->id }}" style="display: none;" onclick="event.stopPropagation()">
         <form onsubmit="submitInlineCardEdit(event, {{ $task->id }})">
             {{-- Top Header: Stage on top very small --}}
@@ -285,4 +299,5 @@
             </div>
         </form>
     </div>
+    @endif
 </div>

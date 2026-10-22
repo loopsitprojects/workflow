@@ -28,7 +28,11 @@ class AppServiceProvider extends ServiceProvider
 
         \Illuminate\Support\Facades\Gate::define('create-deliverable', function (\App\Models\User $user, ?\App\Models\Project $project = null) {
             if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
-                return true;
+                return $user->isAdmin() ||
+                    in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
+                    $project->lead_id == $user->id ||
+                    $project->brand_manager_id == $user->id ||
+                    $project->approver_id == $user->id;
             }
             return in_array($user->role, [
                 'Admin',
