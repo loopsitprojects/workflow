@@ -816,21 +816,21 @@ function insertCreatedCardIntoColumn(colKey, d) {
     let postTypeOptions = '';
     kanbanSubtaskTypes.forEach(st => {
         const isSelected = (st.name.toLowerCase() === (d.post_type || '').toLowerCase()) ? 'selected' : '';
-        postTypeOptions += `<option value="${escapeHtml(st.name)}" ${isSelected}>${escapeHtml(st.name)}</option>`;
+        postTypeOptions += `<option value="${escapeHtml(st.name)}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" ${isSelected}>${escapeHtml(st.name)}</option>`;
     });
 
     // Build assignee options
-    let assigneeOptions = `<option value="">Add assignee…</option>`;
+    let assigneeOptions = `<option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add assignee…</option>`;
     kanbanSelectableUsers.forEach(u => {
         const isSelected = (d.writer_id == u.id) ? 'selected' : '';
-        assigneeOptions += `<option value="${u.id}" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
+        assigneeOptions += `<option value="${u.id}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
     });
 
     // Build approver options
-    let approverOptions = `<option value="">Add approver…</option>`;
+    let approverOptions = `<option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add approver…</option>`;
     kanbanSelectableUsers.forEach(u => {
         const isSelected = (d.approver_id == u.id) ? 'selected' : '';
-        approverOptions += `<option value="${u.id}" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
+        approverOptions += `<option value="${u.id}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
     });
 
     const perm = checkCardMovePermission(d);
@@ -985,10 +985,10 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             <select name="priority" 
                                     id="card-input-priority-${d.id}"
                                     style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
-                                <option value="Medium" ${d.priority === 'Medium' ? 'selected' : ''}>Add priority (Medium)</option>
-                                <option value="High Priority" ${(d.priority === 'High Priority' || d.priority === 'High') ? 'selected' : ''}>High Priority</option>
-                                <option value="Urgent" ${d.priority === 'Urgent' ? 'selected' : ''}>Urgent</option>
-                                <option value="Low" ${d.priority === 'Low' ? 'selected' : ''}>Low</option>
+                                <option value="Medium" style="background: var(--color-bg-primary); color: var(--color-text-primary);" ${d.priority === 'Medium' ? 'selected' : ''}>Add priority (Medium)</option>
+                                <option value="High Priority" style="background: var(--color-bg-primary); color: var(--color-text-primary);" ${(d.priority === 'High Priority' || d.priority === 'High') ? 'selected' : ''}>High Priority</option>
+                                <option value="Urgent" style="background: var(--color-bg-primary); color: var(--color-text-primary);" ${d.priority === 'Urgent' ? 'selected' : ''}>Urgent</option>
+                                <option value="Low" style="background: var(--color-bg-primary); color: var(--color-text-primary);" ${d.priority === 'Low' ? 'selected' : ''}>Low</option>
                             </select>
                         </div>
                     </div>
@@ -1010,9 +1010,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             </button>
                             <button type="submit" 
                                     id="card-btn-save-${d.id}"
-                                    style="background: #e2e8f0; color: #1e293b; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s;"
-                                    onmouseover="this.style.background='#cbd5e1'"
-                                    onmouseout="this.style.background='#e2e8f0'">
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-md bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors border-0 cursor-pointer">
                                 <span>Save</span>
                                 <span style="font-size: 11px; opacity: 0.7;">↵</span>
                             </button>

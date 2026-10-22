@@ -6,6 +6,7 @@
 @source '../**/*.js';
 
 :root {
+    color-scheme: light;
     --color-bg-primary: #ffffff;
     --color-bg-secondary: #f1f5f9;
     --color-text-primary: #000000;
@@ -14,11 +15,30 @@
 }
 
 .dark {
+    color-scheme: dark;
     --color-bg-primary: #111827;
     --color-bg-secondary: #0b1120;
     --color-text-primary: #f0f4ff;
     --color-text-secondary: #cbd5e1;
     --color-border-primary: #1e2d45;
+}
+
+select {
+    color-scheme: light;
+}
+
+.dark select {
+    color-scheme: dark;
+}
+
+select option {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+}
+
+.dark select option {
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
 }
 
 .dark input[type="date"]::-webkit-calendar-picker-indicator,

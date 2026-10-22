@@ -197,11 +197,11 @@
                         <td>
                             @if($isAdmin || $userRole === 'brandmanager')
                                 <select onchange="updateClientStatusInline(this, {{ $task->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
-                                    <option value="Not Sent" {{ !$task->client_status || $task->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
-                                    <option value="Sent to Client" {{ $task->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
-                                    <option value="Waiting for Feedback" {{ $task->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
-                                    <option value="Client Approved" {{ $task->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
-                                    <option value="Client Revisions" {{ $task->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
+                                    <option value="Not Sent" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ !$task->client_status || $task->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
+                                    <option value="Sent to Client" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
+                                    <option value="Waiting for Feedback" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
+                                    <option value="Client Approved" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
+                                    <option value="Client Revisions" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
                                 </select>
                             @else
                                 <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">
@@ -467,11 +467,11 @@
                         <td>
                             @if($isAdmin || $userRole === 'brandmanager')
                                 <select onchange="updateClientStatusInline(this, {{ $task->id }})" onclick="event.stopPropagation()" style="padding:2px 4px; border-radius:4px; border:1px solid var(--color-border-primary); font-size:10px; background:var(--color-bg-primary); color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; font-weight:700; max-width: 110px;">
-                                    <option value="Not Sent" {{ !$task->client_status || $task->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
-                                    <option value="Sent to Client" {{ $task->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
-                                    <option value="Waiting for Feedback" {{ $task->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
-                                    <option value="Client Approved" {{ $task->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
-                                    <option value="Client Revisions" {{ $task->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
+                                    <option value="Not Sent" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ !$task->client_status || $task->client_status === 'Not Sent' ? 'selected' : '' }}>Not Sent</option>
+                                    <option value="Sent to Client" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->client_status === 'Sent to Client' ? 'selected' : '' }}>Sent to Client</option>
+                                    <option value="Waiting for Feedback" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->client_status === 'Waiting for Feedback' ? 'selected' : '' }}>Waiting for Feedback</option>
+                                    <option value="Client Approved" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->client_status === 'Client Approved' ? 'selected' : '' }}>Client Approved</option>
+                                    <option value="Client Revisions" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->client_status === 'Client Revisions' ? 'selected' : '' }}>Client Revisions</option>
                                 </select>
                             @else
                                 <div style="font-size:10px; font-weight:700; color:{{ $task->client_status === 'Client Approved' ? '#10b981' : 'var(--color-text-secondary)' }}; opacity:0.8;">

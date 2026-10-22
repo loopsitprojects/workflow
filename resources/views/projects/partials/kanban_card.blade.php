@@ -205,9 +205,9 @@
                     <select name="writer_id" 
                             id="card-input-writer-{{ $task->id }}"
                             style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
-                        <option value="">Add assignee…</option>
+                        <option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add assignee…</option>
                         @foreach($cardSelectableUsers as $u)
-                            <option value="{{ $u->id }}" {{ ($task->writer_id == $u->id || (!$task->writer_id && $task->designer_id == $u->id)) ? 'selected' : '' }}>
+                            <option value="{{ $u->id }}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ ($task->writer_id == $u->id || (!$task->writer_id && $task->designer_id == $u->id)) ? 'selected' : '' }}>
                                 {{ $u->name }} ({{ $u->role }})
                             </option>
                         @endforeach
@@ -222,9 +222,9 @@
                     <select name="approver_id" 
                             id="card-input-approver-{{ $task->id }}"
                             style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
-                        <option value="">Add approver…</option>
+                        <option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add approver…</option>
                         @foreach($cardSelectableUsers as $u)
-                            <option value="{{ $u->id }}" {{ ($task->approver_id == $u->id || (!$task->approver_id && $task->brand_manager_id == $u->id)) ? 'selected' : '' }}>
+                            <option value="{{ $u->id }}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ ($task->approver_id == $u->id || (!$task->approver_id && $task->brand_manager_id == $u->id)) ? 'selected' : '' }}>
                                 {{ $u->name }} ({{ $u->role }})
                             </option>
                         @endforeach
@@ -252,10 +252,10 @@
                     <select name="priority" 
                             id="card-input-priority-{{ $task->id }}"
                             style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
-                        <option value="Medium" {{ $task->priority === 'Medium' ? 'selected' : '' }}>Add priority (Medium)</option>
-                        <option value="High Priority" {{ in_array($task->priority, ['High Priority', 'High']) ? 'selected' : '' }}>High Priority</option>
-                        <option value="Urgent" {{ $task->priority === 'Urgent' ? 'selected' : '' }}>Urgent</option>
-                        <option value="Low" {{ $task->priority === 'Low' ? 'selected' : '' }}>Low</option>
+                        <option value="Medium" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->priority === 'Medium' ? 'selected' : '' }}>Add priority (Medium)</option>
+                        <option value="High Priority" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ in_array($task->priority, ['High Priority', 'High']) ? 'selected' : '' }}>High Priority</option>
+                        <option value="Urgent" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->priority === 'Urgent' ? 'selected' : '' }}>Urgent</option>
+                        <option value="Low" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->priority === 'Low' ? 'selected' : '' }}>Low</option>
                     </select>
                 </div>
             </div>
@@ -277,9 +277,7 @@
                     </button>
                     <button type="submit" 
                             id="card-btn-save-{{ $task->id }}"
-                            style="background: #e2e8f0; dark:background: #334155; color: #1e293b; dark:color: #f8fafc; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s;"
-                            onmouseover="this.style.background='#cbd5e1'"
-                            onmouseout="this.style.background='#e2e8f0'">
+                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-md bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors border-0 cursor-pointer">
                         <span>Save</span>
                         <span style="font-size: 11px; opacity: 0.7;">↵</span>
                     </button>

@@ -17,7 +17,7 @@
                 <select name="post_type" 
                         style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; cursor: pointer; outline: none;">
                     @foreach($subtaskTypes as $st)
-                        <option value="{{ $st->name }}" {{ strtolower($st->name) === 'outlines' ? 'selected' : '' }}>
+                        <option value="{{ $st->name }}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ strtolower($st->name) === 'outlines' ? 'selected' : '' }}>
                             {{ $st->name }}
                         </option>
                     @endforeach
@@ -49,9 +49,9 @@
                 </svg>
                 <select name="writer_id" 
                         style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
-                    <option value="">Add assignee…</option>
+                    <option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add assignee…</option>
                     @foreach($selectableUsers as $u)
-                        <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->role }})</option>
+                        <option value="{{ $u->id }}" style="background: var(--color-bg-primary); color: var(--color-text-primary);">{{ $u->name }} ({{ $u->role }})</option>
                     @endforeach
                 </select>
             </div>
@@ -63,9 +63,9 @@
                 </svg>
                 <select name="approver_id" 
                         style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
-                    <option value="">Add approver…</option>
+                    <option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add approver…</option>
                     @foreach($selectableUsers as $u)
-                        <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->role }})</option>
+                        <option value="{{ $u->id }}" style="background: var(--color-bg-primary); color: var(--color-text-primary);">{{ $u->name }} ({{ $u->role }})</option>
                     @endforeach
                 </select>
             </div>
@@ -89,10 +89,10 @@
                 </svg>
                 <select name="priority" 
                         style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
-                    <option value="Medium">Add priority (Medium)</option>
-                    <option value="High Priority">High Priority</option>
-                    <option value="Urgent">Urgent</option>
-                    <option value="Low">Low</option>
+                    <option value="Medium" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add priority (Medium)</option>
+                    <option value="High Priority" style="background: var(--color-bg-primary); color: var(--color-text-primary);">High Priority</option>
+                    <option value="Urgent" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Urgent</option>
+                    <option value="Low" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Low</option>
                 </select>
             </div>
         </div>
@@ -105,9 +105,7 @@
                 Cancel
             </button>
             <button type="submit" 
-                    style="background: #e2e8f0; dark:background: #334155; color: #1e293b; dark:color: #f8fafc; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s;"
-                    onmouseover="this.style.background='#cbd5e1'"
-                    onmouseout="this.style.background='#e2e8f0'">
+                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-md bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors border-0 cursor-pointer">
                 <span>Save</span>
                 <span style="font-size: 11px; opacity: 0.7;">↵</span>
             </button>
