@@ -287,6 +287,8 @@
 let draggedTaskId = null;
 let draggedCardElement = null;
 let currentlyEditingCardId = null;
+let justOpenedCardId = null;
+let justOpenedInlineCreator = null;
 let isDraggingKanbanCard = false;
 let pendingApproverAction = null;
 let pendingRevisionAction = null;
@@ -370,6 +372,11 @@ function toggleCardEditor(taskId, open) {
             toggleCardEditor(currentlyEditingCardId, false);
         }
         currentlyEditingCardId = taskId;
+        justOpenedCardId = taskId;
+        setTimeout(() => {
+            if (justOpenedCardId === taskId) justOpenedCardId = null;
+        }, 100);
+
         card.setAttribute('draggable', 'false');
         card.style.border = '1.5px solid #64748b';
         card.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)';
@@ -818,6 +825,11 @@ function openInlineCreator(colKey) {
     const btn = document.getElementById('btn-open-creator-' + colKey);
     if (creator) {
         creator.style.display = 'block';
+        justOpenedInlineCreator = colKey;
+        setTimeout(() => {
+            if (justOpenedInlineCreator === colKey) justOpenedInlineCreator = null;
+        }, 100);
+
         const titleInput = creator.querySelector('input[name="task_title"]');
         if (titleInput) {
             titleInput.focus();
@@ -1141,7 +1153,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                     {{-- Footer actions: Details on left, Cancel & Save on right (All buttons at the bottom) --}}
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
                         <button type="button" 
-                                onclick="event.stopPropagation(); openTaskModal(${d.id})"
+                                onclick="event.stopPropagation(); toggleCardEditor(${d.id}, false); openTaskModal(${d.id})"
                                 style="background: transparent; border: none; font-size: 11px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 3px 4px; display: inline-flex; align-items: center; gap: 3px;"
                                 title="Open full view with briefs, assets and artwork">
                             <span>Details</span>
@@ -1169,6 +1181,46 @@ function insertCreatedCardIntoColumn(colKey, d) {
 
     container.insertAdjacentHTML('afterbegin', cardHtml);
 }
+
+// Collapse card editor or inline creator on click outside
+document.addEventListener('click', function(event) {
+    if (isDraggingKanbanCard) return;
+
+    // 1. Deliverable Card Editor: Collapse on click outside
+    if (currentlyEditingCardId && currentlyEditingCardId !== justOpenedCardId) {
+        const card = document.getElementById('kanban-card-' + currentlyEditingCardId);
+        if (card && !card.contains(event.target)) {
+            toggleCardEditor(currentlyEditingCardId, false);
+        }
+    }
+
+    // 2. Inline Task Creator: Close on click outside
+    ['todo', 'inprogress', 'approval', 'complete'].forEach(colKey => {
+        if (justOpenedInlineCreator === colKey) return;
+        const creator = document.getElementById('inline-creator-' + colKey);
+        const btn = document.getElementById('btn-open-creator-' + colKey);
+        if (creator && creator.style.display !== 'none') {
+            if (!creator.contains(event.target) && (!btn || !btn.contains(event.target))) {
+                closeInlineCreator(colKey);
+            }
+        }
+    });
+});
+
+// Escape key collapses card editor and closes inline creator
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        if (currentlyEditingCardId) {
+            toggleCardEditor(currentlyEditingCardId, false);
+        }
+        ['todo', 'inprogress', 'approval', 'complete'].forEach(colKey => {
+            const creator = document.getElementById('inline-creator-' + colKey);
+            if (creator && creator.style.display !== 'none') {
+                closeInlineCreator(colKey);
+            }
+        });
+    }
+});
 </script>
 
 {{-- Modal: Assign Approver when moving to Approval Stage --}}

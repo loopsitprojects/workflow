@@ -277,7 +277,7 @@
             {{-- Footer actions: Details on left, Cancel & Save on right (All buttons at the bottom) --}}
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
                 <button type="button" 
-                        onclick="event.stopPropagation(); openTaskModal({{ $task->id }})"
+                        onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false); openTaskModal({{ $task->id }})"
                         style="background: transparent; border: none; font-size: 11px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 3px 4px; display: inline-flex; align-items: center; gap: 3px;"
                         title="Open full view with briefs, assets and artwork">
                     <span>Details</span>
