@@ -54,6 +54,7 @@ class Deliverable extends Model
         'revision_deadline',
         'revision_target',
         'artwork_uploaded_by',
+        'created_by',
     ];
 
     protected $casts = [
@@ -73,6 +74,8 @@ class Deliverable extends Model
         'is_other_deliverable',
         'active_revision_target',
         'approver_name',
+        'has_artwork',
+        'effective_creator_id',
     ];
 
     public static function parseMediaArray(mixed $raw): array
@@ -545,6 +548,29 @@ class Deliverable extends Model
     public function referenceUploader()
     {
         return $this->belongsTo(User::class, 'reference_uploaded_by');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function getEffectiveCreatorIdAttribute(): ?int
+    {
+        return $this->created_by 
+            ?: ($this->reference_uploaded_by 
+            ?: ($this->brand_manager_id 
+            ?: ($this->project?->lead_id ?? null)));
+    }
+
+    public function hasArtwork(): bool
+    {
+        return !empty($this->final_designs) || !empty($this->final_designs_link);
+    }
+
+    public function getHasArtworkAttribute(): bool
+    {
+        return $this->hasArtwork();
     }
 
     public function artworkUploader()

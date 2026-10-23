@@ -298,6 +298,7 @@ const kanbanSelectableApprovers = @json($selectableApprovers->map(fn($u) => ['id
 const kanbanSubtaskTypes = @json($subtaskTypes->map(fn($st) => ['name' => $st->name]));
 const kanbanCurrentUserId = {{ auth()->id() ?? 'null' }};
 const kanbanCurrentUserRole = "{{ auth()->user()?->role ?? '' }}";
+const kanbanIsAdmin = {{ (auth()->user() && auth()->user()->isAdmin()) ? 'true' : 'false' }};
 const kanbanIsAdminOrManager = {{ (auth()->user() && (auth()->user()->isAdmin() || in_array(auth()->user()->role, ['Admin', 'Owner', 'Operations Manager']))) ? 'true' : 'false' }};
 const kanbanCanManageDeliverables = {{ $canManageDeliverables ? 'true' : 'false' }};
 const kanbanProjectApproverId = {{ $project->approver_id ?? ($project->brand_manager_id ?? ($project->lead_id ?? 'null')) }};
@@ -352,7 +353,9 @@ function isCardEditorOpen(taskId) {
 
 function handleCardClick(taskId) {
     if (isDraggingKanbanCard) return;
-    if (!kanbanCanManageDeliverables) {
+    const card = document.getElementById('kanban-card-' + taskId);
+    const canEdit = card && card.getAttribute('data-can-edit') === 'true';
+    if (!canEdit) {
         openTaskModal(taskId);
         return;
     }
@@ -559,6 +562,72 @@ function updateCardViewElements(taskId, d) {
     }
 }
 
+async function quickUploadCardFile(event, taskId) {
+    const input = event.target;
+    if (!input || !input.files || input.files.length === 0) return;
+
+    const files = Array.from(input.files);
+    const card = document.getElementById('kanban-card-' + taskId);
+    const label = document.getElementById('card-upload-label-' + taskId);
+    const origLabel = label ? label.innerHTML : 'Upload Deliverable File';
+
+    if (label) {
+        label.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25;"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity:0.75;"></path></svg> Uploading...</span>`;
+    }
+
+    const fd = new FormData();
+    fd.append('action', 'save_only');
+    files.forEach(f => fd.append('final_designs_files[]', f));
+    if (files.length === 1) fd.append('final_designs_file', files[0]);
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    try {
+        const res = await fetch(`/deliverables/${taskId}/submit`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken || '',
+                'Accept': 'application/json'
+            },
+            body: fd
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            if (card) {
+                card.setAttribute('data-has-file', 'true');
+            }
+            if (window.projectDeliverables && window.projectDeliverables[taskId]) {
+                window.projectDeliverables[taskId] = data.deliverable || window.projectDeliverables[taskId];
+            }
+            window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Deliverable file uploaded successfully!', type: 'success' } }));
+            
+            const uploadBox = document.getElementById('card-upload-box-' + taskId);
+            if (uploadBox) {
+                uploadBox.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%;">
+                        <div style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #10b981;">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <span>Deliverable File Ready</span>
+                        </div>
+                        <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; text-decoration: underline;" title="Upload replacement or additional file" onclick="event.stopPropagation()">
+                            Replace
+                            <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
+                        </label>
+                    </div>
+                `;
+            }
+        } else {
+            if (label) label.innerHTML = origLabel;
+            window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Failed to upload file.', type: 'error' } }));
+        }
+    } catch (err) {
+        console.error('Quick file upload error:', err);
+        if (label) label.innerHTML = origLabel;
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Network error uploading file.', type: 'error' } }));
+    }
+}
+
 function kanbanOnDragStart(event, taskId) {
     if (currentlyEditingCardId === taskId) {
         event.preventDefault();
@@ -623,10 +692,17 @@ async function kanbanOnDrop(event, targetStatus) {
     // Check if target is Approval Stage
     const isTargetApproval = ['Approval Stage', 'Approval', 'Review'].includes(targetStatus);
     const currentApproverId = card.getAttribute('data-approver-id');
+    const hasFile = card.getAttribute('data-has-file') === 'true';
 
-    if (isTargetApproval && !currentApproverId) {
-        openAssignApproverModal(taskId, targetStatus, oldStatus, card);
-        return;
+    if (isTargetApproval && !kanbanIsAdmin) {
+        if (!hasFile) {
+            openUploadDeliverableModal(taskId, targetStatus, oldStatus, card);
+            return;
+        }
+        if (!currentApproverId) {
+            openAssignApproverModal(taskId, targetStatus, oldStatus, card);
+            return;
+        }
     }
 
     // Check if moving out of Approval Stage back to In Progress / To Do (Revision)
@@ -691,6 +767,45 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
             if (result.approver_name) {
                 card.setAttribute('data-approver-name', result.approver_name);
             }
+            if (typeof result.has_file !== 'undefined') {
+                card.setAttribute('data-has-file', result.has_file ? 'true' : 'false');
+            }
+            if (targetStatus === 'In Progress') {
+                const view = document.getElementById('kanban-card-view-' + taskId);
+                let uploadBox = document.getElementById('card-upload-box-' + taskId);
+                if (view && !uploadBox) {
+                    const hasFile = card.getAttribute('data-has-file') === 'true';
+                    const uploadHtml = hasFile ? `
+                        <div id="card-upload-box-${taskId}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%;">
+                                <div style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #10b981;">
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    <span>Deliverable File Ready</span>
+                                </div>
+                                <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; text-decoration: underline;" title="Upload replacement or additional file" onclick="event.stopPropagation()">
+                                    Replace
+                                    <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
+                                </label>
+                            </div>
+                        </div>
+                    ` : `
+                        <div id="card-upload-box-${taskId}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                            <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                                   onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
+                                   onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                                   onclick="event.stopPropagation()">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                <span id="card-upload-label-${taskId}">Upload Deliverable File</span>
+                                <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
+                            </label>
+                        </div>
+                    `;
+                    view.insertAdjacentHTML('beforeend', uploadHtml);
+                }
+            } else if (targetStatus === 'To Do') {
+                const uploadBox = document.getElementById('card-upload-box-' + taskId);
+                if (uploadBox) uploadBox.remove();
+            }
             if (typeof result.can_move !== 'undefined') {
                 card.setAttribute('data-can-move', result.can_move ? 'true' : 'false');
                 card.setAttribute('draggable', result.can_move ? 'true' : 'false');
@@ -716,6 +831,121 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
         updateCardStatusUI(card, oldStatus);
         recalculateKanbanCounts();
         alert('Network error while updating deliverable status.');
+    }
+}
+
+let pendingUploadAction = null;
+
+function openUploadDeliverableModal(taskId, targetStatus, oldStatus, card) {
+    pendingUploadAction = { taskId, targetStatus, oldStatus, card };
+    const modal = document.getElementById('uploadDeliverableModal');
+    const titleEl = document.getElementById('uploadDeliverableModalTaskTitle');
+    const cardTitle = card.querySelector('#card-view-title-' + taskId)?.textContent || 'Deliverable';
+    if (titleEl) titleEl.textContent = cardTitle.trim();
+
+    const fileInput = document.getElementById('uploadDeliverableModalFileInput');
+    if (fileInput) fileInput.value = '';
+    const fileLabel = document.getElementById('uploadDeliverableModalFileLabel');
+    if (fileLabel) fileLabel.textContent = 'Choose file(s)…';
+
+    const currentApproverId = card.getAttribute('data-approver-id');
+    const approverGroup = document.getElementById('uploadDeliverableApproverGroup');
+    const select = document.getElementById('uploadDeliverableApproverSelect');
+
+    if (!currentApproverId) {
+        if (approverGroup) approverGroup.style.display = 'block';
+        if (select && select.options.length <= 1) {
+            select.innerHTML = '<option value="">Choose an Approver…</option>';
+            kanbanSelectableApprovers.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.id;
+                opt.textContent = `${u.name} (${u.role})`;
+                select.appendChild(opt);
+            });
+        }
+        if (select && kanbanProjectApproverId && !select.value) {
+            select.value = kanbanProjectApproverId;
+        }
+    } else {
+        if (approverGroup) approverGroup.style.display = 'none';
+    }
+
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeUploadDeliverableModal() {
+    const modal = document.getElementById('uploadDeliverableModal');
+    if (modal) modal.style.display = 'none';
+    pendingUploadAction = null;
+}
+
+async function confirmUploadDeliverable() {
+    if (!pendingUploadAction) return;
+    const { taskId, targetStatus, oldStatus, card } = pendingUploadAction;
+
+    const fileInput = document.getElementById('uploadDeliverableModalFileInput');
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        alert('Please select a deliverable file or design to upload.');
+        return;
+    }
+
+    let approverId = card.getAttribute('data-approver-id');
+    if (!approverId) {
+        const select = document.getElementById('uploadDeliverableApproverSelect');
+        approverId = select ? select.value : '';
+        if (!approverId) {
+            alert('Please select an approver before submitting.');
+            return;
+        }
+    }
+
+    const submitBtn = document.getElementById('uploadDeliverableModalSubmitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Uploading file & submitting…';
+    }
+
+    const fd = new FormData();
+    fd.append('action', 'save_only');
+    const files = Array.from(fileInput.files);
+    files.forEach(f => fd.append('final_designs_files[]', f));
+    if (files.length === 1) fd.append('final_designs_file', files[0]);
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    try {
+        const res = await fetch(`/deliverables/${taskId}/submit`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken || '',
+                'Accept': 'application/json'
+            },
+            body: fd
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+            alert(data.message || 'Failed to upload deliverable file.');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Upload & Submit to Approval';
+            }
+            return;
+        }
+
+        // File uploaded! Mark card
+        card.setAttribute('data-has-file', 'true');
+        closeUploadDeliverableModal();
+
+        // Now execute the kanban move to Approval Stage
+        executeKanbanMove(taskId, targetStatus, oldStatus, card, { approver_id: approverId });
+    } catch (err) {
+        console.error('Error submitting file and moving to approval:', err);
+        alert('Network error while uploading file.');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Upload & Submit to Approval';
+        }
     }
 }
 
@@ -990,6 +1220,15 @@ function insertCreatedCardIntoColumn(colKey, d) {
     const canMove = perm.canMove;
     const restrictionReason = perm.reason;
 
+    const creatorId = d.created_by || d.effective_creator_id || null;
+    const isCreator = creatorId && kanbanCurrentUserId == creatorId;
+    const canEdit = kanbanIsAdmin || isCreator;
+    const hasArtwork = Boolean(d.has_artwork || d.final_designs || d.final_designs_link || (d.final_designs_list && d.final_designs_list.length > 0));
+    const isInProgress = (d.status === 'In Progress');
+    const assignedId = d.writer_id || d.designer_id || null;
+    const isAssignee = (assignedId && kanbanCurrentUserId == assignedId);
+    const canUploadArtwork = isAssignee || kanbanIsAdmin || isCreator;
+
     const hasAssignee = d.assignee_name && d.assignee_name !== 'Unassigned';
     const assigneeDisplay = hasAssignee ? d.assignee_name : 'Unassigned';
     const badgeColor = hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)';
@@ -1004,8 +1243,11 @@ function insertCreatedCardIntoColumn(colKey, d) {
              data-status="${escapeHtml(d.status || 'To Do')}"
              data-approver-id="${d.approver_id || ''}"
              data-approver-name="${escapeHtml(d.approver_name || '')}"
-             data-can-manage="${kanbanCanManageDeliverables ? 'true' : 'false'}"
+             data-creator-id="${creatorId || ''}"
+             data-can-edit="${canEdit ? 'true' : 'false'}"
+             data-can-manage="${canEdit ? 'true' : 'false'}"
              data-can-move="${canMove ? 'true' : 'false'}"
+             data-has-file="${hasArtwork ? 'true' : 'false'}"
              data-restriction-reason="${escapeHtml(restrictionReason)}"
              draggable="${canMove ? 'true' : 'false'}"
              ondragstart="kanbanOnDragStart(event, ${d.id})"
@@ -1059,9 +1301,43 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         </svg>
                     </div>
                 </div>
+
+                ${isInProgress ? `
+                <div id="card-upload-box-${d.id}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                    ${hasArtwork ? `
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%;">
+                        <div style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #10b981;">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <span>Deliverable File Ready</span>
+                        </div>
+                        ${canUploadArtwork ? `
+                        <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; text-decoration: underline;" title="Upload replacement or additional file" onclick="event.stopPropagation()">
+                            Replace
+                            <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, ${d.id})">
+                        </label>
+                        ` : ''}
+                    </div>
+                    ` : `
+                    ${canUploadArtwork ? `
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
+                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                           onclick="event.stopPropagation()">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span id="card-upload-label-${d.id}">Upload Deliverable File</span>
+                        <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, ${d.id})">
+                    </label>
+                    ` : `
+                    <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
+                        Waiting for assignee to upload deliverable file
+                    </div>
+                    `}
+                    `}
+                </div>
+                ` : ''}
             </div>
 
-            ${kanbanCanManageDeliverables ? `
+            ${canEdit ? `
             {{-- Expanded Inline Editor --}}
             <div class="kanban-card-editor" id="kanban-card-editor-${d.id}" style="display: none;" onclick="event.stopPropagation()">
                 <form onsubmit="submitInlineCardEdit(event, ${d.id})">
@@ -1222,6 +1498,63 @@ document.addEventListener('keydown', function(event) {
     }
 });
 </script>
+
+{{-- Modal: Upload Deliverable File when moving to Approval Stage --}}
+<div id="uploadDeliverableModal" 
+     style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(0,0,0,0.55); backdrop-filter: blur(3px); padding: 16px;" 
+     onclick="if(event.target === this) closeUploadDeliverableModal()">
+    <div style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 14px; width: 100%; max-width: 460px; box-shadow: 0 20px 45px rgba(0,0,0,0.25); overflow: hidden;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--color-border-primary); display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                </div>
+                <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--color-text-primary);">Submit for Approval</h3>
+            </div>
+            <button type="button" onclick="closeUploadDeliverableModal()" style="background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 4px; border-radius: 6px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+            <p style="margin: 0; font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.4;">
+                Please upload the completed deliverable file or design for <strong id="uploadDeliverableModalTaskTitle" style="color: var(--color-text-primary);">this deliverable</strong> before submitting to the Approval Stage.
+            </p>
+            
+            {{-- File Upload Box --}}
+            <div>
+                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 6px;">Deliverable File / Artwork</label>
+                <label for="uploadDeliverableModalFileInput" 
+                       style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1.5px dashed rgba(59, 130, 246, 0.4); border-radius: 10px; cursor: pointer; background: rgba(59, 130, 246, 0.04); transition: border-color 0.15s;"
+                       onmouseenter="this.style.borderColor='#2563eb'" 
+                       onmouseleave="this.style.borderColor='rgba(59, 130, 246, 0.4)'">
+                    <svg width="20" height="20" fill="none" stroke="#2563eb" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <div style="flex: 1; min-width: 0;">
+                        <div id="uploadDeliverableModalFileLabel" style="font-size: 12px; font-weight: 700; color: #2563eb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Choose file(s)…</div>
+                        <div style="font-size: 10px; color: var(--color-text-secondary); margin-top: 1px;">PNG, JPG, PDF, MP4, etc.</div>
+                    </div>
+                    <input id="uploadDeliverableModalFileInput" type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="if(this.files && this.files.length) { document.getElementById('uploadDeliverableModalFileLabel').textContent = Array.from(this.files).map(f => f.name).join(', '); }">
+                </label>
+            </div>
+
+            {{-- Optional Approver Selection (if deliverable doesn't have an approver assigned yet) --}}
+            <div id="uploadDeliverableApproverGroup" style="display: none;">
+                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 6px;">Assign Approver</label>
+                <select id="uploadDeliverableApproverSelect" style="width: 100%; padding: 9px 12px; font-size: 13px; font-weight: 600; background: var(--color-bg-secondary); color: var(--color-text-primary); border: 1px solid var(--color-border-primary); border-radius: 8px; outline: none;">
+                    <option value="">Choose an Approver…</option>
+                </select>
+            </div>
+        </div>
+        <div style="padding: 12px 20px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display: flex; justify-content: flex-end; gap: 8px;">
+            <button type="button" onclick="closeUploadDeliverableModal()" style="background: transparent; border: 1px solid var(--color-border-primary); padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: 8px; color: var(--color-text-primary); cursor: pointer;">
+                Cancel
+            </button>
+            <button type="button" id="uploadDeliverableModalSubmitBtn" onclick="confirmUploadDeliverable()" style="background: #2563eb; border: none; padding: 7px 16px; font-size: 12px; font-weight: 700; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);">
+                <span>Upload & Submit to Approval</span>
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
 
 {{-- Modal: Assign Approver when moving to Approval Stage --}}
 <div id="assignApproverModal" 

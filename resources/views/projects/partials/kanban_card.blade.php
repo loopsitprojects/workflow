@@ -41,6 +41,7 @@
 
     $currentUserId = auth()->id();
     $currentUser = auth()->user();
+    $isSuperAdmin = $currentUser && $currentUser->isAdmin();
     $isAdminOrManager = $currentUser && ($currentUser->isAdmin() || in_array($currentUser->role, ['Admin', 'Owner', 'Operations Manager']));
 
     $assignedUserId = $task->writer_id ?: ($task->designer_id ?: null);
@@ -52,19 +53,16 @@
     $approverId = $task->approver_id ?: ($task->project?->approver_id ?: null);
     $isApprover = ($approverId && $currentUserId == $approverId);
 
-    $canManageDeliverables = $currentUser && (
-        $currentUser->isAdmin() ||
-        in_array($currentUser->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
-        $task->project?->lead_id == $currentUserId ||
-        $task->project?->brand_manager_id == $currentUserId ||
-        $task->project?->approver_id == $currentUserId ||
-        $task->brand_manager_id == $currentUserId ||
-        $task->approver_id == $currentUserId
-    );
+    $creatorId = $task->effective_creator_id;
+    $isCreator = $creatorId && ((int)$currentUserId === (int)$creatorId);
+
+    // Only the person who created the deliverable or a Super Admin can make changes
+    $canEditCard = $isSuperAdmin || $isCreator;
 
     $statusLower = strtolower(trim($task->status ?? ''));
     $isInApproval = in_array($statusLower, ['approval stage', 'approval', 'review', 'under review']);
     $isCompleted = in_array($statusLower, ['done', 'completed', 'complete']);
+    $isInProgress = in_array($statusLower, ['in progress', 'on hold']);
 
     if ($isAdminOrManager) {
         $canMove = true;
@@ -96,8 +94,11 @@
      data-status="{{ $task->status ?? 'To Do' }}"
      data-approver-id="{{ $task->approver_id ?? '' }}"
      data-approver-name="{{ $task->approver?->name ?? '' }}"
-     data-can-manage="{{ $canManageDeliverables ? 'true' : 'false' }}"
+     data-creator-id="{{ $creatorId ?? '' }}"
+     data-can-edit="{{ $canEditCard ? 'true' : 'false' }}"
+     data-can-manage="{{ $canEditCard ? 'true' : 'false' }}"
      data-can-move="{{ $canMove ? 'true' : 'false' }}"
+     data-has-file="{{ $task->hasArtwork() ? 'true' : 'false' }}"
      data-restriction-reason="{{ $moveRestrictionReason }}"
      draggable="{{ $canMove ? 'true' : 'false' }}"
      ondragstart="kanbanOnDragStart(event, {{ $task->id }})"
@@ -182,12 +183,51 @@
                 </svg>
             </div>
         </div>
+
+        {{-- In Progress: Deliverable File Upload Feature --}}
+        @if($isInProgress)
+            @php
+                $hasArtwork = $task->hasArtwork();
+                $canUploadFile = $isAssignee || $isSuperAdmin || $isCreator;
+            @endphp
+            <div id="card-upload-box-{{ $task->id }}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                @if($hasArtwork)
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%;">
+                        <div style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #10b981;">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <span>Deliverable File Ready</span>
+                        </div>
+                        @if($canUploadFile)
+                        <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; text-decoration: underline;" title="Upload replacement or additional file" onclick="event.stopPropagation()">
+                            Replace
+                            <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, {{ $task->id }})">
+                        </label>
+                        @endif
+                    </div>
+                @else
+                    @if($canUploadFile)
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
+                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                           onclick="event.stopPropagation()">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span id="card-upload-label-{{ $task->id }}">Upload Deliverable File</span>
+                        <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, {{ $task->id }})">
+                    </label>
+                    @else
+                    <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
+                        Waiting for assignee to upload deliverable file
+                    </div>
+                    @endif
+                @endif
+            </div>
+        @endif
     </div>
 
     {{-- ========================================================= --}}
-    {{-- EXPANDED INLINE EDITOR (Managers and Approvers only)       --}}
+    {{-- EXPANDED INLINE EDITOR (Creator & Super Admin only)        --}}
     {{-- ========================================================= --}}
-    @if($canManageDeliverables)
+    @if($canEditCard)
     <div class="kanban-card-editor" id="kanban-card-editor-{{ $task->id }}" style="display: none;" onclick="event.stopPropagation()">
         <form onsubmit="submitInlineCardEdit(event, {{ $task->id }})">
             {{-- Top Header: Stage on top very small --}}

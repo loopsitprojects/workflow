@@ -3488,20 +3488,34 @@
                             if (sel) sel.disabled = false;
                         }
                     }
-                    const canShowArtworkUpload = isOtherDeliverable
-                        ? (isOtherAssignStage && isOtherAssignedPerson)
-                        : (stage === 'Designer');
+                    const isCampaignOrPitchProject = ['campaign', 'pitch'].includes(projectWorkflowType);
+                    const taskCreatorId = task.created_by || task.effective_creator_id || null;
+                    const isCreator = taskCreatorId && (AUTH_USER_ID == taskCreatorId);
+                    const isTaskInProgress = (task.status === 'In Progress');
+                    const isTaskToDo = (!task.status || task.status === 'To Do' || task.status === 'To commence');
+
+                    const canShowArtworkUpload = isCampaignOrPitchProject
+                        ? (isTaskInProgress && (isOtherAssignedPerson || isAdmin || isCreator))
+                        : (isOtherDeliverable
+                            ? (isOtherAssignStage && isOtherAssignedPerson)
+                            : (stage === 'Designer'));
+
                     if (canShowArtworkUpload && delArea) {
                         delArea.style.display = 'block';
                         const titleEl = delArea.querySelector('.detail-label');
                         if (titleEl) {
-                            titleEl.textContent = isOtherDeliverable ? 'Upload Final Artwork & Media' : 'Deliver Final Artwork';
+                            titleEl.textContent = (isOtherDeliverable || isCampaignOrPitchProject) ? 'Upload Final Artwork & Media' : 'Deliver Final Artwork';
                         }
                     }
                 }
 
                 // Edit Permissions (already computed above)
                 const isCampaignOrPitchProject = ['campaign', 'pitch'].includes(projectWorkflowType);
+                const taskCreatorId = task.created_by || task.effective_creator_id || null;
+                const isCreator = taskCreatorId && (AUTH_USER_ID == taskCreatorId);
+                const isTaskInProgress = (task.status === 'In Progress');
+                const isTaskToDo = (!task.status || task.status === 'To Do' || task.status === 'To commence');
+
                 const isManagerOrApprover = isAdmin ||
                     ['brandmanager', 'operationsmanager', 'approver', 'approvercoordinator', 'owner'].includes(userRole) ||
                     (typeof isManager !== 'undefined' && isManager) ||
@@ -3512,13 +3526,13 @@
                 const canEditBriefAndRef = (isDirectDesign || task.is_direct_design)
                     ? (isAdmin || isManager || (task.brand_manager_id && AUTH_USER_ID == task.brand_manager_id))
                     : (isCampaignOrPitchProject
-                        ? isManagerOrApprover
+                        ? (isTaskToDo ? (isAdmin || isCreator) : (isAdmin || isCreator || isManagerOrApprover))
                         : (isOtherDeliverable
                             ? (isAdmin || Boolean(task.can_remove_reference))
                             : writerEditPermission));
 
                 const canEditTitle = isCampaignOrPitchProject
-                    ? isManagerOrApprover
+                    ? (isAdmin || isCreator)
                     : (isOtherDeliverable
                         ? (isOtherAssignStage && isOtherAssignedPerson)
                         : (writerEditPermission || isAdmin || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole)));
@@ -3530,16 +3544,20 @@
                 
                 // Reference Edit Area (Files & Links)
                 const refEditArea = document.getElementById('modalReferenceEditArea');
-                const canUploadFiles = isAssignedWriter || isAssignedDesigner || isOtherAssignedPerson || isManagerOrApprover || isAdmin || canEditBriefAndRef;
+                const canUploadFiles = isCampaignOrPitchProject
+                    ? (isTaskToDo ? (isAdmin || isCreator) : (isOtherAssignedPerson || isAdmin || isCreator || isManagerOrApprover))
+                    : (isAssignedWriter || isAssignedDesigner || isOtherAssignedPerson || isManagerOrApprover || isAdmin || canEditBriefAndRef);
                 if (refEditArea) {
                     refEditArea.style.display = canUploadFiles ? 'flex' : 'none';
                     const refInput = document.getElementById('modalReferenceUrl');
                     if (refInput) refInput.value = task.reference || '';
                 }
 
-                const canSaveContent = isOtherDeliverable
-                    ? (isOtherAssignedPerson || canUploadFiles || canEditBriefAndRef || isManager)
-                    : (canUploadFiles || canEditBriefAndRef || (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager');
+                const canSaveContent = isCampaignOrPitchProject
+                    ? (isTaskToDo ? (isAdmin || isCreator) : (isOtherAssignedPerson || isAdmin || isCreator))
+                    : (isOtherDeliverable
+                        ? (isOtherAssignedPerson || canUploadFiles || canEditBriefAndRef || isManager)
+                        : (canUploadFiles || canEditBriefAndRef || (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager'));
 
                 if (canSaveContent) {
                     submitBtnForm.style.display = 'flex';

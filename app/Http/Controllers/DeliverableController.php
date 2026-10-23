@@ -215,7 +215,7 @@ class DeliverableController extends Controller
                 $taskData['reference_uploaded_by'] = auth()->id();
             }
 
-            $singleTask = Deliverable::create($taskData);
+            $singleTask = Deliverable::create(array_merge($taskData, ['created_by' => auth()->id()]));
             if ($project && in_array($project->workflow_type, ['campaign', 'pitch']) && $singleTask->writer) {
                 try {
                     $singleTask->writer->notify(new \App\Notifications\DeliverableUpdated(
@@ -267,7 +267,7 @@ class DeliverableController extends Controller
         if ($parentId) {
             $parentTask = Deliverable::findOrFail($parentId);
         } else {
-            $parentTask = Deliverable::create($parentData);
+            $parentTask = Deliverable::create(array_merge($parentData, ['created_by' => auth()->id()]));
             if ($project && in_array($project->workflow_type, ['campaign', 'pitch']) && empty($subtasks) && $parentTask->writer) {
                 try {
                     $parentTask->writer->notify(new \App\Notifications\DeliverableUpdated(
@@ -314,6 +314,7 @@ class DeliverableController extends Controller
                 $subDeliverable = Deliverable::create([
                     'parent_deliverable_id' => $parentTask->id,
                     'project_id' => $parentTask->project_id,
+                    'created_by' => auth()->id(),
                     'title' => $subTitle,
                     'status' => 'To Do',
                     'task_type' => 'Deliverable',
@@ -442,7 +443,7 @@ class DeliverableController extends Controller
                 $taskData['reference_uploaded_by'] = auth()->id();
             }
 
-            $singleTask = Deliverable::create($taskData);
+            $singleTask = Deliverable::create(array_merge($taskData, ['created_by' => auth()->id()]));
             return redirect()->route('projects.show', $singleTask->project_id)->with('success', 'Fast track deliverable created and assigned to designer.');
         }
 
@@ -2410,6 +2411,7 @@ class DeliverableController extends Controller
 
         $deliverable = Deliverable::create([
             'project_id' => $project->id,
+            'created_by' => auth()->id(),
             'title' => $validated['title'],
             'status' => $status,
             'priority' => $validated['priority'] ?? 'Medium',
@@ -2463,17 +2465,14 @@ class DeliverableController extends Controller
         }
 
         $user = auth()->user();
-        $isManagerOrApprover = $user && (
-            $user->isAdmin() ||
-            in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
-            $project->lead_id == $user->id ||
-            $project->brand_manager_id == $user->id ||
-            $project->approver_id == $user->id ||
-            $deliverable->brand_manager_id == $user->id ||
-            $deliverable->approver_id == $user->id
-        );
-        if (!$isManagerOrApprover) {
-            return response()->json(['success' => false, 'message' => 'Only Managers and Approvers can edit deliverable details (assignee, due date, priority).'], 403);
+        $isSuperAdmin = $user && $user->isAdmin();
+        $isCreator = $user && ((int) $user->id === (int) $deliverable->effective_creator_id);
+
+        if (!$isSuperAdmin && !$isCreator) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Only the person who created this deliverable or a Super Admin can make changes to it.'
+            ], 403);
         }
 
         $validated = $request->validate([
@@ -2656,6 +2655,15 @@ class DeliverableController extends Controller
         $isOutline = in_array(strtolower($deliverable->post_type ?? ''), ['outlines', 'outline']);
 
         if ($newStatus === 'Approval Stage') {
+            // Require deliverable file/artwork before submitting to Approval Stage
+            if (!$user->isAdmin() && !$deliverable->hasArtwork()) {
+                return response()->json([
+                    'success' => false,
+                    'require_file' => true,
+                    'message' => 'Please upload the deliverable file/artwork before submitting to the Approval Stage.',
+                ], 422);
+            }
+
             $approverIdToSet = !empty($validated['approver_id']) 
                 ? (int)$validated['approver_id'] 
                 : ($deliverable->approver_id ?: ($project->approver_id ?: null));
@@ -2800,6 +2808,7 @@ class DeliverableController extends Controller
             'assignee_name' => $deliverable->assignee_name,
             'approver_id' => $deliverable->approver_id,
             'approver_name' => $deliverable->approver?->name,
+            'has_file' => $deliverable->hasArtwork(),
             'can_move' => $canUserMoveNow,
         ]);
     }
