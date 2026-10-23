@@ -571,7 +571,7 @@ async function quickUploadCardFile(event, taskId) {
     const files = Array.from(input.files);
     const card = document.getElementById('kanban-card-' + taskId);
     const label = document.getElementById('card-upload-label-' + taskId);
-    const origLabel = label ? label.innerHTML : 'Upload Deliverable File';
+    const origLabel = label ? label.innerHTML : 'Upload Work (Image or File)';
 
     if (label) {
         label.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25;"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity:0.75;"></path></svg> Uploading...</span>`;
@@ -595,30 +595,15 @@ async function quickUploadCardFile(event, taskId) {
         });
 
         const data = await res.json();
-        if (data.success) {
+        if (data.success && data.deliverable) {
             if (card) {
                 card.setAttribute('data-has-file', 'true');
             }
             if (window.projectDeliverables && window.projectDeliverables[taskId]) {
                 window.projectDeliverables[taskId] = data.deliverable || window.projectDeliverables[taskId];
             }
-            window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Deliverable file uploaded successfully!', type: 'success' } }));
-            
-            const uploadBox = document.getElementById('card-upload-box-' + taskId);
-            if (uploadBox) {
-                uploadBox.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%;">
-                        <div style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #10b981;">
-                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            <span>Deliverable File Ready</span>
-                        </div>
-                        <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; text-decoration: underline;" title="Upload replacement or additional file" onclick="event.stopPropagation()">
-                            Replace
-                            <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
-                        </label>
-                    </div>
-                `;
-            }
+            window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Deliverable file(s) uploaded successfully!', type: 'success' } }));
+            updateCardArtworkUI(taskId, data.deliverable);
         } else {
             if (label) label.innerHTML = origLabel;
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Failed to upload file.', type: 'error' } }));
@@ -627,6 +612,135 @@ async function quickUploadCardFile(event, taskId) {
         console.error('Quick file upload error:', err);
         if (label) label.innerHTML = origLabel;
         window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Network error uploading file.', type: 'error' } }));
+    }
+}
+
+async function quickRemoveDeliverableFile(taskId, fileIndex) {
+    if (!confirm('Are you sure you want to remove this uploaded work file?')) return;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    try {
+        const res = await fetch(`/deliverables/${taskId}/submit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken || ''
+            },
+            body: JSON.stringify({
+                delete_final_designs_file_index: fileIndex
+            })
+        });
+        const data = await res.json();
+        if (data.success && data.deliverable) {
+            window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'File removed successfully', type: 'success' } }));
+            if (window.projectDeliverables && window.projectDeliverables[taskId]) {
+                window.projectDeliverables[taskId] = data.deliverable;
+            }
+            updateCardArtworkUI(taskId, data.deliverable);
+        } else {
+            alert(data.message || 'Failed to remove file.');
+        }
+    } catch (err) {
+        console.error('Error removing file:', err);
+        alert('Network error while removing file.');
+    }
+}
+
+function updateCardArtworkUI(taskId, d) {
+    const card = document.getElementById('kanban-card-' + taskId);
+    if (!card) return;
+
+    let files = d.final_designs_list || [];
+    if (!Array.isArray(files)) {
+        files = files ? [files] : [];
+    }
+    const hasFiles = files.length > 0;
+    card.setAttribute('data-has-file', hasFiles ? 'true' : 'false');
+
+    const canUpload = card.getAttribute('data-can-manage') === 'true' || kanbanIsAdmin || (d.writer_id && kanbanCurrentUserId == d.writer_id);
+    const status = card.getAttribute('data-status') || '';
+    const isToDo = (status === 'To Do');
+
+    let uploadBox = document.getElementById('card-upload-box-' + taskId);
+    if (!uploadBox) {
+        if (isToDo && !hasFiles) return;
+        const view = document.getElementById('kanban-card-view-' + taskId);
+        if (!view) return;
+        uploadBox = document.createElement('div');
+        uploadBox.id = 'card-upload-box-' + taskId;
+        uploadBox.style.cssText = 'margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);';
+        uploadBox.onclick = (e) => e.stopPropagation();
+        view.appendChild(uploadBox);
+    }
+
+    if (hasFiles) {
+        let itemsHtml = '';
+        files.forEach((fUrl, idx) => {
+            const cleanUrl = fUrl.split('?')[0];
+            const rawFilename = cleanUrl.substring(cleanUrl.lastIndexOf('/') + 1);
+            let filename = decodeURIComponent(rawFilename);
+            if (!filename) filename = 'File ' + (idx + 1);
+            const ext = filename.split('.').pop().toLowerCase();
+            const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+
+            const iconHtml = isImg
+                ? `<img src="${fUrl}" alt="" style="width: 18px; height: 18px; border-radius: 3px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--color-border-primary);">`
+                : `<div style="width: 18px; height: 18px; border-radius: 3px; background: rgba(59,130,246,0.12); color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>`;
+
+            const downloadUrl = `/deliverables/${taskId}/download-artwork/${idx}`;
+
+            itemsHtml += `
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-radius: 6px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary);">
+                    <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1;">
+                        ${iconHtml}
+                        <span style="font-size: 11px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
+                    </div>
+                    <div style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                        <a href="${fUrl}" target="_blank" rel="noopener noreferrer" style="font-size: 10px; font-weight: 700; color: #3b82f6; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(59,130,246,0.1);" title="View file" onclick="event.stopPropagation()">View</a>
+                        <a href="${downloadUrl}" download target="_blank" style="font-size: 10px; font-weight: 700; color: #10b981; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(16,185,129,0.1);" title="Download file" onclick="event.stopPropagation()">Download</a>
+                        ${canUpload ? `<button type="button" onclick="event.stopPropagation(); quickRemoveDeliverableFile(${taskId}, ${idx})" style="background: transparent; border: none; cursor: pointer; color: #ef4444; font-size: 11px; font-weight: 800; padding: 1px 3px; border-radius: 3px; line-height: 1;" title="Remove this file">✕</button>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        uploadBox.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-size: 10.5px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 4px;">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    <span>Uploaded Work (${files.length})</span>
+                </span>
+                ${canUpload ? `
+                <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
+                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    <span>Add</span>
+                    <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
+                </label>
+                ` : ''}
+            </div>
+            <div id="card-files-list-${taskId}" style="display: flex; flex-direction: column; gap: 4px;">
+                ${itemsHtml}
+            </div>
+        `;
+    } else {
+        if (canUpload) {
+            uploadBox.innerHTML = `
+                <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                       onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
+                       onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                       onclick="event.stopPropagation()">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <span id="card-upload-label-${taskId}">Upload Work (Image or File)</span>
+                    <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
+                </label>
+            `;
+        } else {
+            uploadBox.innerHTML = `
+                <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
+                    Waiting for assignee to upload deliverable work
+                </div>
+            `;
+        }
     }
 }
 
@@ -789,40 +903,12 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
                 card.setAttribute('data-has-file', result.has_file ? 'true' : 'false');
             }
             if (targetStatus === 'In Progress') {
-                const view = document.getElementById('kanban-card-view-' + taskId);
-                let uploadBox = document.getElementById('card-upload-box-' + taskId);
-                if (view && !uploadBox) {
-                    const hasFile = card.getAttribute('data-has-file') === 'true';
-                    const uploadHtml = hasFile ? `
-                        <div id="card-upload-box-${taskId}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
-                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%;">
-                                <div style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #10b981;">
-                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    <span>Deliverable File Ready</span>
-                                </div>
-                                <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; text-decoration: underline;" title="Upload replacement or additional file" onclick="event.stopPropagation()">
-                                    Replace
-                                    <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
-                                </label>
-                            </div>
-                        </div>
-                    ` : `
-                        <div id="card-upload-box-${taskId}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
-                            <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
-                                   onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
-                                   onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
-                                   onclick="event.stopPropagation()">
-                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                <span id="card-upload-label-${taskId}">Upload Deliverable File</span>
-                                <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
-                            </label>
-                        </div>
-                    `;
-                    view.insertAdjacentHTML('beforeend', uploadHtml);
-                }
+                const currentData = (window.projectDeliverables && window.projectDeliverables[taskId]) || result.deliverable || {};
+                updateCardArtworkUI(taskId, currentData);
             } else if (targetStatus === 'To Do') {
                 const uploadBox = document.getElementById('card-upload-box-' + taskId);
-                if (uploadBox) uploadBox.remove();
+                const hasFile = card.getAttribute('data-has-file') === 'true';
+                if (uploadBox && !hasFile) uploadBox.remove();
             }
             if (typeof result.can_move !== 'undefined') {
                 card.setAttribute('data-can-move', result.can_move ? 'true' : 'false');
@@ -1255,6 +1341,85 @@ function insertCreatedCardIntoColumn(colKey, d) {
     const badgeBorder = hasAssignee ? '1px solid rgba(59,130,246,0.2)' : '1px solid var(--color-border-primary)';
     const stageDisplay = d.approval_stage || d.stage || 'Assignee';
 
+    let uploadedWorkHtml = '';
+    let cardFiles = d.final_designs_list || [];
+    if (!Array.isArray(cardFiles)) cardFiles = cardFiles ? [cardFiles] : [];
+    const hasCardFiles = cardFiles.length > 0;
+
+    if (!isColToDo && (hasCardFiles || isInProgress)) {
+        if (hasCardFiles) {
+            let itemsHtml = '';
+            cardFiles.forEach((fUrl, idx) => {
+                const cleanUrl = fUrl.split('?')[0];
+                const rawFilename = cleanUrl.substring(cleanUrl.lastIndexOf('/') + 1);
+                let filename = decodeURIComponent(rawFilename);
+                if (!filename) filename = 'File ' + (idx + 1);
+                const ext = filename.split('.').pop().toLowerCase();
+                const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+
+                const iconHtml = isImg
+                    ? `<img src="${fUrl}" alt="" style="width: 18px; height: 18px; border-radius: 3px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--color-border-primary);">`
+                    : `<div style="width: 18px; height: 18px; border-radius: 3px; background: rgba(59,130,246,0.12); color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>`;
+
+                const downloadUrl = `/deliverables/${d.id}/download-artwork/${idx}`;
+
+                itemsHtml += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-radius: 6px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary);">
+                        <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1;">
+                            ${iconHtml}
+                            <span style="font-size: 11px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
+                        </div>
+                        <div style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                            <a href="${fUrl}" target="_blank" rel="noopener noreferrer" style="font-size: 10px; font-weight: 700; color: #3b82f6; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(59,130,246,0.1);" title="View file" onclick="event.stopPropagation()">View</a>
+                            <a href="${downloadUrl}" download target="_blank" style="font-size: 10px; font-weight: 700; color: #10b981; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(16,185,129,0.1);" title="Download file" onclick="event.stopPropagation()">Download</a>
+                            ${canUploadArtwork ? `<button type="button" onclick="event.stopPropagation(); quickRemoveDeliverableFile(${d.id}, ${idx})" style="background: transparent; border: none; cursor: pointer; color: #ef4444; font-size: 11px; font-weight: 800; padding: 1px 3px; border-radius: 3px; line-height: 1;" title="Remove this file">✕</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            uploadedWorkHtml = `
+                <div id="card-upload-box-${d.id}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="font-size: 10.5px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 4px;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <span>Uploaded Work (${cardFiles.length})</span>
+                        </span>
+                        ${canUploadArtwork ? `
+                        <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
+                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            <span>Add</span>
+                            <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${d.id})">
+                        </label>
+                        ` : ''}
+                    </div>
+                    <div id="card-files-list-${d.id}" style="display: flex; flex-direction: column; gap: 4px;">
+                        ${itemsHtml}
+                    </div>
+                </div>
+            `;
+        } else {
+            uploadedWorkHtml = `
+                <div id="card-upload-box-${d.id}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                    ${canUploadArtwork ? `
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
+                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                           onclick="event.stopPropagation()">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span id="card-upload-label-${d.id}">Upload Work (Image or File)</span>
+                        <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${d.id})">
+                    </label>
+                    ` : `
+                    <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
+                        Waiting for assignee to upload deliverable work
+                    </div>
+                    `}
+                </div>
+            `;
+        }
+    }
+
     const cardHtml = `
         <div class="kanban-card" 
              id="kanban-card-${d.id}"
@@ -1321,39 +1486,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                     </div>
                 </div>
 
-                ${isInProgress ? `
-                <div id="card-upload-box-${d.id}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
-                    ${hasArtwork ? `
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%;">
-                        <div style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #10b981;">
-                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            <span>Deliverable File Ready</span>
-                        </div>
-                        ${canUploadArtwork ? `
-                        <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; text-decoration: underline;" title="Upload replacement or additional file" onclick="event.stopPropagation()">
-                            Replace
-                            <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, ${d.id})">
-                        </label>
-                        ` : ''}
-                    </div>
-                    ` : `
-                    ${canUploadArtwork ? `
-                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
-                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
-                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
-                           onclick="event.stopPropagation()">
-                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        <span id="card-upload-label-${d.id}">Upload Deliverable File</span>
-                        <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="quickUploadCardFile(event, ${d.id})">
-                    </label>
-                    ` : `
-                    <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
-                        Waiting for assignee to upload deliverable file
-                    </div>
-                    `}
-                    `}
-                </div>
-                ` : ''}
+                ${uploadedWorkHtml}
             </div>
 
             ${canEdit ? `
@@ -1633,9 +1766,9 @@ document.addEventListener('keydown', function(event) {
                     <svg width="20" height="20" fill="none" stroke="#2563eb" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                     <div style="flex: 1; min-width: 0;">
                         <div id="uploadDeliverableModalFileLabel" style="font-size: 12px; font-weight: 700; color: #2563eb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Choose file(s)…</div>
-                        <div style="font-size: 10px; color: var(--color-text-secondary); margin-top: 1px;">PNG, JPG, PDF, MP4, etc.</div>
+                        <div style="font-size: 10px; color: var(--color-text-secondary); margin-top: 1px;">Upload images or files (multiple allowed)</div>
                     </div>
-                    <input id="uploadDeliverableModalFileInput" type="file" multiple accept="image/*,video/*,application/pdf,.pdf" style="display: none;" onchange="if(this.files && this.files.length) { document.getElementById('uploadDeliverableModalFileLabel').textContent = Array.from(this.files).map(f => f.name).join(', '); }">
+                    <input id="uploadDeliverableModalFileInput" type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="if(this.files && this.files.length) { document.getElementById('uploadDeliverableModalFileLabel').textContent = Array.from(this.files).map(f => f.name).join(', '); }">
                 </label>
             </div>
 

@@ -1967,6 +1967,37 @@ class DeliverableController extends Controller
     }
 
     /**
+     * Download an uploaded artwork/deliverable file.
+     */
+    public function downloadArtwork(Deliverable $deliverable, int $index)
+    {
+        $files = $deliverable->getFinalDesignsArray();
+        if (!isset($files[$index])) {
+            abort(404, 'File not found');
+        }
+        $fileUrl = $files[$index];
+        $filename = basename(parse_url($fileUrl, PHP_URL_PATH) ?? $fileUrl);
+
+        // Check if local public storage
+        if (str_contains($fileUrl, '/storage/')) {
+            $relativePath = explode('/storage/', $fileUrl, 2)[1] ?? null;
+            if ($relativePath && \Illuminate\Support\Facades\Storage::disk('public')->exists($relativePath)) {
+                return \Illuminate\Support\Facades\Storage::disk('public')->download($relativePath, $filename);
+            }
+        }
+
+        // Check if S3 storage
+        try {
+            $s3Path = ltrim(parse_url($fileUrl, PHP_URL_PATH), '/');
+            if (\Illuminate\Support\Facades\Storage::disk('s3')->exists($s3Path)) {
+                return \Illuminate\Support\Facades\Storage::disk('s3')->download($s3Path, $filename);
+            }
+        } catch (\Throwable $e) {}
+
+        return redirect()->away($fileUrl);
+    }
+
+    /**
      * Resolve a stored image URL to an absolute local filesystem path.
      * Images are stored as asset('storage/...') URLs; this extracts the
      * relative part after /storage/ and maps it to storage/app/public/.

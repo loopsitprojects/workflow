@@ -612,11 +612,14 @@ class Deliverable extends Model
         if ($this->artwork_uploaded_by && (int)$user->id === (int)$this->artwork_uploaded_by) {
             return true;
         }
-        // If artwork_uploaded_by is not set, or deliverable is in Designer stage, allow the assigned designer
-        if ($this->designer_id && (int)$user->id === (int)$this->designer_id) {
-            if (!$this->artwork_uploaded_by || $this->approval_stage === 'Designer') {
-                return true;
-            }
+        // Assigned writer/assignee or designer
+        if (($this->writer_id && (int)$user->id === (int)$this->writer_id) || ($this->designer_id && (int)$user->id === (int)$this->designer_id)) {
+            return true;
+        }
+        // Deliverable creator
+        $creator = $this->effective_creator_id;
+        if ($creator && (int)$user->id === (int)$creator) {
+            return true;
         }
         // Brand manager or project creator
         $creatorId = $this->brand_manager_id ?? $this->project?->brand_manager_id;
