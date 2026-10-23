@@ -129,12 +129,12 @@
         }
 
         .form-section-body {
-            padding: 20px 22px;
+            padding: 22px 24px;
         }
         .form-field-group {
-            margin-bottom: 18px;
+            margin-bottom: 22px;
         }
-        .form-field-group:last-child {
+        .form-section-body > .form-field-group:last-child {
             margin-bottom: 0;
         }
         
@@ -145,7 +145,8 @@
             color: var(--color-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 7px;
+            margin-bottom: 9px;
+            line-height: 1.3;
         }
         .field-label.blue {
             color: #3b82f6;
@@ -180,6 +181,31 @@
             -webkit-appearance: none;
             appearance: none;
             box-sizing: border-box;
+            min-height: 40px;
+        }
+        input[type="file"].styled-input {
+            padding: 5px 10px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        input[type="file"].styled-input::file-selector-button {
+            margin-right: 10px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border-primary);
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        input[type="file"].styled-input::file-selector-button:hover {
+            background: var(--color-bg-secondary);
+            border-color: #0055D4;
+            color: #0055D4;
         }
         .styled-input:focus {
             border-color: #0055D4;
@@ -944,7 +970,7 @@
                         </div>
 
                         {{-- Dynamic Fields based on Outlines vs Brief --}}
-                        <div x-show="isOutlinesType(singlePostType)">
+                        <div x-show="isOutlinesType(singlePostType)" class="form-field-group">
                             <div class="form-field-group">
                                 <label class="field-label">Concept</label>
                                 <div x-data="{ conceptVal: {{ json_encode(old('concept', $parentTask->concept ?? '')) }} }"
@@ -961,7 +987,7 @@
                                     <input type="hidden" name="caption" :value="captionVal" :disabled="mode !== 'single'">
                                 </div>
                             </div>
-                            <div class="form-field-group">
+                            <div>
                                 <label class="field-label">Post Copy</label>
                                 <div x-data="{ copyVal: {{ json_encode(old('post_copy', $parentTask->post_copy ?? '')) }} }"
                                      x-init="initQuill($refs.singleCopy, copyVal, (v) => copyVal = v, 'Complete post copy or script lines...')">
@@ -971,8 +997,8 @@
                             </div>
                         </div>
 
-                        <div x-show="!isOutlinesType(singlePostType)">
-                            <div class="form-field-group">
+                        <div x-show="!isOutlinesType(singlePostType)" class="form-field-group">
+                            <div>
                                 <label class="field-label">Creative Brief / Description</label>
                                 <div x-data="{ notesVal: {{ json_encode(old('notes', $parentTask->notes ?? '')) }} }"
                                      x-init="initQuill($refs.singleNotes, notesVal, (v) => notesVal = v, 'Enter details, requirements, or instructions for this deliverable...')">
@@ -1007,7 +1033,7 @@
                                     return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
                                 }
                             }">
-                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; min-height:16px;">
                                     <label class="field-label" style="margin-bottom:0;">Attach Reference Files</label>
                                     <template x-if="selectedFiles.length > 0">
                                         <button type="button" @click="clearFiles()" style="background:transparent; border:none; color:#ef4444; font-size:11px; font-weight:700; cursor:pointer; padding:0 4px; display:inline-flex; align-items:center; gap:2px;">
@@ -1023,14 +1049,13 @@
                                        multiple 
                                        accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip"
                                        class="styled-input" 
-                                       :disabled="mode !== 'single'" 
-                                       style="padding:6px 10px;">
+                                       :disabled="mode !== 'single'">
                                 
                                 {{-- Preview Selected Files --}}
                                 <template x-if="selectedFiles.length > 0">
-                                    <div style="margin-top:8px; display:flex; flex-direction:column; gap:5px; max-height:160px; overflow-y:auto; padding:6px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:8px;">
+                                    <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; padding:8px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:8px;">
                                         <template x-for="(file, fIdx) in selectedFiles" :key="fIdx">
-                                            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 8px; border-radius:6px; background:var(--color-bg-secondary); font-size:11.5px;">
+                                            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 10px; border-radius:6px; background:var(--color-bg-secondary); font-size:11.5px;">
                                                 <div style="display:inline-flex; align-items:center; gap:6px; overflow:hidden;">
                                                     <svg width="13" height="13" fill="none" stroke="#0055D4" viewBox="0 0 24 24" style="flex-shrink:0;">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
@@ -1314,7 +1339,7 @@
                                         </div>
 
                                         {{-- Dynamic Content: Outlines vs Brief --}}
-                                        <div x-show="isOutlinesType(subtask.post_type)">
+                                        <div x-show="isOutlinesType(subtask.post_type)" class="form-field-group">
                                             <div class="form-field-group">
                                                 <label class="field-label">Concept</label>
                                                 <div x-init="initQuill($refs.subConcept, subtask.concept, (v) => subtask.concept = v, 'Visual concept, storyline, or angle...')">
@@ -1329,7 +1354,7 @@
                                                     <input type="hidden" :name="`subtasks[${index}][caption]`" :value="subtask.caption" :disabled="mode !== 'batch'">
                                                 </div>
                                             </div>
-                                            <div class="form-field-group">
+                                            <div>
                                                 <label class="field-label">Post Copy</label>
                                                 <div x-init="initQuill($refs.subCopy, subtask.post_copy, (v) => subtask.post_copy = v, 'Script or copy lines...')">
                                                     <div x-ref="subCopy"></div>
@@ -1338,8 +1363,8 @@
                                             </div>
                                         </div>
 
-                                        <div x-show="!isOutlinesType(subtask.post_type)">
-                                            <div class="form-field-group">
+                                        <div x-show="!isOutlinesType(subtask.post_type)" class="form-field-group">
+                                            <div>
                                                 <label class="field-label">Brief / Specific Notes</label>
                                                 <div x-init="initQuill($refs.subBrief, subtask.brief, (v) => subtask.brief = v, 'Brief or specific notes for this deliverable...')">
                                                     <div x-ref="subBrief"></div>
@@ -1349,14 +1374,14 @@
                                         </div>
 
                                         {{-- References --}}
-                                        <div class="form-grid-2">
+                                        <div class="form-grid-2 form-field-group">
                                             <div>
                                                 <label class="field-label">Reference URL (Drive, Figma...)</label>
                                                 <input type="url" :name="`subtasks[${index}][reference]`" x-model="subtask.reference" placeholder="https://..." class="styled-input" :disabled="mode !== 'batch'">
                                             </div>
                                             <div>
                                                 <label class="field-label">Attach Reference Files</label>
-                                                <input type="file" :name="`subtasks[${index}][reference_files][]`" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip" class="styled-input" style="padding:6px 10px;" :disabled="mode !== 'batch'">
+                                                <input type="file" :name="`subtasks[${index}][reference_files][]`" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip" class="styled-input" :disabled="mode !== 'batch'">
                                             </div>
                                         </div>
                                     </div>
