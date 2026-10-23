@@ -63,6 +63,7 @@
     $isInApproval = in_array($statusLower, ['approval stage', 'approval', 'review', 'under review']);
     $isCompleted = in_array($statusLower, ['done', 'completed', 'complete']);
     $isInProgress = in_array($statusLower, ['in progress', 'on hold']);
+    $isToDo = in_array($statusLower, ['to do', 'todo', 'backlog', 'new', '']) || (!$isInApproval && !$isCompleted && !$isInProgress);
 
     if ($isAdminOrManager) {
         $canMove = true;
@@ -281,8 +282,8 @@
                     </select>
                 </div>
 
-                {{-- Approver --}}
-                <div style="display: flex; align-items: center; gap: 8px;">
+                {{-- Approver (hidden in To Do stage, shown in In Progress / Approval / Done) --}}
+                <div id="card-editor-approver-row-{{ $task->id }}" style="display: {{ $isToDo ? 'none' : 'flex' }}; align-items: center; gap: 8px;">
                     <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                     </svg>
@@ -389,13 +390,13 @@
                     </span>
                 </div>
 
-                {{-- Approver --}}
-                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px;">
+                {{-- Approver (hidden in To Do stage, shown in In Progress / Approval / Done) --}}
+                <div id="card-view-approver-row-{{ $task->id }}" style="display: {{ $isToDo ? 'none' : 'flex' }}; align-items: center; justify-content: space-between; font-size: 11.5px;">
                     <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 500;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                         <span>Approver</span>
                     </span>
-                    <span style="font-weight: 600; color: {{ $approverUser ? 'var(--color-text-primary)' : 'var(--color-text-secondary)' }};">
+                    <span id="card-view-approver-name-{{ $task->id }}" style="font-weight: 600; color: {{ $approverUser ? 'var(--color-text-primary)' : 'var(--color-text-secondary)' }};">
                         {{ $approverUser?->name ?? 'Unassigned' }}
                     </span>
                 </div>

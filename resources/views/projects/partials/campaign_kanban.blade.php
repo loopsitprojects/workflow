@@ -554,6 +554,14 @@ function updateCardViewElements(taskId, d) {
     if (stageBadge && (d.approval_stage || d.stage)) {
         stageBadge.textContent = d.approval_stage || d.stage;
     }
+
+    if (d.approver_name) {
+        const approverNameEl = document.getElementById('card-view-approver-name-' + taskId);
+        if (approverNameEl) {
+            approverNameEl.textContent = d.approver_name;
+            approverNameEl.style.color = 'var(--color-text-primary)';
+        }
+    }
 }
 
 async function quickUploadCardFile(event, taskId) {
@@ -724,6 +732,17 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
     targetContainer.appendChild(card);
     card.setAttribute('data-status', targetStatus);
 
+    // Toggle approver visibility: hidden in To Do stage, shown in next stages
+    const isNowToDo = (targetStatus === 'To Do');
+    const approverRow = document.getElementById('card-view-approver-row-' + taskId);
+    if (approverRow) {
+        approverRow.style.display = isNowToDo ? 'none' : 'flex';
+    }
+    const approverEditorRow = document.getElementById('card-editor-approver-row-' + taskId);
+    if (approverEditorRow) {
+        approverEditorRow.style.display = isNowToDo ? 'none' : 'flex';
+    }
+
     // Update status border accent
     updateCardStatusUI(card, targetStatus);
     recalculateKanbanCounts();
@@ -760,6 +779,11 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
             }
             if (result.approver_name) {
                 card.setAttribute('data-approver-name', result.approver_name);
+                const approverNameEl = document.getElementById('card-view-approver-name-' + taskId);
+                if (approverNameEl) {
+                    approverNameEl.textContent = result.approver_name;
+                    approverNameEl.style.color = 'var(--color-text-primary)';
+                }
             }
             if (typeof result.has_file !== 'undefined') {
                 card.setAttribute('data-has-file', result.has_file ? 'true' : 'false');
@@ -1213,6 +1237,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
     const perm = checkCardMovePermission(d);
     const canMove = perm.canMove;
     const restrictionReason = perm.reason;
+    const isColToDo = (colKey === 'todo' || (d.status || '').toLowerCase() === 'to do');
 
     const creatorId = d.created_by || d.effective_creator_id || null;
     const isCreator = creatorId && kanbanCurrentUserId == creatorId;
@@ -1379,8 +1404,8 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             </select>
                         </div>
 
-                        {{-- Approver --}}
-                        <div style="display: flex; align-items: center; gap: 8px;">
+                        {{-- Approver (hidden in To Do stage, shown in In Progress / Approval / Done) --}}
+                        <div id="card-editor-approver-row-${d.id}" style="display: ${isColToDo ? 'none' : 'flex'}; align-items: center; gap: 8px;">
                             <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                             </svg>
@@ -1480,12 +1505,13 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             </span>
                         </div>
 
-                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px;">
+                        {{-- Approver (hidden in To Do stage, shown in In Progress / Approval / Done) --}}
+                        <div id="card-view-approver-row-${d.id}" style="display: ${isColToDo ? 'none' : 'flex'}; align-items: center; justify-content: space-between; font-size: 11.5px;">
                             <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 500;">
                                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                                 <span>Approver</span>
                             </span>
-                            <span style="font-weight: 600; color: var(--color-text-primary);">
+                            <span id="card-view-approver-name-${d.id}" style="font-weight: 600; color: ${d.approver_name ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'};">
                                 ${escapeHtml(d.approver_name || 'Unassigned')}
                             </span>
                         </div>
