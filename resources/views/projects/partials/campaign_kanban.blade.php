@@ -646,6 +646,94 @@ async function quickRemoveDeliverableFile(taskId, fileIndex) {
     }
 }
 
+function previewDeliverableArtwork(elOrUrl, filename, downloadUrl) {
+    let fUrl = '';
+    let fName = '';
+    let dUrl = '';
+
+    if (typeof elOrUrl === 'object' && elOrUrl !== null) {
+        fUrl = elOrUrl.dataset.fileUrl || elOrUrl.getAttribute('data-file-url') || '';
+        fName = elOrUrl.dataset.filename || elOrUrl.getAttribute('data-filename') || '';
+        dUrl = elOrUrl.dataset.downloadUrl || elOrUrl.getAttribute('data-download-url') || '';
+    } else {
+        fUrl = elOrUrl || '';
+        fName = filename || '';
+        dUrl = downloadUrl || '';
+    }
+
+    if (!fUrl) return;
+
+    const modal = document.getElementById('artworkPreviewModal');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('artworkPreviewTitle');
+    if (titleEl) titleEl.textContent = fName || 'Deliverable File Preview';
+
+    const ext = (fName.split('.').pop() || '').toLowerCase();
+    const metaEl = document.getElementById('artworkPreviewMeta');
+    if (metaEl) {
+        metaEl.textContent = ext ? `${ext.toUpperCase()} File` : 'Uploaded Deliverable Work';
+    }
+
+    const dlBtn = document.getElementById('artworkPreviewDownloadBtn');
+    if (dlBtn) {
+        dlBtn.href = dUrl || fUrl;
+        dlBtn.setAttribute('download', fName || 'download');
+    }
+
+    const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+    const isPdf = ext === 'pdf';
+    const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(ext);
+
+    const body = document.getElementById('artworkPreviewContent');
+    if (body) {
+        if (isImg) {
+            body.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-height: 75vh;">
+                    <img src="${escapeHtml(fUrl)}" alt="${escapeHtml(fName)}" style="max-height: 72vh; max-width: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.18);">
+                </div>
+            `;
+        } else if (isPdf) {
+            body.innerHTML = `
+                <div style="width: 100%; height: 75vh; border-radius: 8px; overflow: hidden; background: #525659;">
+                    <iframe src="${escapeHtml(fUrl)}" style="width: 100%; height: 100%; border: none;"></iframe>
+                </div>
+            `;
+        } else if (isVideo) {
+            body.innerHTML = `
+                <div style="display: flex; justify-content: center; align-items: center; width: 100%; max-height: 75vh; background: #000; border-radius: 8px; overflow: hidden;">
+                    <video src="${escapeHtml(fUrl)}" controls autoplay style="max-height: 72vh; max-width: 100%;"></video>
+                </div>
+            `;
+        } else {
+            body.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; text-align: center; background: var(--color-bg-secondary); border-radius: 12px; border: 1.5px dashed var(--color-border-primary); max-width: 440px; margin: auto;">
+                    <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(59,130,246,0.12); color: #2563eb; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                        <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <h4 style="margin: 0 0 6px 0; font-size: 15px; font-weight: 700; color: var(--color-text-primary); word-break: break-all;">${escapeHtml(fName)}</h4>
+                    <p style="margin: 0 0 20px 0; font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.4;">This file type cannot be previewed directly in the browser. Click below to download and view on your device.</p>
+                    <a href="${escapeHtml(dUrl || fUrl)}" download style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 8px; background: #10b981; color: #ffffff; font-size: 13px; font-weight: 700; text-decoration: none; box-shadow: 0 2px 8px rgba(16,185,129,0.35);">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span>Download File</span>
+                    </a>
+                </div>
+            `;
+        }
+    }
+
+    modal.style.display = 'flex';
+}
+
+function closeArtworkPreviewModal() {
+    const modal = document.getElementById('artworkPreviewModal');
+    if (modal) {
+        modal.style.display = 'none';
+        const body = document.getElementById('artworkPreviewContent');
+        if (body) body.innerHTML = '';
+    }
+}
+
 function updateCardArtworkUI(taskId, d) {
     const card = document.getElementById('kanban-card-' + taskId);
     if (!card) return;
@@ -691,13 +779,23 @@ function updateCardArtworkUI(taskId, d) {
 
             itemsHtml += `
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-radius: 6px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary);">
-                    <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1; cursor: pointer;" 
+                         data-file-url="${escapeHtml(fUrl)}" 
+                         data-filename="${escapeHtml(filename)}" 
+                         data-download-url="${escapeHtml(downloadUrl)}" 
+                         onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
+                         title="Click to view file">
                         ${iconHtml}
                         <span style="font-size: 11px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
                     </div>
                     <div style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
-                        <a href="${fUrl}" target="_blank" rel="noopener noreferrer" style="font-size: 10px; font-weight: 700; color: #3b82f6; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(59,130,246,0.1);" title="View file" onclick="event.stopPropagation()">View</a>
-                        <a href="${downloadUrl}" download target="_blank" style="font-size: 10px; font-weight: 700; color: #10b981; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(16,185,129,0.1);" title="Download file" onclick="event.stopPropagation()">Download</a>
+                        <button type="button" 
+                                data-file-url="${escapeHtml(fUrl)}" 
+                                data-filename="${escapeHtml(filename)}" 
+                                data-download-url="${escapeHtml(downloadUrl)}" 
+                                onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
+                                style="font-size: 10px; font-weight: 700; color: #3b82f6; border: none; cursor: pointer; padding: 2px 7px; border-radius: 4px; background: rgba(59,130,246,0.1); line-height: 1.4;" 
+                                title="View in popup">View</button>
                         ${canUpload ? `<button type="button" onclick="event.stopPropagation(); quickRemoveDeliverableFile(${taskId}, ${idx})" style="background: transparent; border: none; cursor: pointer; color: #ef4444; font-size: 11px; font-weight: 800; padding: 1px 3px; border-radius: 3px; line-height: 1;" title="Remove this file">✕</button>` : ''}
                     </div>
                 </div>
@@ -1365,13 +1463,23 @@ function insertCreatedCardIntoColumn(colKey, d) {
 
                 itemsHtml += `
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-radius: 6px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary);">
-                        <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1; cursor: pointer;" 
+                             data-file-url="${escapeHtml(fUrl)}" 
+                             data-filename="${escapeHtml(filename)}" 
+                             data-download-url="${escapeHtml(downloadUrl)}" 
+                             onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
+                             title="Click to view file">
                             ${iconHtml}
                             <span style="font-size: 11px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
                         </div>
                         <div style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
-                            <a href="${fUrl}" target="_blank" rel="noopener noreferrer" style="font-size: 10px; font-weight: 700; color: #3b82f6; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(59,130,246,0.1);" title="View file" onclick="event.stopPropagation()">View</a>
-                            <a href="${downloadUrl}" download target="_blank" style="font-size: 10px; font-weight: 700; color: #10b981; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(16,185,129,0.1);" title="Download file" onclick="event.stopPropagation()">Download</a>
+                            <button type="button" 
+                                    data-file-url="${escapeHtml(fUrl)}" 
+                                    data-filename="${escapeHtml(filename)}" 
+                                    data-download-url="${escapeHtml(downloadUrl)}" 
+                                    onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
+                                    style="font-size: 10px; font-weight: 700; color: #3b82f6; border: none; cursor: pointer; padding: 2px 7px; border-radius: 4px; background: rgba(59,130,246,0.1); line-height: 1.4;" 
+                                    title="View in popup">View</button>
                             ${canUploadArtwork ? `<button type="button" onclick="event.stopPropagation(); quickRemoveDeliverableFile(${d.id}, ${idx})" style="background: transparent; border: none; cursor: pointer; color: #ef4444; font-size: 11px; font-weight: 800; padding: 1px 3px; border-radius: 3px; line-height: 1;" title="Remove this file">✕</button>` : ''}
                         </div>
                     </div>
@@ -1719,9 +1827,13 @@ document.addEventListener('click', function(event) {
     });
 });
 
-// Escape key collapses card editor and closes inline creator
+// Escape key collapses card editor and closes inline creator / modals
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
+        closeArtworkPreviewModal();
+        closeUploadDeliverableModal();
+        closeAssignApproverModal();
+        closeRevisionPromptModal();
         if (currentlyEditingCardId) {
             toggleCardEditor(currentlyEditingCardId, false);
         }
@@ -1866,6 +1978,52 @@ document.addEventListener('keydown', function(event) {
                 <span>Request Revision</span>
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
             </button>
+        </div>
+    </div>
+</div>
+
+{{-- Modal: In-Page Deliverable Artwork / Work Preview with Download Option Inside --}}
+<div id="artworkPreviewModal" 
+     style="display: none; position: fixed; inset: 0; z-index: 100000; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); padding: 16px;" 
+     onclick="if(event.target === this) closeArtworkPreviewModal()">
+    <div style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 14px; width: 100%; max-width: 900px; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 25px 60px rgba(0,0,0,0.4); overflow: hidden;">
+        {{-- Modal Header --}}
+        <div style="padding: 12px 18px; border-bottom: 1px solid var(--color-border-primary); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; background: var(--color-bg-secondary);">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                </div>
+                <div style="min-width: 0; flex: 1;">
+                    <h3 id="artworkPreviewTitle" style="margin: 0; font-size: 14px; font-weight: 700; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Deliverable File Preview</h3>
+                    <div id="artworkPreviewMeta" style="font-size: 11px; color: var(--color-text-secondary); margin-top: 1px;">Uploaded Deliverable Work</div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                {{-- Download Button Inside the Popup --}}
+                <a id="artworkPreviewDownloadBtn" 
+                   href="#" 
+                   download 
+                   style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 15px; border-radius: 8px; background: #10b981; color: #ffffff; font-size: 12px; font-weight: 700; text-decoration: none; box-shadow: 0 2px 6px rgba(16,185,129,0.3); transition: all 0.15s ease;"
+                   onmouseover="this.style.background='#059669'" 
+                   onmouseout="this.style.background='#10b981'"
+                   title="Download this file">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    <span>Download</span>
+                </a>
+                <button type="button" 
+                        onclick="closeArtworkPreviewModal()" 
+                        style="background: transparent; border: 1px solid var(--color-border-primary); cursor: pointer; color: var(--color-text-secondary); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: all 0.15s;"
+                        onmouseover="this.style.color='var(--color-text-primary)'; this.style.borderColor='var(--color-text-primary)';"
+                        onmouseout="this.style.color='var(--color-text-secondary)'; this.style.borderColor='var(--color-border-primary)';"
+                        title="Close (Esc)">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+        </div>
+        
+        {{-- Modal Content / Preview Area --}}
+        <div id="artworkPreviewContent" style="padding: 16px; overflow: auto; flex: 1; display: flex; align-items: center; justify-content: center; min-height: 260px; background: var(--color-bg-primary);">
+            {{-- Dynamic content injected here --}}
         </div>
     </div>
 </div>

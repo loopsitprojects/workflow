@@ -217,7 +217,12 @@
                                 $isImg = in_array($fExt, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
                             @endphp
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-radius: 6px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary);">
-                                <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1; cursor: pointer;" 
+                                     data-file-url="{{ $fUrl }}" 
+                                     data-filename="{{ $fName }}" 
+                                     data-download-url="{{ route('deliverables.download-artwork', ['deliverable' => $task->id, 'index' => $fIdx]) }}" 
+                                     onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
+                                     title="Click to view file">
                                     @if($isImg)
                                         <img src="{{ $fUrl }}" alt="" style="width: 18px; height: 18px; border-radius: 3px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--color-border-primary);">
                                     @else
@@ -228,8 +233,13 @@
                                     <span style="font-size: 11px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ $fName }}">{{ $fName }}</span>
                                 </div>
                                 <div style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
-                                    <a href="{{ $fUrl }}" target="_blank" rel="noopener noreferrer" style="font-size: 10px; font-weight: 700; color: #3b82f6; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(59,130,246,0.1);" title="View file" onclick="event.stopPropagation()">View</a>
-                                    <a href="{{ route('deliverables.download-artwork', ['deliverable' => $task->id, 'index' => $fIdx]) }}" download target="_blank" style="font-size: 10px; font-weight: 700; color: #10b981; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(16,185,129,0.1);" title="Download file" onclick="event.stopPropagation()">Download</a>
+                                    <button type="button" 
+                                            data-file-url="{{ $fUrl }}" 
+                                            data-filename="{{ $fName }}" 
+                                            data-download-url="{{ route('deliverables.download-artwork', ['deliverable' => $task->id, 'index' => $fIdx]) }}" 
+                                            onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
+                                            style="font-size: 10px; font-weight: 700; color: #3b82f6; border: none; cursor: pointer; padding: 2px 7px; border-radius: 4px; background: rgba(59,130,246,0.1); line-height: 1.4;" 
+                                            title="View in popup">View</button>
                                     @if($canUploadFile)
                                     <button type="button" onclick="event.stopPropagation(); quickRemoveDeliverableFile({{ $task->id }}, {{ $fIdx }})" style="background: transparent; border: none; cursor: pointer; color: #ef4444; font-size: 11px; font-weight: 800; padding: 1px 3px; border-radius: 3px; line-height: 1;" title="Remove this file">✕</button>
                                     @endif
@@ -489,7 +499,12 @@
                                 $isImg = in_array($fExt, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
                             @endphp
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-radius: 6px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary);">
-                                <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1; cursor: pointer;" 
+                                     data-file-url="{{ $fUrl }}" 
+                                     data-filename="{{ $fName }}" 
+                                     data-download-url="{{ route('deliverables.download-artwork', ['deliverable' => $task->id, 'index' => $fIdx]) }}" 
+                                     onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
+                                     title="Click to view file">
                                     @if($isImg)
                                         <img src="{{ $fUrl }}" alt="" style="width: 18px; height: 18px; border-radius: 3px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--color-border-primary);">
                                     @else
@@ -500,8 +515,13 @@
                                     <span style="font-size: 11px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ $fName }}">{{ $fName }}</span>
                                 </div>
                                 <div style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
-                                    <a href="{{ $fUrl }}" target="_blank" rel="noopener noreferrer" style="font-size: 10px; font-weight: 700; color: #3b82f6; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(59,130,246,0.1);" title="View file" onclick="event.stopPropagation()">View</a>
-                                    <a href="{{ route('deliverables.download-artwork', ['deliverable' => $task->id, 'index' => $fIdx]) }}" download target="_blank" style="font-size: 10px; font-weight: 700; color: #10b981; text-decoration: none; padding: 1px 4px; border-radius: 4px; background: rgba(16,185,129,0.1);" title="Download file" onclick="event.stopPropagation()">Download</a>
+                                    <button type="button" 
+                                            data-file-url="{{ $fUrl }}" 
+                                            data-filename="{{ $fName }}" 
+                                            data-download-url="{{ route('deliverables.download-artwork', ['deliverable' => $task->id, 'index' => $fIdx]) }}" 
+                                            onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
+                                            style="font-size: 10px; font-weight: 700; color: #3b82f6; border: none; cursor: pointer; padding: 2px 7px; border-radius: 4px; background: rgba(59,130,246,0.1); line-height: 1.4;" 
+                                            title="View in popup">View</button>
                                     @if($canUploadFile)
                                     <button type="button" onclick="event.stopPropagation(); quickRemoveDeliverableFile({{ $task->id }}, {{ $fIdx }})" style="background: transparent; border: none; cursor: pointer; color: #ef4444; font-size: 11px; font-weight: 800; padding: 1px 3px; border-radius: 3px; line-height: 1;" title="Remove this file">✕</button>
                                     @endif
