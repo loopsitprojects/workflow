@@ -43,6 +43,8 @@ class StoreDeliverableRequest extends FormRequest
             'notes' => 'nullable|string',
             'reference' => 'nullable|string',
             'reference_file' => 'nullable|file|mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm,pdf,doc,docx,ppt,pptx,txt,zip|max:512000',
+            'reference_files' => 'nullable|array',
+            'reference_files.*' => 'nullable|file|mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm,pdf,doc,docx,ppt,pptx,txt,zip|max:512000',
             'approval_stage' => 'nullable|string',
             'parent_deliverable_id' => 'nullable|exists:deliverables,id',
             
@@ -55,6 +57,8 @@ class StoreDeliverableRequest extends FormRequest
             'subtasks.*.post_copy' => 'nullable|string',
             'subtasks.*.reference' => 'nullable|string',
             'subtasks.*.reference_file' => 'nullable|file|mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm,pdf,doc,docx,ppt,pptx,txt,zip|max:512000',
+            'subtasks.*.reference_files' => 'nullable|array',
+            'subtasks.*.reference_files.*' => 'nullable|file|mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm,pdf,doc,docx,ppt,pptx,txt,zip|max:512000',
             'subtasks.*.deadline' => 'nullable|date',
             'subtasks.*.designer_deadline' => 'nullable|date',
             'subtasks.*.priority' => 'nullable|string',

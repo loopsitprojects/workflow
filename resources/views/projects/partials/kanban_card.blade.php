@@ -157,6 +157,19 @@
                     <span>Rev: {{ \Carbon\Carbon::parse($task->revision_deadline)->format('M d') }}</span>
                 </div>
                 @endif
+
+                {{-- Reference Files / Links Indicator --}}
+                @php
+                    $cardRefFiles = $task->getReferenceFilesArray();
+                    $cardRefUrls  = $task->getReferenceUrlsArray();
+                    $cardTotalRefs = count($cardRefFiles) + count($cardRefUrls);
+                @endphp
+                @if($cardTotalRefs > 0)
+                <div style="display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; color: #0284c7; background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); padding: 1px 5px; border-radius: 4px;" title="{{ $cardTotalRefs }} reference(s) attached">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    <span>Ref ({{ $cardTotalRefs }})</span>
+                </div>
+                @endif
             </div>
 
             {{-- Right Action/Info Icons: Priority Flag + Tag icon --}}

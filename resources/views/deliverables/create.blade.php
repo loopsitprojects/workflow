@@ -988,9 +988,60 @@
                                 <label class="field-label">Reference URL (Drive, Figma, Links...)</label>
                                 <input type="url" name="reference" class="styled-input" :disabled="mode !== 'single'" placeholder="https://..." value="{{ old('reference', $parentTask->reference ?? '') }}">
                             </div>
-                            <div>
-                                <label class="field-label">Attach Reference File</label>
-                                <input type="file" name="reference_file" class="styled-input" :disabled="mode !== 'single'" style="padding:6px 10px;">
+                            <div x-data="{
+                                selectedFiles: [],
+                                onFileChange(e) {
+                                    this.selectedFiles = Array.from(e.target.files);
+                                },
+                                clearFiles() {
+                                    this.selectedFiles = [];
+                                    if ($refs.singleRefFileInput) {
+                                        $refs.singleRefFileInput.value = '';
+                                    }
+                                },
+                                formatSize(bytes) {
+                                    if (!bytes || bytes === 0) return '0 B';
+                                    const k = 1024;
+                                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                                    return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+                                }
+                            }">
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                                    <label class="field-label" style="margin-bottom:0;">Attach Reference Files</label>
+                                    <template x-if="selectedFiles.length > 0">
+                                        <button type="button" @click="clearFiles()" style="background:transparent; border:none; color:#ef4444; font-size:11px; font-weight:700; cursor:pointer; padding:0 4px; display:inline-flex; align-items:center; gap:2px;">
+                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                            Clear (<span x-text="selectedFiles.length"></span>)
+                                        </button>
+                                    </template>
+                                </div>
+                                <input type="file" 
+                                       name="reference_files[]" 
+                                       x-ref="singleRefFileInput"
+                                       @change="onFileChange($event)"
+                                       multiple 
+                                       accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip"
+                                       class="styled-input" 
+                                       :disabled="mode !== 'single'" 
+                                       style="padding:6px 10px;">
+                                
+                                {{-- Preview Selected Files --}}
+                                <template x-if="selectedFiles.length > 0">
+                                    <div style="margin-top:8px; display:flex; flex-direction:column; gap:5px; max-height:160px; overflow-y:auto; padding:6px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:8px;">
+                                        <template x-for="(file, fIdx) in selectedFiles" :key="fIdx">
+                                            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 8px; border-radius:6px; background:var(--color-bg-secondary); font-size:11.5px;">
+                                                <div style="display:inline-flex; align-items:center; gap:6px; overflow:hidden;">
+                                                    <svg width="13" height="13" fill="none" stroke="#0055D4" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                                                    </svg>
+                                                    <span x-text="file.name" style="font-weight:600; color:var(--color-text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;"></span>
+                                                </div>
+                                                <span x-text="formatSize(file.size)" style="font-size:10.5px; font-weight:700; color:var(--color-text-secondary); flex-shrink:0;"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -1304,8 +1355,8 @@
                                                 <input type="url" :name="`subtasks[${index}][reference]`" x-model="subtask.reference" placeholder="https://..." class="styled-input" :disabled="mode !== 'batch'">
                                             </div>
                                             <div>
-                                                <label class="field-label">Attach Reference File</label>
-                                                <input type="file" :name="`subtasks[${index}][reference_file]`" class="styled-input" style="padding:6px 10px;" :disabled="mode !== 'batch'">
+                                                <label class="field-label">Attach Reference Files</label>
+                                                <input type="file" :name="`subtasks[${index}][reference_files][]`" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip" class="styled-input" style="padding:6px 10px;" :disabled="mode !== 'batch'">
                                             </div>
                                         </div>
                                     </div>

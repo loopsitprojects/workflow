@@ -181,7 +181,7 @@ class DeliverableController extends Controller
             $taskData['notes']     = $taskData['notes'] ?? $conceptOrBrief;
             $taskData['caption']   = $sub['caption'] ?? ($taskData['caption'] ?? null);
             $taskData['post_copy'] = $sub['post_copy'] ?? ($taskData['post_copy'] ?? null);
-            $taskData['reference'] = $sub['reference'] ?? null;
+            $taskData['reference'] = !empty($sub['reference']) ? $sub['reference'] : ($validated['reference'] ?? null);
             $taskData['deadline']  = $sub['deadline'] ?? ($taskData['deadline'] ?? null);
             $taskData['priority']  = $sub['priority'] ?? ($taskData['priority'] ?? 'Medium');
             $project = Project::find($taskData['project_id']);
@@ -200,10 +200,20 @@ class DeliverableController extends Controller
                 if ($u) $taskData['assignee_name'] = $u->name;
             }
 
-            if ($request->hasFile("subtasks.0.reference_file")) {
-                $taskData['reference_file'] = $this->moveUploadedFile($request->file("subtasks.0.reference_file"), 'references');
+            // Reference file(s) upload handling (from main form or subtask 0)
+            $singleUploadedFiles = array_merge(
+                $this->collectUploadedFiles($request->file('reference_files')),
+                $this->collectUploadedFiles($request->file('reference_file')),
+                $this->collectUploadedFiles($request->file('subtasks.0.reference_files')),
+                $this->collectUploadedFiles($request->file('subtasks.0.reference_file'))
+            );
+            $uploadedRefUrls = $this->uploadReferenceFiles($singleUploadedFiles);
+            if (!empty($uploadedRefUrls)) {
+                $taskData['reference_file'] = count($uploadedRefUrls) === 1 ? $uploadedRefUrls[0] : json_encode($uploadedRefUrls);
+                $taskData['reference_uploaded_by'] = auth()->id();
+            } elseif (!empty($taskData['reference'])) {
+                $taskData['reference_uploaded_by'] = auth()->id();
             }
-            $taskData['reference_uploaded_by'] = $taskData['reference_uploaded_by'] ?? auth()->id();
 
             $singleTask = Deliverable::create($taskData);
             if ($project && in_array($project->workflow_type, ['campaign', 'pitch']) && $singleTask->writer) {
@@ -242,15 +252,34 @@ class DeliverableController extends Controller
             }
         }
         
-        if ($request->hasFile("reference_file")) {
-            $parentData['reference_file'] = $this->moveUploadedFile($request->file("reference_file"), 'references');
+        $parentUploadedFiles = array_merge(
+            $this->collectUploadedFiles($request->file('reference_files')),
+            $this->collectUploadedFiles($request->file('reference_file'))
+        );
+        $parentRefUrls = $this->uploadReferenceFiles($parentUploadedFiles);
+        if (!empty($parentRefUrls)) {
+            $parentData['reference_file'] = count($parentRefUrls) === 1 ? $parentRefUrls[0] : json_encode($parentRefUrls);
+            $parentData['reference_uploaded_by'] = auth()->id();
+        } elseif (!empty($parentData['reference'])) {
+            $parentData['reference_uploaded_by'] = auth()->id();
         }
-        $parentData['reference_uploaded_by'] = $parentData['reference_uploaded_by'] ?? auth()->id();
 
         if ($parentId) {
             $parentTask = Deliverable::findOrFail($parentId);
         } else {
             $parentTask = Deliverable::create($parentData);
+            if ($project && in_array($project->workflow_type, ['campaign', 'pitch']) && empty($subtasks) && $parentTask->writer) {
+                try {
+                    $parentTask->writer->notify(new \App\Notifications\DeliverableUpdated(
+                        $parentTask,
+                        "assigned you to deliverable **{$parentTask->title}**",
+                        'assignment',
+                        auth()->user()
+                    ));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Campaign deliverable store assignment notification error: ' . $e->getMessage());
+                }
+            }
         }
 
         if (!empty($subtasks)) {
@@ -268,10 +297,15 @@ class DeliverableController extends Controller
                             ? $sub['title'] 
                             : $parentTask->title . ' - Subtask ' . ($existingCount + $index + 1);
 
+                $subUploadedFiles = array_merge(
+                    $this->collectUploadedFiles($request->file("subtasks.{$index}.reference_files")),
+                    $this->collectUploadedFiles($request->file("subtasks.{$index}.reference_file"))
+                );
+                $subRefUrls = $this->uploadReferenceFiles($subUploadedFiles);
                 $refFile = null;
                 $refUploadedBy = null;
-                if ($request->hasFile("subtasks.{$index}.reference_file")) {
-                    $refFile = $this->moveUploadedFile($request->file("subtasks.{$index}.reference_file"), 'references');
+                if (!empty($subRefUrls)) {
+                    $refFile = count($subRefUrls) === 1 ? $subRefUrls[0] : json_encode($subRefUrls);
                     $refUploadedBy = auth()->id();
                 } elseif (!empty($sub['reference'])) {
                     $refUploadedBy = auth()->id();
@@ -1598,6 +1632,32 @@ class DeliverableController extends Controller
         }
     }
 
+    private function collectUploadedFiles($fileInput): array
+    {
+        if (empty($fileInput)) {
+            return [];
+        }
+        $files = is_array($fileInput) ? $fileInput : [$fileInput];
+        $flattened = [];
+        array_walk_recursive($files, function($f) use (&$flattened) {
+            if ($f instanceof \Illuminate\Http\UploadedFile && $f->isValid()) {
+                $flattened[] = $f;
+            }
+        });
+        return $flattened;
+    }
+
+    private function uploadReferenceFiles(array $uploadedFiles): array
+    {
+        $urls = [];
+        foreach ($uploadedFiles as $file) {
+            if ($file && $file->isValid()) {
+                $urls[] = $this->moveUploadedFile($file, 'references');
+            }
+        }
+        return $urls;
+    }
+
     private function moveUploadedFile($file, string $folder): string
     {
         if (!$file->isValid()) {
@@ -1610,14 +1670,16 @@ class DeliverableController extends Controller
         
         try {
             $path = \Illuminate\Support\Facades\Storage::disk('s3')->putFileAs($folder, $file, $filename);
+            if ($path !== false) {
+                return \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
+            }
         } catch (\Throwable $e) {
-            throw new \Exception("S3 Upload Exception: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning("S3 upload failed for {$folder}/{$filename}, falling back to local public storage: " . $e->getMessage());
         }
 
-        if ($path === false) {
-            throw new \Exception("Failed to upload file to S3. Please verify your AWS credentials and bucket permissions.");
-        }
-        return \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
+        // Automatic local public disk fallback
+        $localPath = $file->storeAs($folder, $filename, 'public');
+        return asset('storage/' . $localPath);
     }
 
     /**
