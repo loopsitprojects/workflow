@@ -716,7 +716,7 @@
                         Edit Project
                     </a>
                     @endif
-                    @if(auth()->user()->can('create-deliverable', $project))
+                    @if(!in_array($project->workflow_type, ['campaign', 'pitch']) && auth()->user()->can('create-deliverable', $project))
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id]) }}"
                        style="padding: 8px 16px; background: #0055D4; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(0,85,212,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
