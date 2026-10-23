@@ -6517,6 +6517,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 targetEl.classList.add('highlighted-deliverable-target');
 
+                // If it's a kanban card, auto-expand it to show details
+                if (card && typeof toggleCardEditor === 'function') {
+                    toggleCardEditor(targetId, true);
+                }
+
                 // If it's a table row, also highlight its child td cells for strong visibility
                 targetEl.querySelectorAll('td').forEach(td => td.classList.add('highlighted-deliverable-cell'));
 

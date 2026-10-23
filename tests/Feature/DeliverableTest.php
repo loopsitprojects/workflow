@@ -175,6 +175,51 @@ test('dashboard only shows pending deliverables where the logged-in user is resp
     expect($viewDeliverables->contains('id', $d3->id))->toBeTrue();
 });
 
+test('main dashboard displays latest deliverables on top', function () {
+    $brand = Brand::create(['name' => 'Sort Brand', 'slug' => 'sort-brand']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Sort Project',
+        'workflow_type' => 'retainer',
+    ]);
+
+    $writer = User::factory()->create(['role' => 'Writer']);
+
+    // dOlder created yesterday with earlier deadline
+    $dOlder = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Older Deliverable',
+        'writer_id' => $writer->id,
+        'approval_stage' => 'Writer',
+        'status' => 'To Do',
+        'deadline' => now()->addDays(2)->toDateString(),
+        'created_at' => now()->subDay(),
+    ]);
+
+    // dNewer created today with later deadline
+    $dNewer = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Newer Deliverable',
+        'writer_id' => $writer->id,
+        'approval_stage' => 'Writer',
+        'status' => 'To Do',
+        'deadline' => now()->addDays(20)->toDateString(),
+        'created_at' => now(),
+    ]);
+
+    $response = $this->actingAs($writer)->get(route('dashboard'));
+    $response->assertStatus(200);
+
+    // Newer Deliverable should appear before Older Deliverable in the HTML content
+    $content = $response->getContent();
+    $posNewer = strpos($content, 'Newer Deliverable');
+    $posOlder = strpos($content, 'Older Deliverable');
+
+    expect($posNewer)->not->toBeFalse();
+    expect($posOlder)->not->toBeFalse();
+    expect($posNewer)->toBeLessThan($posOlder);
+});
+
 test('only admin and brand manager can delete a deliverable', function () {
     $brand = Brand::create(['name' => 'Test Brand', 'slug' => 'test-brand', 'description' => 'Test Brand Description']);
     $project = Project::create([
@@ -565,6 +610,44 @@ test('deliverable defaults brand_manager_id to the creating Brand Manager', func
         expect($child->assignee_name)->toBe('Kavi');
     }
 });
+
+test('overdue deliverables are separated from active deliverables on dashboard', function () {
+    $writer = User::factory()->create(['role' => 'Writer']);
+    $brand = Brand::create(['name' => 'Dashboard Brand', 'slug' => 'dashboard-brand']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Dashboard Project',
+        'workflow_type' => 'retainer',
+        'priority' => 'Medium',
+    ]);
+
+    $overdueDeliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Overdue Task Post',
+        'status' => 'In Progress',
+        'approval_stage' => 'Writer',
+        'writer_id' => $writer->id,
+        'deadline' => now()->subDays(2)->toDateString(),
+    ]);
+
+    $activeDeliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Future Task Post',
+        'status' => 'In Progress',
+        'approval_stage' => 'Writer',
+        'writer_id' => $writer->id,
+        'deadline' => now()->addDays(5)->toDateString(),
+    ]);
+
+    $response = $this->actingAs($writer)->get(route('dashboard'));
+
+    $response->assertOk();
+    $response->assertSee('Overdue Deliverables');
+    $response->assertSee('Active Deliverables');
+    $response->assertSee('Overdue Task Post');
+    $response->assertSee('Future Task Post');
+});
+
 
 
 

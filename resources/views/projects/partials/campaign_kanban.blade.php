@@ -353,12 +353,6 @@ function isCardEditorOpen(taskId) {
 
 function handleCardClick(taskId) {
     if (isDraggingKanbanCard) return;
-    const card = document.getElementById('kanban-card-' + taskId);
-    const canEdit = card && card.getAttribute('data-can-edit') === 'true';
-    if (!canEdit) {
-        openTaskModal(taskId);
-        return;
-    }
     if (currentlyEditingCardId === taskId) return;
     toggleCardEditor(taskId, true);
 }
@@ -1451,7 +1445,90 @@ function insertCreatedCardIntoColumn(colKey, d) {
                     </div>
                 </form>
             </div>
-            ` : ''}
+            ` : `
+            {{-- Expanded Read-only Details (Anyone can expand and see details) --}}
+            <div class="kanban-card-editor" id="kanban-card-editor-${d.id}" style="display: none;" onclick="event.stopPropagation()">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
+                        <div style="display: inline-flex; align-items: center; gap: 4px;">
+                            <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                                ${escapeHtml(d.post_type || 'Outlines')}
+                            </span>
+                            <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                                ${escapeHtml(stageDisplay)}
+                            </span>
+                        </div>
+                        <span style="font-size: 10px; font-weight: 700; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${escapeHtml(assigneeDisplay)}
+                        </span>
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <h4 style="margin: 0; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); line-height: 1.35; letter-spacing: -0.01em;">
+                            ${escapeHtml(d.title)}
+                        </h4>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 7px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px;">
+                            <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 500;">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                <span>Assignee</span>
+                            </span>
+                            <span style="font-weight: 600; color: var(--color-text-primary);">
+                                ${escapeHtml(assigneeDisplay)}
+                            </span>
+                        </div>
+
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px;">
+                            <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 500;">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                <span>Approver</span>
+                            </span>
+                            <span style="font-weight: 600; color: var(--color-text-primary);">
+                                ${escapeHtml(d.approver_name || 'Unassigned')}
+                            </span>
+                        </div>
+
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px;">
+                            <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 500;">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <span>Due Date</span>
+                            </span>
+                            <span style="font-weight: 600; color: var(--color-text-primary);">
+                                ${escapeHtml(formattedDate || 'No deadline')}
+                            </span>
+                        </div>
+
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px;">
+                            <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 500;">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/></svg>
+                                <span>Priority</span>
+                            </span>
+                            <span style="font-weight: 700; color: ${prioColor}; display: inline-flex; align-items: center; gap: 4px;">
+                                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: ${prioColor};"></span>
+                                <span>${escapeHtml(prio)}</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
+                        <button type="button" 
+                                onclick="event.stopPropagation(); toggleCardEditor(${d.id}, false); openTaskModal(${d.id})"
+                                style="background: transparent; border: none; font-size: 11px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 3px 4px; display: inline-flex; align-items: center; gap: 3px;"
+                                title="Open full view with briefs, assets and artwork">
+                            <span>Details</span>
+                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </button>
+                        <button type="button" 
+                                onclick="event.stopPropagation(); toggleCardEditor(${d.id}, false)"
+                                style="background: transparent; border: 1px solid var(--color-border-primary); font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; padding: 3px 9px; border-radius: 6px;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+            `}
         </div>
     `;
 

@@ -107,12 +107,8 @@ class DashboardController extends Controller
         if ($user->isAdmin()) {
             $deliverables = collect();
         } else {
-            $deliverables = $query->orderByRaw("CASE
-                    WHEN priority = 'High Priority' THEN 1
-                    WHEN priority = 'Medium' THEN 2
-                    WHEN priority = 'Low Priority' THEN 3
-                    ELSE 4 END")
-                ->orderBy('deadline', 'asc')
+            $deliverables = $query->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc')
                 ->get();
         }
 

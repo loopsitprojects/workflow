@@ -1153,9 +1153,12 @@ class DeliverableController extends Controller
                 $canEditContent = $isBrandManagerOrAdmin || ($isWriterStage && ($isAssignedWriter || $isUnassignedWriter));
             }
 
+            $canEditBriefAndRef = !$deliverable->isOtherDeliverable() || ($isAssignedPerson ?? false) || $user->isAdmin() || $deliverable->canUserRemoveReference($user);
+
             $isCampaignOrPitch = in_array($deliverable->project?->workflow_type ?? '', ['campaign', 'pitch']);
             if ($isCampaignOrPitch) {
                 $canEditBrief = $user->isAdmin() ||
+                    ($deliverable->isOtherDeliverable() && ($isAssignedPerson ?? false)) ||
                     in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
                     $deliverable->project?->lead_id == $user->id ||
                     $deliverable->project?->brand_manager_id == $user->id ||
@@ -1165,8 +1168,6 @@ class DeliverableController extends Controller
             } else {
                 $canEditBrief = $canEditBriefAndRef;
             }
-
-            $canEditBriefAndRef = !$deliverable->isOtherDeliverable() || ($isAssignedPerson ?? false) || $user->isAdmin() || $deliverable->canUserRemoveReference($user);
 
             if ($canEditContent) {
                 if ($request->has('title') && (!$isCampaignOrPitch || $canEditBrief)) $deliverable->title = $request->title;
