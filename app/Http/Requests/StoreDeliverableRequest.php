@@ -26,7 +26,7 @@ class StoreDeliverableRequest extends FormRequest
             'status' => 'required|string',
             'priority' => 'nullable|string',
             'assignee_name' => 'nullable|string',
-            'deadline' => 'nullable|date',
+            'deadline' => 'nullable|date|after_or_equal:today',
             'task_type' => 'required|string',
             'progress_percent' => 'required|integer',
             'start_date' => 'nullable|date',
@@ -34,7 +34,7 @@ class StoreDeliverableRequest extends FormRequest
             'approver_id' => 'nullable|exists:users,id',
             'writer_id' => 'nullable|exists:users,id',
             'designer_id' => 'nullable|exists:users,id',
-            'designer_deadline' => 'nullable|date',
+            'designer_deadline' => 'nullable|date|after_or_equal:today',
             'flow_type' => 'nullable|string',
             'concept' => 'nullable|string',
             'post_type' => 'nullable|string',
@@ -59,8 +59,8 @@ class StoreDeliverableRequest extends FormRequest
             'subtasks.*.reference_file' => 'nullable|file|mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm,pdf,doc,docx,ppt,pptx,txt,zip|max:512000',
             'subtasks.*.reference_files' => 'nullable|array',
             'subtasks.*.reference_files.*' => 'nullable|file|mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm,pdf,doc,docx,ppt,pptx,txt,zip|max:512000',
-            'subtasks.*.deadline' => 'nullable|date',
-            'subtasks.*.designer_deadline' => 'nullable|date',
+            'subtasks.*.deadline' => 'nullable|date|after_or_equal:today',
+            'subtasks.*.designer_deadline' => 'nullable|date|after_or_equal:today',
             'subtasks.*.priority' => 'nullable|string',
             'subtasks.*.writer_id' => 'nullable|exists:users,id',
             'subtasks.*.designer_id' => 'nullable|exists:users,id',
@@ -75,5 +75,20 @@ class StoreDeliverableRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * Custom validation messages.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'deadline.after_or_equal' => 'Due date cannot be before today.',
+            'designer_deadline.after_or_equal' => 'Designer deadline cannot be before today.',
+            'subtasks.*.deadline.after_or_equal' => 'Subtask due date cannot be before today.',
+            'subtasks.*.designer_deadline.after_or_equal' => 'Subtask designer deadline cannot be before today.',
+        ];
     }
 }

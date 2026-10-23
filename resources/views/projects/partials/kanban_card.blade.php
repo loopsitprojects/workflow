@@ -349,6 +349,7 @@
                     <input type="date" 
                            name="deadline" 
                            id="card-input-deadline-{{ $task->id }}"
+                           min="{{ date('Y-m-d') }}"
                            value="{{ $task->deadline ? \Carbon\Carbon::parse($task->deadline)->format('Y-m-d') : '' }}"
                            placeholder="Add dates…"
                            style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">

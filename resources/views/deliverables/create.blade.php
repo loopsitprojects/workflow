@@ -945,6 +945,7 @@
                             <div>
                                 <label class="field-label">Due Date</label>
                                 <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'single'"
+                                    min="{{ date('Y-m-d') }}"
                                     value="{{ old('deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : '') }}">
                             </div>
 
@@ -1129,6 +1130,7 @@
                             <div>
                                 <label class="field-label">Batch Due Date</label>
                                 <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'batch'"
+                                    min="{{ date('Y-m-d') }}"
                                     value="{{ old('deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : '') }}">
                             </div>
 
@@ -1334,7 +1336,7 @@
                                             </div>
                                             <div>
                                                 <label class="field-label">Due Date <span style="font-size:10px;text-transform:none;opacity:0.6;font-weight:500;">(Defaults to batch date if blank)</span></label>
-                                                <input type="date" :name="`subtasks[${index}][deadline]`" x-model="subtask.deadline" class="styled-input" :disabled="mode !== 'batch'">
+                                                <input type="date" :name="`subtasks[${index}][deadline]`" x-model="subtask.deadline" class="styled-input" :disabled="mode !== 'batch'" min="{{ date('Y-m-d') }}">
                                             </div>
                                         </div>
 

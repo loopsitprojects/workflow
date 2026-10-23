@@ -435,6 +435,17 @@ async function submitInlineCardEdit(event, taskId) {
     const deadline = deadlineInput && deadlineInput.value ? deadlineInput.value : '';
     const priority = prioritySelect ? prioritySelect.value : 'Medium';
 
+    if (deadline && deadlineInput && deadline !== deadlineInput.defaultValue) {
+        const selDate = new Date(deadline + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selDate < today) {
+            alert('Due date cannot be before today.');
+            if (deadlineInput) deadlineInput.focus();
+            return;
+        }
+    }
+
     const saveBtn = document.getElementById('card-btn-save-' + taskId);
     if (saveBtn) {
         saveBtn.disabled = true;
@@ -1306,6 +1317,17 @@ async function submitInlineTask(event, colKey, statusValue) {
     const deadline = deadlineInput && deadlineInput.value ? deadlineInput.value : null;
     const priority = prioritySelect ? prioritySelect.value : 'Medium';
 
+    if (deadline) {
+        const selDate = new Date(deadline + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (selDate < today) {
+            alert('Due date cannot be before today.');
+            if (deadlineInput) deadlineInput.focus();
+            return;
+        }
+    }
+
     const saveBtn = creator.querySelector('button[type="submit"]');
     if (saveBtn) {
         saveBtn.disabled = true;
@@ -1665,6 +1687,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             <input type="date" 
                                    name="deadline" 
                                    id="card-input-deadline-${d.id}"
+                                   min="${new Date().toISOString().split('T')[0]}"
                                    value="${rawDate}"
                                    placeholder="Add dates…"
                                    style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">

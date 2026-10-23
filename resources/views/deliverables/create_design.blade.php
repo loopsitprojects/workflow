@@ -629,6 +629,7 @@
                             <div>
                                 <label class="field-label">Deliverable Deadline</label>
                                 <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'single'"
+                                    min="{{ date('Y-m-d') }}"
                                     value="{{ old('deadline', old('designer_deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : (isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : ''))) }}">
                                 <input type="hidden" name="designer_deadline" :disabled="mode !== 'single'"
                                     value="{{ old('deadline', old('designer_deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : (isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : ''))) }}">
@@ -754,6 +755,7 @@
                             <div>
                                 <label class="field-label">Batch Deliverable Deadline</label>
                                 <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'batch'"
+                                    min="{{ date('Y-m-d') }}"
                                     value="{{ old('deadline', old('designer_deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : (isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : ''))) }}">
                                 <input type="hidden" name="designer_deadline" :disabled="mode !== 'batch'"
                                     value="{{ old('deadline', old('designer_deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : (isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : ''))) }}">
@@ -855,7 +857,7 @@
                                             </div>
                                             <div>
                                                 <label class="field-label">Deliverable Deadline <span style="font-size:10px;text-transform:none;opacity:0.6;font-weight:500;">(Defaults to batch)</span></label>
-                                                <input type="date" :name="`subtasks[${index}][deadline]`" x-model="subtask.deadline" @input="subtask.designer_deadline = subtask.deadline" class="styled-input" :disabled="mode !== 'batch'">
+                                                <input type="date" :name="`subtasks[${index}][deadline]`" x-model="subtask.deadline" @input="subtask.designer_deadline = subtask.deadline" class="styled-input" :disabled="mode !== 'batch'" min="{{ date('Y-m-d') }}">
                                                 <input type="hidden" :name="`subtasks[${index}][designer_deadline]`" :value="subtask.deadline || subtask.designer_deadline" :disabled="mode !== 'batch'">
                                             </div>
                                         </div>
