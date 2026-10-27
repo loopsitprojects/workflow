@@ -303,6 +303,29 @@ const kanbanIsAdminOrManager = {{ (auth()->user() && (auth()->user()->isAdmin() 
 const kanbanCanManageDeliverables = {{ $canManageDeliverables ? 'true' : 'false' }};
 const kanbanProjectApproverId = {{ $project->approver_id ?? ($project->brand_manager_id ?? ($project->lead_id ?? 'null')) }};
 
+const campaignDeliverablesData = {};
+@foreach($tasks as $t)
+campaignDeliverablesData[{{ $t->id }}] = {
+    id: {{ $t->id }},
+    title: @json($t->title),
+    post_type: @json($t->post_type ?? 'Outlines'),
+    status: @json($t->status ?? 'To Do'),
+    priority: @json($t->priority ?? 'Medium'),
+    deadline: @json($t->deadline ? $t->deadline->format('Y-m-d') : null),
+    deadline_formatted: @json($t->deadline ? $t->deadline->format('d M, Y') : null),
+    concept: @json($t->concept ?? ''),
+    caption: @json($t->caption ?? ''),
+    post_copy: @json($t->post_copy ?? ($t->subtask_copy ?? '')),
+    notes: @json($t->notes ?? ''),
+    description: @json($t->description ?? ''),
+    reference_files_list: @json($t->getReferenceFilesArray()),
+    reference_urls_list: @json($t->getReferenceUrlsArray()),
+    assignee_name: @json($t->writer?->name ?? ($t->designer?->name ?? 'Unassigned')),
+    approver_name: @json($t->approver?->name ?? null),
+    created_at_formatted: @json($t->created_at ? $t->created_at->format('d M, Y') : null)
+};
+@endforeach
+
 function isAssignStageName(val) {
     const s = (val || '').toLowerCase().trim();
     return !s || s === 'assign' || s === 'assignee' || s === 'todo' || s === 'to do' || s === 'in progress' || s === 'writer';
@@ -1531,6 +1554,28 @@ function insertCreatedCardIntoColumn(colKey, d) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
+    if (d && d.id) {
+        campaignDeliverablesData[d.id] = {
+            id: d.id,
+            title: d.title || '',
+            post_type: d.post_type || 'Outlines',
+            status: d.status || 'To Do',
+            priority: d.priority || 'Medium',
+            deadline: d.deadline || null,
+            deadline_formatted: d.deadline ? formatDateDisplay(d.deadline) : null,
+            concept: d.concept || '',
+            caption: d.caption || '',
+            post_copy: d.post_copy || d.subtask_copy || '',
+            notes: d.notes || '',
+            description: d.description || '',
+            reference_files_list: extractReferenceFiles(d),
+            reference_urls_list: extractReferenceUrls(d),
+            assignee_name: d.assignee_name || 'Unassigned',
+            approver_name: d.approver_name || null,
+            created_at_formatted: d.created_at ? formatDateDisplay(d.created_at) : null
+        };
+    }
+
     const initial = d.assignee_name && d.assignee_name !== 'Unassigned' 
         ? d.assignee_name.trim().charAt(0).toUpperCase() 
         : 'U';
@@ -1892,9 +1937,9 @@ function insertCreatedCardIntoColumn(colKey, d) {
                     {{-- Footer actions: Details on left, Cancel & Save on right (All buttons at the bottom) --}}
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
                         <button type="button" 
-                                onclick="event.stopPropagation(); toggleCardEditor(${d.id}, false); openTaskModal(${d.id})"
+                                onclick="event.stopPropagation(); toggleCardEditor(${d.id}, false); openCampaignDetailsModal(${d.id})"
                                 style="background: transparent; border: none; font-size: 11px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 3px 4px; display: inline-flex; align-items: center; gap: 3px;"
-                                title="Open full view with briefs, assets and artwork">
+                                title="View brief and references">
                             <span>Details</span>
                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                         </button>
@@ -2016,9 +2061,9 @@ function insertCreatedCardIntoColumn(colKey, d) {
 
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
                         <button type="button" 
-                                onclick="event.stopPropagation(); toggleCardEditor(${d.id}, false); openTaskModal(${d.id})"
+                                onclick="event.stopPropagation(); toggleCardEditor(${d.id}, false); openCampaignDetailsModal(${d.id})"
                                 style="background: transparent; border: none; font-size: 11px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 3px 4px; display: inline-flex; align-items: center; gap: 3px;"
-                                title="Open full view with briefs, assets and artwork">
+                                title="View brief and references">
                             <span>Details</span>
                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                         </button>
@@ -2035,6 +2080,471 @@ function insertCreatedCardIntoColumn(colKey, d) {
     `;
 
     container.insertAdjacentHTML('afterbegin', cardHtml);
+}
+
+function getFilenameFromUrl(url) {
+    if (!url) return 'file';
+    try {
+        const clean = String(url).split('?')[0].split('#')[0];
+        const parts = clean.split('/');
+        return decodeURIComponent(parts[parts.length - 1]) || 'file';
+    } catch (e) {
+        return 'file';
+    }
+}
+
+function getFileExt(filename) {
+    if (!filename) return '';
+    const parts = filename.split('.');
+    return parts.length > 1 ? parts.pop().toLowerCase() : '';
+}
+
+function formatDateDisplay(dStr) {
+    if (!dStr) return '';
+    try {
+        const d = new Date(dStr);
+        if (isNaN(d.getTime())) return dStr;
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch (e) {
+        return dStr;
+    }
+}
+
+function extractReferenceFiles(data) {
+    if (!data) return [];
+    if (data.reference_files_list && Array.isArray(data.reference_files_list)) {
+        return data.reference_files_list;
+    }
+    if (data.reference_file) {
+        if (typeof data.reference_file === 'string' && data.reference_file.startsWith('[')) {
+            try { return JSON.parse(data.reference_file); } catch(e) { return [data.reference_file]; }
+        } else if (Array.isArray(data.reference_file)) {
+            return data.reference_file;
+        } else if (typeof data.reference_file === 'string' && data.reference_file.trim()) {
+            return [data.reference_file.trim()];
+        }
+    }
+    return [];
+}
+
+function extractReferenceUrls(data) {
+    if (!data) return [];
+    if (data.reference_urls_list && Array.isArray(data.reference_urls_list)) {
+        return data.reference_urls_list;
+    }
+    if (data.reference) {
+        if (typeof data.reference === 'string' && data.reference.startsWith('[')) {
+            try { return JSON.parse(data.reference); } catch(e) { return [data.reference]; }
+        } else if (Array.isArray(data.reference)) {
+            return data.reference;
+        } else if (typeof data.reference === 'string' && data.reference.trim()) {
+            return data.reference.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+        }
+    }
+    return [];
+}
+
+function copyReferenceUrlToClipboard(url, btn) {
+    if (!navigator.clipboard) {
+        prompt('Copy reference URL:', url);
+        return;
+    }
+    navigator.clipboard.writeText(url).then(() => {
+        const origText = btn.innerHTML;
+        btn.innerHTML = 'Copied!';
+        setTimeout(() => {
+            btn.innerHTML = origText;
+        }, 1500);
+    }).catch(err => {
+        prompt('Copy reference URL:', url);
+    });
+}
+
+async function openCampaignDetailsModal(taskId) {
+    const modal = document.getElementById('campaignDetailsModalOverlay');
+    if (!modal) return;
+
+    modal.dataset.currentTaskId = taskId;
+    modal.style.display = 'flex';
+
+    let task = campaignDeliverablesData[taskId] || null;
+    if (task) {
+        renderCampaignDetailsModalContent(task);
+    } else {
+        renderCampaignDetailsModalLoading();
+    }
+
+    try {
+        const res = await fetch(`/deliverables/${taskId}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (res.ok) {
+            const freshData = await res.json();
+            campaignDeliverablesData[taskId] = {
+                id: freshData.id,
+                title: freshData.title || task?.title || '',
+                post_type: freshData.post_type || task?.post_type || 'Outlines',
+                status: freshData.status || task?.status || 'To Do',
+                priority: freshData.priority || task?.priority || 'Medium',
+                deadline: freshData.deadline || task?.deadline || null,
+                deadline_formatted: freshData.deadline ? formatDateDisplay(freshData.deadline) : (task?.deadline_formatted || null),
+                concept: freshData.concept || task?.concept || '',
+                caption: freshData.caption || task?.caption || '',
+                post_copy: freshData.post_copy || freshData.subtask_copy || task?.post_copy || '',
+                notes: freshData.notes || task?.notes || '',
+                description: freshData.description || task?.description || '',
+                reference_files_list: extractReferenceFiles(freshData),
+                reference_urls_list: extractReferenceUrls(freshData),
+                assignee_name: freshData.writer?.name || freshData.designer?.name || task?.assignee_name || 'Unassigned',
+                approver_name: freshData.approver?.name || task?.approver_name || null,
+                created_at_formatted: freshData.created_at ? formatDateDisplay(freshData.created_at) : (task?.created_at_formatted || null)
+            };
+            if (modal.style.display !== 'none' && modal.dataset.currentTaskId == taskId) {
+                renderCampaignDetailsModalContent(campaignDeliverablesData[taskId]);
+            }
+        }
+    } catch (err) {
+        console.warn('Could not refresh deliverable details from server:', err);
+    }
+}
+
+function closeCampaignDetailsModal() {
+    const modal = document.getElementById('campaignDetailsModalOverlay');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.dataset.currentTaskId = '';
+    }
+}
+
+function renderCampaignDetailsModalLoading() {
+    const titleEl = document.getElementById('campaignModalTitle');
+    if (titleEl) titleEl.textContent = 'Loading Deliverable Details…';
+
+    const body = document.getElementById('campaignModalBody');
+    if (body) {
+        body.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--color-text-secondary); gap: 12px;">
+                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"/></svg>
+                <div style="font-size: 13px; font-weight: 600;">Fetching deliverable brief and references…</div>
+            </div>
+        `;
+    }
+}
+
+function renderCampaignDetailsModalContent(task) {
+    if (!task) return;
+
+    const titleEl = document.getElementById('campaignModalTitle');
+    if (titleEl) titleEl.textContent = task.title || 'Untitled Deliverable';
+
+    const ptEl = document.getElementById('campaignModalPostTypeBadge');
+    if (ptEl) ptEl.textContent = task.post_type || 'Outlines';
+
+    const stEl = document.getElementById('campaignModalStatusBadge');
+    if (stEl) {
+        stEl.textContent = task.status || 'To Do';
+        const stLower = (task.status || '').toLowerCase().trim();
+        if (['done', 'completed', 'complete'].includes(stLower)) {
+            stEl.style.color = '#10b981';
+            stEl.style.background = 'rgba(16, 185, 129, 0.1)';
+            stEl.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        } else if (['approval stage', 'approval', 'review', 'under review'].includes(stLower)) {
+            stEl.style.color = '#f59e0b';
+            stEl.style.background = 'rgba(245, 158, 11, 0.1)';
+            stEl.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+        } else if (['in progress', 'on hold'].includes(stLower)) {
+            stEl.style.color = '#6366f1';
+            stEl.style.background = 'rgba(99, 102, 241, 0.1)';
+            stEl.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+        } else {
+            stEl.style.color = 'var(--color-text-secondary)';
+            stEl.style.background = 'var(--color-bg-secondary)';
+            stEl.style.borderColor = 'var(--color-border-primary)';
+        }
+    }
+
+    const prio = task.priority || 'Medium';
+    const prioDot = document.getElementById('campaignModalPriorityDot');
+    const prioText = document.getElementById('campaignModalPriorityText');
+    const prioBadge = document.getElementById('campaignModalPriorityBadge');
+    if (prioText) prioText.textContent = prio;
+    const prioColor = (prio === 'High Priority' || prio === 'Urgent' || prio === 'High') ? '#ef4444' : (prio === 'Low' ? '#64748b' : '#10b981');
+    if (prioDot) prioDot.style.background = prioColor;
+    if (prioBadge) {
+        prioBadge.style.color = prioColor;
+        prioBadge.style.borderColor = prioColor + '40';
+        prioBadge.style.background = prioColor + '15';
+    }
+
+    const asEl = document.getElementById('campaignModalAssignee');
+    if (asEl) asEl.textContent = task.assignee_name || 'Unassigned';
+
+    const apEl = document.getElementById('campaignModalApprover');
+    if (apEl) apEl.textContent = task.approver_name || 'Unassigned';
+
+    const dlEl = document.getElementById('campaignModalDeadline');
+    if (dlEl) dlEl.textContent = task.deadline_formatted || 'No deadline';
+
+    const ftEl = document.getElementById('campaignModalFooterMeta');
+    if (ftEl) {
+        let metaParts = [`Deliverable #${task.id}`];
+        if (task.created_at_formatted) metaParts.push(`Created: ${task.created_at_formatted}`);
+        ftEl.textContent = metaParts.join(' • ');
+    }
+
+    const body = document.getElementById('campaignModalBody');
+    if (!body) return;
+
+    let html = '';
+
+    // 1. Brief Section
+    html += `
+        <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border-primary);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 26px; height: 26px; border-radius: 7px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center;">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <span style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
+                        Deliverable Brief
+                    </span>
+                </div>
+            </div>
+    `;
+
+    const hasConcept = Boolean(task.concept && String(task.concept).trim());
+    const hasCaption = Boolean(task.caption && String(task.caption).trim());
+    const hasPostCopy = Boolean(task.post_copy && String(task.post_copy).trim());
+    const hasNotes = Boolean(task.notes && String(task.notes).trim() && String(task.notes).trim() !== String(task.concept || '').trim());
+
+    if (!hasConcept && !hasCaption && !hasPostCopy && !hasNotes) {
+        html += `
+            <div style="padding: 24px 20px; background: var(--color-bg-secondary); border: 1.5px dashed var(--color-border-primary); border-radius: 12px; text-align: center; color: var(--color-text-secondary);">
+                <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.6" style="margin: 0 auto 8px auto; opacity: 0.5;"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                <div style="font-size: 12.5px; font-weight: 500;">No brief or creative notes have been added yet for this deliverable.</div>
+            </div>
+        `;
+    } else {
+        html += `<div style="display: flex; flex-direction: column; gap: 14px;">`;
+
+        if (hasConcept) {
+            const isHtml = /<[a-z][\s\S]*>/i.test(task.concept);
+            html += `
+                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 14px 16px;">
+                    <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #3b82f6; margin-bottom: 6px;">Concept / Creative Brief</div>
+                    <div class="brief-body" style="font-size: 13px; line-height: 1.6; color: var(--color-text-primary); ${isHtml ? '' : 'white-space: pre-wrap;'} word-break: break-word;">
+                        ${isHtml ? task.concept : escapeHtml(task.concept)}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (hasCaption) {
+            const isHtml = /<[a-z][\s\S]*>/i.test(task.caption);
+            html += `
+                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 14px 16px;">
+                    <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #10b981; margin-bottom: 6px;">Caption</div>
+                    <div class="brief-body" style="font-size: 13px; line-height: 1.6; color: var(--color-text-primary); ${isHtml ? '' : 'white-space: pre-wrap;'} word-break: break-word;">
+                        ${isHtml ? task.caption : escapeHtml(task.caption)}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (hasPostCopy) {
+            const isHtml = /<[a-z][\s\S]*>/i.test(task.post_copy);
+            html += `
+                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 14px 16px;">
+                    <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #8b5cf6; margin-bottom: 6px;">Post Copy</div>
+                    <div class="brief-body" style="font-size: 13px; line-height: 1.6; color: var(--color-text-primary); ${isHtml ? '' : 'white-space: pre-wrap;'} word-break: break-word;">
+                        ${isHtml ? task.post_copy : escapeHtml(task.post_copy)}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (hasNotes) {
+            html += `
+                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 14px 16px;">
+                    <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #f59e0b; margin-bottom: 6px;">Additional Notes</div>
+                    <div class="brief-body" style="font-size: 13px; line-height: 1.6; color: var(--color-text-primary); white-space: pre-wrap; word-break: break-word;">
+                        ${escapeHtml(task.notes)}
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `</div>`;
+    }
+    html += `</div>`;
+
+    // 2. References Section
+    html += `
+        <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border-primary);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 26px; height: 26px; border-radius: 7px; background: rgba(16, 185, 129, 0.12); color: #10b981; display: flex; align-items: center; justify-content: center;">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    </div>
+                    <span style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
+                        References & Assets
+                    </span>
+                </div>
+            </div>
+    `;
+
+    const refFiles = Array.isArray(task.reference_files_list) ? task.reference_files_list : [];
+    const refUrls = Array.isArray(task.reference_urls_list) ? task.reference_urls_list : [];
+
+    if (refFiles.length === 0 && refUrls.length === 0) {
+        html += `
+            <div style="padding: 24px 20px; background: var(--color-bg-secondary); border: 1.5px dashed var(--color-border-primary); border-radius: 12px; text-align: center; color: var(--color-text-secondary);">
+                <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.6" style="margin: 0 auto 8px auto; opacity: 0.5;"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                <div style="font-size: 12.5px; font-weight: 500;">No reference files or links attached to this deliverable.</div>
+            </div>
+        `;
+    } else {
+        html += `<div style="display: flex; flex-direction: column; gap: 16px;">`;
+
+        // Reference Files
+        if (refFiles.length > 0) {
+            html += `
+                <div>
+                    <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 8px;">
+                        Reference Files (${refFiles.length})
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px;">
+            `;
+
+            refFiles.forEach(fileUrl => {
+                const fname = getFilenameFromUrl(fileUrl);
+                const ext = getFileExt(fname);
+                const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+                const isPdf = ext === 'pdf';
+                const isVid = ['mp4', 'webm', 'ogg', 'mov', 'avi'].includes(ext);
+
+                html += `
+                    <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.15s, box-shadow 0.15s;"
+                         onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';"
+                         onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                `;
+
+                if (isImg) {
+                    html += `
+                        <div style="height: 110px; width: 100%; background: #000; overflow: hidden; position: relative; cursor: pointer;"
+                             onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(fileUrl)}')">
+                            <img src="${escapeHtml(fileUrl)}" alt="${escapeHtml(fname)}" style="width: 100%; height: 100%; object-fit: cover;">
+                            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); opacity: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; gap: 4px; transition: opacity 0.15s;"
+                                 onmouseover="this.style.opacity='1'"
+                                 onmouseout="this.style.opacity='0'">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                <span>Preview</span>
+                            </div>
+                        </div>
+                    `;
+                } else if (isPdf) {
+                    html += `
+                        <div style="height: 80px; width: 100%; background: rgba(239, 68, 68, 0.08); display: flex; align-items: center; justify-content: center; gap: 8px; color: #ef4444; cursor: pointer;"
+                             onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(fileUrl)}')">
+                            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">PDF FILE</span>
+                        </div>
+                    `;
+                } else if (isVid) {
+                    html += `
+                        <div style="height: 80px; width: 100%; background: rgba(139, 92, 246, 0.08); display: flex; align-items: center; justify-content: center; gap: 8px; color: #8b5cf6; cursor: pointer;"
+                             onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(fileUrl)}')">
+                            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">VIDEO FILE</span>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div style="height: 80px; width: 100%; background: rgba(59, 130, 246, 0.08); display: flex; align-items: center; justify-content: center; gap: 8px; color: #2563eb;">
+                            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">${escapeHtml(ext.toUpperCase() || 'FILE')}</span>
+                        </div>
+                    `;
+                }
+
+                html += `
+                        <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; flex: 1;">
+                            <div style="font-size: 11px; font-weight: 700; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(fname)}">
+                                ${escapeHtml(fname)}
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--color-border-primary);">
+                                <button type="button" 
+                                        onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(fileUrl)}')" 
+                                        style="background: transparent; border: 1px solid var(--color-border-primary); color: #3b82f6; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    <span>Preview</span>
+                                </button>
+                                <a href="${escapeHtml(fileUrl)}" download="${escapeHtml(fname)}" 
+                                   style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;"
+                                   title="Download file">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    <span>Download</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+
+        // Reference Links
+        if (refUrls.length > 0) {
+            html += `
+                <div>
+                    <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 8px;">
+                        Reference Links (${refUrls.length})
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+            `;
+
+            refUrls.forEach(url => {
+                html += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+                            <svg width="14" height="14" fill="none" stroke="#2563eb" viewBox="0 0 24 24" stroke-width="2.2" style="flex-shrink: 0;"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" 
+                               style="font-size: 12px; font-weight: 600; color: #2563eb; text-decoration: underline; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                               title="${escapeHtml(url)}">
+                                ${escapeHtml(url)}
+                            </a>
+                        </div>
+                        <div style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                            <button type="button" 
+                                    onclick="copyReferenceUrlToClipboard('${escapeHtml(url)}', this)" 
+                                    style="background: transparent; border: 1px solid var(--color-border-primary); color: var(--color-text-secondary); font-size: 10.5px; font-weight: 600; padding: 3px 8px; border-radius: 6px; cursor: pointer;"
+                                    title="Copy link to clipboard">
+                                Copy
+                            </button>
+                            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" 
+                               style="background: #2563eb; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">
+                                <span>Open ↗</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `</div>`;
+    }
+    html += `</div>`;
+
+    body.innerHTML = html;
 }
 
 // Collapse card editor or inline creator on click outside
@@ -2065,7 +2575,12 @@ document.addEventListener('click', function(event) {
 // Escape key collapses card editor and closes inline creator / modals
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
-        closeArtworkPreviewModal();
+        const artworkModal = document.getElementById('artworkPreviewModal');
+        if (artworkModal && artworkModal.style.display !== 'none') {
+            closeArtworkPreviewModal();
+            return;
+        }
+        closeCampaignDetailsModal();
         closeUploadDeliverableModal();
         closeAssignApproverModal();
         closeRevisionPromptModal();
@@ -2259,6 +2774,82 @@ document.addEventListener('keydown', function(event) {
         {{-- Modal Content / Preview Area --}}
         <div id="artworkPreviewContent" style="padding: 16px; overflow: auto; flex: 1; display: flex; align-items: center; justify-content: center; min-height: 260px; background: var(--color-bg-primary);">
             {{-- Dynamic content injected here --}}
+        </div>
+    </div>
+</div>
+
+{{-- Modal: Deliverable Brief & References Details Modal (Campaign & Pitch Flow) --}}
+<div id="campaignDetailsModalOverlay" 
+     style="display: none; position: fixed; inset: 0; z-index: 99990; align-items: center; justify-content: center; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); padding: 16px;" 
+     onclick="if(event.target === this) closeCampaignDetailsModal()">
+    <div id="campaignDeliverableDetailsModal" 
+         style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 16px; width: 100%; max-width: 820px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 60px rgba(0,0,0,0.35); overflow: hidden;">
+        
+        {{-- Modal Header --}}
+        <div style="padding: 16px 22px; border-bottom: 1px solid var(--color-border-primary); display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; background: var(--color-bg-secondary); flex-shrink: 0;">
+            <div style="min-width: 0; flex: 1;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+                    <span id="campaignModalPostTypeBadge" style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #3b82f6; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); padding: 2px 7px; border-radius: 5px;">
+                        Outlines
+                    </span>
+                    <span id="campaignModalStatusBadge" style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); padding: 2px 7px; border-radius: 5px;">
+                        To Do
+                    </span>
+                    <span id="campaignModalPriorityBadge" style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #10b981; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); padding: 2px 7px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px;">
+                        <span id="campaignModalPriorityDot" style="width: 5px; height: 5px; border-radius: 50%; background: #10b981;"></span>
+                        <span id="campaignModalPriorityText">Medium</span>
+                    </span>
+                </div>
+                <h3 id="campaignModalTitle" style="margin: 0; font-size: 17px; font-weight: 800; color: var(--color-text-primary); line-height: 1.35; letter-spacing: -0.01em; word-break: break-word;">
+                    Deliverable Details
+                </h3>
+            </div>
+            <button type="button" 
+                    onclick="closeCampaignDetailsModal()" 
+                    style="background: transparent; border: 1px solid var(--color-border-primary); cursor: pointer; color: var(--color-text-secondary); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s;"
+                    onmouseover="this.style.color='var(--color-text-primary)'; this.style.borderColor='var(--color-text-primary)';"
+                    onmouseout="this.style.color='var(--color-text-secondary)'; this.style.borderColor='var(--color-border-primary)';"
+                    title="Close (Esc)">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        {{-- Meta Information Bar --}}
+        <div style="padding: 10px 22px; background: var(--color-bg-primary); border-bottom: 1px solid var(--color-border-primary); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; font-size: 11.5px; flex-shrink: 0;">
+            <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                <span>Assignee:</span>
+                <strong id="campaignModalAssignee" style="color: var(--color-text-primary); font-weight: 700;">Unassigned</strong>
+            </div>
+            <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                <span>Approver:</span>
+                <strong id="campaignModalApprover" style="color: var(--color-text-primary); font-weight: 700;">Unassigned</strong>
+            </div>
+            <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span>Due Date:</span>
+                <strong id="campaignModalDeadline" style="color: var(--color-text-primary); font-weight: 700;">No deadline</strong>
+            </div>
+        </div>
+
+        {{-- Scrollable Content Body --}}
+        <div id="campaignModalBody" style="padding: 22px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 24px;">
+            {{-- Content injected by renderCampaignDetailsModalContent() --}}
+        </div>
+
+        {{-- Modal Footer --}}
+        <div style="padding: 12px 22px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0;">
+            <div id="campaignModalFooterMeta" style="font-size: 11px; color: var(--color-text-secondary);">
+                {{-- ID / Created date --}}
+            </div>
+            <button type="button" 
+                    onclick="closeCampaignDetailsModal()" 
+                    style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: var(--color-text-primary); font-size: 12px; font-weight: 700; padding: 7px 18px; border-radius: 8px; cursor: pointer; transition: all 0.15s;"
+                    onmouseover="this.style.background='var(--color-bg-secondary)';"
+                    onmouseout="this.style.background='var(--color-bg-primary)';">
+                Close
+            </button>
         </div>
     </div>
 </div>

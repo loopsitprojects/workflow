@@ -410,9 +410,9 @@
             {{-- Footer actions: Details on left, Cancel & Save on right (All buttons at the bottom) --}}
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
                 <button type="button" 
-                        onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false); openTaskModal({{ $task->id }})"
+                        onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false); openCampaignDetailsModal({{ $task->id }})"
                         style="background: transparent; border: none; font-size: 11px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 3px 4px; display: inline-flex; align-items: center; gap: 3px;"
-                        title="Open full view with briefs, assets and artwork">
+                        title="View brief and references">
                     <span>Details</span>
                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                 </button>
@@ -621,9 +621,9 @@
             {{-- Footer actions: Details on left, Close on right --}}
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
                 <button type="button" 
-                        onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false); openTaskModal({{ $task->id }})"
+                        onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false); openCampaignDetailsModal({{ $task->id }})"
                         style="background: transparent; border: none; font-size: 11px; font-weight: 600; color: #3b82f6; cursor: pointer; padding: 3px 4px; display: inline-flex; align-items: center; gap: 3px;"
-                        title="Open full view with briefs, assets and artwork">
+                        title="View brief and references">
                     <span>Details</span>
                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                 </button>
