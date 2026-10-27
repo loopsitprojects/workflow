@@ -2845,6 +2845,9 @@ class DeliverableController extends Controller
             $canUserMoveNow = $updatedAssignedId ? $updatedIsAssignee : false;
         }
 
+        $deliverable->load(['writer', 'designer', 'brandManager', 'approver', 'coordinator', 'revisionsHistory.user']);
+        $deliverable->append(['revisions_history', 'approvals_history']);
+
         return response()->json([
             'success' => true,
             'message' => "Status updated to '{$newStatus}'.",
@@ -2856,6 +2859,9 @@ class DeliverableController extends Controller
             'approver_name' => $deliverable->approver?->name,
             'has_file' => $deliverable->hasArtwork(),
             'can_move' => $canUserMoveNow,
+            'revisions' => (int)($deliverable->revisions ?? 0),
+            'revision_instructions' => $deliverable->revision_instructions,
+            'deliverable' => $deliverable,
         ]);
     }
 }

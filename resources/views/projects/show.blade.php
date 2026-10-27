@@ -3119,6 +3119,10 @@
                     document.getElementById('modalRevisionsCount').textContent = task.revisions_history.length;
                     revHistory.style.display = 'none';
                     revBox.querySelector('.hist-toggle').classList.remove('open');
+                } else if (task.revisions && task.revisions > 0) {
+                    revBox.style.display = 'block';
+                    document.getElementById('modalRevisionsCount').textContent = task.revisions;
+                    revHistory.style.display = 'none';
                 } else revBox.style.display = 'none';
 
                 // Revision Alert
