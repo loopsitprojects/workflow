@@ -303,6 +303,11 @@ const kanbanIsAdminOrManager = {{ (auth()->user() && (auth()->user()->isAdmin() 
 const kanbanCanManageDeliverables = {{ $canManageDeliverables ? 'true' : 'false' }};
 const kanbanProjectApproverId = {{ $project->approver_id ?? ($project->brand_manager_id ?? ($project->lead_id ?? 'null')) }};
 
+function isAssignStageName(val) {
+    const s = (val || '').toLowerCase().trim();
+    return !s || s === 'assign' || s === 'assignee' || s === 'todo' || s === 'to do' || s === 'in progress' || s === 'writer';
+}
+
 function checkCardMovePermission(d) {
     if (kanbanIsAdminOrManager) {
         return { canMove: true, reason: '' };
@@ -562,8 +567,14 @@ function updateCardViewElements(taskId, d) {
     }
 
     const stageBadge = document.getElementById('card-view-stage-' + taskId);
-    if (stageBadge && (d.approval_stage || d.stage)) {
-        stageBadge.textContent = d.approval_stage || d.stage;
+    if (stageBadge) {
+        const stg = d.approval_stage || d.stage || '';
+        if (isAssignStageName(stg)) {
+            stageBadge.style.display = 'none';
+        } else if (stg) {
+            stageBadge.textContent = stg;
+            stageBadge.style.display = 'inline-flex';
+        }
     }
 
     if (d.approver_name) {
@@ -1068,9 +1079,16 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: result.message || 'Failed to update status.', type: 'error' } }));
         } else {
             // Update stage badge and permission on card
-            if (result.approval_stage) {
+            if (result.approval_stage !== undefined) {
                 const stageBadge = document.getElementById('card-view-stage-' + taskId);
-                if (stageBadge) stageBadge.textContent = result.approval_stage;
+                if (stageBadge) {
+                    if (isAssignStageName(result.approval_stage)) {
+                        stageBadge.style.display = 'none';
+                    } else {
+                        stageBadge.textContent = result.approval_stage;
+                        stageBadge.style.display = 'inline-flex';
+                    }
+                }
             }
             if (result.approver_id) {
                 card.setAttribute('data-approver-id', result.approver_id);
@@ -1591,7 +1609,8 @@ function insertCreatedCardIntoColumn(colKey, d) {
     const badgeColor = hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)';
     const badgeBg = hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--color-bg-secondary)';
     const badgeBorder = hasAssignee ? '1px solid rgba(59,130,246,0.2)' : '1px solid var(--color-border-primary)';
-    const stageDisplay = d.approval_stage || d.stage || 'Assignee';
+    const stageDisplay = d.approval_stage || d.stage || '';
+    const isAssign = isAssignStageName(stageDisplay);
 
     const revCount = d.revisions || 0;
     const revMsg = d.revision_instructions || '';
@@ -1717,7 +1736,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         <span id="card-view-post-type-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                             ${escapeHtml(d.post_type || 'Outlines')}
                         </span>
-                        <span id="card-view-stage-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                        <span id="card-view-stage-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: ${isAssign ? 'none' : 'inline-flex'}; align-items: center;">
                             ${escapeHtml(stageDisplay)}
                         </span>
                         {{-- Revision Count Badge --}}
@@ -1788,9 +1807,11 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                                 ${escapeHtml(d.post_type || 'Outlines')}
                             </span>
+                            ${!isAssign ? `
                             <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                                 ${escapeHtml(stageDisplay)}
                             </span>
+                            ` : ''}
                             {{-- Revision Count Badge --}}
                             <span id="card-editor-revision-badge-${d.id}" 
                                   style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${hasRevs ? 'inline-flex' : 'none'}; align-items: center; gap: 3px;"
@@ -1923,9 +1944,11 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                                 ${escapeHtml(d.post_type || 'Outlines')}
                             </span>
+                            ${!isAssign ? `
                             <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                                 ${escapeHtml(stageDisplay)}
                             </span>
+                            ` : ''}
                             {{-- Revision Count Badge --}}
                             <span id="card-readonly-revision-badge-${d.id}" 
                                   style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${hasRevs ? 'inline-flex' : 'none'}; align-items: center; gap: 3px;"

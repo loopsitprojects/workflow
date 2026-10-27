@@ -17,7 +17,8 @@
     
     $postTypeLabel = $task->post_type ?: ($task->flow_type === 'direct_design' ? 'Design' : 'Deliverable');
     
-    $stage = $task->approval_stage ?: 'Assignee';
+    $stage = $task->approval_stage ?: '';
+    $isAssignStage = in_array(strtolower(trim($stage)), ['assign', 'assignee', 'todo', 'to do', 'in progress', 'writer', '']);
 
     $statusBorder = match($task->status) {
         'Done', 'Completed', 'Complete' => 'border-left: 3px solid #10b981;',
@@ -124,7 +125,7 @@
                 <span id="card-view-post-type-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                     {{ $postTypeLabel }}
                 </span>
-                <span id="card-view-stage-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                <span id="card-view-stage-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: {{ $isAssignStage ? 'none' : 'inline-flex' }}; align-items: center;">
                     {{ $stage }}
                 </span>
                 {{-- Revision Count Badge --}}
@@ -229,9 +230,11 @@
                     <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                         {{ $postTypeLabel }}
                     </span>
+                    @if(!$isAssignStage)
                     <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                         {{ $stage }}
                     </span>
+                    @endif
                     {{-- Revision Count Badge --}}
                     <span id="card-editor-revision-badge-{{ $task->id }}" 
                           style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ ($task->revisions > 0 || !empty($task->revision_instructions)) ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px;"
@@ -447,9 +450,11 @@
                     <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                         {{ $postTypeLabel }}
                     </span>
+                    @if(!$isAssignStage)
                     <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                         {{ $stage }}
                     </span>
+                    @endif
                     {{-- Revision Count Badge --}}
                     <span id="card-readonly-revision-badge-{{ $task->id }}" 
                           style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ ($task->revisions > 0 || !empty($task->revision_instructions)) ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px;"
