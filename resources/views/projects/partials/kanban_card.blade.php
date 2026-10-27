@@ -59,6 +59,10 @@
     // Only the person who created the deliverable or a Super Admin can make changes
     $canEditCard = $isSuperAdmin || $isCreator;
 
+    $artworkFiles = $task->getFinalDesignsArray();
+    $hasArtwork = !empty($artworkFiles);
+    $canUploadFile = $isAssignee || $isAdminOrManager || $isCreator;
+
     $statusLower = strtolower(trim($task->status ?? ''));
     $isInApproval = in_array($statusLower, ['approval stage', 'approval', 'review', 'under review']);
     $isCompleted = in_array($statusLower, ['done', 'completed', 'complete']);
@@ -191,6 +195,14 @@
                     <span>Ref ({{ $cardTotalRefs }})</span>
                 </div>
                 @endif
+
+                {{-- Deliverable Uploaded Work Indicator (Pill) --}}
+                <div id="card-view-work-badge-{{ $task->id }}" 
+                     style="display: {{ $hasArtwork ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1px 5px; border-radius: 4px;" 
+                     title="{{ count($artworkFiles) }} deliverable file(s) uploaded">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    <span>Work (<span id="card-view-work-count-{{ $task->id }}">{{ count($artworkFiles) }}</span>)</span>
+                </div>
             </div>
 
             {{-- Right Action/Info Icons: Priority Flag + Tag icon --}}
@@ -203,87 +215,6 @@
                 </svg>
             </div>
         </div>
-
-        {{-- Deliverable Uploaded Work (Image or File) --}}
-        @php
-            $artworkFiles = $task->getFinalDesignsArray();
-            $hasArtwork = !empty($artworkFiles);
-            $canUploadFile = $isAssignee || $isSuperAdmin || $isCreator;
-        @endphp
-        @if(!$isToDo && ($hasArtwork || $isInProgress))
-            <div id="card-upload-box-{{ $task->id }}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
-                @if($hasArtwork)
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                        <span style="font-size: 10.5px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 4px;">
-                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            <span>Uploaded Work ({{ count($artworkFiles) }})</span>
-                        </span>
-                        @if($canUploadFile)
-                        <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
-                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                            <span>Add</span>
-                            <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, {{ $task->id }})">
-                        </label>
-                        @endif
-                    </div>
-                    <div id="card-files-list-{{ $task->id }}" style="display: flex; flex-direction: column; gap: 4px;">
-                        @foreach($artworkFiles as $fIdx => $fUrl)
-                            @php
-                                $fClean = preg_replace('/\?.*$/', '', $fUrl);
-                                $fPath = parse_url($fClean, PHP_URL_PATH) ?? $fClean;
-                                $fName = rawurldecode(basename($fPath));
-                                $fExt = strtolower(pathinfo($fName, PATHINFO_EXTENSION));
-                                $isImg = in_array($fExt, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
-                            @endphp
-                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-radius: 6px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary);">
-                                <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1; cursor: pointer;" 
-                                     data-file-url="{{ $fUrl }}" 
-                                     data-filename="{{ $fName }}" 
-                                     data-download-url="{{ route('deliverables.download-artwork', ['deliverable' => $task->id, 'index' => $fIdx]) }}" 
-                                     onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
-                                     title="Click to view file">
-                                    @if($isImg)
-                                        <img src="{{ $fUrl }}" alt="" style="width: 18px; height: 18px; border-radius: 3px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--color-border-primary);">
-                                    @else
-                                        <div style="width: 18px; height: 18px; border-radius: 3px; background: rgba(59,130,246,0.12); color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                        </div>
-                                    @endif
-                                    <span style="font-size: 11px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ $fName }}">{{ $fName }}</span>
-                                </div>
-                                <div style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
-                                    <button type="button" 
-                                            data-file-url="{{ $fUrl }}" 
-                                            data-filename="{{ $fName }}" 
-                                            data-download-url="{{ route('deliverables.download-artwork', ['deliverable' => $task->id, 'index' => $fIdx]) }}" 
-                                            onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
-                                            style="font-size: 10px; font-weight: 700; color: #3b82f6; border: none; cursor: pointer; padding: 2px 7px; border-radius: 4px; background: rgba(59,130,246,0.1); line-height: 1.4;" 
-                                            title="View in popup">View</button>
-                                    @if($canUploadFile)
-                                    <button type="button" onclick="event.stopPropagation(); quickRemoveDeliverableFile({{ $task->id }}, {{ $fIdx }})" style="background: transparent; border: none; cursor: pointer; color: #ef4444; font-size: 11px; font-weight: 800; padding: 1px 3px; border-radius: 3px; line-height: 1;" title="Remove this file">✕</button>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    @if($canUploadFile)
-                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
-                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
-                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
-                           onclick="event.stopPropagation()">
-                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        <span id="card-upload-label-{{ $task->id }}">Upload Work (Image or File)</span>
-                        <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, {{ $task->id }})">
-                    </label>
-                    @else
-                    <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
-                        Waiting for assignee to upload deliverable work
-                    </div>
-                    @endif
-                @endif
-            </div>
-        @endif
     </div>
 
     {{-- ========================================================= --}}
@@ -407,6 +338,80 @@
                         <option value="Low" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ $task->priority === 'Low' ? 'selected' : '' }}>Low</option>
                     </select>
                 </div>
+            </div>
+
+            {{-- Deliverable Uploaded Work (Image or File) inside Expanded View --}}
+            <div id="card-upload-box-{{ $task->id }}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                @if($hasArtwork)
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="font-size: 10.5px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 4px;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <span>Uploaded Work ({{ count($artworkFiles) }})</span>
+                        </span>
+                        @if($canUploadFile)
+                        <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
+                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            <span>Add</span>
+                            <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, {{ $task->id }})">
+                        </label>
+                        @endif
+                    </div>
+                    <div id="card-files-list-{{ $task->id }}" style="display: flex; flex-direction: column; gap: 4px;">
+                        @foreach($artworkFiles as $fIdx => $fUrl)
+                            @php
+                                $fClean = preg_replace('/\?.*$/', '', $fUrl);
+                                $fPath = parse_url($fClean, PHP_URL_PATH) ?? $fClean;
+                                $fName = rawurldecode(basename($fPath));
+                                $fExt = strtolower(pathinfo($fName, PATHINFO_EXTENSION));
+                                $isImg = in_array($fExt, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
+                            @endphp
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-radius: 6px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary);">
+                                <div style="display: flex; align-items: center; gap: 5px; min-width: 0; flex: 1; cursor: pointer;" 
+                                     data-file-url="{{ $fUrl }}" 
+                                     data-filename="{{ $fName }}" 
+                                     data-download-url="{{ route('deliverables.download-artwork', ['deliverable' => $task->id, 'index' => $fIdx]) }}" 
+                                     onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
+                                     title="Click to view file">
+                                    @if($isImg)
+                                        <img src="{{ $fUrl }}" alt="" style="width: 18px; height: 18px; border-radius: 3px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--color-border-primary);">
+                                    @else
+                                        <div style="width: 18px; height: 18px; border-radius: 3px; background: rgba(59,130,246,0.12); color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        </div>
+                                    @endif
+                                    <span style="font-size: 11px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ $fName }}">{{ $fName }}</span>
+                                </div>
+                                <div style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                                    <button type="button" 
+                                            data-file-url="{{ $fUrl }}" 
+                                            data-filename="{{ $fName }}" 
+                                            data-download-url="{{ route('deliverables.download-artwork', ['deliverable' => $task->id, 'index' => $fIdx]) }}" 
+                                            onclick="event.stopPropagation(); previewDeliverableArtwork(this);" 
+                                            style="font-size: 10px; font-weight: 700; color: #3b82f6; border: none; cursor: pointer; padding: 2px 7px; border-radius: 4px; background: rgba(59,130,246,0.1); line-height: 1.4;" 
+                                            title="View in popup">View</button>
+                                    @if($canUploadFile)
+                                    <button type="button" onclick="event.stopPropagation(); quickRemoveDeliverableFile({{ $task->id }}, {{ $fIdx }})" style="background: transparent; border: none; cursor: pointer; color: #ef4444; font-size: 11px; font-weight: 800; padding: 1px 3px; border-radius: 3px; line-height: 1;" title="Remove this file">✕</button>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    @if($canUploadFile)
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
+                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                           onclick="event.stopPropagation()">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span id="card-upload-label-{{ $task->id }}">Upload Work (Image or File)</span>
+                        <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, {{ $task->id }})">
+                    </label>
+                    @else
+                    <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
+                        Waiting for assignee to upload deliverable work
+                    </div>
+                    @endif
+                @endif
             </div>
 
             {{-- Footer actions: Details on left, Cancel & Save on right (All buttons at the bottom) --}}
@@ -541,11 +546,14 @@
                 </div>
                 @endif
 
-                {{-- Uploaded Work in Expanded Details --}}
-                @if(!empty($artworkFiles))
-                <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border-primary);">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-                        <span style="font-size: 11px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 4px;">
+
+            </div>
+
+            {{-- Deliverable Uploaded Work (Image or File) inside Expanded View --}}
+            <div id="card-upload-box-{{ $task->id }}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                @if($hasArtwork)
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="font-size: 10.5px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 4px;">
                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             <span>Uploaded Work ({{ count($artworkFiles) }})</span>
                         </span>
@@ -557,7 +565,7 @@
                         </label>
                         @endif
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <div id="card-files-list-{{ $task->id }}" style="display: flex; flex-direction: column; gap: 4px;">
                         @foreach($artworkFiles as $fIdx => $fUrl)
                             @php
                                 $fClean = preg_replace('/\?.*$/', '', $fUrl);
@@ -597,7 +605,21 @@
                             </div>
                         @endforeach
                     </div>
-                </div>
+                @else
+                    @if($canUploadFile)
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
+                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                           onclick="event.stopPropagation()">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span id="card-upload-label-{{ $task->id }}">Upload Work (Image or File)</span>
+                        <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, {{ $task->id }})">
+                    </label>
+                    @else
+                    <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
+                        Waiting for assignee to upload deliverable work
+                    </div>
+                    @endif
                 @endif
             </div>
 

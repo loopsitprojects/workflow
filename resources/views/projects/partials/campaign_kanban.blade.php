@@ -807,17 +807,45 @@ function updateCardArtworkUI(taskId, d) {
     const status = card.getAttribute('data-status') || '';
     const isToDo = (status === 'To Do');
 
+    // Update compact Work badge on the outside card face
+    const workBadge = document.getElementById('card-view-work-badge-' + taskId);
+    const workCount = document.getElementById('card-view-work-count-' + taskId);
+    if (workBadge) {
+        if (hasFiles) {
+            workBadge.style.display = 'inline-flex';
+            if (workCount) workCount.textContent = files.length;
+            workBadge.title = `${files.length} deliverable file(s) uploaded`;
+        } else {
+            workBadge.style.display = 'none';
+        }
+    }
+
     let uploadBox = document.getElementById('card-upload-box-' + taskId);
-    if (!uploadBox) {
-        if (isToDo && !hasFiles) return;
-        const view = document.getElementById('kanban-card-view-' + taskId);
-        if (!view) return;
+    const editor = document.getElementById('kanban-card-editor-' + taskId);
+    if (!uploadBox && editor) {
         uploadBox = document.createElement('div');
         uploadBox.id = 'card-upload-box-' + taskId;
-        uploadBox.style.cssText = 'margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);';
+        uploadBox.style.cssText = 'margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);';
         uploadBox.onclick = (e) => e.stopPropagation();
-        view.appendChild(uploadBox);
+
+        const formOrDiv = editor.querySelector('form') || editor.firstElementChild;
+        const footer = (formOrDiv || editor).querySelector('div[style*="justify-content: space-between"]:last-child');
+        if (footer && footer.parentNode) {
+            footer.parentNode.insertBefore(uploadBox, footer);
+        } else {
+            (formOrDiv || editor).appendChild(uploadBox);
+        }
+    } else if (uploadBox && editor && !editor.contains(uploadBox)) {
+        const formOrDiv = editor.querySelector('form') || editor.firstElementChild;
+        const footer = (formOrDiv || editor).querySelector('div[style*="justify-content: space-between"]:last-child');
+        if (footer && footer.parentNode) {
+            footer.parentNode.insertBefore(uploadBox, footer);
+        } else {
+            (formOrDiv || editor).appendChild(uploadBox);
+        }
     }
+
+    if (!uploadBox) return;
 
     if (hasFiles) {
         let itemsHtml = '';
@@ -1121,14 +1149,8 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
                 }
             }
 
-            if (targetStatus === 'In Progress') {
-                const currentData = (window.projectDeliverables && window.projectDeliverables[taskId]) || result.deliverable || {};
-                updateCardArtworkUI(taskId, currentData);
-            } else if (targetStatus === 'To Do') {
-                const uploadBox = document.getElementById('card-upload-box-' + taskId);
-                const hasFile = card.getAttribute('data-has-file') === 'true';
-                if (uploadBox && !hasFile) uploadBox.remove();
-            }
+            const currentData = (window.projectDeliverables && window.projectDeliverables[taskId]) || result.deliverable || {};
+            updateCardArtworkUI(taskId, currentData);
             if (typeof result.can_move !== 'undefined') {
                 card.setAttribute('data-can-move', result.can_move ? 'true' : 'false');
                 card.setAttribute('draggable', result.can_move ? 'true' : 'false');
@@ -1580,7 +1602,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
     if (!Array.isArray(cardFiles)) cardFiles = cardFiles ? [cardFiles] : [];
     const hasCardFiles = cardFiles.length > 0;
 
-    if (!isColToDo && (hasCardFiles || isInProgress)) {
+    if (hasCardFiles || !isColToDo || canUploadArtwork) {
         if (hasCardFiles) {
             let itemsHtml = '';
             cardFiles.forEach((fUrl, idx) => {
@@ -1623,7 +1645,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
             });
 
             uploadedWorkHtml = `
-                <div id="card-upload-box-${d.id}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                <div id="card-upload-box-${d.id}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
                         <span style="font-size: 10.5px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 4px;">
                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
@@ -1642,10 +1664,9 @@ function insertCreatedCardIntoColumn(colKey, d) {
                     </div>
                 </div>
             `;
-        } else {
+        } else if (canUploadArtwork) {
             uploadedWorkHtml = `
-                <div id="card-upload-box-${d.id}" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
-                    ${canUploadArtwork ? `
+                <div id="card-upload-box-${d.id}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
                     <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
                            onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
                            onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
@@ -1654,11 +1675,14 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         <span id="card-upload-label-${d.id}">Upload Work (Image or File)</span>
                         <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${d.id})">
                     </label>
-                    ` : `
+                </div>
+            `;
+        } else if (!isColToDo) {
+            uploadedWorkHtml = `
+                <div id="card-upload-box-${d.id}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
                     <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
                         Waiting for assignee to upload deliverable work
                     </div>
-                    `}
                 </div>
             `;
         }
@@ -1738,6 +1762,10 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             <span>${escapeHtml(formattedDate)}</span>
                         </div>
+                        <div id="card-view-work-badge-${d.id}" style="display: ${hasCardFiles ? 'inline-flex' : 'none'}; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1px 5px; border-radius: 4px;" title="${cardFiles.length} deliverable file(s) uploaded">
+                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <span>Work (<span id="card-view-work-count-${d.id}">${cardFiles.length}</span>)</span>
+                        </div>
                     </div>
                     <div style="display: inline-flex; align-items: center; gap: 6px;">
                         <svg id="card-view-prio-${d.id}" width="12" height="12" fill="${prioColor}" viewBox="0 0 16 16" title="${escapeHtml(prio)}">
@@ -1748,8 +1776,6 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         </svg>
                     </div>
                 </div>
-
-                ${uploadedWorkHtml}
             </div>
 
             ${canEdit ? `
@@ -1860,6 +1886,8 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             </select>
                         </div>
                     </div>
+
+                    ${uploadedWorkHtml}
 
                     {{-- Footer actions: Details on left, Cancel & Save on right (All buttons at the bottom) --}}
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
@@ -1981,6 +2009,8 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             </span>
                         </div>
                     </div>
+
+                    ${uploadedWorkHtml}
 
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
                         <button type="button" 
