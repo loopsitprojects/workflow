@@ -128,11 +128,11 @@
                 <span id="card-view-stage-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: {{ $isAssignStage ? 'none' : 'inline-flex' }}; align-items: center;">
                     {{ $stage }}
                 </span>
-                {{-- Revision Count Badge --}}
+                {{-- Revision Alert Badge --}}
                 <span id="card-view-revision-badge-{{ $task->id }}" 
-                      style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ ($task->revisions > 0 || !empty($task->revision_instructions)) ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px;"
-                      title="Revisions: {{ $task->revisions ?: 1 }}">
-                    <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                      style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ ($task->revisions > 0 || !empty($task->revision_instructions)) ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px;"
+                      title="{{ !empty($task->revision_instructions) ? 'Revision alert: ' . $task->revision_instructions : 'Revision Round ' . ($task->revisions ?: 1) }}">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <span>Rev: <span id="card-view-revision-num-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span></span>
                 </span>
             </div>
@@ -148,17 +148,7 @@
             {{ $task->title }}
         </h4>
 
-        {{-- Revision Request Message Callout (Collapsed View) --}}
-        <div id="card-view-revision-box-{{ $task->id }}" 
-             style="display: {{ !empty($task->revision_instructions) ? 'block' : 'none' }}; margin-bottom: 8px; padding: 7px 9px; border-radius: 8px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25);">
-            <div style="display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; color: #ef4444; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 2px;">
-                <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                <span>Revision Message (<span id="card-view-revision-box-num-{{ $task->id }}">Round {{ $task->revisions ?: 1 }}</span>)</span>
-            </div>
-            <div id="card-view-revision-text-{{ $task->id }}" style="font-size: 11.5px; font-weight: 500; color: var(--color-text-primary); line-height: 1.35; word-break: break-word;">
-                {{ $task->revision_instructions }}
-            </div>
-        </div>
+
 
         {{-- Metadata Footer Row (matching reference screenshot) --}}
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px solid var(--color-border-primary); margin-top: 4px;">
@@ -237,9 +227,9 @@
                     @endif
                     {{-- Revision Count Badge --}}
                     <span id="card-editor-revision-badge-{{ $task->id }}" 
-                          style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ ($task->revisions > 0 || !empty($task->revision_instructions)) ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px;"
-                          title="Revisions: {{ $task->revisions ?: 1 }}">
-                        <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                          style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ ($task->revisions > 0 || !empty($task->revision_instructions)) ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px;"
+                          title="{{ !empty($task->revision_instructions) ? 'Revision: ' . $task->revision_instructions : 'Revisions: ' . ($task->revisions ?: 1) }}">
+                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         <span>Rev: <span id="card-editor-revision-num-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span></span>
                     </span>
                 </div>
@@ -457,9 +447,9 @@
                     @endif
                     {{-- Revision Count Badge --}}
                     <span id="card-readonly-revision-badge-{{ $task->id }}" 
-                          style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ ($task->revisions > 0 || !empty($task->revision_instructions)) ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px;"
-                          title="Revisions: {{ $task->revisions ?: 1 }}">
-                        <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                          style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ ($task->revisions > 0 || !empty($task->revision_instructions)) ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px;"
+                          title="{{ !empty($task->revision_instructions) ? 'Revision: ' . $task->revision_instructions : 'Revisions: ' . ($task->revisions ?: 1) }}">
+                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         <span>Rev: <span id="card-readonly-revision-num-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span></span>
                     </span>
                 </div>

@@ -592,15 +592,11 @@ function updateCardViewElements(taskId, d) {
 
         const vBadge = document.getElementById('card-view-revision-badge-' + taskId);
         const vNum = document.getElementById('card-view-revision-num-' + taskId);
-        if (vBadge) vBadge.style.display = hasRevs ? 'inline-flex' : 'none';
+        if (vBadge) {
+            vBadge.style.display = hasRevs ? 'inline-flex' : 'none';
+            vBadge.title = revMsg ? ('Revision alert: ' + revMsg) : ('Revision Round ' + (revCount || 1));
+        }
         if (vNum) vNum.textContent = revCount || 1;
-
-        const vBox = document.getElementById('card-view-revision-box-' + taskId);
-        const vText = document.getElementById('card-view-revision-text-' + taskId);
-        const vBoxNum = document.getElementById('card-view-revision-box-num-' + taskId);
-        if (vBox) vBox.style.display = revMsg ? 'block' : 'none';
-        if (vText) vText.textContent = revMsg;
-        if (vBoxNum) vBoxNum.textContent = 'Round ' + (revCount || 1);
 
         const eBadge = document.getElementById('card-editor-revision-badge-' + taskId);
         const eNum = document.getElementById('card-editor-revision-num-' + taskId);
@@ -1110,19 +1106,14 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
             const revMsg = (typeof result.revision_instructions !== 'undefined') ? result.revision_instructions : ((result.deliverable && result.deliverable.revision_instructions) || '');
             const hasRevs = (revCount > 0 || Boolean(revMsg));
 
-            // Collapsed view badge
+            // Collapsed view badge (Alert outside)
             const vBadge = document.getElementById('card-view-revision-badge-' + taskId);
             const vNum = document.getElementById('card-view-revision-num-' + taskId);
-            if (vBadge) vBadge.style.display = hasRevs ? 'inline-flex' : 'none';
+            if (vBadge) {
+                vBadge.style.display = hasRevs ? 'inline-flex' : 'none';
+                vBadge.title = revMsg ? ('Revision alert: ' + revMsg) : ('Revision Round ' + (revCount || 1));
+            }
             if (vNum) vNum.textContent = revCount || 1;
-
-            // Collapsed view message box
-            const vBox = document.getElementById('card-view-revision-box-' + taskId);
-            const vText = document.getElementById('card-view-revision-text-' + taskId);
-            const vBoxNum = document.getElementById('card-view-revision-box-num-' + taskId);
-            if (vBox) vBox.style.display = revMsg ? 'block' : 'none';
-            if (vText) vText.textContent = revMsg;
-            if (vBoxNum) vBoxNum.textContent = 'Round ' + (revCount || 1);
 
             // Editor badge
             const eBadge = document.getElementById('card-editor-revision-badge-' + taskId);
@@ -1739,11 +1730,11 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         <span id="card-view-stage-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: ${isAssign ? 'none' : 'inline-flex'}; align-items: center;">
                             ${escapeHtml(stageDisplay)}
                         </span>
-                        {{-- Revision Count Badge --}}
+                        {{-- Revision Alert Badge --}}
                         <span id="card-view-revision-badge-${d.id}" 
-                              style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${hasRevs ? 'inline-flex' : 'none'}; align-items: center; gap: 3px;"
-                              title="Revisions: ${revCount || 1}">
-                            <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                              style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${hasRevs ? 'inline-flex' : 'none'}; align-items: center; gap: 3px;"
+                              title="${escapeHtml(revMsg ? ('Revision alert: ' + revMsg) : ('Revision Round ' + (revCount || 1)))}">
+                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                             <span>Rev: <span id="card-view-revision-num-${d.id}">${revCount || 1}</span></span>
                         </span>
                     </div>
@@ -1757,18 +1748,6 @@ function insertCreatedCardIntoColumn(colKey, d) {
                 <h4 id="card-view-title-${d.id}" style="margin: 0 0 8px 0; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); line-height: 1.35; letter-spacing: -0.01em;">
                     ${escapeHtml(d.title)}
                 </h4>
-
-                {{-- Revision Request Message Callout (Collapsed View) --}}
-                <div id="card-view-revision-box-${d.id}" 
-                     style="display: ${revMsg ? 'block' : 'none'}; margin-bottom: 8px; padding: 7px 9px; border-radius: 8px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25);">
-                    <div style="display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; color: #ef4444; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 2px;">
-                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        <span>Revision Message (<span id="card-view-revision-box-num-${d.id}">Round ${revCount || 1}</span>)</span>
-                    </div>
-                    <div id="card-view-revision-text-${d.id}" style="font-size: 11.5px; font-weight: 500; color: var(--color-text-primary); line-height: 1.35; word-break: break-word;">
-                        ${escapeHtml(revMsg)}
-                    </div>
-                </div>
 
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px solid var(--color-border-primary); margin-top: 4px;">
                     <div style="display: inline-flex; align-items: center; gap: 6px;">
@@ -1814,9 +1793,9 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             ` : ''}
                             {{-- Revision Count Badge --}}
                             <span id="card-editor-revision-badge-${d.id}" 
-                                  style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${hasRevs ? 'inline-flex' : 'none'}; align-items: center; gap: 3px;"
-                                  title="Revisions: ${revCount || 1}">
-                                <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                  style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${hasRevs ? 'inline-flex' : 'none'}; align-items: center; gap: 3px;"
+                                  title="${escapeHtml(revMsg ? ('Revision: ' + revMsg) : ('Revisions: ' + (revCount || 1)))}">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                 <span>Rev: <span id="card-editor-revision-num-${d.id}">${revCount || 1}</span></span>
                             </span>
                         </div>
@@ -1951,9 +1930,9 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             ` : ''}
                             {{-- Revision Count Badge --}}
                             <span id="card-readonly-revision-badge-${d.id}" 
-                                  style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${hasRevs ? 'inline-flex' : 'none'}; align-items: center; gap: 3px;"
-                                  title="Revisions: ${revCount || 1}">
-                                <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                  style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${hasRevs ? 'inline-flex' : 'none'}; align-items: center; gap: 3px;"
+                                  title="${escapeHtml(revMsg ? ('Revision: ' + revMsg) : ('Revisions: ' + (revCount || 1)))}">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                 <span>Rev: <span id="card-readonly-revision-num-${d.id}">${revCount || 1}</span></span>
                             </span>
                         </div>
