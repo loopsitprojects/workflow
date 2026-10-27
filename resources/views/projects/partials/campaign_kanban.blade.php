@@ -305,14 +305,36 @@ const kanbanProjectApproverId = {{ $project->approver_id ?? ($project->brand_man
 
 const campaignDeliverablesData = {};
 @foreach($tasks as $t)
+@php
+    $dlRaw = null;
+    $dlFmt = null;
+    if (!empty($t->deadline)) {
+        try {
+            $parsed = \Carbon\Carbon::parse($t->deadline);
+            $dlRaw = $parsed->format('Y-m-d');
+            $dlFmt = $parsed->format('d M, Y');
+        } catch (\Throwable $e) {
+            $dlRaw = (string)$t->deadline;
+            $dlFmt = (string)$t->deadline;
+        }
+    }
+    $createdFmt = null;
+    if (!empty($t->created_at)) {
+        try {
+            $createdFmt = \Carbon\Carbon::parse($t->created_at)->format('d M, Y');
+        } catch (\Throwable $e) {
+            $createdFmt = (string)$t->created_at;
+        }
+    }
+@endphp
 campaignDeliverablesData[{{ $t->id }}] = {
     id: {{ $t->id }},
     title: @json($t->title),
     post_type: @json($t->post_type ?? 'Outlines'),
     status: @json($t->status ?? 'To Do'),
     priority: @json($t->priority ?? 'Medium'),
-    deadline: @json($t->deadline ? $t->deadline->format('Y-m-d') : null),
-    deadline_formatted: @json($t->deadline ? $t->deadline->format('d M, Y') : null),
+    deadline: @json($dlRaw),
+    deadline_formatted: @json($dlFmt),
     concept: @json($t->concept ?? ''),
     caption: @json($t->caption ?? ''),
     post_copy: @json($t->post_copy ?? ($t->subtask_copy ?? '')),
@@ -322,7 +344,7 @@ campaignDeliverablesData[{{ $t->id }}] = {
     reference_urls_list: @json($t->getReferenceUrlsArray()),
     assignee_name: @json($t->writer?->name ?? ($t->designer?->name ?? 'Unassigned')),
     approver_name: @json($t->approver?->name ?? null),
-    created_at_formatted: @json($t->created_at ? $t->created_at->format('d M, Y') : null)
+    created_at_formatted: @json($createdFmt)
 };
 @endforeach
 
