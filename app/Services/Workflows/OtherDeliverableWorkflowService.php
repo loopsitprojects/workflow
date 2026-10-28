@@ -295,7 +295,7 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
 
         // Reset back to Assign
         $deliverable->approval_stage = 'Assign';
-        $deliverable->status = 'To Do';
+        $deliverable->status = 'In Progress';
         $deliverable->progress_percent = $this->getStageProgress($deliverable);
         $deliverable->revisions += 1;
         $deliverable->revision_instructions = $validatedData['revision_instructions'];

@@ -2778,15 +2778,16 @@ class DeliverableController extends Controller
             }
         } else {
             // Moving back to To Do or In Progress
-            $deliverable->status = $newStatus;
-            $deliverable->approval_stage = $isOutline ? 'Assignee' : 'Assign';
-            $deliverable->progress_percent = ($newStatus === 'In Progress') ? 25 : 0;
-
             if ($isInApproval) {
-                // Sent back from approval for revisions/updates
+                // Sent back from approval for revisions/updates: ALWAYS route to 'In Progress'
+                $newStatus = 'In Progress';
+                $deliverable->status = 'In Progress';
+                $deliverable->approval_stage = $isOutline ? 'Assignee' : 'Assign';
+                $deliverable->progress_percent = 25;
+
                 $instructions = !empty($validated['revision_instructions']) 
                     ? $validated['revision_instructions'] 
-                    : ('Returned to ' . $newStatus . ' by approver via Kanban board');
+                    : ('Returned to In Progress for updates by approver via Kanban board');
                 $deliverable->revisions = ($deliverable->revisions ?? 0) + 1;
                 $deliverable->revision_instructions = $instructions;
                 $deliverable->save();
@@ -2803,7 +2804,7 @@ class DeliverableController extends Controller
                     try {
                         $notifyWorker->notify(new \App\Notifications\DeliverableUpdated(
                             $deliverable,
-                            "returned **{$deliverable->title}** to {$newStatus} for updates" . (!empty($validated['revision_instructions']) ? ": \"{$instructions}\"" : ''),
+                            "returned **{$deliverable->title}** to In Progress for updates" . (!empty($validated['revision_instructions']) ? ": \"{$instructions}\"" : ''),
                             'revision_request',
                             $user
                         ));
@@ -2812,6 +2813,17 @@ class DeliverableController extends Controller
                     }
                 }
             } else {
+                // Deliverables under revision cannot be moved back to 'To Do'
+                if ($newStatus === 'To Do' && (($deliverable->revisions ?? 0) > 0 || !empty($deliverable->revision_instructions))) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Deliverables under revision must remain in the In Progress column.',
+                    ], 422);
+                }
+
+                $deliverable->status = $newStatus;
+                $deliverable->approval_stage = $isOutline ? 'Assignee' : 'Assign';
+                $deliverable->progress_percent = ($newStatus === 'In Progress') ? 25 : 0;
                 $deliverable->save();
             }
         }

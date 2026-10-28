@@ -1057,10 +1057,23 @@ async function kanbanOnDrop(event, targetStatus) {
         }
     }
 
-    // Check if moving out of Approval Stage back to In Progress / To Do (Revision)
+    // Check if moving out of Approval Stage back for revisions: Always route to In Progress!
     const isOldApproval = ['Approval Stage', 'Approval', 'Review', 'Under Review'].includes(oldStatus);
-    if (isOldApproval && ['In Progress', 'To Do'].includes(targetStatus)) {
-        openRevisionPromptModal(taskId, targetStatus, oldStatus, card);
+    if (isOldApproval) {
+        if (targetStatus === 'To Do' || targetStatus === 'In Progress') {
+            openRevisionPromptModal(taskId, 'In Progress', oldStatus, card);
+            return;
+        }
+    }
+
+    // Deliverables that already have revisions must remain in In Progress
+    const revBadge = card.querySelector('#card-view-revision-badge-' + taskId);
+    const hasRevs = (revBadge && revBadge.style.display !== 'none') 
+        || parseInt(card.querySelector('#card-view-revision-num-' + taskId)?.textContent || '0', 10) > 0;
+    if (hasRevs && targetStatus === 'To Do') {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Deliverables with revisions must remain in the In Progress column.', type: 'error' } 
+        }));
         return;
     }
 
@@ -1391,6 +1404,8 @@ function confirmAssignApprover() {
 }
 
 function openRevisionPromptModal(taskId, targetStatus, oldStatus, card) {
+    // Revisions must always route to In Progress
+    targetStatus = 'In Progress';
     pendingRevisionAction = { taskId, targetStatus, oldStatus, card };
     const modal = document.getElementById('revisionPromptModal');
     const titleEl = document.getElementById('revisionPromptTaskTitle');
@@ -2733,7 +2748,7 @@ document.addEventListener('keydown', function(event) {
         </div>
         <div style="padding: 20px;">
             <p style="margin: 0 0 10px 0; font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.4;">
-                Returning <strong id="revisionPromptTaskTitle" style="color: var(--color-text-primary);">this deliverable</strong> to the assignee. Add feedback or instructions (optional):
+                Returning <strong id="revisionPromptTaskTitle" style="color: var(--color-text-primary);">this deliverable</strong> to the assignee for revisions in <strong>In Progress</strong>. Add feedback or instructions (optional):
             </p>
             <div>
                 <textarea id="revisionPromptInstructions" 

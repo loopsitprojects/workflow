@@ -396,7 +396,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
 
         // Reset back to Designer
         $deliverable->approval_stage = 'Designer';
-        $deliverable->status = 'To Do';
+        $deliverable->status = 'In Progress';
         $deliverable->progress_percent = $this->getStageProgress($deliverable);
         $deliverable->revisions += 1;
         $deliverable->revision_instructions = $validatedData['revision_instructions'];
