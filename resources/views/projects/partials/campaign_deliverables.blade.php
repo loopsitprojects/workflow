@@ -180,7 +180,7 @@
                         </td>
                         <td>
                             @php
-                                $taskRevHistory = $task->getRelation('revisionsHistory') ?? $task->revisionsHistory ?? collect();
+                                $taskRevHistory = $task->relationLoaded('revisionsHistory') ? $task->getRelation('revisionsHistory') : ($task->revisionsHistory ?? collect());
                                 $taskRevs = max((int)($task->revisions ?? 0), $taskRevHistory->count());
                             @endphp
                             <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
@@ -450,7 +450,7 @@
                         </td>
                         <td>
                             @php
-                                $taskRevHistory = $task->getRelation('revisionsHistory') ?? $task->revisionsHistory ?? collect();
+                                $taskRevHistory = $task->relationLoaded('revisionsHistory') ? $task->getRelation('revisionsHistory') : ($task->revisionsHistory ?? collect());
                                 $taskRevs = max((int)($task->revisions ?? 0), $taskRevHistory->count());
                             @endphp
                             <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">
