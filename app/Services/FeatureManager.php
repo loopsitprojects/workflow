@@ -32,12 +32,153 @@ class FeatureManager
         return [
             'client_review_enabled' => true,
             'direct_design_enabled' => true,
+            'analytics_enabled' => true,
+            'halloween_theme_enabled' => false,
+            'christmas_theme_enabled' => false,
+            'active_theme' => 'dark',
             'enabled_project_types' => [
                 'retainer' => true,
                 'campaign' => true,
                 'pitch' => true,
             ],
         ];
+    }
+
+    /**
+     * Get the active platform theme ('halloween', 'dark', 'light').
+     */
+    public static function getActiveTheme(): string
+    {
+        $settings = self::getAll();
+        if (!empty($settings['active_theme'])) {
+            return $settings['active_theme'];
+        }
+        return self::isHalloweenThemeEnabled() ? 'halloween' : 'dark';
+    }
+
+    /**
+     * Set the active platform theme.
+     */
+    public static function setActiveTheme(string $theme): void
+    {
+        $current = self::getAll();
+        $current['active_theme'] = $theme;
+        $current['halloween_theme_enabled'] = ($theme === 'halloween');
+        $current['christmas_theme_enabled'] = ($theme === 'christmas');
+        $current['updated_at'] = now()->toDateTimeString();
+
+        Storage::disk('local')->put(self::SETTINGS_FILE, json_encode($current, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Check if the Halloween Theme / Spooky Mode feature is enabled.
+     */
+    public static function isHalloweenThemeEnabled(): bool
+    {
+        $settings = self::getAll();
+        if (isset($settings['active_theme'])) {
+            return $settings['active_theme'] === 'halloween';
+        }
+        return (bool) ($settings['halloween_theme_enabled'] ?? false);
+    }
+
+    /**
+     * Set the Halloween Theme feature status.
+     */
+    public static function setHalloweenThemeEnabled(bool $enabled): void
+    {
+        $current = self::getAll();
+        $current['halloween_theme_enabled'] = $enabled;
+        if ($enabled) {
+            $current['active_theme'] = 'halloween';
+            $current['christmas_theme_enabled'] = false;
+        } else {
+            $current['active_theme'] = 'dark';
+        }
+        $current['updated_at'] = now()->toDateTimeString();
+
+        Storage::disk('local')->put(self::SETTINGS_FILE, json_encode($current, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Toggle the Halloween Theme feature.
+     */
+    public static function toggleHalloweenTheme(): bool
+    {
+        $newStatus = !self::isHalloweenThemeEnabled();
+        self::setHalloweenThemeEnabled($newStatus);
+        return $newStatus;
+    }
+
+    /**
+     * Check if the Christmas Theme / Festive Mode feature is enabled.
+     */
+    public static function isChristmasThemeEnabled(): bool
+    {
+        $settings = self::getAll();
+        if (isset($settings['active_theme'])) {
+            return $settings['active_theme'] === 'christmas';
+        }
+        return (bool) ($settings['christmas_theme_enabled'] ?? false);
+    }
+
+    /**
+     * Set the Christmas Theme feature status.
+     */
+    public static function setChristmasThemeEnabled(bool $enabled): void
+    {
+        $current = self::getAll();
+        $current['christmas_theme_enabled'] = $enabled;
+        if ($enabled) {
+            $current['active_theme'] = 'christmas';
+            $current['halloween_theme_enabled'] = false;
+        } else {
+            $current['active_theme'] = 'dark';
+        }
+        $current['updated_at'] = now()->toDateTimeString();
+
+        Storage::disk('local')->put(self::SETTINGS_FILE, json_encode($current, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Toggle the Christmas Theme feature.
+     */
+    public static function toggleChristmasTheme(): bool
+    {
+        $newStatus = !self::isChristmasThemeEnabled();
+        self::setChristmasThemeEnabled($newStatus);
+        return $newStatus;
+    }
+
+    /**
+     * Check if the Analytics tab & reports feature is enabled.
+     */
+    public static function isAnalyticsEnabled(): bool
+    {
+        $settings = self::getAll();
+        return (bool) ($settings['analytics_enabled'] ?? true);
+    }
+
+    /**
+     * Set the Analytics feature status.
+     */
+    public static function setAnalyticsEnabled(bool $enabled): void
+    {
+        $current = self::getAll();
+        $current['analytics_enabled'] = $enabled;
+        $current['updated_at'] = now()->toDateTimeString();
+
+        Storage::disk('local')->put(self::SETTINGS_FILE, json_encode($current, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Toggle the Analytics feature.
+     */
+    public static function toggleAnalytics(): bool
+    {
+        $newStatus = !self::isAnalyticsEnabled();
+        self::setAnalyticsEnabled($newStatus);
+        return $newStatus;
     }
 
     /**

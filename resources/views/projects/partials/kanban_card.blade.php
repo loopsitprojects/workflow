@@ -24,7 +24,7 @@
         'Done', 'Completed', 'Complete' => 'border-left: 3px solid #10b981;',
         'Approval Stage', 'Approval', 'Review', 'Under Review' => 'border-left: 3px solid #f59e0b;',
         'In Progress', 'on hold' => 'border-left: 3px solid #6366f1;',
-        default => 'border-left: 3px solid var(--color-border-primary);',
+        default => 'border-left: 3px solid #94a3b8;',
     };
 
     $cardSelectableUsers = $selectableUsers ?? \App\Models\User::orderBy('name')->get();
@@ -110,10 +110,10 @@
      ondragstart="kanbanOnDragStart(event, {{ $task->id }})"
      ondragend="kanbanOnDragEnd(event)"
      onclick="handleCardClick({{ $task->id }})"
-     style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); {{ $statusBorder }} border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); cursor: {{ $canMove ? 'grab' : 'pointer' }}; transition: all 0.15s ease; position: relative;"
+     style="background: var(--bg-card); border: 1px solid var(--border-card); {{ $statusBorder }} border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow-card); cursor: {{ $canMove ? 'grab' : 'pointer' }}; transition: all 0.15s ease; position: relative;"
      title="{{ $moveRestrictionReason }}"
-     onmouseover="if(!isCardEditorOpen({{ $task->id }})) { this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-1px)'; }"
-     onmouseout="if(!isCardEditorOpen({{ $task->id }})) { this.style.boxShadow='0 1px 4px rgba(0,0,0,0.03)'; this.style.transform='none'; }">
+     onmouseover="if(!isCardEditorOpen({{ $task->id }})) { this.style.boxShadow='var(--shadow-card), 0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-1px)'; }"
+     onmouseout="if(!isCardEditorOpen({{ $task->id }})) { this.style.boxShadow='var(--shadow-card)'; this.style.transform='none'; }">
     
     {{-- ========================================================= --}}
     {{-- COLLAPSED CARD VIEW                                       --}}
@@ -121,11 +121,11 @@
     <div class="kanban-card-view" id="kanban-card-view-{{ $task->id }}">
         {{-- Card Header: Type, Stage & Assignee --}}
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
-            <div style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                <span id="card-view-post-type-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+            <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                <span id="card-view-post-type-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-card-sub); background: var(--bg-column); border: 1px solid var(--border-card); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                     {{ $postTypeLabel }}
                 </span>
-                <span id="card-view-stage-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: {{ $isAssignStage ? 'none' : 'inline-flex' }}; align-items: center;">
+                <span id="card-view-stage-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ $isAssignStage ? 'none' : 'inline-flex' }}; align-items: center;">
                     {{ $stage }}
                 </span>
                 {{-- Revision Alert Badge --}}
@@ -133,35 +133,33 @@
                       style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ ($task->revisions > 0 || !empty($task->revision_instructions)) ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px;"
                       title="{{ !empty($task->revision_instructions) ? 'Revision alert: ' . $task->revision_instructions : 'Revision Round ' . ($task->revisions ?: 1) }}">
                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    <span>Rev: <span id="card-view-revision-num-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span></span>
+                    <span>REV: <span id="card-view-revision-num-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span></span>
                 </span>
             </div>
             <span id="card-view-assignee-badge-{{ $task->id }}" 
-                  style="font-size: 10px; font-weight: 700; color: {{ $hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--color-bg-secondary)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--color-border-primary)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;" 
+                  style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? '#3b82f6' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;" 
                   title="{{ $hasAssignee ? 'Assigned to ' . $assigneeFullName : 'No assignee' }}">
                 <span>{{ $assigneeDisplay }}</span>
             </span>
         </div>
 
         {{-- Title --}}
-        <h4 id="card-view-title-{{ $task->id }}" style="margin: 0 0 8px 0; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); line-height: 1.35; letter-spacing: -0.01em;">
+        <h4 id="card-view-title-{{ $task->id }}" style="margin: 0 0 8px 0; font-size: 13.5px; font-weight: 700; color: var(--text-card-title); line-height: 1.35; letter-spacing: -0.01em;">
             {{ $task->title }}
         </h4>
 
-
-
         {{-- Metadata Footer Row (matching reference screenshot) --}}
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px solid var(--color-border-primary); margin-top: 4px;">
-            <div style="display: inline-flex; align-items: center; gap: 6px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px solid var(--border-card); margin-top: 4px;">
+            <div style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                 {{-- Assignee Avatar Initial (like the purple S in reference) --}}
                 <div id="card-view-avatar-{{ $task->id }}" 
-                     style="width: 22px; height: 22px; border-radius: 50%; background: #7c3aed; color: #ffffff; font-size: 10.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(124,58,237,0.3);" 
+                     style="width: 22px; height: 22px; border-radius: 50%; background: #7c3aed; color: #ffffff; font-size: 10.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(124,58,237,0.3); flex-shrink: 0;" 
                      title="{{ $assigneeFullName }}">
                     {{ $assigneeInitial }}
                 </div>
 
                 {{-- Due Date with Calendar icon --}}
-                <div id="card-view-date-{{ $task->id }}" style="display: {{ $task->deadline ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary);" title="Due {{ $task->deadline ? \Carbon\Carbon::parse($task->deadline)->format('M d, Y') : '' }}">
+                <div id="card-view-date-{{ $task->id }}" style="display: {{ $task->deadline ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; color: var(--text-card-sub);" title="Due {{ $task->deadline ? \Carbon\Carbon::parse($task->deadline)->format('M d, Y') : '' }}">
                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span>{{ $task->deadline ? \Carbon\Carbon::parse($task->deadline)->format('M d') : '' }}</span>
                 </div>
@@ -181,7 +179,11 @@
                     $cardTotalRefs = count($cardRefFiles) + count($cardRefUrls);
                 @endphp
                 @if($cardTotalRefs > 0)
-                <div style="display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; color: #0284c7; background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); padding: 1px 5px; border-radius: 4px;" title="{{ $cardTotalRefs }} reference(s) attached">
+                <div onclick="event.stopPropagation(); openCampaignDetailsModal({{ $task->id }})" 
+                     style="display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; color: #0284c7; background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); padding: 1px 5px; border-radius: 4px; cursor: pointer; transition: all 0.15s;" 
+                     onmouseover="this.style.background='rgba(2, 132, 199, 0.18)'; this.style.borderColor='#0284c7';" 
+                     onmouseout="this.style.background='rgba(2, 132, 199, 0.08)'; this.style.borderColor='rgba(2, 132, 199, 0.2)';"
+                     title="Click to view all {{ $cardTotalRefs }} reference(s)">
                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                     <span>Ref ({{ $cardTotalRefs }})</span>
                 </div>
@@ -197,11 +199,11 @@
             </div>
 
             {{-- Right Action/Info Icons: Priority Flag + Tag icon --}}
-            <div style="display: inline-flex; align-items: center; gap: 6px;">
+            <div style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;">
                 <svg id="card-view-prio-{{ $task->id }}" width="12" height="12" fill="{{ $prioColor }}" viewBox="0 0 16 16" title="{{ $prio }}">
                     <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
                 </svg>
-                <svg width="12" height="12" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" title="{{ $postTypeLabel }}">
+                <svg width="12" height="12" fill="none" stroke="var(--text-card-sub)" viewBox="0 0 24 24" title="{{ $postTypeLabel }}">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                 </svg>
             </div>
@@ -216,12 +218,12 @@
         <form onsubmit="submitInlineCardEdit(event, {{ $task->id }})">
             {{-- Top Header: Stage on top very small --}}
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
-                <div style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                    <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                    <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-card-sub); background: var(--bg-column); border: 1px solid var(--border-card); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                         {{ $postTypeLabel }}
                     </span>
                     @if(!$isAssignStage)
-                    <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                    <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                         {{ $stage }}
                     </span>
                     @endif
@@ -230,10 +232,10 @@
                           style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ ($task->revisions > 0 || !empty($task->revision_instructions)) ? 'inline-flex' : 'none' }}; align-items: center; gap: 3px;"
                           title="{{ !empty($task->revision_instructions) ? 'Revision: ' . $task->revision_instructions : 'Revisions: ' . ($task->revisions ?: 1) }}">
                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        <span>Rev: <span id="card-editor-revision-num-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span></span>
+                        <span>REV: <span id="card-editor-revision-num-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span></span>
                     </span>
                 </div>
-                <span style="font-size: 10px; font-weight: 700; color: {{ $hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--color-bg-secondary)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--color-border-primary)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <span style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? '#3b82f6' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     {{ $assigneeDisplay }}
                 </span>
             </div>
@@ -247,7 +249,7 @@
                        placeholder="Task Name…" 
                        required
                        autocomplete="off"
-                       style="width: 100%; border: none; background: transparent; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); outline: none; padding: 2px 0;"
+                       style="width: 100%; border: none; background: transparent; font-size: 13.5px; font-weight: 700; color: var(--text-card-title); outline: none; padding: 2px 0;"
                        onkeydown="if(event.key === 'Enter') { event.preventDefault(); submitInlineCardEdit(event, {{ $task->id }}); } else if(event.key === 'Escape') { toggleCardEditor({{ $task->id }}, false); }">
             </div>
 
@@ -332,6 +334,54 @@
                     </select>
                 </div>
             </div>
+
+            {{-- Deliverable References (Files & URLs) inside Expanded View --}}
+            @if($cardTotalRefs > 0)
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 10.5px; font-weight: 700; color: #0284c7; display: inline-flex; align-items: center; gap: 4px;">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                        <span>References ({{ $cardTotalRefs }})</span>
+                    </span>
+                    <button type="button" 
+                            onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false); openCampaignDetailsModal({{ $task->id }})" 
+                            style="font-size: 10px; font-weight: 700; color: #0284c7; background: rgba(2, 132, 199, 0.1); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 4px; padding: 2px 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;"
+                            title="Open full references gallery">
+                        <span>View All ({{ $cardTotalRefs }})</span>
+                        <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </button>
+                </div>
+                <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin;">
+                    @foreach($cardRefFiles as $rIdx => $rUrl)
+                        @php
+                            $rClean = preg_replace('/\?.*$/', '', $rUrl);
+                            $rPath = parse_url($rClean, PHP_URL_PATH) ?? $rClean;
+                            $rName = rawurldecode(basename($rPath));
+                            $rExt = strtolower(pathinfo($rName, PATHINFO_EXTENSION));
+                            $rIsImg = in_array($rExt, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
+                        @endphp
+                        <div style="display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 6px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); cursor: pointer; flex-shrink: 0; max-width: 140px;"
+                             onclick="event.stopPropagation(); previewDeliverableArtwork('{{ $rUrl }}', '{{ addslashes($rName) }}', '{{ $rUrl }}')"
+                             title="Click to preview {{ $rName }}">
+                            @if($rIsImg)
+                                <img src="{{ $rUrl }}" alt="" style="width: 16px; height: 16px; border-radius: 3px; object-fit: cover; flex-shrink: 0;">
+                            @else
+                                <div style="width: 16px; height: 16px; border-radius: 3px; background: rgba(2, 132, 199, 0.12); color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; flex-shrink: 0;">
+                                    {{ strtoupper(substr($rExt ?: 'DOC', 0, 3)) }}
+                                </div>
+                            @endif
+                            <span style="font-size: 10px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $rName }}</span>
+                        </div>
+                    @endforeach
+                    @foreach($cardRefUrls as $uUrl)
+                        <a href="{{ $uUrl }}" target="_blank" onclick="event.stopPropagation()" style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 6px; background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); color: #0284c7; font-size: 10px; font-weight: 600; text-decoration: none; flex-shrink: 0;" title="{{ $uUrl }}">
+                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                            <span>Link</span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+            @endif
 
             {{-- Deliverable Uploaded Work (Image or File) inside Expanded View --}}
             <div id="card-upload-box-{{ $task->id }}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
@@ -543,6 +593,54 @@
 
 
             </div>
+
+            {{-- Deliverable References (Files & URLs) inside Expanded View --}}
+            @if($cardTotalRefs > 0)
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 10.5px; font-weight: 700; color: #0284c7; display: inline-flex; align-items: center; gap: 4px;">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                        <span>References ({{ $cardTotalRefs }})</span>
+                    </span>
+                    <button type="button" 
+                            onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false); openCampaignDetailsModal({{ $task->id }})" 
+                            style="font-size: 10px; font-weight: 700; color: #0284c7; background: rgba(2, 132, 199, 0.1); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 4px; padding: 2px 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;"
+                            title="Open full references gallery">
+                        <span>View All ({{ $cardTotalRefs }})</span>
+                        <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </button>
+                </div>
+                <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin;">
+                    @foreach($cardRefFiles as $rIdx => $rUrl)
+                        @php
+                            $rClean = preg_replace('/\?.*$/', '', $rUrl);
+                            $rPath = parse_url($rClean, PHP_URL_PATH) ?? $rClean;
+                            $rName = rawurldecode(basename($rPath));
+                            $rExt = strtolower(pathinfo($rName, PATHINFO_EXTENSION));
+                            $rIsImg = in_array($rExt, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg']);
+                        @endphp
+                        <div style="display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 6px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); cursor: pointer; flex-shrink: 0; max-width: 140px;"
+                             onclick="event.stopPropagation(); previewDeliverableArtwork('{{ $rUrl }}', '{{ addslashes($rName) }}', '{{ $rUrl }}')"
+                             title="Click to preview {{ $rName }}">
+                            @if($rIsImg)
+                                <img src="{{ $rUrl }}" alt="" style="width: 16px; height: 16px; border-radius: 3px; object-fit: cover; flex-shrink: 0;">
+                            @else
+                                <div style="width: 16px; height: 16px; border-radius: 3px; background: rgba(2, 132, 199, 0.12); color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; flex-shrink: 0;">
+                                    {{ strtoupper(substr($rExt ?: 'DOC', 0, 3)) }}
+                                </div>
+                            @endif
+                            <span style="font-size: 10px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $rName }}</span>
+                        </div>
+                    @endforeach
+                    @foreach($cardRefUrls as $uUrl)
+                        <a href="{{ $uUrl }}" target="_blank" onclick="event.stopPropagation()" style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 6px; background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); color: #0284c7; font-size: 10px; font-weight: 600; text-decoration: none; flex-shrink: 0;" title="{{ $uUrl }}">
+                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                            <span>Link</span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+            @endif
 
             {{-- Deliverable Uploaded Work (Image or File) inside Expanded View --}}
             <div id="card-upload-box-{{ $task->id }}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">

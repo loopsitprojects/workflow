@@ -48,6 +48,25 @@
                     <svg class="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                 </div>
             </a>
+
+            <!-- Theme & Appearance Settings Card -->
+            <a href="#theme-settings-section" class="group bg-white dark:bg-[#0F172A] rounded-[32px] p-8 card-shadow border {{ ($activeTheme ?? 'dark') === 'halloween' ? 'border-orange-500/40 dark:border-orange-500/40' : (($activeTheme ?? 'dark') === 'christmas' ? 'border-red-500/40 dark:border-red-500/40' : 'border-gray-100 dark:border-slate-800') }} hover:border-purple-200 dark:hover:border-purple-500/50 transition-all hover:translate-y-[-4px]">
+                <div class="w-14 h-14 {{ ($activeTheme ?? 'dark') === 'halloween' ? 'bg-orange-500/10 text-orange-500' : (($activeTheme ?? 'dark') === 'christmas' ? 'bg-red-500/10 text-red-500' : 'bg-purple-50 dark:bg-purple-900/20 text-purple-600') }} rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors text-2xl select-none">
+                    @if(($activeTheme ?? 'dark') === 'halloween')
+                        🎃
+                    @elseif(($activeTheme ?? 'dark') === 'christmas')
+                        🎄
+                    @else
+                        🎨
+                    @endif
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Theme Settings</h3>
+                <p class="text-sm text-gray-400 dark:text-slate-500 font-medium leading-relaxed mb-6">Configure platform theme, switch between Dark, Light, Halloween, or festive Christmas mode.</p>
+                <div class="flex items-center gap-2 {{ ($activeTheme ?? 'dark') === 'halloween' ? 'text-orange-500' : (($activeTheme ?? 'dark') === 'christmas' ? 'text-red-500' : 'text-purple-600 dark:text-purple-400') }} text-[10px] font-bold uppercase tracking-widest">
+                    Manage Theme
+                    <svg class="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                </div>
+            </a>
         </div>
 
         <!-- Project Types Management Section -->
@@ -236,6 +255,216 @@
                     </button>
                 </form>
             </div>
+        </div>
+
+        <!-- Analytics & Reports Tab Section -->
+        <div class="bg-white dark:bg-[#0F172A] rounded-[32px] p-8 card-shadow border {{ ($analyticsEnabled ?? true) ? 'border-emerald-500/30 dark:border-emerald-500/30' : 'border-gray-100 dark:border-slate-800' }}">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 {{ ($analyticsEnabled ?? true) ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-400' }} rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Analytics & Reports Dashboard</h3>
+                            @if($analyticsEnabled ?? true)
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    FEATURE ENABLED
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                                    FEATURE DISABLED
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-sm text-gray-400 dark:text-slate-500 font-medium mt-1">
+                            Enable or disable the Analytics tab in navigation and agency workflow reporting for team members.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Sleek Toggle Switch -->
+                <form action="{{ route('admin.features.toggle-analytics') }}" method="POST" id="analyticsToggleForm" class="flex-shrink-0 flex items-center gap-3">
+                    @csrf
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                        {{ ($analyticsEnabled ?? true) ? 'ON' : 'OFF' }}
+                    </span>
+                    <button type="submit" onclick="return confirmAction(event, '{{ ($analyticsEnabled ?? true) ? 'Disable Analytics Tab?' : 'Enable Analytics Tab?' }}', '{{ ($analyticsEnabled ?? true) ? 'Hide the Analytics tab and reports from the navigation bar for all team members?' : 'Enable the Analytics tab and reports for all team members?' }}', false, '{{ ($analyticsEnabled ?? true) ? 'Disable Tab' : 'Enable Tab' }}');"
+                        class="relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ ($analyticsEnabled ?? true) ? 'bg-emerald-600' : 'bg-gray-300 dark:bg-slate-700' }}"
+                        role="switch" aria-checked="{{ ($analyticsEnabled ?? true) ? 'true' : 'false' }}">
+                        <span class="pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ ($analyticsEnabled ?? true) ? 'translate-x-6' : 'translate-x-0' }}"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dedicated Theme Settings Section -->
+        <div id="theme-settings-section" class="bg-white dark:bg-[#0F172A] rounded-[32px] p-8 card-shadow border {{ ($activeTheme ?? 'dark') === 'halloween' ? 'border-orange-500/40 shadow-[0_0_30px_rgba(234,88,12,0.12)]' : (($activeTheme ?? 'dark') === 'christmas' ? 'border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.12)]' : 'border-gray-100 dark:border-slate-800') }}">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-gray-100 dark:border-slate-800">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 {{ ($activeTheme ?? 'dark') === 'halloween' ? 'bg-orange-500/10 text-orange-500 text-2xl' : (($activeTheme ?? 'dark') === 'christmas' ? 'bg-emerald-500/10 text-emerald-500 text-2xl' : 'bg-purple-500/10 text-purple-500 text-xl') }} rounded-2xl flex items-center justify-center flex-shrink-0 select-none">
+                        @if(($activeTheme ?? 'dark') === 'halloween')
+                            🎃
+                        @elseif(($activeTheme ?? 'dark') === 'christmas')
+                            🎄
+                        @else
+                            🎨
+                        @endif
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Platform Theme & Appearance Settings</h3>
+                            @if(($activeTheme ?? 'dark') === 'halloween')
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-orange-500/15 text-orange-500 border border-orange-500/30 animate-pulse">
+                                    <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                                    HALLOWEEN MODE ACTIVE 🎃
+                                </span>
+                            @elseif(($activeTheme ?? 'dark') === 'christmas')
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 animate-pulse">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    CHRISTMAS MODE ACTIVE 🎄
+                                </span>
+                            @elseif(($activeTheme ?? 'dark') === 'dark')
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                    <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                                    DARK THEME ACTIVE 🌙
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                                    LIGHT THEME ACTIVE ☀️
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-sm text-gray-400 dark:text-slate-500 font-medium mt-1">
+                            Set the platform-wide theme across all workspaces, or quickly toggle festive holiday themes.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Quick Seasonal Switches -->
+                <div class="flex-shrink-0 flex flex-wrap items-center gap-4">
+                    <!-- Quick Christmas Mode Switch -->
+                    <form action="{{ route('admin.features.toggle-christmas-theme') }}" method="POST" id="christmasQuickToggleForm" class="flex items-center gap-2.5 bg-gray-50 dark:bg-white/[0.03] px-3.5 py-2 rounded-2xl border border-gray-100 dark:border-slate-800">
+                        @csrf
+                        <span class="text-xs font-extrabold text-gray-500 dark:text-slate-400 flex items-center gap-1">
+                            <span>🎄 Christmas:</span>
+                            <span class="{{ ($activeTheme ?? 'dark') === 'christmas' ? 'text-emerald-500 font-black' : 'text-gray-400' }}">{{ ($activeTheme ?? 'dark') === 'christmas' ? 'ON' : 'OFF' }}</span>
+                        </span>
+                        <button type="submit" onclick="return confirmAction(event, '{{ ($activeTheme ?? 'dark') === 'christmas' ? 'Turn OFF Christmas Theme?' : 'Turn ON Christmas Theme?' }}', '{{ ($activeTheme ?? 'dark') === 'christmas' ? 'Restore standard theme for all workspaces?' : 'Activate the festive Christmas holiday theme platform-wide?' }}', false, '{{ ($activeTheme ?? 'dark') === 'christmas' ? 'Turn OFF' : 'Turn ON' }}');"
+                            class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ ($activeTheme ?? 'dark') === 'christmas' ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-700' }}"
+                            role="switch" aria-checked="{{ ($activeTheme ?? 'dark') === 'christmas' ? 'true' : 'false' }}">
+                            <span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ ($activeTheme ?? 'dark') === 'christmas' ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                        </button>
+                    </form>
+
+                    <!-- Quick Halloween Mode Switch -->
+                    <form action="{{ route('admin.features.toggle-halloween-theme') }}" method="POST" id="halloweenQuickToggleForm" class="flex items-center gap-2.5 bg-gray-50 dark:bg-white/[0.03] px-3.5 py-2 rounded-2xl border border-gray-100 dark:border-slate-800">
+                        @csrf
+                        <span class="text-xs font-extrabold text-gray-500 dark:text-slate-400 flex items-center gap-1">
+                            <span>🎃 Halloween:</span>
+                            <span class="{{ ($activeTheme ?? 'dark') === 'halloween' ? 'text-orange-500 font-black' : 'text-gray-400' }}">{{ ($activeTheme ?? 'dark') === 'halloween' ? 'ON' : 'OFF' }}</span>
+                        </span>
+                        <button type="submit" onclick="return confirmAction(event, '{{ ($activeTheme ?? 'dark') === 'halloween' ? 'Turn OFF Halloween Theme?' : 'Turn ON Halloween Theme?' }}', '{{ ($activeTheme ?? 'dark') === 'halloween' ? 'Restore standard theme for all workspaces?' : 'Activate the festive Halloween theme platform-wide?' }}', false, '{{ ($activeTheme ?? 'dark') === 'halloween' ? 'Turn OFF' : 'Turn ON' }}');"
+                            class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ ($activeTheme ?? 'dark') === 'halloween' ? 'bg-orange-500' : 'bg-gray-300 dark:bg-slate-700' }}"
+                            role="switch" aria-checked="{{ ($activeTheme ?? 'dark') === 'halloween' ? 'true' : 'false' }}">
+                            <span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ ($activeTheme ?? 'dark') === 'halloween' ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 4 Visual Theme Option Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+                <!-- Christmas Theme Card -->
+                <form action="{{ route('admin.settings.theme') }}" method="POST" class="h-full">
+                    @csrf
+                    <input type="hidden" name="theme" value="christmas">
+                    <button type="submit" class="w-full h-full text-left p-5 rounded-2xl border-2 transition-all group flex flex-col justify-between {{ ($activeTheme ?? 'dark') === 'christmas' ? 'border-emerald-500 bg-emerald-500/[0.04] dark:bg-emerald-950/20 shadow-lg shadow-emerald-500/10' : 'border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-white/[0.02] hover:border-emerald-400' }}">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-2xl select-none">🎄</span>
+                                @if(($activeTheme ?? 'dark') === 'christmas')
+                                    <span class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500 text-white">ACTIVE</span>
+                                @endif
+                            </div>
+                            <h4 class="text-base font-extrabold text-gray-900 dark:text-white mb-1 group-hover:text-emerald-500 transition-colors">Christmas Festive Mode</h4>
+                            <p class="text-xs text-gray-400 dark:text-slate-500 leading-relaxed mb-4">Snowy pine skyline, falling animated snowflakes, swinging bauble, winter holly accents, and crimson & emerald colors in Light and Dark modes.</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 pt-3 border-t border-gray-100 dark:border-white/[0.06] text-xs font-bold {{ ($activeTheme ?? 'dark') === 'christmas' ? 'text-emerald-500 font-extrabold' : 'text-gray-400 group-hover:text-emerald-500' }}">
+                            {{ ($activeTheme ?? 'dark') === 'christmas' ? '✓ Currently Applied' : 'Activate Christmas Theme →' }}
+                        </div>
+                    </button>
+                </form>
+
+                <!-- Halloween Theme Card -->
+                <form action="{{ route('admin.settings.theme') }}" method="POST" class="h-full">
+                    @csrf
+                    <input type="hidden" name="theme" value="halloween">
+                    <button type="submit" class="w-full h-full text-left p-5 rounded-2xl border-2 transition-all group flex flex-col justify-between {{ ($activeTheme ?? 'dark') === 'halloween' ? 'border-orange-500 bg-orange-500/[0.04] dark:bg-orange-950/20 shadow-lg shadow-orange-500/10' : 'border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-white/[0.02] hover:border-orange-400' }}">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-2xl select-none">🎃</span>
+                                @if(($activeTheme ?? 'dark') === 'halloween')
+                                    <span class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-orange-500 text-white">ACTIVE</span>
+                                @endif
+                            </div>
+                            <h4 class="text-base font-extrabold text-gray-900 dark:text-white mb-1 group-hover:text-orange-500 transition-colors">Halloween Spooky Mode</h4>
+                            <p class="text-xs text-gray-400 dark:text-slate-500 leading-relaxed mb-4">Haunted skyline header, animated bats, swinging spider, pumpkin card watermarks, and festive orange accents across both Light and Dark modes.</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 pt-3 border-t border-gray-100 dark:border-white/[0.06] text-xs font-bold {{ ($activeTheme ?? 'dark') === 'halloween' ? 'text-orange-500 font-extrabold' : 'text-gray-400 group-hover:text-orange-500' }}">
+                            {{ ($activeTheme ?? 'dark') === 'halloween' ? '✓ Currently Applied' : 'Activate Halloween Theme →' }}
+                        </div>
+                    </button>
+                </form>
+
+                <!-- Standard Dark Theme Card -->
+                <form action="{{ route('admin.settings.theme') }}" method="POST" class="h-full">
+                    @csrf
+                    <input type="hidden" name="theme" value="dark">
+                    <button type="submit" class="w-full h-full text-left p-5 rounded-2xl border-2 transition-all group flex flex-col justify-between {{ ($activeTheme ?? 'dark') === 'dark' ? 'border-blue-500 bg-blue-500/[0.04] dark:bg-blue-950/20 shadow-lg shadow-blue-500/10' : 'border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-white/[0.02] hover:border-blue-400' }}">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-2xl select-none">🌙</span>
+                                @if(($activeTheme ?? 'dark') === 'dark')
+                                    <span class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-blue-500 text-white">ACTIVE</span>
+                                @endif
+                            </div>
+                            <h4 class="text-base font-extrabold text-gray-900 dark:text-white mb-1 group-hover:text-blue-500 transition-colors">Standard Dark Theme</h4>
+                            <p class="text-xs text-gray-400 dark:text-slate-500 leading-relaxed mb-4">Deep charcoal navy surfaces, clean high contrast, electric blue highlights, and reduced eye strain.</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 pt-3 border-t border-gray-100 dark:border-white/[0.06] text-xs font-bold {{ ($activeTheme ?? 'dark') === 'dark' ? 'text-blue-500 font-extrabold' : 'text-gray-400 group-hover:text-blue-500' }}">
+                            {{ ($activeTheme ?? 'dark') === 'dark' ? '✓ Currently Applied' : 'Activate Dark Theme →' }}
+                        </div>
+                    </button>
+                </form>
+
+                <!-- Standard Light Theme Card -->
+                <form action="{{ route('admin.settings.theme') }}" method="POST" class="h-full">
+                    @csrf
+                    <input type="hidden" name="theme" value="light">
+                    <button type="submit" class="w-full h-full text-left p-5 rounded-2xl border-2 transition-all group flex flex-col justify-between {{ ($activeTheme ?? 'dark') === 'light' ? 'border-amber-500 bg-amber-500/[0.04] dark:bg-amber-950/20 shadow-lg shadow-amber-500/10' : 'border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-white/[0.02] hover:border-amber-400' }}">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-2xl select-none">☀️</span>
+                                @if(($activeTheme ?? 'dark') === 'light')
+                                    <span class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500 text-white">ACTIVE</span>
+                                @endif
+                            </div>
+                            <h4 class="text-base font-extrabold text-gray-900 dark:text-white mb-1 group-hover:text-amber-500 transition-colors">Standard Light Theme</h4>
+                            <p class="text-xs text-gray-400 dark:text-slate-500 leading-relaxed mb-4">Bright corporate white canvas, crisp typography, clean light slate borders, and vibrant agency accents.</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 pt-3 border-t border-gray-100 dark:border-white/[0.06] text-xs font-bold {{ ($activeTheme ?? 'dark') === 'light' ? 'text-amber-500 font-extrabold' : 'text-gray-400 group-hover:text-amber-500' }}">
+                            {{ ($activeTheme ?? 'dark') === 'light' ? '✓ Currently Applied' : 'Activate Light Theme →' }}
+                        </div>
+                    </button>
+                </form>
+            </div>
+        </div>
         </div>
 
         <!-- Maintenance Mode Section -->

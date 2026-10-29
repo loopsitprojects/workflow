@@ -1,5 +1,6 @@
 @php
     $tasks = $project->deliverables->whereNull('parent_deliverable_id');
+    $tasks->loadMissing(['revisionsHistory.user', 'revisionsHistory.fixedByUser', 'approvalsHistory.user']);
 
     $todoTasks = $tasks->filter(function($t) {
         $st = strtolower(trim($t->status ?? ''));
@@ -80,18 +81,16 @@
              ondragover="kanbanOnDragOver(event)" 
              ondragleave="kanbanOnDragLeave(event)" 
              ondrop="kanbanOnDrop(event, 'To Do')"
-             style="background: var(--color-bg-secondary); border: 1.5px solid var(--color-border-primary); border-radius: 18px; padding: 16px; min-height: 480px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease;">
+             style="background: var(--bg-column); border: 1px solid var(--border-column); border-radius: 18px; padding: 16px; min-height: 480px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease;">
             
             {{-- Column Header --}}
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 6px 4px;">
                 <div style="display: inline-flex; align-items: center; gap: 8px;">
-                    <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: var(--color-bg-primary); border: 1.5px dashed #94a3b8; color: var(--color-text-secondary); font-size: 11.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="3 3">
-                            <circle cx="12" cy="12" r="9"/>
-                        </svg>
+                    <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: var(--bg-card); border: 1px solid var(--border-card); color: var(--text-card-title); font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: #94a3b8;"></span>
                         <span>TO DO</span>
                     </div>
-                    <span id="badge-count-todo" style="font-size: 13px; font-weight: 800; color: var(--color-text-secondary);">{{ $todoTasks->count() }}</span>
+                    <span id="badge-count-todo" style="font-size: 12px; font-weight: 800; color: var(--text-card-sub);">{{ $todoTasks->count() }}</span>
                 </div>
             </div>
 
@@ -114,9 +113,7 @@
             <button type="button" 
                     id="btn-open-creator-todo"
                     onclick="openInlineCreator('todo')"
-                    style="background: transparent; border: none; padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; color: var(--color-text-secondary); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; margin-top: auto;"
-                    onmouseover="this.style.background='var(--color-bg-primary)'; this.style.color='var(--color-text-primary)'"
-                    onmouseout="this.style.background='transparent'; this.style.color='var(--color-text-secondary)'">
+                    class="kanban-add-task-btn">
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 <span>Add Task</span>
             </button>
@@ -132,18 +129,16 @@
              ondragover="kanbanOnDragOver(event)" 
              ondragleave="kanbanOnDragLeave(event)" 
              ondrop="kanbanOnDrop(event, 'In Progress')"
-             style="background: rgba(99, 102, 241, 0.04); border: 1.5px solid rgba(99, 102, 241, 0.2); border-radius: 18px; padding: 16px; min-height: 480px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease;">
+             style="background: var(--bg-column); border: 1px solid var(--border-column); border-radius: 18px; padding: 16px; min-height: 480px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease;">
             
             {{-- Column Header --}}
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 6px 4px;">
                 <div style="display: inline-flex; align-items: center; gap: 8px;">
-                    <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: #6366f1; color: #ffffff; font-size: 11.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                            <circle cx="12" cy="12" r="9"/>
-                        </svg>
+                    <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); color: #3b82f6; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: #3b82f6;"></span>
                         <span>IN PROGRESS</span>
                     </div>
-                    <span id="badge-count-inprogress" style="font-size: 13px; font-weight: 800; color: #6366f1;">{{ $inProgressTasks->count() }}</span>
+                    <span id="badge-count-inprogress" style="font-size: 12px; font-weight: 800; color: #3b82f6;">{{ $inProgressTasks->count() }}</span>
                 </div>
             </div>
 
@@ -166,9 +161,7 @@
             <button type="button" 
                     id="btn-open-creator-inprogress"
                     onclick="openInlineCreator('inprogress')"
-                    style="background: transparent; border: none; padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; color: #6366f1; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; margin-top: auto;"
-                    onmouseover="this.style.background='rgba(99, 102, 241, 0.1)'"
-                    onmouseout="this.style.background='transparent'">
+                    class="kanban-add-task-btn">
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 <span>Add Task</span>
             </button>
@@ -184,18 +177,16 @@
              ondragover="kanbanOnDragOver(event)" 
              ondragleave="kanbanOnDragLeave(event)" 
              ondrop="kanbanOnDrop(event, 'Approval Stage')"
-             style="background: rgba(245, 158, 11, 0.04); border: 1.5px solid rgba(245, 158, 11, 0.2); border-radius: 18px; padding: 16px; min-height: 480px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease;">
+             style="background: var(--bg-column); border: 1px solid var(--border-column); border-radius: 18px; padding: 16px; min-height: 480px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease;">
             
             {{-- Column Header --}}
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 6px 4px;">
                 <div style="display: inline-flex; align-items: center; gap: 8px;">
-                    <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: #f59e0b; color: #ffffff; font-size: 11.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.25);">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
+                    <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); color: #f59e0b; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: #f59e0b;"></span>
                         <span>APPROVAL STAGE</span>
                     </div>
-                    <span id="badge-count-approval" style="font-size: 13px; font-weight: 800; color: #f59e0b;">{{ $approvalTasks->count() }}</span>
+                    <span id="badge-count-approval" style="font-size: 12px; font-weight: 800; color: #f59e0b;">{{ $approvalTasks->count() }}</span>
                 </div>
             </div>
 
@@ -218,9 +209,7 @@
             <button type="button" 
                     id="btn-open-creator-approval"
                     onclick="openInlineCreator('approval')"
-                    style="background: transparent; border: none; padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; color: #f59e0b; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; margin-top: auto;"
-                    onmouseover="this.style.background='rgba(245, 158, 11, 0.1)'"
-                    onmouseout="this.style.background='transparent'">
+                    class="kanban-add-task-btn">
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 <span>Add Task</span>
             </button>
@@ -236,18 +225,16 @@
              ondragover="kanbanOnDragOver(event)" 
              ondragleave="kanbanOnDragLeave(event)" 
              ondrop="kanbanOnDrop(event, 'Done')"
-             style="background: rgba(16, 185, 129, 0.04); border: 1.5px solid rgba(16, 185, 129, 0.2); border-radius: 18px; padding: 16px; min-height: 480px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease;">
+             style="background: var(--bg-column); border: 1px solid var(--border-column); border-radius: 18px; padding: 16px; min-height: 480px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease;">
             
             {{-- Column Header --}}
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 6px 4px;">
                 <div style="display: inline-flex; align-items: center; gap: 8px;">
-                    <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: #10b981; color: #ffffff; font-size: 11.5px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+                    <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); color: #10b981; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;">
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span>
                         <span>COMPLETE</span>
                     </div>
-                    <span id="badge-count-complete" style="font-size: 13px; font-weight: 800; color: #10b981;">{{ $completeTasks->count() }}</span>
+                    <span id="badge-count-complete" style="font-size: 12px; font-weight: 800; color: #10b981;">{{ $completeTasks->count() }}</span>
                 </div>
             </div>
 
@@ -270,9 +257,7 @@
             <button type="button" 
                     id="btn-open-creator-complete"
                     onclick="openInlineCreator('complete')"
-                    style="background: transparent; border: none; padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; color: #10b981; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; margin-top: auto;"
-                    onmouseover="this.style.background='rgba(16, 185, 129, 0.1)'"
-                    onmouseout="this.style.background='transparent'">
+                    class="kanban-add-task-btn">
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 <span>Add Task</span>
             </button>
@@ -326,6 +311,30 @@ const campaignDeliverablesData = {};
             $createdFmt = (string)$t->created_at;
         }
     }
+    $tRevsList = $t->revisionsHistory->map(function($r, $idx) use ($t) {
+        return [
+            'round' => (int)($r->round ?? ($t->revisionsHistory->count() - $idx)),
+            'user_name' => $r->user?->name ?? 'Approver',
+            'instructions' => $r->instructions,
+            'stage' => $r->stage_at_revision ?? 'Approval Stage',
+            'image_path' => $r->image_path ? asset('storage/' . $r->image_path) : null,
+            'revision_deadline' => $r->revision_deadline ? \Carbon\Carbon::parse($r->revision_deadline)->format('d M, Y') : null,
+            'date' => $r->created_at ? $r->created_at->format('d M, Y h:i A') : '',
+            'created_at' => $r->created_at?->toISOString(),
+            'fixed_at' => $r->fixed_at ? \Carbon\Carbon::parse($r->fixed_at)->format('d M, Y h:i A') : null,
+            'fixed_by_user_name' => $r->fixedByUser?->name ?? null,
+        ];
+    })->values();
+
+    $tApprovalsList = $t->approvalsHistory->map(function($a) {
+        return [
+            'user_name' => $a->user?->name ?? 'Team Member',
+            'stage' => $a->stage,
+            'notes' => $a->notes,
+            'date' => $a->created_at ? $a->created_at->format('d M, Y h:i A') : '',
+            'created_at' => $a->created_at?->toISOString(),
+        ];
+    })->values();
 @endphp
 campaignDeliverablesData[{{ $t->id }}] = {
     id: {{ $t->id }},
@@ -344,7 +353,12 @@ campaignDeliverablesData[{{ $t->id }}] = {
     reference_urls_list: @json($t->getReferenceUrlsArray()),
     assignee_name: @json($t->writer?->name ?? ($t->designer?->name ?? 'Unassigned')),
     approver_name: @json($t->approver?->name ?? null),
-    created_at_formatted: @json($createdFmt)
+    created_at_formatted: @json($createdFmt),
+    revisions: {{ (int)($t->revisions ?? 0) }},
+    revision_instructions: @json($t->revision_instructions ?? ''),
+    revision_deadline: @json($t->revision_deadline ? \Carbon\Carbon::parse($t->revision_deadline)->format('d M, Y') : null),
+    revisions_history: @json($tRevsList),
+    approvals_history: @json($tApprovalsList)
 };
 @endforeach
 
@@ -1620,7 +1634,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
     const prio = d.priority || 'Medium';
     const prioColor = (prio === 'High Priority' || prio === 'Urgent' || prio === 'High') ? '#ef4444' : (prio === 'Low' ? '#64748b' : '#10b981');
 
-    let borderLeft = 'border-left: 3px solid var(--color-border-primary);';
+    let borderLeft = 'border-left: 3px solid #94a3b8;';
     if (d.status === 'Done' || d.status === 'Completed' || d.status === 'Complete') {
         borderLeft = 'border-left: 3px solid #10b981;';
     } else if (d.status === 'Approval Stage' || d.status === 'Approval' || d.status === 'Review' || d.status === 'Under Review') {
@@ -1646,21 +1660,21 @@ function insertCreatedCardIntoColumn(colKey, d) {
     let postTypeOptions = '';
     kanbanSubtaskTypes.forEach(st => {
         const isSelected = (st.name.toLowerCase() === (d.post_type || '').toLowerCase()) ? 'selected' : '';
-        postTypeOptions += `<option value="${escapeHtml(st.name)}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" ${isSelected}>${escapeHtml(st.name)}</option>`;
+        postTypeOptions += `<option value="${escapeHtml(st.name)}" style="background: var(--bg-card); color: var(--text-card-title);" ${isSelected}>${escapeHtml(st.name)}</option>`;
     });
 
     // Build assignee options
-    let assigneeOptions = `<option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add assignee…</option>`;
+    let assigneeOptions = `<option value="" style="background: var(--bg-card); color: var(--text-card-title);">Add assignee…</option>`;
     kanbanSelectableUsers.forEach(u => {
         const isSelected = (d.writer_id == u.id) ? 'selected' : '';
-        assigneeOptions += `<option value="${u.id}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
+        assigneeOptions += `<option value="${u.id}" style="background: var(--bg-card); color: var(--text-card-title);" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
     });
 
     // Build approver options
-    let approverOptions = `<option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add approver…</option>`;
+    let approverOptions = `<option value="" style="background: var(--bg-card); color: var(--text-card-title);">Add approver…</option>`;
     kanbanSelectableUsers.forEach(u => {
         const isSelected = (d.approver_id == u.id) ? 'selected' : '';
-        approverOptions += `<option value="${u.id}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
+        approverOptions += `<option value="${u.id}" style="background: var(--bg-card); color: var(--text-card-title);" ${isSelected}>${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
     });
 
     const perm = checkCardMovePermission(d);
@@ -1679,15 +1693,75 @@ function insertCreatedCardIntoColumn(colKey, d) {
 
     const hasAssignee = d.assignee_name && d.assignee_name !== 'Unassigned';
     const assigneeDisplay = hasAssignee ? d.assignee_name : 'Unassigned';
-    const badgeColor = hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)';
-    const badgeBg = hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--color-bg-secondary)';
-    const badgeBorder = hasAssignee ? '1px solid rgba(59,130,246,0.2)' : '1px solid var(--color-border-primary)';
+    const badgeColor = hasAssignee ? '#3b82f6' : 'var(--text-card-sub)';
+    const badgeBg = hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)';
+    const badgeBorder = hasAssignee ? '1px solid rgba(59,130,246,0.2)' : '1px solid var(--border-card)';
     const stageDisplay = d.approval_stage || d.stage || '';
     const isAssign = isAssignStageName(stageDisplay);
 
     const revCount = d.revisions || 0;
     const revMsg = d.revision_instructions || '';
     const hasRevs = (revCount > 0 || Boolean(revMsg));
+
+    let referencesHtml = '';
+    let refFiles = d.reference_files_list || [];
+    if (!Array.isArray(refFiles)) refFiles = refFiles ? [refFiles] : [];
+    let refUrls = d.reference_urls_list || [];
+    if (!Array.isArray(refUrls)) refUrls = refUrls ? [refUrls] : [];
+    const totalRefs = refFiles.length + refUrls.length;
+
+    if (totalRefs > 0) {
+        let refItemsHtml = '';
+        refFiles.forEach((rUrl) => {
+            const cleanUrl = rUrl.split('?')[0];
+            const rawFilename = cleanUrl.substring(cleanUrl.lastIndexOf('/') + 1);
+            let filename = decodeURIComponent(rawFilename) || 'Reference File';
+            const ext = filename.split('.').pop().toLowerCase();
+            const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+
+            const iconHtml = isImg
+                ? `<img src="${rUrl}" alt="" style="width: 16px; height: 16px; border-radius: 3px; object-fit: cover; flex-shrink: 0;">`
+                : `<div style="width: 16px; height: 16px; border-radius: 3px; background: rgba(2, 132, 199, 0.12); color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; flex-shrink: 0;">${escapeHtml(ext ? ext.substring(0,3).toUpperCase() : 'DOC')}</div>`;
+
+            refItemsHtml += `
+                <div style="display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 6px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); cursor: pointer; flex-shrink: 0; max-width: 140px;"
+                     onclick="event.stopPropagation(); previewDeliverableArtwork('${escapeHtml(rUrl)}', '${escapeHtml(filename)}', '${escapeHtml(rUrl)}')"
+                     title="Click to preview ${escapeHtml(filename)}">
+                    ${iconHtml}
+                    <span style="font-size: 10px; font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(filename)}</span>
+                </div>
+            `;
+        });
+        refUrls.forEach((uUrl) => {
+            refItemsHtml += `
+                <a href="${escapeHtml(uUrl)}" target="_blank" onclick="event.stopPropagation()" style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 6px; background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); color: #0284c7; font-size: 10px; font-weight: 600; text-decoration: none; flex-shrink: 0;" title="${escapeHtml(uUrl)}">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    <span>Link</span>
+                </a>
+            `;
+        });
+
+        referencesHtml = `
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 10.5px; font-weight: 700; color: #0284c7; display: inline-flex; align-items: center; gap: 4px;">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                        <span>References (${totalRefs})</span>
+                    </span>
+                    <button type="button" 
+                            onclick="event.stopPropagation(); toggleCardEditor(${d.id}, false); openCampaignDetailsModal(${d.id})" 
+                            style="font-size: 10px; font-weight: 700; color: #0284c7; background: rgba(2, 132, 199, 0.1); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 4px; padding: 2px 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;"
+                            title="Open full references gallery">
+                        <span>View All (${totalRefs})</span>
+                        <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </button>
+                </div>
+                <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin;">
+                    ${refItemsHtml}
+                </div>
+            </div>
+        `;
+    }
 
     let uploadedWorkHtml = '';
     let cardFiles = d.final_designs_list || [];
@@ -1797,19 +1871,19 @@ function insertCreatedCardIntoColumn(colKey, d) {
              ondragstart="kanbanOnDragStart(event, ${d.id})"
              ondragend="kanbanOnDragEnd(event)"
              onclick="handleCardClick(${d.id})"
-             style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); ${borderLeft} border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); cursor: ${canMove ? 'grab' : 'pointer'}; transition: all 0.15s ease; position: relative;"
+             style="background: var(--bg-card); border: 1px solid var(--border-card); ${borderLeft} border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow-card); cursor: ${canMove ? 'grab' : 'pointer'}; transition: all 0.15s ease; position: relative;"
              title="${escapeHtml(restrictionReason)}"
-             onmouseover="if(!isCardEditorOpen(${d.id})) { this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-1px)'; }"
-             onmouseout="if(!isCardEditorOpen(${d.id})) { this.style.boxShadow='0 1px 4px rgba(0,0,0,0.03)'; this.style.transform='none'; }">
+             onmouseover="if(!isCardEditorOpen(${d.id})) { this.style.boxShadow='var(--shadow-card), 0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-1px)'; }"
+             onmouseout="if(!isCardEditorOpen(${d.id})) { this.style.boxShadow='var(--shadow-card)'; this.style.transform='none'; }">
             
             {{-- Collapsed Card View --}}
             <div class="kanban-card-view" id="kanban-card-view-${d.id}">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
-                    <div style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                        <span id="card-view-post-type-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                    <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                        <span id="card-view-post-type-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-card-sub); background: var(--bg-column); border: 1px solid var(--border-card); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                             ${escapeHtml(d.post_type || 'Outlines')}
                         </span>
-                        <span id="card-view-stage-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: ${isAssign ? 'none' : 'inline-flex'}; align-items: center;">
+                        <span id="card-view-stage-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${isAssign ? 'none' : 'inline-flex'}; align-items: center;">
                             ${escapeHtml(stageDisplay)}
                         </span>
                         {{-- Revision Alert Badge --}}
@@ -1817,28 +1891,28 @@ function insertCreatedCardIntoColumn(colKey, d) {
                               style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${hasRevs ? 'inline-flex' : 'none'}; align-items: center; gap: 3px;"
                               title="${escapeHtml(revMsg ? ('Revision alert: ' + revMsg) : ('Revision Round ' + (revCount || 1)))}">
                             <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                            <span>Rev: <span id="card-view-revision-num-${d.id}">${revCount || 1}</span></span>
+                            <span>REV: <span id="card-view-revision-num-${d.id}">${revCount || 1}</span></span>
                         </span>
                     </div>
                     <span id="card-view-assignee-badge-${d.id}" 
-                          style="font-size: 10px; font-weight: 700; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;"
+                          style="font-size: 10px; font-weight: 600; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;"
                           title="${hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) : 'No assignee'}">
                         <span>${escapeHtml(assigneeDisplay)}</span>
                     </span>
                 </div>
 
-                <h4 id="card-view-title-${d.id}" style="margin: 0 0 8px 0; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); line-height: 1.35; letter-spacing: -0.01em;">
+                <h4 id="card-view-title-${d.id}" style="margin: 0 0 8px 0; font-size: 13.5px; font-weight: 700; color: var(--text-card-title); line-height: 1.35; letter-spacing: -0.01em;">
                     ${escapeHtml(d.title)}
                 </h4>
 
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px solid var(--color-border-primary); margin-top: 4px;">
-                    <div style="display: inline-flex; align-items: center; gap: 6px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px solid var(--border-card); margin-top: 4px;">
+                    <div style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                         <div id="card-view-avatar-${d.id}" 
-                             style="width: 22px; height: 22px; border-radius: 50%; background: #7c3aed; color: #ffffff; font-size: 10.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(124,58,237,0.3);" 
+                             style="width: 22px; height: 22px; border-radius: 50%; background: #7c3aed; color: #ffffff; font-size: 10.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(124,58,237,0.3); flex-shrink: 0;" 
                              title="${escapeHtml(d.assignee_name || 'Unassigned')}">
                             ${escapeHtml(initial)}
                         </div>
-                        <div id="card-view-date-${d.id}" style="display: ${formattedDate ? 'inline-flex' : 'none'}; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary);" title="Due ${escapeHtml(formattedDate)}">
+                        <div id="card-view-date-${d.id}" style="display: ${formattedDate ? 'inline-flex' : 'none'}; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; color: var(--text-card-sub);" title="Due ${escapeHtml(formattedDate)}">
                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             <span>${escapeHtml(formattedDate)}</span>
                         </div>
@@ -1846,12 +1920,22 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             <span>Work (<span id="card-view-work-count-${d.id}">${cardFiles.length}</span>)</span>
                         </div>
+                        ${totalRefs > 0 ? `
+                        <div onclick="event.stopPropagation(); openCampaignDetailsModal(${d.id})" 
+                             style="display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; color: #0284c7; background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); padding: 1px 5px; border-radius: 4px; cursor: pointer; transition: all 0.15s;" 
+                             onmouseover="this.style.background='rgba(2, 132, 199, 0.18)'; this.style.borderColor='#0284c7';" 
+                             onmouseout="this.style.background='rgba(2, 132, 199, 0.08)'; this.style.borderColor='rgba(2, 132, 199, 0.2)';"
+                             title="Click to view all ${totalRefs} reference(s)">
+                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            <span>Ref (${totalRefs})</span>
+                        </div>
+                        ` : ''}
                     </div>
-                    <div style="display: inline-flex; align-items: center; gap: 6px;">
+                    <div style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;">
                         <svg id="card-view-prio-${d.id}" width="12" height="12" fill="${prioColor}" viewBox="0 0 16 16" title="${escapeHtml(prio)}">
                             <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
                         </svg>
-                        <svg width="12" height="12" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24">
+                        <svg width="12" height="12" fill="none" stroke="var(--text-card-sub)" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                         </svg>
                     </div>
@@ -1864,12 +1948,12 @@ function insertCreatedCardIntoColumn(colKey, d) {
                 <form onsubmit="submitInlineCardEdit(event, ${d.id})">
                     {{-- Top Header: Stage on top very small --}}
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
-                        <div style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-                            <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                        <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                            <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-card-sub); background: var(--bg-column); border: 1px solid var(--border-card); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                                 ${escapeHtml(d.post_type || 'Outlines')}
                             </span>
                             ${!isAssign ? `
-                            <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                            <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                                 ${escapeHtml(stageDisplay)}
                             </span>
                             ` : ''}
@@ -1878,10 +1962,10 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                   style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #ef4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${hasRevs ? 'inline-flex' : 'none'}; align-items: center; gap: 3px;"
                                   title="${escapeHtml(revMsg ? ('Revision: ' + revMsg) : ('Revisions: ' + (revCount || 1)))}">
                                 <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                <span>Rev: <span id="card-editor-revision-num-${d.id}">${revCount || 1}</span></span>
+                                <span>REV: <span id="card-editor-revision-num-${d.id}">${revCount || 1}</span></span>
                             </span>
                         </div>
-                        <span style="font-size: 10px; font-weight: 700; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <span style="font-size: 10px; font-weight: 600; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${escapeHtml(assigneeDisplay)}
                         </span>
                     </div>
@@ -1895,7 +1979,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                placeholder="Task Name…" 
                                required
                                autocomplete="off"
-                               style="width: 100%; border: none; background: transparent; font-size: 13.5px; font-weight: 700; color: var(--color-text-primary); outline: none; padding: 2px 0;"
+                               style="width: 100%; border: none; background: transparent; font-size: 13.5px; font-weight: 700; color: var(--text-card-title); outline: none; padding: 2px 0;"
                                onkeydown="if(event.key === 'Enter') { event.preventDefault(); submitInlineCardEdit(event, ${d.id}); } else if(event.key === 'Escape') { toggleCardEditor(${d.id}, false); }">
                     </div>
 
@@ -1969,6 +2053,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         </div>
                     </div>
 
+                    ${referencesHtml}
                     ${uploadedWorkHtml}
 
                     {{-- Footer actions: Details on left, Cancel & Save on right (All buttons at the bottom) --}}
@@ -2094,6 +2179,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         </div>
                     </div>
 
+                    ${referencesHtml}
                     ${uploadedWorkHtml}
 
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
@@ -2145,6 +2231,53 @@ function formatDateDisplay(dStr) {
     } catch (e) {
         return dStr;
     }
+}
+
+function formatDateTimeDisplay(dStr) {
+    if (!dStr) return '';
+    try {
+        const d = new Date(dStr);
+        if (isNaN(d.getTime())) return dStr;
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + 
+               d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch (e) {
+        return dStr;
+    }
+}
+
+function extractRevisionsHistory(data, existingTask) {
+    if (!data) return existingTask?.revisions_history || [];
+    const list = data.revisions_history || data.revisionsHistory;
+    if (Array.isArray(list) && list.length > 0) {
+        return list.map((r, idx) => ({
+            round: r.round !== undefined ? Number(r.round) : (list.length - idx),
+            user_name: r.user?.name || r.user_name || 'Approver',
+            instructions: r.instructions || '',
+            stage: r.stage_at_revision || r.stage || 'Approval Stage',
+            image_path: r.image_path ? (r.image_path.startsWith('http') || r.image_path.startsWith('/') ? r.image_path : `/storage/${r.image_path}`) : null,
+            revision_deadline: r.revision_deadline ? formatDateDisplay(r.revision_deadline) : null,
+            date: r.date || (r.created_at ? formatDateTimeDisplay(r.created_at) : ''),
+            created_at: r.created_at,
+            fixed_at: r.fixed_at ? formatDateTimeDisplay(r.fixed_at) : null,
+            fixed_by_user_name: r.fixed_by_user?.name || r.fixedByUser?.name || r.fixed_by_user_name || null
+        }));
+    }
+    return existingTask?.revisions_history || [];
+}
+
+function extractApprovalsHistory(data, existingTask) {
+    if (!data) return existingTask?.approvals_history || [];
+    const list = data.approvals_history || data.approvalsHistory;
+    if (Array.isArray(list) && list.length > 0) {
+        return list.map(a => ({
+            user_name: a.user?.name || a.user_name || 'Team Member',
+            stage: a.stage || 'Approval Stage',
+            notes: a.notes || '',
+            date: a.date || (a.created_at ? formatDateTimeDisplay(a.created_at) : ''),
+            created_at: a.created_at
+        }));
+    }
+    return existingTask?.approvals_history || [];
 }
 
 function extractReferenceFiles(data) {
@@ -2203,12 +2336,18 @@ async function openCampaignDetailsModal(taskId) {
 
     modal.dataset.currentTaskId = taskId;
     modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Update URL hash without scrolling
+    if (window.location.hash !== '#deliverable-' + taskId) {
+        history.pushState({ taskId: taskId }, '', '#deliverable-' + taskId);
+    }
 
     let task = campaignDeliverablesData[taskId] || null;
     if (task) {
         renderCampaignDetailsModalContent(task);
     } else {
-        renderCampaignDetailsModalLoading();
+        renderCampaignDetailsModalLoading(taskId);
     }
 
     try {
@@ -2234,7 +2373,12 @@ async function openCampaignDetailsModal(taskId) {
                 reference_urls_list: extractReferenceUrls(freshData),
                 assignee_name: freshData.writer?.name || freshData.designer?.name || task?.assignee_name || 'Unassigned',
                 approver_name: freshData.approver?.name || task?.approver_name || null,
-                created_at_formatted: freshData.created_at ? formatDateDisplay(freshData.created_at) : (task?.created_at_formatted || null)
+                created_at_formatted: freshData.created_at ? formatDateDisplay(freshData.created_at) : (task?.created_at_formatted || null),
+                revisions: freshData.revisions !== undefined ? Number(freshData.revisions) : (task?.revisions ?? 0),
+                revision_instructions: freshData.revision_instructions || task?.revision_instructions || '',
+                revision_deadline: freshData.revision_deadline ? formatDateDisplay(freshData.revision_deadline) : (task?.revision_deadline || null),
+                revisions_history: extractRevisionsHistory(freshData, task),
+                approvals_history: extractApprovalsHistory(freshData, task)
             };
             if (modal.style.display !== 'none' && modal.dataset.currentTaskId == taskId) {
                 renderCampaignDetailsModalContent(campaignDeliverablesData[taskId]);
@@ -2250,19 +2394,56 @@ function closeCampaignDetailsModal() {
     if (modal) {
         modal.style.display = 'none';
         modal.dataset.currentTaskId = '';
+        document.body.style.overflow = '';
+    }
+    if (window.location.hash && window.location.hash.startsWith('#deliverable-')) {
+        history.pushState(null, '', window.location.pathname + window.location.search);
     }
 }
 
-function renderCampaignDetailsModalLoading() {
+window.addEventListener('popstate', function() {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#deliverable-')) {
+        const taskId = hash.replace('#deliverable-', '');
+        if (taskId) {
+            openCampaignDetailsModal(taskId);
+        }
+    } else {
+        const modal = document.getElementById('campaignDetailsModalOverlay');
+        if (modal && modal.style.display !== 'none') {
+            modal.style.display = 'none';
+            modal.dataset.currentTaskId = '';
+            document.body.style.overflow = '';
+        }
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#deliverable-')) {
+        const taskId = hash.replace('#deliverable-', '');
+        if (taskId) {
+            setTimeout(() => {
+                openCampaignDetailsModal(taskId);
+            }, 120);
+        }
+    }
+});
+
+function renderCampaignDetailsModalLoading(taskId) {
+    const idEl = document.getElementById('campaignModalIdBadge');
+    if (idEl) idEl.textContent = taskId ? '#' + taskId : '#...';
+
     const titleEl = document.getElementById('campaignModalTitle');
     if (titleEl) titleEl.textContent = 'Loading Deliverable Details…';
 
     const body = document.getElementById('campaignModalBody');
     if (body) {
         body.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--color-text-secondary); gap: 12px;">
-                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"/></svg>
-                <div style="font-size: 13px; font-weight: 600;">Fetching deliverable brief and references…</div>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; color: var(--color-text-secondary); gap: 14px;">
+                <svg width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"/></svg>
+                <div style="font-size: 14px; font-weight: 700; color: var(--color-text-primary);">Loading deliverable details…</div>
+                <div style="font-size: 12px; color: var(--color-text-secondary);">Fetching brief, references, revision cycles, and stage history.</div>
             </div>
         `;
     }
@@ -2270,6 +2451,9 @@ function renderCampaignDetailsModalLoading() {
 
 function renderCampaignDetailsModalContent(task) {
     if (!task) return;
+
+    const idEl = document.getElementById('campaignModalIdBadge');
+    if (idEl) idEl.textContent = '#' + task.id;
 
     const titleEl = document.getElementById('campaignModalTitle');
     if (titleEl) titleEl.textContent = task.title || 'Untitled Deliverable';
@@ -2450,7 +2634,7 @@ function renderCampaignDetailsModalContent(task) {
                     <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 8px;">
                         Reference Files (${refFiles.length})
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;">
             `;
 
             refFiles.forEach(fileUrl => {
@@ -2577,6 +2761,209 @@ function renderCampaignDetailsModalContent(task) {
             `;
         }
 
+        html += `</div>`;
+    }
+    html += `</div>`;
+
+    // 3. Revision History Section
+    const revs = Array.isArray(task.revisions_history) ? [...task.revisions_history] : [];
+    // Fallback: If revisions count > 0 or revision_instructions exist but array is empty, synthesize latest entry
+    if (revs.length === 0 && (Number(task.revisions) > 0 || task.revision_instructions)) {
+        revs.push({
+            round: Number(task.revisions) || 1,
+            user_name: task.approver_name || 'Approver',
+            instructions: task.revision_instructions || 'Revision requested',
+            stage: 'Approval Stage',
+            image_path: null,
+            revision_deadline: task.revision_deadline || null,
+            date: task.created_at_formatted || '',
+            created_at: null,
+            fixed_at: null,
+            fixed_by_user_name: null
+        });
+    }
+
+    html += `
+        <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border-primary);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 26px; height: 26px; border-radius: 7px; background: rgba(245, 158, 11, 0.12); color: #d97706; display: flex; align-items: center; justify-content: center;">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </div>
+                    <span style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
+                        Revision History
+                    </span>
+                    ${revs.length > 0 ? `
+                        <span style="font-size: 10px; font-weight: 800; background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); padding: 1px 7px; border-radius: 9999px;">
+                            ${revs.length} ${revs.length === 1 ? 'Round' : 'Rounds'}
+                        </span>
+                    ` : ''}
+                </div>
+            </div>
+    `;
+
+    if (revs.length === 0) {
+        html += `
+            <div style="padding: 20px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <div>
+                    <div style="font-size: 12.5px; font-weight: 700; color: var(--color-text-primary);">No revisions requested</div>
+                    <div style="font-size: 11.5px; color: var(--color-text-secondary); margin-top: 2px;">This deliverable has not required any revision cycles.</div>
+                </div>
+            </div>
+        `;
+    } else {
+        html += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
+        revs.forEach((r, idx) => {
+            const roundNum = r.round !== undefined ? r.round : (revs.length - idx);
+            const dateStr = r.date || (r.created_at ? formatDateTimeDisplay(r.created_at) : '');
+            const hasImage = Boolean(r.image_path);
+            const isResolved = Boolean(r.fixed_at);
+
+            html += `
+                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 8px; border-radius: 6px;">
+                                Round ${roundNum}
+                            </span>
+                            <span style="font-size: 11.5px; font-weight: 700; color: var(--color-text-primary);">
+                                By ${escapeHtml(r.user_name || 'Approver')}
+                            </span>
+                            <span style="font-size: 11px; color: var(--color-text-secondary);">
+                                • from ${escapeHtml(r.stage || 'Approval Stage')}
+                            </span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            ${isResolved ? `
+                                <span style="font-size: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    Resolved
+                                </span>
+                            ` : `
+                                <span style="font-size: 10px; font-weight: 700; background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 7px; border-radius: 5px;">
+                                    Awaiting Updates
+                                </span>
+                            `}
+                            ${dateStr ? `
+                                <span style="font-size: 11px; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 4px;">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    ${escapeHtml(dateStr)}
+                                </span>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    ${r.instructions ? `
+                        <div style="padding: 10px 12px; background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 8px; font-size: 12.5px; line-height: 1.55; color: var(--color-text-primary); white-space: pre-wrap; word-break: break-word;">
+                            ${escapeHtml(r.instructions)}
+                        </div>
+                    ` : ''}
+
+                    ${r.revision_deadline ? `
+                        <div style="font-size: 11px; color: #ef4444; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Revision Deadline: ${escapeHtml(r.revision_deadline)}
+                        </div>
+                    ` : ''}
+
+                    ${hasImage ? `
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 2px;">
+                            <button type="button" 
+                                    onclick="previewDeliverableArtwork('${escapeHtml(r.image_path)}', 'Revision Markup - Round ${roundNum}', '${escapeHtml(r.image_path)}')" 
+                                    style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: #3b82f6; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                <span>View Annotated Markup</span>
+                            </button>
+                        </div>
+                    ` : ''}
+
+                    ${isResolved && r.fixed_at ? `
+                        <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; display: inline-flex; align-items: center; gap: 4px;">
+                            <svg width="12" height="12" fill="none" stroke="#10b981" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            <span>Resolved on ${escapeHtml(r.fixed_at)}${r.fixed_by_user_name ? ' by ' + escapeHtml(r.fixed_by_user_name) : ''}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    html += `</div>`;
+
+    // 4. Sent for Approval & Stage History Section
+    const approvals = Array.isArray(task.approvals_history) ? [...task.approvals_history] : [];
+
+    html += `
+        <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border-primary);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 26px; height: 26px; border-radius: 7px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center;">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <span style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
+                        Sent for Approval & Stage History
+                    </span>
+                    ${approvals.length > 0 ? `
+                        <span style="font-size: 10px; font-weight: 800; background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.25); padding: 1px 7px; border-radius: 9999px;">
+                            ${approvals.length} ${approvals.length === 1 ? 'Event' : 'Events'}
+                        </span>
+                    ` : ''}
+                </div>
+            </div>
+    `;
+
+    if (approvals.length === 0) {
+        html += `
+            <div style="padding: 20px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div>
+                    <div style="font-size: 12.5px; font-weight: 700; color: var(--color-text-primary);">No approval submissions logged yet</div>
+                    <div style="font-size: 11.5px; color: var(--color-text-secondary); margin-top: 2px;">When this deliverable is submitted for review or approved, stage history will appear here.</div>
+                </div>
+            </div>
+        `;
+    } else {
+        html += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
+        approvals.forEach((a) => {
+            const dateStr = a.date || (a.created_at ? formatDateTimeDisplay(a.created_at) : '');
+            const stageLower = (a.stage || '').toLowerCase();
+            const isApproved = stageLower.includes('approved') || stageLower.includes('complete');
+
+            const badgeColor = isApproved ? '#10b981' : '#2563eb';
+            const badgeBg = isApproved ? 'rgba(16, 185, 129, 0.12)' : 'rgba(59, 130, 246, 0.12)';
+            const badgeBorder = isApproved ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.25)';
+
+            html += `
+                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; background: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeBorder}; padding: 2px 8px; border-radius: 6px;">
+                                ${escapeHtml(a.stage || 'Stage Update')}
+                            </span>
+                            <span style="font-size: 11.5px; font-weight: 700; color: var(--color-text-primary);">
+                                ${escapeHtml(a.user_name || 'Team Member')}
+                            </span>
+                        </div>
+                        ${dateStr ? `
+                            <span style="font-size: 11px; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 4px;">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                ${escapeHtml(dateStr)}
+                            </span>
+                        ` : ''}
+                    </div>
+                    ${a.notes ? `
+                        <div style="font-size: 12px; color: var(--color-text-secondary); line-height: 1.45; padding-left: 2px;">
+                            ${escapeHtml(a.notes)}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
         html += `</div>`;
     }
     html += `</div>`;
@@ -2815,78 +3202,119 @@ document.addEventListener('keydown', function(event) {
     </div>
 </div>
 
-{{-- Modal: Deliverable Brief & References Details Modal (Campaign & Pitch Flow) --}}
+{{-- Full Page View: Deliverable Brief, References, Revision History & Stage Progression --}}
 <div id="campaignDetailsModalOverlay" 
-     style="display: none; position: fixed; inset: 0; z-index: 99990; align-items: center; justify-content: center; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); padding: 16px;" 
-     onclick="if(event.target === this) closeCampaignDetailsModal()">
+     style="display: none; position: fixed; inset: 0; z-index: 99990; width: 100vw; height: 100vh; background: var(--color-bg-primary); flex-direction: column; overflow: hidden;">
     <div id="campaignDeliverableDetailsModal" 
-         style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 16px; width: 100%; max-width: 820px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 60px rgba(0,0,0,0.35); overflow: hidden;">
+         style="background: var(--color-bg-primary); width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
         
-        {{-- Modal Header --}}
-        <div style="padding: 16px 22px; border-bottom: 1px solid var(--color-border-primary); display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; background: var(--color-bg-secondary); flex-shrink: 0;">
-            <div style="min-width: 0; flex: 1;">
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
-                    <span id="campaignModalPostTypeBadge" style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #3b82f6; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); padding: 2px 7px; border-radius: 5px;">
-                        Outlines
-                    </span>
-                    <span id="campaignModalStatusBadge" style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); padding: 2px 7px; border-radius: 5px;">
-                        To Do
-                    </span>
-                    <span id="campaignModalPriorityBadge" style="font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #10b981; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); padding: 2px 7px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px;">
-                        <span id="campaignModalPriorityDot" style="width: 5px; height: 5px; border-radius: 50%; background: #10b981;"></span>
-                        <span id="campaignModalPriorityText">Medium</span>
-                    </span>
+        {{-- Full Page Top Navigation Bar --}}
+        <div style="padding: 16px 28px; border-bottom: 1px solid var(--color-border-primary); background: var(--color-bg-secondary); flex-shrink: 0;">
+            <div style="max-width: 1400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex-wrap: wrap;">
+                    <button type="button" 
+                            onclick="closeCampaignDetailsModal()" 
+                            style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: var(--color-text-primary); font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; flex-shrink: 0;"
+                            onmouseover="this.style.borderColor='var(--color-text-primary)';"
+                            onmouseout="this.style.borderColor='var(--color-border-primary)';"
+                            title="Back to Kanban Board (Esc)">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                        <span>Back to Board</span>
+                    </button>
+                    
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span id="campaignModalIdBadge" style="font-size: 11px; font-family: monospace; font-weight: 800; background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: var(--color-text-secondary); padding: 2px 7px; border-radius: 5px;">
+                            #...
+                        </span>
+                        <span id="campaignModalPostTypeBadge" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #3b82f6; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); padding: 2px 8px; border-radius: 5px;">
+                            Outlines
+                        </span>
+                        <span id="campaignModalStatusBadge" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); padding: 2px 8px; border-radius: 5px;">
+                            To Do
+                        </span>
+                        <span id="campaignModalPriorityBadge" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #10b981; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); padding: 2px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 5px;">
+                            <span id="campaignModalPriorityDot" style="width: 5px; height: 5px; border-radius: 50%; background: #10b981;"></span>
+                            <span id="campaignModalPriorityText">Medium</span>
+                        </span>
+                    </div>
                 </div>
-                <h3 id="campaignModalTitle" style="margin: 0; font-size: 17px; font-weight: 800; color: var(--color-text-primary); line-height: 1.35; letter-spacing: -0.01em; word-break: break-word;">
-                    Deliverable Details
-                </h3>
+
+                <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                    <button type="button" 
+                            onclick="closeCampaignDetailsModal()" 
+                            style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: var(--color-text-secondary); font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px;"
+                            onmouseover="this.style.color='var(--color-text-primary)'; this.style.borderColor='var(--color-text-primary)';"
+                            onmouseout="this.style.color='var(--color-text-secondary)'; this.style.borderColor='var(--color-border-primary)';"
+                            title="Close full page (Esc)">
+                        <span>Esc</span>
+                    </button>
+                    <button type="button" 
+                            onclick="closeCampaignDetailsModal()" 
+                            style="background: transparent; border: 1px solid var(--color-border-primary); cursor: pointer; color: var(--color-text-secondary); width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: all 0.15s;"
+                            onmouseover="this.style.color='var(--color-text-primary)'; this.style.borderColor='var(--color-text-primary)';"
+                            onmouseout="this.style.color='var(--color-text-secondary)'; this.style.borderColor='var(--color-border-primary)';"
+                            title="Close (Esc)">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
             </div>
-            <button type="button" 
-                    onclick="closeCampaignDetailsModal()" 
-                    style="background: transparent; border: 1px solid var(--color-border-primary); cursor: pointer; color: var(--color-text-secondary); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s;"
-                    onmouseover="this.style.color='var(--color-text-primary)'; this.style.borderColor='var(--color-text-primary)';"
-                    onmouseout="this.style.color='var(--color-text-secondary)'; this.style.borderColor='var(--color-border-primary)';"
-                    title="Close (Esc)">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+
+            {{-- Title Row in Header --}}
+            <div style="max-width: 1400px; margin: 12px auto 0 auto;">
+                <h1 id="campaignModalTitle" style="margin: 0; font-size: 24px; font-weight: 900; color: var(--color-text-primary); line-height: 1.3; letter-spacing: -0.015em; word-break: break-word;">
+                    Deliverable Details
+                </h1>
+            </div>
         </div>
 
         {{-- Meta Information Bar --}}
-        <div style="padding: 10px 22px; background: var(--color-bg-primary); border-bottom: 1px solid var(--color-border-primary); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; font-size: 11.5px; flex-shrink: 0;">
-            <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                <span>Assignee:</span>
-                <strong id="campaignModalAssignee" style="color: var(--color-text-primary); font-weight: 700;">Unassigned</strong>
-            </div>
-            <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                <span>Approver:</span>
-                <strong id="campaignModalApprover" style="color: var(--color-text-primary); font-weight: 700;">Unassigned</strong>
-            </div>
-            <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                <span>Due Date:</span>
-                <strong id="campaignModalDeadline" style="color: var(--color-text-primary); font-weight: 700;">No deadline</strong>
+        <div style="padding: 12px 28px; background: var(--color-bg-primary); border-bottom: 1px solid var(--color-border-primary); flex-shrink: 0;">
+            <div style="max-width: 1400px; margin: 0 auto; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; font-size: 12px;">
+                <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    <span>Assignee:</span>
+                    <strong id="campaignModalAssignee" style="color: var(--color-text-primary); font-weight: 700;">Unassigned</strong>
+                </div>
+                <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    <span>Approver:</span>
+                    <strong id="campaignModalApprover" style="color: var(--color-text-primary); font-weight: 700;">Unassigned</strong>
+                </div>
+                <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span>Due Date:</span>
+                    <strong id="campaignModalDeadline" style="color: var(--color-text-primary); font-weight: 700;">No deadline</strong>
+                </div>
+                <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); margin-left: auto;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                    <span>Project:</span>
+                    <strong style="color: var(--color-text-primary); font-weight: 700;">{{ $project->name }}</strong>
+                </div>
             </div>
         </div>
 
-        {{-- Scrollable Content Body --}}
-        <div id="campaignModalBody" style="padding: 22px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 24px;">
-            {{-- Content injected by renderCampaignDetailsModalContent() --}}
+        {{-- Full Page Scrollable Content Body --}}
+        <div style="overflow-y: auto; flex: 1; width: 100%;">
+            <div id="campaignModalBody" style="max-width: 1400px; margin: 0 auto; width: 100%; padding: 32px 28px 60px 28px; display: flex; flex-direction: column; gap: 32px;">
+                {{-- Content injected by renderCampaignDetailsModalContent() --}}
+            </div>
         </div>
 
-        {{-- Modal Footer --}}
-        <div style="padding: 12px 22px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0;">
-            <div id="campaignModalFooterMeta" style="font-size: 11px; color: var(--color-text-secondary);">
-                {{-- ID / Created date --}}
+        {{-- Full Page Bottom Bar --}}
+        <div style="padding: 14px 28px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); flex-shrink: 0;">
+            <div style="max-width: 1400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                <div id="campaignModalFooterMeta" style="font-size: 11.5px; color: var(--color-text-secondary);">
+                    {{-- ID / Created date --}}
+                </div>
+                <button type="button" 
+                        onclick="closeCampaignDetailsModal()" 
+                        style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: var(--color-text-primary); font-size: 12px; font-weight: 700; padding: 7px 18px; border-radius: 8px; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;"
+                        onmouseover="this.style.background='var(--color-bg-secondary)';"
+                        onmouseout="this.style.background='var(--color-bg-primary)';">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    <span>Back to Kanban Board</span>
+                </button>
             </div>
-            <button type="button" 
-                    onclick="closeCampaignDetailsModal()" 
-                    style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: var(--color-text-primary); font-size: 12px; font-weight: 700; padding: 7px 18px; border-radius: 8px; cursor: pointer; transition: all 0.15s;"
-                    onmouseover="this.style.background='var(--color-bg-secondary)';"
-                    onmouseout="this.style.background='var(--color-bg-primary)';">
-                Close
-            </button>
         </div>
     </div>
 </div>

@@ -17,13 +17,12 @@ class ProjectTypeToggleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        // Reset feature flags settings file
-        Storage::disk('local')->delete('settings.json');
+        // Use isolated in-memory fake storage
+        Storage::fake('local');
     }
 
     protected function tearDown(): void
     {
-        Storage::disk('local')->delete('settings.json');
         parent::tearDown();
     }
 

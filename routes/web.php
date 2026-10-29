@@ -13,6 +13,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SubtaskTypeController;
 use App\Http\Controllers\Admin\MaintenanceController;
 use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\AnalyticsController;
 
 Route::get('/invite/{token}', [RegisterController::class, 'show'])->name('register');
 Route::post('/invite/{token}', [RegisterController::class, 'store']);
@@ -39,6 +40,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::resource('brands', BrandController::class);
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+    Route::get('/analytics/export', [AnalyticsController::class, 'exportCsv'])->name('analytics.export');
+    Route::get('/analytics/deliverables/{deliverable}', [AnalyticsController::class, 'showDeliverable'])->name('analytics.deliverables.show');
     Route::post('/deliverables/{deliverable}/batch-submit', [DeliverableController::class, 'batchSubmit'])->name('deliverables.batchSubmit');
     Route::get('brands/{brand}/retainer-board', [BrandController::class, 'retainerBoard'])->name('brands.retainer-board');
     Route::resource('projects', ProjectController::class);
@@ -93,6 +97,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/maintenance/message', [MaintenanceController::class, 'updateMessage'])->name('admin.maintenance.message');
         Route::post('/settings/toggle-client-review', [UserController::class, 'toggleClientReview'])->name('admin.features.toggle-client-review');
         Route::post('/settings/toggle-direct-design', [UserController::class, 'toggleDirectDesign'])->name('admin.features.toggle-direct-design');
+        Route::post('/settings/toggle-analytics', [UserController::class, 'toggleAnalytics'])->name('admin.features.toggle-analytics');
+        Route::post('/settings/toggle-halloween-theme', [UserController::class, 'toggleHalloweenTheme'])->name('admin.features.toggle-halloween-theme');
+        Route::post('/settings/toggle-christmas-theme', [UserController::class, 'toggleChristmasTheme'])->name('admin.features.toggle-christmas-theme');
+        Route::post('/settings/theme', [UserController::class, 'updateActiveTheme'])->name('admin.settings.theme');
         Route::post('/settings/toggle-project-type', [UserController::class, 'toggleProjectType'])->name('admin.features.toggle-project-type');
         Route::resource('users', UserController::class)->except(['show']);
         Route::resource('subtask-types', SubtaskTypeController::class)->only(['index', 'store', 'destroy']);

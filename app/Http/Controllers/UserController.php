@@ -142,8 +142,22 @@ class UserController extends Controller
         $maintenance = \App\Http\Controllers\Admin\MaintenanceController::getStatus();
         $clientReviewEnabled = \App\Services\FeatureManager::isClientReviewEnabled();
         $directDesignEnabled = \App\Services\FeatureManager::isDirectDesignEnabled();
+        $analyticsEnabled = \App\Services\FeatureManager::isAnalyticsEnabled();
+        $halloweenThemeEnabled = \App\Services\FeatureManager::isHalloweenThemeEnabled();
+        $activeTheme = \App\Services\FeatureManager::getActiveTheme();
         $projectTypesStatus = \App\Services\FeatureManager::getProjectTypesStatus();
-        return view('admin.settings', compact('maintenance', 'clientReviewEnabled', 'directDesignEnabled', 'projectTypesStatus'));
+        return view('admin.settings', compact('maintenance', 'clientReviewEnabled', 'directDesignEnabled', 'analyticsEnabled', 'halloweenThemeEnabled', 'activeTheme', 'projectTypesStatus'));
+    }
+
+    public function toggleAnalytics(Request $request)
+    {
+        $newStatus = \App\Services\FeatureManager::toggleAnalytics();
+
+        $msg = $newStatus
+            ? 'Analytics & Reports tab has been ENABLED. Team members can now view the analytics reports.'
+            : 'Analytics & Reports tab has been DISABLED. The analytics tab is now hidden.';
+
+        return redirect()->route('admin.settings')->with('success', $msg);
     }
 
     public function toggleDirectDesign(Request $request)
@@ -169,6 +183,47 @@ class UserController extends Controller
             : 'Send to Client feature has been DISABLED. External client review sessions are now paused.';
 
         return redirect()->route('admin.settings')->with('success', $msg);
+    }
+
+    public function toggleHalloweenTheme(Request $request)
+    {
+        $newStatus = \App\Services\FeatureManager::toggleHalloweenTheme();
+
+        $msg = $newStatus
+            ? 'Halloween Theme (Spooky Mode) has been ENABLED across the platform. All workspaces are now in Halloween theme.'
+            : 'Halloween Theme (Spooky Mode) has been DISABLED. Standard themes restored.';
+
+        return redirect()->route('admin.settings')->with('success', $msg);
+    }
+
+    public function toggleChristmasTheme(Request $request)
+    {
+        $newStatus = \App\Services\FeatureManager::toggleChristmasTheme();
+
+        $msg = $newStatus
+            ? 'Christmas Theme (Festive Mode 🎄) has been ENABLED across the platform. All workspaces are now in holiday mode.'
+            : 'Christmas Theme (Festive Mode 🎄) has been DISABLED. Standard themes restored.';
+
+        return redirect()->route('admin.settings')->with('success', $msg);
+    }
+
+    public function updateActiveTheme(Request $request)
+    {
+        $validated = $request->validate([
+            'theme' => 'required|string|in:halloween,christmas,dark,light',
+        ]);
+
+        \App\Services\FeatureManager::setActiveTheme($validated['theme']);
+
+        $themeNames = [
+            'halloween' => 'Halloween Theme (Spooky Mode 🎃)',
+            'christmas' => 'Christmas Holiday Theme (Festive Mode 🎄)',
+            'dark' => 'Standard Dark Theme 🌙',
+            'light' => 'Standard Light Theme ☀️',
+        ];
+        $chosen = $themeNames[$validated['theme']] ?? 'Theme';
+
+        return redirect()->route('admin.settings')->with('success', "Platform active theme changed to {$chosen}.");
     }
 
     public function toggleProjectType(Request $request)

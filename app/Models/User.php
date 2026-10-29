@@ -60,6 +60,17 @@ class User extends Authenticatable
         return in_array($this->role, ['Admin', 'Owner']);
     }
 
+    /**
+     * Determine if the user has a managerial role.
+     * Managers can see brand-wise and project-wise reports.
+     *
+     * @return bool
+     */
+    public function isManager(): bool
+    {
+        return in_array($this->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager']);
+    }
+
     public function getAvatarUrlAttribute()
     {
         return "https://ui-avatars.com/api/?name=" . urlencode($this->name) . "&background=FFEDD5&color=C2410C";

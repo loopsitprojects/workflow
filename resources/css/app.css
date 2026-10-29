@@ -5,22 +5,479 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
-:root {
+:root,
+:root[data-theme="light"],
+html:not(.dark) {
     color-scheme: light;
+    /* Legacy variables fallback */
     --color-bg-primary: #ffffff;
-    --color-bg-secondary: #f1f5f9;
-    --color-text-primary: #000000;
-    --color-text-secondary: #000000;
+    --color-bg-secondary: #f8fafc;
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #64748b;
     --color-border-primary: #e2e8f0;
+
+    /* Navbar */
+    --bg-navbar: #0A2540; /* Deep Blue Header */
+    --text-navbar: #FFFFFF;
+    --text-navbar-muted: #94A3B8;
+    
+    /* Board Canvas */
+    --bg-app: #F8FAFC;
+    --bg-column: #F1F5F9;
+    --border-column: #E2E8F0;
+    
+    /* Cards */
+    --bg-card: #FFFFFF;
+    --border-card: #E2E8F0;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.03);
+    --text-card-title: #0F172A;
+    --text-card-sub: #64748B;
 }
 
-.dark {
+.dark,
+:root[data-theme="dark"],
+html.dark {
     color-scheme: dark;
+    /* Legacy variables fallback */
     --color-bg-primary: #111827;
-    --color-bg-secondary: #0b1120;
-    --color-text-primary: #f0f4ff;
-    --color-text-secondary: #cbd5e1;
-    --color-border-primary: #1e2d45;
+    --color-bg-secondary: #090d16;
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #9ca3af;
+    --color-border-primary: #1f2937;
+
+    /* Navbar */
+    --bg-navbar: #0F172A;
+    --text-navbar: #F8FAFC;
+    --text-navbar-muted: #94A3B8;
+    
+    /* Board Canvas */
+    --bg-app: #090D16;
+    --bg-column: #111827;
+    --border-column: #1F2937;
+    
+    /* Cards */
+    --bg-card: #1F2937;
+    --border-card: rgba(255, 255, 255, 0.08);
+    --shadow-card: 0 4px 16px rgba(0,0,0,0.4);
+    --text-card-title: #F9FAFB;
+    --text-card-sub: #9CA3AF;
+}
+
+.dark.halloween,
+html.dark.halloween,
+:root[data-theme="halloween"] {
+    color-scheme: dark;
+    --color-bg-primary: #150e24;
+    --color-bg-secondary: #0c0716;
+    --color-text-primary: #fdf8ff;
+    --color-text-secondary: #c084fc;
+    --color-border-primary: #2d1845;
+    --color-accent-halloween: #f97316;
+}
+
+:root[data-theme="halloween-light"],
+html[data-theme="halloween-light"],
+html.halloween:not(.dark) {
+    color-scheme: light;
+    --bg-app: #FAF7F5;
+    --bg-surface: #FFFFFF;
+    --bg-surface-subtle: #F4EFF8;
+    --border-color: #E6DDF0;
+    
+    --text-primary: #1E122A;
+    --text-secondary: #6B5E7A;
+    --text-muted: #9E90B0;
+    
+    --accent-orange: #E65100;
+    --accent-purple: #6A1B9A;
+    
+    --badge-orange-bg: #FFEAD8;
+    --badge-orange-text: #C2410C;
+    --badge-purple-bg: #F3E8FF;
+    --badge-purple-text: #6B21A8;
+
+    --color-bg-primary: #FFFFFF;
+    --color-bg-secondary: #FAF7F5;
+    --color-text-primary: #1E122A;
+    --color-text-secondary: #6B5E7A;
+    --color-border-primary: #E6DDF0;
+    --color-accent-halloween: #E65100;
+}
+
+/* =========================================================
+   HALLOWEEN DARK AMBIENT & SURFACES
+   ========================================================= */
+.dark.halloween body,
+html.dark.halloween body {
+    background-color: #0c0716 !important;
+    background-image: 
+        radial-gradient(circle at 85% 15%, rgba(147, 51, 234, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 15% 85%, rgba(234, 88, 12, 0.09) 0%, transparent 50%) !important;
+    background-attachment: fixed !important;
+}
+
+.dark.halloween main,
+html.dark.halloween main {
+    background-color: transparent !important;
+}
+
+/* Dark Spooky Surfaces & Cards */
+.dark.halloween .card-shadow,
+html.dark.halloween .card-shadow {
+    border-color: #2d1845 !important;
+    box-shadow: 0 4px 24px -2px rgba(8, 4, 15, 0.8), 0 0 15px -3px rgba(249, 115, 22, 0.08) !important;
+}
+
+.dark.halloween .card-shadow:hover,
+html.dark.halloween .card-shadow:hover {
+    border-color: rgba(249, 115, 22, 0.45) !important;
+    box-shadow: 0 6px 28px -2px rgba(8, 4, 15, 0.9), 0 0 20px -2px rgba(249, 115, 22, 0.2) !important;
+}
+
+.dark.halloween [class*="dark:bg-[#111827]"],
+.dark.halloween [class*="dark:bg-[#0F172A]"],
+html.dark.halloween [class*="dark:bg-[#111827]"],
+html.dark.halloween [class*="dark:bg-[#0F172A]"] {
+    background-color: #150e24 !important;
+}
+
+.dark.halloween [class*="dark:border-slate-800]"],
+.dark.halloween [class*="dark:border-white/[0.05]"],
+.dark.halloween [class*="dark:border-white/[0.06]"],
+html.dark.halloween [class*="dark:border-slate-800]"],
+html.dark.halloween [class*="dark:border-white/[0.05]"],
+html.dark.halloween [class*="dark:border-white/[0.06]"] {
+    border-color: #2d1845 !important;
+}
+
+/* Dark Glass & Navigation */
+.dark.halloween .glass,
+html.dark.halloween .glass {
+    background: rgba(21, 14, 36, 0.85) !important;
+    border-color: rgba(147, 51, 234, 0.2) !important;
+}
+
+.dark.halloween .nav-active,
+html.dark.halloween .nav-active {
+    color: #fb923c !important;
+    border-bottom: 2px solid #f97316 !important;
+}
+
+/* =========================================================
+   HALLOWEEN LIGHT AMBIENT & SURFACES
+   ========================================================= */
+html.halloween:not(.dark) body,
+html[data-theme="halloween-light"] body {
+    background-color: var(--bg-app, #FAF7F5) !important;
+    background-image: 
+        radial-gradient(circle at 90% 10%, rgba(230, 81, 0, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 10% 90%, rgba(106, 27, 154, 0.04) 0%, transparent 45%) !important;
+    background-attachment: fixed !important;
+    color: var(--text-primary, #1E122A) !important;
+}
+
+html.halloween:not(.dark) main,
+html[data-theme="halloween-light"] main {
+    background-color: transparent !important;
+}
+
+/* Light Mode Cards, Project Tiles, and Kanban Cards */
+html.halloween:not(.dark) .card-shadow,
+html.halloween:not(.dark) .project-tile,
+html.halloween:not(.dark) .kanban-card,
+html[data-theme="halloween-light"] .card-shadow,
+html[data-theme="halloween-light"] .project-tile,
+html[data-theme="halloween-light"] .kanban-card {
+    background-color: var(--bg-surface, #FFFFFF) !important;
+    border: 1px solid var(--border-color, #E6DDF0) !important;
+    box-shadow: 0 4px 12px rgba(90, 24, 154, 0.06) !important;
+    color: var(--text-primary, #1E122A) !important;
+}
+
+html.halloween:not(.dark) .card-shadow:hover,
+html.halloween:not(.dark) .project-tile:hover,
+html[data-theme="halloween-light"] .card-shadow:hover,
+html[data-theme="halloween-light"] .project-tile:hover {
+    border-color: var(--accent-orange, #E65100) !important;
+    box-shadow: 0 6px 18px rgba(90, 24, 154, 0.1), 0 0 14px rgba(230, 81, 0, 0.12) !important;
+}
+
+/* Card Content Headings & Text in Light Mode */
+html.halloween:not(.dark) .card-shadow h1,
+html.halloween:not(.dark) .card-shadow h2,
+html.halloween:not(.dark) .card-shadow h3,
+html.halloween:not(.dark) .card-shadow h4,
+html.halloween:not(.dark) .project-tile h1,
+html.halloween:not(.dark) .project-tile h2,
+html.halloween:not(.dark) .project-tile h3,
+html.halloween:not(.dark) .project-tile h4,
+html.halloween:not(.dark) .project-tile span.truncate,
+html[data-theme="halloween-light"] .card-shadow h1,
+html[data-theme="halloween-light"] .card-shadow h2,
+html[data-theme="halloween-light"] .card-shadow h3,
+html[data-theme="halloween-light"] .card-shadow h4,
+html[data-theme="halloween-light"] .project-tile h1,
+html[data-theme="halloween-light"] .project-tile h2,
+html[data-theme="halloween-light"] .project-tile h3,
+html[data-theme="halloween-light"] .project-tile h4,
+html[data-theme="halloween-light"] .project-tile span.truncate {
+    color: var(--text-primary, #1E122A) !important;
+}
+
+/* Top Navigation Bar in Light Mode */
+html.halloween:not(.dark) nav,
+html[data-theme="halloween-light"] nav {
+    background: linear-gradient(180deg, #FAF8FC 0%, #F3EFF8 100%) !important;
+    border-bottom: 1px solid #E8E0F0 !important;
+    box-shadow: 0 2px 10px rgba(90, 24, 154, 0.04) !important;
+}
+
+/* Top Navigation Link Text */
+html.halloween:not(.dark) nav .nav-item-inactive,
+html.halloween:not(.dark) nav a:not(.nav-item-active):not([href*="settings"]):not([class*="h-7"]),
+html[data-theme="halloween-light"] nav .nav-item-inactive,
+html[data-theme="halloween-light"] nav a:not(.nav-item-active):not([href*="settings"]):not([class*="h-7"]) {
+    color: #2B1B40 !important;
+    opacity: 1 !important;
+    font-weight: 600 !important;
+}
+
+html.halloween:not(.dark) nav .nav-item-inactive:hover,
+html[data-theme="halloween-light"] nav .nav-item-inactive:hover {
+    color: #E65100 !important;
+    background-color: rgba(230, 81, 0, 0.08) !important;
+}
+
+/* Top Navigation Active Tab State */
+html.halloween:not(.dark) nav .nav-item-active,
+html[data-theme="halloween-light"] nav .nav-item-active {
+    color: #E65100 !important;
+    background-color: #FFEAD8 !important;
+    border-bottom: 2px solid #E65100 !important;
+    border-radius: 8px 8px 0 0 !important;
+    font-weight: 700 !important;
+}
+
+/* Top Navigation User Icons & Buttons */
+html.halloween:not(.dark) nav button,
+html.halloween:not(.dark) nav button svg,
+html.halloween:not(.dark) nav a[href*="settings"],
+html.halloween:not(.dark) nav a[href*="settings"] svg,
+html.halloween:not(.dark) nav form button,
+html.halloween:not(.dark) nav form button svg,
+html[data-theme="halloween-light"] nav button,
+html[data-theme="halloween-light"] nav button svg,
+html[data-theme="halloween-light"] nav a[href*="settings"],
+html[data-theme="halloween-light"] nav a[href*="settings"] svg,
+html[data-theme="halloween-light"] nav form button,
+html[data-theme="halloween-light"] nav form button svg {
+    color: #2B1B40 !important;
+}
+
+html.halloween:not(.dark) nav button:hover,
+html.halloween:not(.dark) nav a[href*="settings"]:hover,
+html.halloween:not(.dark) nav form button:hover,
+html[data-theme="halloween-light"] nav button:hover,
+html[data-theme="halloween-light"] nav a[href*="settings"]:hover,
+html[data-theme="halloween-light"] nav form button:hover {
+    color: #E65100 !important;
+    background-color: rgba(230, 81, 0, 0.08) !important;
+}
+
+/* Badges inside Cards in Light Mode ("RETAINER", "CAMPAIGN", "Due in 3d") */
+html.halloween:not(.dark) .badge-retainer,
+html[data-theme="halloween-light"] .badge-retainer {
+    background: #E0F2FE !important;
+    color: #0369A1 !important;
+    border: 1px solid #BAE6FD !important;
+}
+
+html.halloween:not(.dark) .badge-campaign,
+html[data-theme="halloween-light"] .badge-campaign {
+    background: var(--badge-purple-bg, #F3E8FF) !important;
+    color: var(--badge-purple-text, #6B21A8) !important;
+    border: 1px solid #E9D5FF !important;
+}
+
+html.halloween:not(.dark) .badge-pitch,
+html[data-theme="halloween-light"] .badge-pitch {
+    background: var(--badge-orange-bg, #FFEAD8) !important;
+    color: var(--badge-orange-text, #C2410C) !important;
+    border: 1px solid #FFEDD5 !important;
+}
+
+html.halloween:not(.dark) .badge-job-number,
+html[data-theme="halloween-light"] .badge-job-number {
+    background: #EDE9FE !important;
+    color: #5B21B6 !important;
+    border: 1px solid #DDD6FE !important;
+}
+
+html.halloween:not(.dark) .badge-due,
+html.halloween:not(.dark) .badge-due-warning,
+html[data-theme="halloween-light"] .badge-due,
+html[data-theme="halloween-light"] .badge-due-warning {
+    background: #FEF3C7 !important;
+    color: #B45309 !important;
+    border: 1px solid #FDE68A !important;
+}
+
+html.halloween:not(.dark) .badge-due-today,
+html[data-theme="halloween-light"] .badge-due-today {
+    background: var(--badge-orange-bg, #FFEAD8) !important;
+    color: var(--badge-orange-text, #C2410C) !important;
+    border: 1px solid #FDBA74 !important;
+}
+
+html.halloween:not(.dark) .badge-due-urgent,
+html[data-theme="halloween-light"] .badge-due-urgent {
+    background: #FEE2E2 !important;
+    color: #B91C1C !important;
+    border: 1px solid #FECACA !important;
+}
+
+html.halloween:not(.dark) .badge-due-normal,
+html[data-theme="halloween-light"] .badge-due-normal {
+    background: #F4EFF8 !important;
+    color: #6B5E7A !important;
+    border: 1px solid #E6DDF0 !important;
+}
+
+/* View Board Buttons */
+html.halloween:not(.dark) .view-board-btn,
+html[data-theme="halloween-light"] .view-board-btn {
+    background-color: #FFFFFF !important;
+    color: #2B1B40 !important;
+    border: 1px solid #D8CEE2 !important;
+    box-shadow: 0 1px 3px rgba(90, 24, 154, 0.05) !important;
+}
+
+html.halloween:not(.dark) .project-tile:hover .view-board-btn,
+html.halloween:not(.dark) .group:hover .view-board-btn,
+html[data-theme="halloween-light"] .project-tile:hover .view-board-btn,
+html[data-theme="halloween-light"] .group:hover .view-board-btn {
+    background-color: var(--accent-orange, #E65100) !important;
+    color: #FFFFFF !important;
+    border-color: var(--accent-orange, #E65100) !important;
+    box-shadow: 0 2px 8px rgba(230, 81, 0, 0.25) !important;
+}
+
+/* Primary Action Buttons (e.g. + New Project) */
+html.halloween:not(.dark) .btn-new-project,
+html.halloween:not(.dark) .bg-blue-600,
+html.halloween:not(.dark) .bg-blue-500,
+html[data-theme="halloween-light"] .btn-new-project,
+html[data-theme="halloween-light"] .bg-blue-600,
+html[data-theme="halloween-light"] .bg-blue-500 {
+    background-color: var(--accent-orange, #E65100) !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    border: none !important;
+    box-shadow: 0 2px 6px rgba(230, 81, 0, 0.25) !important;
+}
+
+html.halloween:not(.dark) .btn-new-project:hover,
+html.halloween:not(.dark) .hover\:bg-blue-600:hover,
+html.halloween:not(.dark) .hover\:bg-blue-700:hover,
+html.halloween:not(.dark) .hover\:bg-blue-500:hover,
+html[data-theme="halloween-light"] .btn-new-project:hover,
+html[data-theme="halloween-light"] .hover\:bg-blue-600:hover,
+html[data-theme="halloween-light"] .hover\:bg-blue-700:hover,
+html[data-theme="halloween-light"] .hover\:bg-blue-500:hover {
+    background-color: #C2410C !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 4px 12px rgba(230, 81, 0, 0.35) !important;
+}
+
+/* Secondary Action Buttons (e.g. Edit Brand) */
+html.halloween:not(.dark) .btn-edit-brand,
+html[data-theme="halloween-light"] .btn-edit-brand {
+    background-color: #FFFFFF !important;
+    border: 1px solid #D8CEE2 !important;
+    color: #2B1B40 !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 3px rgba(90, 24, 154, 0.05) !important;
+}
+
+html.halloween:not(.dark) .btn-edit-brand:hover,
+html[data-theme="halloween-light"] .btn-edit-brand:hover {
+    background-color: #F4EFF8 !important;
+    border-color: #C8BED2 !important;
+    color: #1E122A !important;
+}
+
+/* General Halloween Accents */
+.dark.halloween .bg-blue-600,
+.dark.halloween .bg-blue-500 {
+    background-color: #ea580c !important;
+}
+.dark.halloween .hover\:bg-blue-600:hover,
+.dark.halloween .hover\:bg-blue-700:hover,
+.dark.halloween .hover\:bg-blue-500:hover {
+    background-color: #c2410c !important;
+}
+
+.dark.halloween .text-blue-600,
+.dark.halloween .text-blue-500,
+.dark.halloween .dark\:text-blue-400 {
+    color: #fb923c !important;
+}
+
+.dark.halloween .group:hover .group-hover\:text-blue-600,
+.dark.halloween .group:hover .group-hover\:text-blue-400,
+.dark.halloween .hover\:text-blue-600:hover,
+.dark.halloween .hover\:text-blue-400:hover {
+    color: #fdba74 !important;
+}
+
+.dark.halloween .bg-blue-50,
+.dark.halloween .dark\:bg-blue-500\/10,
+.dark.halloween .dark\:bg-blue-900\/20 {
+    background-color: rgba(249, 115, 22, 0.14) !important;
+    color: #fb923c !important;
+}
+
+.dark.halloween .border-blue-500\/20,
+.dark.halloween .border-blue-500\/30 {
+    border-color: rgba(249, 115, 22, 0.35) !important;
+}
+
+/* Light Mode Halloween General Accents */
+html.halloween:not(.dark) .text-blue-600,
+html.halloween:not(.dark) .text-blue-500,
+html[data-theme="halloween-light"] .text-blue-600,
+html[data-theme="halloween-light"] .text-blue-500 {
+    color: #E65100 !important;
+}
+
+html.halloween:not(.dark) .bg-blue-50,
+html[data-theme="halloween-light"] .bg-blue-50 {
+    background-color: #FFEAD8 !important;
+    color: #C2410C !important;
+}
+
+html.halloween:not(.dark) .border-blue-500\/20,
+html.halloween:not(.dark) .border-blue-500\/30,
+html[data-theme="halloween-light"] .border-blue-500\/20,
+html[data-theme="halloween-light"] .border-blue-500\/30 {
+    border-color: rgba(230, 81, 0, 0.3) !important;
+}
+
+/* Scrollbars & Selection */
+.halloween .custom-scrollbar::-webkit-scrollbar-track {
+    background: #0c0716;
+}
+.halloween .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #2d1845;
+    border: 3px solid #0c0716;
+}
+.halloween .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #ea580c;
+}
+
+.halloween ::selection {
+    background-color: #ea580c;
+    color: #ffffff;
 }
 
 select {
@@ -96,5 +553,92 @@ select option {
     &::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
     }
+}
+@utility no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+/* =========================================================
+   DEEP BLUE NAVBAR & KANBAN REFINEMENTS
+   ========================================================= */
+nav.site-navbar {
+    background: var(--bg-navbar, #0A2540) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important;
+}
+
+.site-navbar a.nav-item-inactive {
+    color: rgba(255, 255, 255, 0.85) !important;
+    opacity: 0.85 !important;
+}
+
+.site-navbar a.nav-item-inactive:hover {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+    background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.site-navbar a.nav-item-active {
+    color: #FFFFFF !important;
+    background-color: rgba(255, 255, 255, 0.18) !important;
+    font-weight: 700 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.campaign-kanban-wrapper {
+    background: var(--bg-app);
+}
+
+.kanban-column {
+    background: var(--bg-column, #F1F5F9) !important;
+    border: 1px solid var(--border-column, #E2E8F0) !important;
+    border-radius: 18px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.kanban-card {
+    background: var(--bg-card, #FFFFFF) !important;
+    border-color: var(--border-card, #E2E8F0) !important;
+    box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.05)) !important;
+}
+
+.kanban-card:hover {
+    box-shadow: var(--shadow-card), 0 6px 18px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Subtle Ghost + Add Task Button */
+.kanban-add-task-btn {
+    background: transparent;
+    border: 1px dashed transparent;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-card-sub, #64748B);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    margin-top: auto;
+    width: 100%;
+}
+
+.kanban-add-task-btn:hover {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: var(--border-column, #E2E8F0);
+    color: var(--text-card-title, #0F172A);
+}
+
+.dark .kanban-add-task-btn:hover,
+html.dark .kanban-add-task-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--border-column, #1F2937);
+    color: var(--text-card-title, #F9FAFB);
 }
 
