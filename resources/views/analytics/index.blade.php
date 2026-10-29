@@ -81,8 +81,20 @@
                 </p>
             </div>
 
-            {{-- Action Buttons (Export CSV & Print) --}}
+            {{-- Action Buttons (Export CSV, Print & Admin Toggle) --}}
             <div class="flex items-center gap-2.5 flex-wrap">
+                @if(auth()->user() && auth()->user()->isAdmin())
+                    <form action="{{ route('admin.features.toggle-analytics') }}" method="POST" class="inline-flex items-center">
+                        @csrf
+                        <button type="submit" 
+                                title="{{ !empty($isFeatureDisabled) ? 'Enable Analytics tab for all team members' : 'Disable Analytics tab (hide from team members)' }}"
+                                class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 card-shadow {{ !empty($isFeatureDisabled) ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20' }}">
+                            <span class="w-2 h-2 rounded-full {{ !empty($isFeatureDisabled) ? 'bg-amber-500' : 'bg-emerald-500' }}"></span>
+                            <span>{{ !empty($isFeatureDisabled) ? 'Analytics: OFF (Enable)' : 'Analytics: ON (Disable)' }}</span>
+                        </button>
+                    </form>
+                @endif
+
                 <a href="{{ route('analytics.export', request()->query()) }}"
                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-slate-200 bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 card-shadow transition-all hover:-translate-y-0.5">
                     <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,16 +116,26 @@
 
         {{-- Admin Warning Banner if tab is toggled OFF --}}
         @if(!empty($isFeatureDisabled))
-            <div class="rounded-2xl p-4 bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-                <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
-                <div class="text-xs">
-                    <p class="font-bold text-amber-600 dark:text-amber-400">Notice: Analytics Tab is currently DISABLED for standard users.</p>
-                    <p class="text-amber-700/80 dark:text-amber-300/80 mt-0.5">
-                        Only administrators can view this page. You can re-enable it anytime in <a href="{{ route('admin.settings') }}" class="underline font-bold">Admin Settings</a>.
-                    </p>
+            <div class="rounded-2xl p-4 bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div class="text-xs">
+                        <p class="font-bold text-amber-600 dark:text-amber-400">Notice: Analytics Tab is currently DISABLED for standard users.</p>
+                        <p class="text-amber-700/80 dark:text-amber-300/80 mt-0.5">
+                            Only administrators can view this page. You can re-enable it anytime here or in <a href="{{ route('admin.settings') }}" class="underline font-bold">Admin Settings</a>.
+                        </p>
+                    </div>
                 </div>
+                @if(auth()->user() && auth()->user()->isAdmin())
+                    <form action="{{ route('admin.features.toggle-analytics') }}" method="POST" class="flex-shrink-0">
+                        @csrf
+                        <button type="submit" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-amber-500 text-white hover:bg-amber-600 shadow-sm transition-all">
+                            Enable Analytics Now
+                        </button>
+                    </form>
+                @endif
             </div>
         @endif
 

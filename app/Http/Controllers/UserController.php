@@ -157,7 +157,7 @@ class UserController extends Controller
             ? 'Analytics & Reports tab has been ENABLED. Team members can now view the analytics reports.'
             : 'Analytics & Reports tab has been DISABLED. The analytics tab is now hidden.';
 
-        return redirect()->route('admin.settings')->with('success', $msg);
+        return redirect()->to(url()->previous(route('admin.settings')))->with('success', $msg);
     }
 
     public function toggleDirectDesign(Request $request)
@@ -168,7 +168,7 @@ class UserController extends Controller
             ? 'Direct Design feature has been ENABLED. Team members can now create direct design deliverables.'
             : 'Direct Design feature has been DISABLED. Direct design creation has been paused.';
 
-        return redirect()->route('admin.settings')->with('success', $msg);
+        return redirect()->to(url()->previous(route('admin.settings')))->with('success', $msg);
     }
 
     public function toggleClientReview(Request $request)
@@ -182,7 +182,7 @@ class UserController extends Controller
             ? 'Send to Client feature has been ENABLED. Team members can now send artwork proofs to clients.'
             : 'Send to Client feature has been DISABLED. External client review sessions are now paused.';
 
-        return redirect()->route('admin.settings')->with('success', $msg);
+        return redirect()->to(url()->previous(route('admin.settings')))->with('success', $msg);
     }
 
     public function toggleHalloweenTheme(Request $request)
@@ -193,7 +193,7 @@ class UserController extends Controller
             ? 'Halloween Theme (Spooky Mode) has been ENABLED across the platform. All workspaces are now in Halloween theme.'
             : 'Halloween Theme (Spooky Mode) has been DISABLED. Standard themes restored.';
 
-        return redirect()->route('admin.settings')->with('success', $msg);
+        return redirect()->to(url()->previous(route('admin.settings')))->with('success', $msg);
     }
 
     public function toggleChristmasTheme(Request $request)
@@ -204,7 +204,7 @@ class UserController extends Controller
             ? 'Christmas Theme (Festive Mode 🎄) has been ENABLED across the platform. All workspaces are now in holiday mode.'
             : 'Christmas Theme (Festive Mode 🎄) has been DISABLED. Standard themes restored.';
 
-        return redirect()->route('admin.settings')->with('success', $msg);
+        return redirect()->to(url()->previous(route('admin.settings')))->with('success', $msg);
     }
 
     public function updateActiveTheme(Request $request)
@@ -241,7 +241,7 @@ class UserController extends Controller
                 ? "{$typeName} project type has been ENABLED. Team members can now create {$typeName} projects."
                 : "{$typeName} project type has been DISABLED. {$typeName} is now hidden from project creation.";
 
-            return redirect()->route('admin.settings')->with('success', $msg);
+            return redirect()->to(url()->previous(route('admin.settings')))->with('success', $msg);
         } catch (\InvalidArgumentException $e) {
             return redirect()->route('admin.settings')->with('error', $e->getMessage());
         }
