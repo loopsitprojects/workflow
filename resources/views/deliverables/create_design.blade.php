@@ -613,26 +613,29 @@
                             </div>
 
                             <div>
-                                <label class="field-label" style="color:#0ea5e9;">Reviewing Writer <span style="font-size:10px;text-transform:none;opacity:0.7;font-weight:500;">(optional)</span></label>
-                                <select name="writer_id" class="styled-input" :disabled="mode !== 'single'">
-                                    <option value="">Select Writer...</option>
-                                    @foreach($writers as $w)
-                                        <option value="{{ $w->id }}" {{ (old('writer_id', $parentTask->writer_id ?? ($project->writer_id ?? '')) == $w->id) ? 'selected' : '' }}>
-                                            {{ $w->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-grid-2 form-field-group">
-                            <div>
                                 <label class="field-label">Deliverable Deadline</label>
                                 <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'single'"
                                     min="{{ date('Y-m-d') }}"
                                     value="{{ old('deadline', old('designer_deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : (isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : ''))) }}">
                                 <input type="hidden" name="designer_deadline" :disabled="mode !== 'single'"
                                     value="{{ old('deadline', old('designer_deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : (isset($parentTask->designer_deadline) ? \Carbon\Carbon::parse($parentTask->designer_deadline)->format('Y-m-d') : ''))) }}">
+                            </div>
+                        </div>
+
+                        <div class="form-grid-2 form-field-group">
+                            <div>
+                                <label class="field-label">Deliverable Type <span style="color:#ef4444;">*</span></label>
+                                <select name="post_type" class="styled-input" :disabled="mode !== 'single'" :required="mode === 'single'">
+                                    <option value="">Select Type...</option>
+                                    <option value="Static Post">Static Post</option>
+                                    <option value="Carousel">Carousel</option>
+                                    <option value="Story">Story</option>
+                                    <option value="Reel / Video">Reel / Video</option>
+                                    <option value="Poster / Banner">Poster / Banner</option>
+                                    <option value="Thumbnail">Thumbnail</option>
+                                    <option value="Print">Print</option>
+                                    <option value="Graphic">Graphic</option>
+                                </select>
                             </div>
 
                             <div>
@@ -643,22 +646,6 @@
                                     <option value="Low Priority" {{ old('priority', $parentTask->priority ?? '') == 'Low Priority' ? 'selected' : '' }}>Low Priority</option>
                                 </select>
                             </div>
-                        </div>
-
-                        {{-- Format --}}
-                        <div class="form-field-group">
-                            <label class="field-label">Deliverable Type <span style="color:#ef4444;">*</span></label>
-                            <select name="post_type" class="styled-input" :disabled="mode !== 'single'" :required="mode === 'single'">
-                                <option value="">Select Type...</option>
-                                <option value="Static Post">Static Post</option>
-                                <option value="Carousel">Carousel</option>
-                                <option value="Story">Story</option>
-                                <option value="Reel / Video">Reel / Video</option>
-                                <option value="Poster / Banner">Poster / Banner</option>
-                                <option value="Thumbnail">Thumbnail</option>
-                                <option value="Print">Print</option>
-                                <option value="Graphic">Graphic</option>
-                            </select>
                         </div>
 
                         {{-- Creative Brief --}}
@@ -673,14 +660,112 @@
                         </div>
 
                         {{-- References --}}
+                        @php
+                            $singleRefUrls = old('reference_urls');
+                            if (empty($singleRefUrls) && old('reference')) {
+                                $singleRefUrls = preg_split('/[\r\n,]+/', old('reference'));
+                            }
+                            if (empty($singleRefUrls) && isset($parentTask) && $parentTask->reference) {
+                                $singleRefUrls = $parentTask->getReferenceUrlsArray();
+                            }
+                            if (empty($singleRefUrls)) {
+                                $singleRefUrls = [''];
+                            }
+                        @endphp
                         <div class="form-grid-2 form-field-group">
-                            <div>
-                                <label class="field-label">Reference URLs (Figma, Drive...)</label>
-                                <input type="text" name="reference" class="styled-input" :disabled="mode !== 'single'" placeholder="https://..." value="{{ old('reference', $parentTask->reference ?? '') }}">
+                            <div x-data="{
+                                urls: {{ json_encode(array_values(array_filter(array_map('trim', (array) $singleRefUrls))) ?: ['']) }},
+                                addUrl() {
+                                    this.urls.push('');
+                                },
+                                removeUrl(idx) {
+                                    if (this.urls.length > 1) {
+                                        this.urls.splice(idx, 1);
+                                    } else {
+                                        this.urls[0] = '';
+                                    }
+                                }
+                            }">
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                                    <label class="field-label" style="margin-bottom:0;">Reference URLs (Figma, Drive...)</label>
+                                    <button type="button" @click="addUrl()" style="background:transparent; border:none; color:var(--color-primary-accent, #6366f1); font-size:11px; font-weight:700; cursor:pointer; padding:0 4px; display:inline-flex; align-items:center; gap:3px;">
+                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                        Add URL
+                                    </button>
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:8px;">
+                                    <template x-for="(url, idx) in urls" :key="idx">
+                                        <div style="display:flex; align-items:center; gap:6px;">
+                                            <input type="text" 
+                                                   name="reference_urls[]" 
+                                                   x-model="urls[idx]" 
+                                                   class="styled-input" 
+                                                   placeholder="https://..." 
+                                                   :disabled="mode !== 'single'">
+                                            <template x-if="urls.length > 1">
+                                                <button type="button" @click="removeUrl(idx)" style="background:transparent; border:none; color:#ef4444; padding:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; transition:background 0.15s;" title="Remove URL">
+                                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
-                            <div>
-                                <label class="field-label">Attach Reference File</label>
-                                <input type="file" name="reference_file" class="styled-input" :disabled="mode !== 'single'" style="padding:6px 10px;">
+
+                            <div x-data="{
+                                selectedFiles: [],
+                                onFileChange(e) {
+                                    this.selectedFiles = Array.from(e.target.files);
+                                },
+                                clearFiles() {
+                                    this.selectedFiles = [];
+                                    if ($refs.singleRefFileInput) {
+                                        $refs.singleRefFileInput.value = '';
+                                    }
+                                },
+                                formatSize(bytes) {
+                                    if (!bytes || bytes === 0) return '0 B';
+                                    const k = 1024;
+                                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                                    return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+                                }
+                            }">
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; min-height:16px;">
+                                    <label class="field-label" style="margin-bottom:0;">Attach Reference Files</label>
+                                    <template x-if="selectedFiles.length > 0">
+                                        <button type="button" @click="clearFiles()" style="background:transparent; border:none; color:#ef4444; font-size:11px; font-weight:700; cursor:pointer; padding:0 4px; display:inline-flex; align-items:center; gap:2px;">
+                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                            Clear (<span x-text="selectedFiles.length"></span>)
+                                        </button>
+                                    </template>
+                                </div>
+                                <input type="file" 
+                                       name="reference_files[]" 
+                                       x-ref="singleRefFileInput"
+                                       @change="onFileChange($event)"
+                                       multiple 
+                                       accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip"
+                                       class="styled-input" 
+                                       style="padding:6px 10px;"
+                                       :disabled="mode !== 'single'">
+                                
+                                {{-- Preview Selected Files --}}
+                                <template x-if="selectedFiles.length > 0">
+                                    <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px; max-height:140px; overflow-y:auto; padding:8px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:8px;">
+                                        <template x-for="(file, fIdx) in selectedFiles" :key="fIdx">
+                                            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 10px; border-radius:6px; background:var(--color-bg-secondary); font-size:11.5px;">
+                                                <div style="display:inline-flex; align-items:center; gap:6px; overflow:hidden;">
+                                                    <svg width="13" height="13" fill="none" stroke="#6366f1" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                                                    </svg>
+                                                    <span x-text="file.name" style="font-weight:600; color:var(--color-text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;"></span>
+                                                </div>
+                                                <span x-text="formatSize(file.size)" style="font-size:10.5px; font-weight:700; color:var(--color-text-secondary); flex-shrink:0;"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                     </div>
@@ -738,20 +823,8 @@
                             @error('title') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:5px;">{{ $message }}</p> @enderror
                         </div>
 
-                        {{-- Batch Date, Priority & Reviewing Writer (Clean 3-Column Row) --}}
-                        <div class="form-grid-3 form-field-group">
-                            <div>
-                                <label class="field-label" style="color:#0ea5e9;">Batch Reviewing Writer <span style="font-size:10px;text-transform:none;opacity:0.7;font-weight:500;">(optional)</span></label>
-                                <select name="writer_id" class="styled-input" :disabled="mode !== 'batch'">
-                                    <option value="">Select Writer...</option>
-                                    @foreach($writers as $w)
-                                        <option value="{{ $w->id }}" {{ (old('writer_id', $parentTask->writer_id ?? ($project->writer_id ?? '')) == $w->id) ? 'selected' : '' }}>
-                                            {{ $w->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
+                        {{-- Batch Date & Priority (Clean 2-Column Row) --}}
+                        <div class="form-grid-2 form-field-group">
                             <div>
                                 <label class="field-label">Batch Deliverable Deadline</label>
                                 <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'batch'"
@@ -835,23 +908,14 @@
                                             </div>
                                         </div>
 
-                                        {{-- Row 2: Assigned Designer, Reviewing Writer & Custom Due Date --}}
-                                        <div class="form-grid-3" style="margin-bottom:12px;">
+                                        {{-- Row 2: Assigned Designer & Custom Due Date --}}
+                                        <div class="form-grid-2" style="margin-bottom:12px;">
                                             <div>
                                                 <label class="field-label purple">Assigned Designer <span style="color:#ef4444;">*</span></label>
                                                 <select :name="`subtasks[${index}][designer_id]`" x-model="subtask.designer_id" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
                                                     <option value="">Select Designer...</option>
                                                     @foreach($designers as $d)
                                                         <option value="{{ $d->id }}">{{ $d->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label class="field-label" style="color:#0ea5e9;">Reviewing Writer <span style="font-size:10px;text-transform:none;opacity:0.6;font-weight:500;">(optional)</span></label>
-                                                <select :name="`subtasks[${index}][writer_id]`" x-model="subtask.writer_id" class="styled-input" :disabled="mode !== 'batch'">
-                                                    <option value="">Default (Batch Writer)</option>
-                                                    @foreach($writers as $w)
-                                                        <option value="{{ $w->id }}">{{ $w->name }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>
@@ -875,12 +939,86 @@
                                         {{-- Row 4: References --}}
                                         <div class="form-grid-2">
                                             <div>
-                                                <label class="field-label">Reference URL (Figma, Drive...)</label>
-                                                <input type="text" :name="`subtasks[${index}][reference]`" x-model="subtask.reference" placeholder="https://..." class="styled-input" :disabled="mode !== 'batch'">
+                                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                                                    <label class="field-label" style="margin-bottom:0;">Reference URLs (Figma, Drive...)</label>
+                                                    <button type="button" @click="addSubtaskUrl(subtask)" style="background:transparent; border:none; color:var(--color-primary-accent, #6366f1); font-size:11px; font-weight:700; cursor:pointer; padding:0 4px; display:inline-flex; align-items:center; gap:3px;">
+                                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                                        Add URL
+                                                    </button>
+                                                </div>
+                                                <div style="display:flex; flex-direction:column; gap:8px;">
+                                                    <template x-for="(url, urlIdx) in subtask.reference_urls" :key="urlIdx">
+                                                        <div style="display:flex; align-items:center; gap:6px;">
+                                                            <input type="text" 
+                                                                   :name="`subtasks[${index}][reference_urls][]`" 
+                                                                   x-model="subtask.reference_urls[urlIdx]" 
+                                                                   placeholder="https://..." 
+                                                                   class="styled-input" 
+                                                                   :disabled="mode !== 'batch'">
+                                                            <template x-if="subtask.reference_urls.length > 1">
+                                                                <button type="button" @click="removeSubtaskUrl(subtask, urlIdx)" style="background:transparent; border:none; color:#ef4444; padding:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; border-radius:6px;" title="Remove URL">
+                                                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                                </button>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label class="field-label">Attach Reference File</label>
-                                                <input type="file" :name="`subtasks[${index}][reference_file]`" class="styled-input" style="padding:6px 10px;" :disabled="mode !== 'batch'">
+
+                                            <div x-data="{
+                                                subFiles: [],
+                                                onSubFileChange(e) {
+                                                    this.subFiles = Array.from(e.target.files);
+                                                },
+                                                clearSubFiles() {
+                                                    this.subFiles = [];
+                                                    if ($refs.subRefInput) {
+                                                        $refs.subRefInput.value = '';
+                                                    }
+                                                },
+                                                formatSize(bytes) {
+                                                    if (!bytes || bytes === 0) return '0 B';
+                                                    const k = 1024;
+                                                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                                                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                                                    return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+                                                }
+                                            }">
+                                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; min-height:16px;">
+                                                    <label class="field-label" style="margin-bottom:0;">Attach Reference Files</label>
+                                                    <template x-if="subFiles.length > 0">
+                                                        <button type="button" @click="clearSubFiles()" style="background:transparent; border:none; color:#ef4444; font-size:11px; font-weight:700; cursor:pointer; padding:0 4px; display:inline-flex; align-items:center; gap:2px;">
+                                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                            Clear (<span x-text="subFiles.length"></span>)
+                                                        </button>
+                                                    </template>
+                                                </div>
+                                                <input type="file" 
+                                                       :name="`subtasks[${index}][reference_files][]`" 
+                                                       x-ref="subRefInput"
+                                                       @change="onSubFileChange($event)"
+                                                       multiple 
+                                                       accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip"
+                                                       class="styled-input" 
+                                                       style="padding:6px 10px;" 
+                                                       :disabled="mode !== 'batch'">
+                                                
+                                                {{-- Preview Subtask Files --}}
+                                                <template x-if="subFiles.length > 0">
+                                                    <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px; max-height:140px; overflow-y:auto; padding:8px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:8px;">
+                                                        <template x-for="(file, fIdx) in subFiles" :key="fIdx">
+                                                            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 10px; border-radius:6px; background:var(--color-bg-secondary); font-size:11.5px;">
+                                                                <div style="display:inline-flex; align-items:center; gap:6px; overflow:hidden;">
+                                                                    <svg width="13" height="13" fill="none" stroke="#6366f1" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                                                                    </svg>
+                                                                    <span x-text="file.name" style="font-weight:600; color:var(--color-text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;"></span>
+                                                                </div>
+                                                                <span x-text="formatSize(file.size)" style="font-size:10.5px; font-weight:700; color:var(--color-text-secondary); flex-shrink:0;"></span>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </div>
                                     </div>
@@ -998,10 +1136,23 @@
                         deadline: '',
                         designer_deadline: '',
                         designer_id: '{{ $designers->first()->id ?? '' }}',
-                        writer_id: '',
                         concept: '',
-                        reference: ''
+                        reference_urls: ['']
                     });
+                },
+                addSubtaskUrl(subtask) {
+                    if (!subtask.reference_urls) {
+                        subtask.reference_urls = [''];
+                    }
+                    subtask.reference_urls.push('');
+                },
+                removeSubtaskUrl(subtask, urlIdx) {
+                    if (!subtask.reference_urls) return;
+                    if (subtask.reference_urls.length > 1) {
+                        subtask.reference_urls.splice(urlIdx, 1);
+                    } else {
+                        subtask.reference_urls[0] = '';
+                    }
                 },
                 removeSubtask(index) {
                     if (this.subtasks.length > 1) {

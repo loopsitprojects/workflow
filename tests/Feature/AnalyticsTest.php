@@ -193,7 +193,7 @@ class AnalyticsTest extends TestCase
         $response->assertSee('Project-Wise Report');
         $response->assertSee('Omega Watches');
         $response->assertSee('Summer Campaign 2026');
-        $response->assertSee('Managerial Report');
+        $response->assertSee('Analytics & Reports');
     }
 
     public function test_individual_contributors_see_individual_reports_scoped_to_their_work(): void

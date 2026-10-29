@@ -682,6 +682,329 @@
         50% { transform: scale(1.05); opacity: 0.8; }
         100% { transform: scale(1); opacity: 1; }
     }
+
+    /* Direct Design 2-Column Responsive Layout */
+    .direct-design-modal {
+        position: relative !important;
+        inset: auto !important;
+        margin: auto !important;
+        width: 95vw !important;
+        max-width: 1400px !important;
+        height: auto !important;
+        max-height: 94vh !important;
+        border-radius: 20px !important;
+        border: 1px solid var(--color-border-primary) !important;
+        box-shadow: 0 25px 70px -15px rgba(0,0,0,0.6) !important;
+    }
+    #taskModalOverlay:has(.direct-design-modal) {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        padding: 20px !important;
+        box-sizing: border-box !important;
+        overflow-y: auto !important;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+    #taskModalOverlay:has(.direct-design-modal)::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+    .direct-design-modal,
+    .direct-design-modal * {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+    .direct-design-modal::-webkit-scrollbar,
+    .direct-design-modal *::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+    .direct-design-modal .cd-modal-body {
+        padding: 24px 28px !important;
+        padding-bottom: 36px !important;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+    .direct-design-modal .cd-modal-body::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+    .direct-design-modal .dd-two-col-layout {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr) !important;
+        gap: 28px !important;
+        align-items: start !important;
+        width: 100% !important;
+    }
+    @media (max-width: 1024px) {
+        .direct-design-modal .dd-two-col-layout {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+        }
+        .direct-design-modal .dd-col-sidebar {
+            position: static !important;
+            max-height: none !important;
+        }
+    }
+    .direct-design-modal .dd-col-main {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+        min-width: 0 !important;
+    }
+    .direct-design-modal .dd-col-sidebar {
+        position: sticky !important;
+        top: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+        min-width: 0 !important;
+        overflow: visible !important;
+        padding-bottom: 24px !important;
+    }
+    .direct-design-modal .dd-card-section {
+        background: var(--color-bg-secondary) !important;
+        border: 1px solid var(--color-border-primary) !important;
+        border-radius: 16px !important;
+        padding: 20px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+        margin: 0 !important;
+    }
+    .dark .direct-design-modal .dd-card-section {
+        background: rgba(22, 19, 31, 0.75) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.25) !important;
+    }
+    .direct-design-modal .dd-section-label,
+    .direct-design-modal .detail-label {
+        font-size: 11px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.07em !important;
+        text-transform: uppercase !important;
+        color: var(--color-text-secondary) !important;
+    }
+    .dark .direct-design-modal .dd-section-label,
+    .dark .direct-design-modal .detail-label {
+        color: #cbd5e1 !important;
+    }
+    .direct-design-modal .workflow-steps {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 6px !important;
+        padding: 12px 14px !important;
+        background: var(--color-bg-secondary) !important;
+        border: 1px solid var(--color-border-primary) !important;
+        border-radius: 14px !important;
+        margin-bottom: 0 !important;
+        position: relative !important;
+    }
+    .dark .direct-design-modal .workflow-steps {
+        background: rgba(22, 19, 31, 0.75) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+    .direct-design-modal .workflow-steps::before {
+        display: none !important;
+    }
+    .direct-design-modal .step-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 5px !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+        padding: 4px 2px !important;
+    }
+    .direct-design-modal .step-dot {
+        width: 24px !important;
+        height: 24px !important;
+        border-radius: 50% !important;
+        font-size: 11px !important;
+        font-weight: 800 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 1.5px solid var(--color-border-primary) !important;
+        background: var(--color-bg-primary) !important;
+        color: var(--color-text-secondary) !important;
+        transition: all 0.2s !important;
+    }
+    .direct-design-modal .step-label {
+        font-size: 9.5px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.03em !important;
+        text-transform: uppercase !important;
+        text-align: center !important;
+        color: var(--color-text-secondary) !important;
+        white-space: normal !important;
+        word-break: normal !important;
+        line-height: 1.2 !important;
+        overflow: visible !important;
+        width: 100% !important;
+    }
+    .direct-design-modal .step-item.completed .step-dot {
+        background: #10b981 !important;
+        border-color: #10b981 !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+    }
+    .direct-design-modal .step-item.completed .step-label {
+        color: #10b981 !important;
+        font-weight: 800 !important;
+    }
+    .direct-design-modal .step-item.active .step-dot {
+        background: #ea580c !important;
+        border-color: #ea580c !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.2), 0 2px 8px rgba(234, 88, 12, 0.35) !important;
+    }
+    .direct-design-modal .step-item.active .step-label {
+        color: #ea580c !important;
+        font-weight: 900 !important;
+    }
+    .direct-design-modal .step-item:not(.completed):not(.active) .step-dot {
+        opacity: 0.45 !important;
+        background: transparent !important;
+    }
+    .direct-design-modal .step-item:not(.completed):not(.active) .step-label {
+        opacity: 0.55 !important;
+    }
+    .direct-design-modal #modalMetaRow {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        margin-bottom: 0 !important;
+        padding: 16px !important;
+        background: var(--color-bg-secondary) !important;
+        border: 1px solid var(--color-border-primary) !important;
+        border-radius: 14px !important;
+    }
+    .dark .direct-design-modal #modalMetaRow {
+        background: rgba(22, 19, 31, 0.75) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+    .direct-design-modal #modalDeadlineRow {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        margin-bottom: 0 !important;
+        padding-top: 12px !important;
+        border-top: 1px solid var(--color-border-primary) !important;
+        width: 100% !important;
+    }
+    .direct-design-modal #modalDeliverableDeadlineBox,
+    .direct-design-modal #modalRevisionDeadlineBox {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+    }
+    .direct-design-modal #modalDeliverableDeadlineBox label,
+    .direct-design-modal #modalRevisionDeadlineBox label {
+        font-size: 11px !important;
+        font-weight: 800 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        margin-bottom: 0 !important;
+        display: block !important;
+    }
+    .direct-design-modal #modalDeliverableDeadlineBox > div,
+    .direct-design-modal #modalRevisionDeadlineBox > div {
+        display: flex !important;
+        gap: 8px !important;
+        width: 100% !important;
+        align-items: center !important;
+    }
+    .direct-design-modal #modalDeliverableDeadlineInput,
+    .direct-design-modal #modalRevisionDeadlineInputBox {
+        flex: 1 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        padding: 9px 12px !important;
+        border-radius: 8px !important;
+        font-size: 13px !important;
+        box-sizing: border-box !important;
+    }
+    .direct-design-modal #ddSidebarActions {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        width: 100% !important;
+        margin-top: 4px !important;
+        padding-top: 14px !important;
+        padding-bottom: 16px !important;
+        border-top: 1px solid var(--color-border-primary) !important;
+    }
+    .direct-design-modal #submitStageForm {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+    .direct-design-modal #submitStageBtn {
+        width: 100% !important;
+        padding: 12px 18px !important;
+        border-radius: 10px !important;
+        font-weight: 800 !important;
+        font-size: 13px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.04em !important;
+        background: #ea580c !important;
+        color: #ffffff !important;
+        border: none !important;
+        cursor: pointer !important;
+        box-shadow: 0 4px 14px rgba(234, 88, 12, 0.25) !important;
+        transition: all 0.15s !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+    }
+    .direct-design-modal #submitStageBtn:hover {
+        background: #c2410c !important;
+        transform: translateY(-1px) !important;
+    }
+    .direct-design-modal #saveContentBtn {
+        width: 100% !important;
+        padding: 10px 18px !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        font-size: 13px !important;
+        background: var(--color-bg-primary) !important;
+        color: var(--color-text-primary) !important;
+        border: 1.5px solid var(--color-border-primary) !important;
+        cursor: pointer !important;
+        transition: all 0.15s !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    .direct-design-modal #saveContentBtn:hover {
+        border-color: #3b82f6 !important;
+        color: #3b82f6 !important;
+    }
+    .direct-design-modal #showRevisionBtn {
+        width: 100% !important;
+        padding: 10px 18px !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        font-size: 13px !important;
+        text-align: center !important;
+    }
+    .direct-design-modal #modalDeleteBtn {
+        width: 100% !important;
+        padding: 8px 14px !important;
+        border-radius: 8px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+    }
 </style>
 
     <div style="display: flex; flex-direction: column; gap: 20px;">
@@ -1648,7 +1971,19 @@
             </div>
             <div class="cd-modal-body">
                 <div class="cd-modal-inner">
-                <div style="display:flex; gap:16px; margin-bottom:24px; background:var(--color-bg-secondary); padding:16px; border-radius:12px; border:1px solid var(--color-border-primary);">
+
+                <!-- 2-COLUMN LAYOUT CONTAINER (Activated strictly for Direct Design) -->
+                <div id="ddTwoColLayout" class="dd-two-col-layout" style="display:none;">
+                    <div id="ddColMain" class="dd-col-main"></div>
+                    <div id="ddColSidebar" class="dd-col-sidebar">
+                        <div id="ddSidebarMetaCard"></div>
+                        <div id="ddSidebarActions" class="dd-sidebar-actions"></div>
+                    </div>
+                </div>
+
+                <!-- STANDARD TOP CONTAINER (Used for Retainer & standard deliverables) -->
+                <div id="standardTopContainer">
+                <div id="modalMetaRow" style="display:flex; gap:16px; margin-bottom:24px; background:var(--color-bg-secondary); padding:16px; border-radius:12px; border:1px solid var(--color-border-primary);">
                     <div class="detail-item" style="flex:1; margin:0;">
                         <label class="detail-label">Current Stage</label>
                         <div id="modalStage" class="detail-val" style="font-weight:900; color:#0055D4;">-</div>
@@ -1696,8 +2031,6 @@
                     @endforeach
                 </div>
 
-
-
                 <!-- Latest Comment Banner -->
                 <div id="modalLatestCommentAlert" style="display:none; padding:16px; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.2); border-radius:16px; margin-bottom:24px;">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
@@ -1710,22 +2043,21 @@
                     <div id="modalLatestCommentText" style="color:var(--color-text-primary); font-size:13px; font-weight:500; font-style:italic; line-height:1.5; background:var(--color-bg-primary); padding:12px; border-radius:10px; border:1px solid rgba(16, 185, 129, 0.15); margin-top:8px;"></div>
                 </div>
 
-
-                <div style="display:flex; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
-                    <div class="detail-item" id="modalDeliverableDeadlineBox" style="flex:1; min-width:180px;">
-                        <label class="detail-label" style="color:#3b82f6;">Deliverable Deadline</label>
-                        <div style="display:flex; gap:8px;">
+                <div id="modalDeadlineRow" style="display:flex; gap:16px; margin-bottom:24px; flex-wrap:wrap;">
+                    <div class="detail-item" id="modalDeliverableDeadlineBox" style="flex:1; min-width:180px; display:flex; flex-direction:column; gap:6px;">
+                        <label class="detail-label" style="color:#3b82f6; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; margin:0;">Deliverable Deadline</label>
+                        <div style="display:flex; gap:8px; width:100%;">
                             <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm" min="{{ date('Y-m-d') }}"
-                                style="flex:1; padding:8px 12px; border:1.5px solid rgba(59,130,246,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                style="flex:1; width:100%; padding:9px 12px; border:1.5px solid rgba(59,130,246,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
                                 onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
                             <button type="button" id="saveDeadlineBtn" style="display:none; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
                         </div>
                     </div>
-                    <div class="detail-item" id="modalRevisionDeadlineBox" style="display:none; flex:1; min-width:180px;">
-                        <label class="detail-label" style="color:#ef4444;">Revision Deadline</label>
-                        <div style="display:flex; gap:8px;">
+                    <div class="detail-item" id="modalRevisionDeadlineBox" style="display:none; flex:1; min-width:180px; flex-direction:column; gap:6px;">
+                        <label class="detail-label" style="color:#ef4444; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; margin:0;">Revision Deadline</label>
+                        <div style="display:flex; gap:8px; width:100%;">
                             <input type="date" id="modalRevisionDeadlineInputBox" name="revision_deadline" form="submitStageForm"
-                                style="flex:1; padding:8px 12px; border:1.5px solid rgba(239,68,68,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
+                                style="flex:1; width:100%; padding:9px 12px; border:1.5px solid rgba(239,68,68,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
                                 onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='rgba(239,68,68,0.25)'"
                                 onchange="showSaveRevisionDeadlineBtn()">
                             <button type="button" id="saveRevisionDeadlineBtn" style="display:none; padding:8px 16px; background:#ef4444; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;" onclick="saveRevisionDeadline(this)">Save</button>
@@ -1748,65 +2080,79 @@
                     </div>
                     <div id="modalRevisionAlertText" style="color:#ef4444; font-size:13px; font-weight:500; line-height:1.5; background:var(--color-bg-primary); padding:12px; border-radius:10px; border:1px solid rgba(239, 68, 68, 0.3); margin-top:8px;"></div>
                 </div>
+                </div><!-- /#standardTopContainer -->
 
-                <div class="detail-grid">
-                    <div class="detail-item full" style="margin-bottom: 24px !important; padding-top: 16px;">
-                        <div id="modalConceptLabel" class="detail-label" style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Concept</div>
+                <div class="detail-grid" id="standardDetailGrid">
+                    <div class="detail-item full dd-card-section" id="modalConceptGroup" style="margin-bottom: 20px !important;">
+                        <div id="modalConceptLabel" class="detail-label dd-section-label" style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Concept</div>
                         <input type="hidden" id="modalConcept" name="concept" form="submitStageForm">
                         <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px; border-radius:10px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full" style="margin-bottom: 24px !important; padding-top: 24px;">
+                    <div class="detail-item full" id="modalCopyGroup" style="margin-bottom: 24px !important; padding-top: 24px;">
                         <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Copy</div>
                         <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
                         <input type="hidden" id="deleteReferenceFile" name="delete_reference_file" value="0" form="submitStageForm">
                         <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:180px; border-radius:10px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full" style="margin-bottom: 24px !important; padding-top: 24px;">
+                    <div class="detail-item full" id="modalCaptionGroup" style="margin-bottom: 24px !important; padding-top: 24px;">
                         <div style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Caption</div>
                         <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
                         <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px; border-radius:10px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
-                    <div class="detail-item full" id="modalReferenceGroup" style="clear:both; position:relative; z-index:10; margin-top:32px !important; padding-top:16px;">
-                        <div id="modalReferenceLabel" class="detail-label" style="font-size:12px; font-weight:900; color:#fff; background:#0ea5e9; padding:6px 12px; border-radius:6px; margin-bottom:14px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(14,165,233,0.3); position:relative; z-index:20;">Reference</div>
+                    <div class="detail-item full dd-card-section" id="modalReferenceGroup" style="clear:both; position:relative; z-index:10; margin-top:20px !important;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                            <div id="modalReferenceLabel" class="detail-label dd-section-label" style="font-size:12px; font-weight:900; color:#fff; background:#0ea5e9; padding:6px 12px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(14,165,233,0.3); position:relative; z-index:20;">Reference</div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <button type="button" id="toggleRefEditBtn" onclick="
+                                    const el = document.getElementById('modalReferenceEditArea');
+                                    if (el) {
+                                        const isHidden = el.style.display === 'none' || !el.style.display;
+                                        el.style.display = isHidden ? 'flex' : 'none';
+                                        this.textContent = isHidden ? '✕ Close' : '+ Add / Edit References';
+                                    }
+                                " style="display:none; background:rgba(14,165,233,0.1); color:#0ea5e9; border:1px solid rgba(14,165,233,0.25); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer;">+ Add / Edit References</button>
+                                <div id="modalReferenceUploadStatus" style="display:none; align-items:center; gap:6px; font-size:11px; font-weight:800;"></div>
+                            </div>
+                        </div>
                         <div id="modalReference" class="detail-val" style="margin-bottom: 12px; margin-top: 8px;"></div>
-                        <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.1); border-radius:16px; margin-top: 14px;">
-                            <div>
-                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                                    <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase;">Upload New Reference File</div>
-                                    <div id="modalReferenceUploadStatus" style="display:none; align-items:center; gap:6px; font-size:10px; font-weight:800;"></div>
+                        
+                        <!-- Consolidated Reference Upload & URL Section -->
+                        <div id="modalReferenceEditArea" style="display:none; flex-direction:column; gap:12px; padding:16px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:14px; margin-top: 14px;">
+                            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px; align-items:center;">
+                                <div>
+                                    <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; margin-bottom:6px;">Upload Reference File(s)</div>
+                                    <input type="file" id="modalReferenceFileInput" name="reference_file" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" multiple style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-secondary); font-size:11px;" onchange="autoUploadModalReference(this)">
                                 </div>
-                                <input type="file" id="modalReferenceFileInput" name="reference_file" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" multiple style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="autoUploadModalReference(this)">
-                                <div style="position:relative; display:inline-block; margin-top:10px;">
-                                    <div id="modalReferencePdfPreview" style="display:none; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:240px;">
-                                        <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
-                                        <span id="modalReferencePdfName" style="font-size:11px; font-weight:700; color:#ef4444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
-                                    </div>
-                                    <img id="modalReferenceImagePreview" src="" alt="Reference Preview" style="display:none; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
-                                    <video id="modalReferenceVideoPreview" controls style="display:none; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary);"></video>
-                                    <button type="button" id="modalReferenceClearBtn" onclick="
-                                        document.getElementById('modalReferenceFileInput').value='';
-                                        document.getElementById('modalReferenceImagePreview').style.display='none';
-                                        document.getElementById('modalReferenceImagePreview').src='';
-                                        document.getElementById('modalReferenceVideoPreview').style.display='none';
-                                        document.getElementById('modalReferenceVideoPreview').src='';
-                                        const p = document.getElementById('modalReferencePdfPreview'); if(p) p.style.display='none';
-                                        this.style.display='none';
-                                    " style="display:none; position:absolute; top:-10px; right:-10px; background:#ef4444; color:#fff; border:none; border-radius:50%; width:24px; height:24px; font-weight:bold; cursor:pointer; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.2); z-index:10; font-size: 12px;">✕</button>
+                                <div>
+                                    <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Reference URL</div>
+                                    <input type="url" id="modalReferenceUrl" name="reference" form="submitStageForm" placeholder="https://..." style="width:100%; padding:9px 12px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-secondary);">
                                 </div>
                             </div>
-                            <div>
-                                <div style="font-size:10px; font-weight:800; color:var(--color-text-secondary); margin-bottom:6px; text-transform:uppercase;">Reference URL</div>
-                                <input type="url" id="modalReferenceUrl" name="reference" form="submitStageForm" placeholder="https://..." style="width:100%; padding:10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                            <div style="position:relative; display:inline-block; margin-top:6px;">
+                                <div id="modalReferencePdfPreview" style="display:none; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:240px;">
+                                    <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+                                    <span id="modalReferencePdfName" style="font-size:11px; font-weight:700; color:#ef4444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                                </div>
+                                <img id="modalReferenceImagePreview" src="" alt="Reference Preview" style="display:none; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
+                                <video id="modalReferenceVideoPreview" controls style="display:none; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary);"></video>
+                                <button type="button" id="modalReferenceClearBtn" onclick="
+                                    document.getElementById('modalReferenceFileInput').value='';
+                                    document.getElementById('modalReferenceImagePreview').style.display='none';
+                                    document.getElementById('modalReferenceImagePreview').src='';
+                                    document.getElementById('modalReferenceVideoPreview').style.display='none';
+                                    document.getElementById('modalReferenceVideoPreview').src='';
+                                    const p = document.getElementById('modalReferencePdfPreview'); if(p) p.style.display='none';
+                                    this.style.display='none';
+                                " style="display:none; position:absolute; top:-10px; right:-10px; background:#ef4444; color:#fff; border:none; border-radius:50%; width:24px; height:24px; font-weight:bold; cursor:pointer; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.2); z-index:10; font-size: 12px;">✕</button>
                             </div>
                         </div>
                     </div>
 
-
-                    <div class="detail-item full" style="border-top:1px solid var(--color-border-primary); padding-top:20px; margin-top:10px;">
-                        <label class="detail-label" style="margin-bottom:16px; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em; font-size:11px;">Deliverable Team</label>
+                    <div class="detail-item full dd-card-section" id="modalTeamGroup" style="margin-top:20px;">
+                        <label class="detail-label dd-section-label" style="margin-bottom:16px; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em; font-size:11px;">Deliverable Team</label>
                         <div id="modalTeamGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:12px;"></div>
                     </div>
-                    <div class="detail-item full hist-box" id="modalApprovalsBox" style="display:none; border-top:1px solid var(--color-border-primary); margin-top:10px;">
+                    <div class="detail-item full hist-box dd-card-section" id="modalApprovalsBox" style="display:none; margin-top:20px;">
                         <button class="hist-toggle" onclick="toggleHistory('modalApprovalHistory', this)">
                             <span style="display:flex; align-items:center; gap:8px; flex:1;">
                                 <span style="width:7px;height:7px;border-radius:50%;background:#10b981;flex-shrink:0;"></span>
@@ -1818,9 +2164,34 @@
                         <div id="modalApprovalHistory" class="hist-body" style="display:none; flex-direction:column; gap:10px;"></div>
                     </div>
 
-                    <div id="writerSelectionArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(14,165,233,0.05); border:1px solid rgba(14,165,233,0.1); border-radius:16px;">
-                        <label class="detail-label" style="color:#0ea5e9; margin-bottom:12px;">Assign Writer for Review</label>
-                        <select name="writer_id" form="submitStageForm" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                    {{-- Direct Design Review Route (Send to Approver or Writer) --}}
+                    <div id="directDesignRouteArea" class="detail-item full dd-card-section" style="display:none; margin-top:10px; padding:16px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:16px;">
+                        <label class="detail-label dd-section-label" style="color:var(--color-text-primary); margin-bottom:10px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                            Next Review Step
+                        </label>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <label id="directRouteApproverLabel" style="display:flex; flex-direction:column; gap:4px; padding:12px; border:1.5px solid rgba(234,88,12,0.4); background:rgba(234,88,12,0.05); border-radius:12px; cursor:pointer; transition:all 0.15s;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <input type="radio" name="direct_design_route" id="directRouteApproverRadio" value="approver" checked onchange="handleDirectDesignRouteChange('approver')" style="accent-color:#ea580c; cursor:pointer;">
+                                    <span style="font-weight:700; font-size:12px; color:var(--color-text-primary);">Send to Approver</span>
+                                </div>
+                                <span style="font-size:10px; color:var(--color-text-secondary); padding-left:22px; font-weight:500;">Mandatory approval · skips writer</span>
+                            </label>
+                            <label id="directRouteWriterLabel" style="display:flex; flex-direction:column; gap:4px; padding:12px; border:1.5px solid var(--color-border-primary); background:transparent; border-radius:12px; cursor:pointer; transition:all 0.15s;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <input type="radio" name="direct_design_route" id="directRouteWriterRadio" value="writer" onchange="handleDirectDesignRouteChange('writer')" style="accent-color:#0ea5e9; cursor:pointer;">
+                                    <span style="font-weight:700; font-size:12px; color:var(--color-text-primary);">Send to Writer</span>
+                                </div>
+                                <span style="font-size:10px; color:var(--color-text-secondary); padding-left:22px; font-weight:500;">Optional · writer reviews first</span>
+                            </label>
+                        </div>
+                        <input type="hidden" name="send_to" id="directDesignSendTo" value="approver" form="submitStageForm">
+                    </div>
+
+                    <div id="writerSelectionArea" class="detail-item full dd-card-section" style="display:none; margin-top:10px; padding:18px; background:rgba(14,165,233,0.05); border:1px solid rgba(14,165,233,0.15); border-radius:16px;">
+                        <label class="detail-label dd-section-label" style="color:#0ea5e9; margin-bottom:10px;">Assign Writer for Review</label>
+                        <select name="writer_id" form="submitStageForm" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
                             <option value="">Select Writer...</option>
                             @if(isset($writers))
                                 @foreach($writers as $writer)
@@ -1831,9 +2202,9 @@
                         <p style="font-size:11px; color:#0ea5e9; margin-top:8px; font-weight:600;">Selection required to advance to Writer Review stage.</p>
                     </div>
 
-                    <div id="approverSelectionArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(234,88,12,0.05); border:1px solid rgba(234,88,12,0.1); border-radius:16px;">
-                        <label class="detail-label" style="color:#ea580c; margin-bottom:12px;">Assign Next Approver</label>
-                        <select name="approver_id" form="submitStageForm" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                    <div id="approverSelectionArea" class="detail-item full dd-card-section" style="display:none; margin-top:10px; padding:18px; background:rgba(234,88,12,0.05); border:1px solid rgba(234,88,12,0.15); border-radius:16px;">
+                        <label class="detail-label dd-section-label" style="color:#ea580c; margin-bottom:10px;">Assign Next Approver</label>
+                        <select name="approver_id" form="submitStageForm" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
                             <option value="">Select Approver...</option>
                             @foreach($approvers as $approver)
                                 <option value="{{ $approver->id }}">{{ $approver->name }}</option>
@@ -1842,9 +2213,9 @@
                         <p style="font-size:11px; color:#ea580c; margin-top:8px; font-weight:600;">Selection required to advance to Approver stage.</p>
                     </div>
 
-                    <div id="brandManagerSelectionArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(37,99,235,0.05); border:1px solid rgba(37,99,235,0.1); border-radius:16px;">
-                        <label class="detail-label" style="color:#3b82f6; margin-bottom:12px;">Assign Next Brand Manager</label>
-                        <select name="brand_manager_id" form="submitStageForm" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                    <div id="brandManagerSelectionArea" class="detail-item full dd-card-section" style="display:none; margin-top:10px; padding:18px; background:rgba(37,99,235,0.05); border:1px solid rgba(37,99,235,0.15); border-radius:16px;">
+                        <label class="detail-label dd-section-label" style="color:#3b82f6; margin-bottom:10px;">Assign Next Brand Manager</label>
+                        <select name="brand_manager_id" form="submitStageForm" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
                             <option value="">Select Brand Manager...</option>
                             @foreach($brandManagers as $bm)
                                 <option value="{{ $bm->id }}">{{ $bm->name }}</option>
@@ -1853,11 +2224,11 @@
                         <p style="font-size:11px; color:#3b82f6; margin-top:8px; font-weight:600;">Selection required to advance to Brand Manager stage.</p>
                     </div>
 
-                    <div id="modalFurtherApproverGroup" style="display:none; margin-top:10px; padding:20px; background:rgba(124,58,237,0.05); border:1px solid rgba(124,58,237,0.1); border-radius:16px;">
-                        <label class="detail-label" style="color:#7c3aed; margin-bottom:12px; text-transform:uppercase; font-size:10px; letter-spacing:0.08em; font-weight:700;">
+                    <div id="modalFurtherApproverGroup" class="detail-item full dd-card-section" style="display:none; margin-top:10px; padding:18px; background:rgba(124,58,237,0.05); border:1px solid rgba(124,58,237,0.15); border-radius:16px;">
+                        <label class="detail-label dd-section-label" style="color:#7c3aed; margin-bottom:10px; text-transform:uppercase; font-size:10px; letter-spacing:0.08em; font-weight:700;">
                             Further Approver <span style="text-transform:none; letter-spacing:0; font-weight:500; opacity:0.8;">(optional — adds another approval step before Brand Manager)</span>
                         </label>
-                        <select name="further_approver_id" form="submitStageForm" style="width:100%; padding:12px; border-radius:10px; border:1px solid rgba(124,58,237,0.2); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                        <select name="further_approver_id" form="submitStageForm" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(124,58,237,0.2); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
                             <option value="">— Skip, go directly to Brand Manager —</option>
                             @foreach($approvers as $approver)
                                 <option value="{{ $approver->id }}">{{ $approver->name }}</option>
@@ -1887,60 +2258,80 @@
                         <p style="font-size:11px; color:#8b5cf6; margin-top:8px; font-weight:600;">Selection required to advance to Designer stage.</p>
                     </div>
 
-                    <div id="designerDeliveryArea" class="detail-item full" style="display:none; margin-top:10px; padding:20px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.1); border-radius:16px;">
-                        <label class="detail-label" style="color:#10b981; margin-bottom:14px;">Deliver Final Artwork</label>
-                        {{-- Self-contained form — avoids cross-form file input bugs --}}
+                    <!-- Deliver Final Artwork (Tabbed Attachment Block) -->
+                    <div id="designerDeliveryArea" class="detail-item full dd-card-section" style="display:none; margin-top:20px; padding:20px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:16px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                            <label class="detail-label dd-section-label" style="color:#10b981; margin:0; font-size:11px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+                                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                Deliver Final Artwork
+                            </label>
+                            <!-- Tab Switcher -->
+                            <div class="dd-tab-switcher" style="display:flex; background:var(--color-bg-primary); padding:3px; border-radius:8px; border:1px solid var(--color-border-primary); gap:4px;">
+                                <button type="button" id="tabArtworkUploadBtn" onclick="switchArtworkDeliveryTab('upload')" class="dd-tab-btn active" style="padding:5px 12px; border-radius:6px; font-size:11px; font-weight:700; border:none; cursor:pointer; background:rgba(16,185,129,0.15); color:#10b981; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px;">
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                    Upload File(s)
+                                </button>
+                                <button type="button" id="tabArtworkLinkBtn" onclick="switchArtworkDeliveryTab('link')" class="dd-tab-btn" style="padding:5px 12px; border-radius:6px; font-size:11px; font-weight:700; border:none; cursor:pointer; background:transparent; color:var(--color-text-secondary); transition:all 0.15s; display:inline-flex; align-items:center; gap:6px;">
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                    External Link
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Self-contained form --}}
                         <form id="artworkDeliveryForm" method="POST" enctype="multipart/form-data" onsubmit="event.preventDefault(); submitArtworkDeliveryForm(this);">
                             @csrf
                             <input type="hidden" name="action" value="save_only">
-                            <div style="display:flex; flex-direction:column; gap:12px;">
-                                {{-- Styled file upload --}}
-                                <label for="modalArtworkFile" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1.5px dashed rgba(16,185,129,0.35);border-radius:10px;cursor:pointer;background:rgba(16,185,129,0.03);transition:border-color 0.15s;" onmouseenter="this.style.borderColor='rgba(16,185,129,0.6)'" onmouseleave="this.style.borderColor='rgba(16,185,129,0.35)'">
-                                    <div style="width:36px;height:36px;border-radius:8px;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                        <svg width="16" height="16" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            
+                            <!-- Pane 1: File Upload Dropzone -->
+                            <div id="paneArtworkUpload" style="display:block;">
+                                <label for="modalArtworkFile" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:22px 16px; border:1.5px dashed var(--color-border-primary); border-radius:12px; cursor:pointer; background:var(--color-bg-primary); transition:all 0.2s;" onmouseenter="this.style.borderColor='#10b981'; this.style.background='rgba(16,185,129,0.03)';" onmouseleave="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-primary)';">
+                                    <div style="width:40px; height:40px; border-radius:10px; background:rgba(16,185,129,0.1); display:flex; align-items:center; justify-content:center; margin-bottom:8px; color:#10b981;">
+                                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                                     </div>
-                                    <div style="flex:1;min-width:0;">
-                                        <div style="font-size:12px;font-weight:700;color:#10b981;" id="artworkFileLabel">Choose file…</div>
-                                        <div style="font-size:10px;color:var(--color-text-secondary);margin-top:2px;">PNG, JPG, GIF, WebP, MP4, WebM, PDF (auto-saves on select)</div>
-                                    </div>
+                                    <div style="font-size:13px; font-weight:700; color:var(--color-text-primary);" id="artworkFileLabel">Click to browse or drop artwork files here</div>
+                                    <div style="font-size:11px; color:var(--color-text-secondary); margin-top:4px;">Supports PNG, JPG, GIF, WebP, MP4, WebM, PDF (auto-saves on selection)</div>
                                     <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*,video/*,application/pdf,.pdf" multiple style="display:none;" onchange="autoUploadModalArtwork(this)">
                                 </label>
-                                <div id="modalArtworkPdfPreview" style="display:none; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:240px; margin-top:10px;">
-                                    <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+                                <div id="modalArtworkPdfPreview" style="display:none; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:260px; margin-top:10px;">
+                                    <svg width="22" height="22" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
                                     <span id="modalArtworkPdfName" style="font-size:11px; font-weight:700; color:#ef4444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
                                 </div>
-                                <img id="modalArtworkPreview" src="" style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary); object-fit:contain;">
-                                <video id="modalArtworkVideoPreview" controls style="display:none; margin-top:10px; max-width:100%; max-height:150px; border-radius:8px; border:1px solid var(--color-border-primary);"></video>
-                                {{-- OR divider --}}
-                                <div style="display:flex;align-items:center;gap:8px;">
-                                    <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
-                                    <span style="font-size:10px;font-weight:600;color:var(--color-text-secondary);">OR</span>
-                                    <div style="flex:1;height:1px;background:var(--color-border-primary);"></div>
-                                </div>
-                                {{-- External link --}}
-                                <div>
-                                    <div style="font-size:10px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">External Link</div>
-                                    <input type="url" name="final_designs_link" placeholder="https://drive.google.com/…" style="width:100%;padding:10px 12px;border:1.5px solid var(--color-border-primary);border-radius:8px;font-size:13px;font-family:inherit;color:var(--color-text-primary);background:var(--color-bg-primary);outline:none;transition:border-color 0.15s;box-sizing:border-box;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor=''">
+                                <img id="modalArtworkPreview" src="" style="display:none; margin-top:10px; max-width:100%; max-height:160px; border-radius:10px; border:1px solid var(--color-border-primary); object-fit:contain;">
+                                <video id="modalArtworkVideoPreview" controls style="display:none; margin-top:10px; max-width:100%; max-height:160px; border-radius:10px; border:1px solid var(--color-border-primary);"></video>
+                            </div>
+
+                            <!-- Pane 2: External Link Input -->
+                            <div id="paneArtworkLink" style="display:none;">
+                                <div style="font-size:11px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">External Cloud / Figma Link</div>
+                                <div style="display:flex; gap:8px;">
+                                    <input type="url" name="final_designs_link" placeholder="https://drive.google.com/… or Figma / Dropbox URL" style="flex:1; padding:10px 14px; border:1.5px solid var(--color-border-primary); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='var(--color-border-primary)'">
+                                    <button type="submit" style="padding:10px 18px; background:#10b981; color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 2px 8px rgba(16,185,129,0.25);">
+                                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                        Save Link
+                                    </button>
                                 </div>
                             </div>
-                            <button type="submit" style="margin-top:14px;width:100%;padding:10px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:8px;">
-                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                Save Artwork
-                            </button>
                         </form>
                     </div>
 
-                    <div id="submitNotesArea" class="detail-item full" style="margin-top:10px; padding:20px; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.05); border-radius:16px;">
-                        <label class="detail-label" style="margin-bottom:12px;">Submission Comment (Optional)</label>
+                    <div id="submitNotesArea" class="detail-item full dd-card-section" style="margin-top:20px; padding:20px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:16px;">
+                        <label class="detail-label dd-section-label" style="margin-bottom:10px; color:var(--color-text-secondary); font-size:11px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                            Submission Comments (Optional)
+                        </label>
                         <textarea name="submit_notes" form="submitStageForm" placeholder="Add an optional comment when submitting..." style="width:100%; height:80px; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); resize:vertical; outline:none; transition:border-color 0.15s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='var(--color-border-primary)'"></textarea>
                     </div>
 
-                    <div class="detail-item">
-                        <label class="detail-label">Final Designs</label>
-                        <div id="modalFinal" class="detail-val"></div>
+                    <div class="detail-item full dd-card-section" id="modalFinalGroup" style="margin-top:20px;">
+                        <label class="detail-label dd-section-label" style="margin-bottom:12px; color:#10b981; font-size:11px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Final Designs Preview
+                        </label>
+                        <div id="modalFinal" class="detail-val" style="min-height:30px;"></div>
                     </div>
 
-                    <div class="detail-item full hist-box" id="modalHistoryBox" style="display:none; border-top:1px solid var(--color-border-primary); margin-top:10px;">
+                    <div class="detail-item full hist-box dd-card-section" id="modalHistoryBox" style="display:none; margin-top:20px;">
                         <button class="hist-toggle" onclick="toggleHistory('modalRevisionHistory', this)">
                             <span style="display:flex; align-items:center; gap:8px; flex:1;">
                                 <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>
@@ -1953,7 +2344,7 @@
                     </div>
 
                     <!-- Reassignment History -->
-                    <div class="detail-item full hist-box" id="modalReassignmentHistoryBox" style="display:none; border-top:1px solid var(--color-border-primary); margin-top:10px;">
+                    <div class="detail-item full hist-box dd-card-section" id="modalReassignmentHistoryBox" style="display:none; margin-top:20px;">
                         <button class="hist-toggle" onclick="toggleHistory('modalReassignmentHistory', this)">
                             <span style="display:flex; align-items:center; gap:8px; flex:1;">
                                 <span style="width:7px;height:7px;border-radius:50%;background:#ec4899;flex-shrink:0;"></span>
@@ -2024,7 +2415,7 @@
                 </div>
             </div>
             <div class="cd-modal-footer">
-                <div class="cd-modal-inner" style="display:flex; align-items:center; justify-content:flex-start; gap:12px;">
+                <div class="cd-modal-inner" id="standardModalFooterInner" style="display:flex; align-items:center; justify-content:flex-start; gap:12px;">
                     <form id="submitStageForm" method="POST" enctype="multipart/form-data" style="display:none; align-items:center; gap:12px;">
                         @csrf
                         <button type="submit" name="action" value="save_only" class="cd-btn cd-btn-outline" id="saveContentBtn" style="color:#0055D4; border-color:#0055D4; display:none;">Save Content</button>
@@ -2261,6 +2652,17 @@
         const WORKFLOW_STAGES = @json($stages);
         let currentTaskData = null;
 
+        function formatLocalDateStr(dateVal) {
+            if (!dateVal) return '';
+            if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateVal)) {
+                const parts = dateVal.substring(0, 10).split('-');
+                const d = new Date(parts[0], parts[1] - 1, parts[2]);
+                return d.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+            }
+            const d = new Date(dateVal);
+            return isNaN(d) ? '' : d.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+        }
+
         function saveDeliverableDeadline(btn) {
             if (!currentTaskData) return;
             const input = document.getElementById('modalDeliverableDeadlineInput');
@@ -2321,6 +2723,17 @@
                     btn.textContent = 'Saved!';
                     btn.style.background = '#10b981';
                     btn.style.opacity = '1';
+                    if (currentTaskData) currentTaskData.revision_deadline = deadlineVal;
+                    const revDeadlineBadge = document.getElementById('modalRevisionDeadlineBadge');
+                    const revDeadlineText = document.getElementById('modalRevisionDeadlineText');
+                    if (revDeadlineBadge && revDeadlineText) {
+                        if (deadlineVal) {
+                            revDeadlineText.textContent = `Due: ${formatLocalDateStr(deadlineVal)}`;
+                            revDeadlineBadge.style.display = 'inline-flex';
+                        } else {
+                            revDeadlineBadge.style.display = 'none';
+                        }
+                    }
                     setTimeout(() => {
                         window.location.reload();
                     }, 500);
@@ -2340,6 +2753,275 @@
                 }, 2000);
             });
         }
+
+        window.switchArtworkDeliveryTab = function(tab) {
+            const btnUpload = document.getElementById('tabArtworkUploadBtn');
+            const btnLink = document.getElementById('tabArtworkLinkBtn');
+            const paneUpload = document.getElementById('paneArtworkUpload');
+            const paneLink = document.getElementById('paneArtworkLink');
+            if (!btnUpload || !btnLink || !paneUpload || !paneLink) return;
+
+            if (tab === 'upload') {
+                btnUpload.style.background = 'rgba(16,185,129,0.15)';
+                btnUpload.style.color = '#10b981';
+                btnLink.style.background = 'transparent';
+                btnLink.style.color = 'var(--color-text-secondary)';
+                paneUpload.style.display = 'block';
+                paneLink.style.display = 'none';
+            } else {
+                btnLink.style.background = 'rgba(16,185,129,0.15)';
+                btnLink.style.color = '#10b981';
+                btnUpload.style.background = 'transparent';
+                btnUpload.style.color = 'var(--color-text-secondary)';
+                paneLink.style.display = 'block';
+                paneUpload.style.display = 'none';
+            }
+        };
+
+        window.setupModalLayout = function(isDirectDesign) {
+            const overlay = document.getElementById('taskModalOverlay');
+            if (!overlay) return;
+            const modal = overlay.querySelector('.cd-modal');
+            const ddLayout = document.getElementById('ddTwoColLayout');
+            const ddMain = document.getElementById('ddColMain');
+            const ddSidebar = document.getElementById('ddColSidebar');
+            const ddSidebarMeta = document.getElementById('ddSidebarMetaCard');
+            const ddActions = document.getElementById('ddSidebarActions');
+
+            const stdTop = document.getElementById('standardTopContainer');
+            const stdGrid = document.getElementById('standardDetailGrid');
+            const stdFooterInner = document.getElementById('standardModalFooterInner');
+            const modalFooter = modal ? modal.querySelector('.cd-modal-footer') : null;
+
+            if (!modal || !ddLayout || !ddMain || !ddSidebar || !stdTop || !stdGrid) return;
+
+            if (isDirectDesign) {
+                overlay.style.display = 'flex';
+                overlay.style.justifyContent = 'center';
+                overlay.style.alignItems = 'center';
+                overlay.style.padding = '20px';
+                modal.classList.add('direct-design-modal');
+                ddLayout.style.display = 'grid';
+                stdTop.style.display = 'none';
+                stdGrid.style.display = 'none';
+                if (modalFooter) modalFooter.style.display = 'none';
+
+                // Hide top header deadlines in Direct Design (they belong cleanly in the sidebar)
+                const topDeadlines = document.getElementById('modalTopDeadlines');
+                if (topDeadlines) {
+                    topDeadlines.style.display = 'none';
+                    topDeadlines.innerHTML = '';
+                }
+
+                // Sidebar items:
+                // 1. Stepper
+                const stepper = document.getElementById('modalWorkflowSteps');
+                if (stepper) ddSidebar.insertBefore(stepper, ddSidebarMeta);
+
+                // 2. Metadata into ddSidebarMetaCard
+                const metaRow = document.getElementById('modalMetaRow');
+                const deadlineRow = document.getElementById('modalDeadlineRow');
+                if (metaRow) ddSidebarMeta.appendChild(metaRow);
+                if (deadlineRow) ddSidebarMeta.appendChild(deadlineRow);
+
+                // 3. Routing & Assignments into ddSidebar (above ddActions)
+                const routeArea = document.getElementById('directDesignRouteArea');
+                const writerArea = document.getElementById('writerSelectionArea');
+                const apprArea = document.getElementById('approverSelectionArea');
+                const bmArea = document.getElementById('brandManagerSelectionArea');
+                const faArea = document.getElementById('modalFurtherApproverGroup');
+                if (routeArea) ddSidebar.insertBefore(routeArea, ddActions);
+                if (writerArea) ddSidebar.insertBefore(writerArea, ddActions);
+                if (apprArea) ddSidebar.insertBefore(apprArea, ddActions);
+                if (bmArea) ddSidebar.insertBefore(bmArea, ddActions);
+                if (faArea) ddSidebar.insertBefore(faArea, ddActions);
+
+                // 4. Action buttons into ddActions
+                const submitForm = document.getElementById('submitStageForm');
+                const revBtn = document.getElementById('showRevisionBtn');
+                const delBtn = document.getElementById('modalDeleteBtn');
+                if (submitForm) ddActions.appendChild(submitForm);
+                if (revBtn) ddActions.appendChild(revBtn);
+                if (delBtn) ddActions.appendChild(delBtn);
+
+                // Main Column items:
+                // Alerts
+                const commentAlert = document.getElementById('modalLatestCommentAlert');
+                const revAlert = document.getElementById('modalRevisionAlert');
+                if (commentAlert) ddMain.appendChild(commentAlert);
+                if (revAlert) ddMain.appendChild(revAlert);
+
+                // Creative Brief / Description
+                const conceptItem = document.getElementById('modalConceptGroup');
+                if (conceptItem) ddMain.appendChild(conceptItem);
+
+                // Deliverable Team
+                const teamItem = document.getElementById('modalTeamGroup');
+                if (teamItem) ddMain.appendChild(teamItem);
+
+                // Reference Files & Links
+                const refItem = document.getElementById('modalReferenceGroup');
+                if (refItem) ddMain.appendChild(refItem);
+
+                // Deliver Final Artwork (Tabbed block)
+                const deliveryArea = document.getElementById('designerDeliveryArea');
+                if (deliveryArea) ddMain.appendChild(deliveryArea);
+
+                // Final Artwork Preview
+                const finalItem = document.getElementById('modalFinalGroup');
+                if (finalItem) ddMain.appendChild(finalItem);
+
+                // Submission Comments
+                const notesArea = document.getElementById('submitNotesArea');
+                if (notesArea) ddMain.appendChild(notesArea);
+
+                // History accordions
+                const appBox = document.getElementById('modalApprovalsBox');
+                const revBox = document.getElementById('modalHistoryBox');
+                const reassBox = document.getElementById('modalReassignmentHistoryBox');
+                if (appBox) ddMain.appendChild(appBox);
+                if (revBox) ddMain.appendChild(revBox);
+                if (reassBox) ddMain.appendChild(reassBox);
+
+                // Revision Form
+                const revInputArea = document.getElementById('revisionInputArea');
+                if (revInputArea) ddMain.appendChild(revInputArea);
+
+            } else {
+                // Restore standard Retainer / standard deliverable layout
+                overlay.style.display = '';
+                overlay.style.justifyContent = '';
+                overlay.style.alignItems = '';
+                overlay.style.padding = '';
+                modal.classList.remove('direct-design-modal');
+                ddLayout.style.display = 'none';
+                stdTop.style.display = '';
+                stdGrid.style.display = '';
+                if (modalFooter) modalFooter.style.display = '';
+
+                // Restore top deadlines
+                const topDeadlines = document.getElementById('modalTopDeadlines');
+                if (topDeadlines) topDeadlines.style.display = 'flex';
+
+                // Restore top container
+                const metaRow = document.getElementById('modalMetaRow');
+                const stepper = document.getElementById('modalWorkflowSteps');
+                const commentAlert = document.getElementById('modalLatestCommentAlert');
+                const deadlineRow = document.getElementById('modalDeadlineRow');
+                const revAlert = document.getElementById('modalRevisionAlert');
+
+                if (metaRow) stdTop.appendChild(metaRow);
+                if (stepper) stdTop.appendChild(stepper);
+                if (commentAlert) stdTop.appendChild(commentAlert);
+                if (deadlineRow) stdTop.appendChild(deadlineRow);
+                if (revAlert) stdTop.appendChild(revAlert);
+
+                // Restore detail grid items in original order
+                const conceptItem = document.getElementById('modalConceptGroup');
+                const copyItem = document.getElementById('modalCopyGroup');
+                const captionItem = document.getElementById('modalCaptionGroup');
+                const refItem = document.getElementById('modalReferenceGroup');
+                const teamItem = document.getElementById('modalTeamGroup');
+                const appBox = document.getElementById('modalApprovalsBox');
+                const routeArea = document.getElementById('directDesignRouteArea');
+                const writerArea = document.getElementById('writerSelectionArea');
+                const apprArea = document.getElementById('approverSelectionArea');
+                const bmArea = document.getElementById('brandManagerSelectionArea');
+                const faArea = document.getElementById('modalFurtherApproverGroup');
+                const coordArea = document.getElementById('coordinatorSelectionArea');
+                const dArea = document.getElementById('designerSelectionArea');
+                const deliveryArea = document.getElementById('designerDeliveryArea');
+                const notesArea = document.getElementById('submitNotesArea');
+                const finalItem = document.getElementById('modalFinalGroup');
+                const revBox = document.getElementById('modalHistoryBox');
+                const reassBox = document.getElementById('modalReassignmentHistoryBox');
+
+                [conceptItem, copyItem, captionItem, refItem, teamItem, appBox, routeArea, writerArea, apprArea, bmArea, faArea, coordArea, dArea, deliveryArea, notesArea, finalItem, revBox, reassBox].forEach(el => {
+                    if (el) stdGrid.appendChild(el);
+                });
+
+                // Restore revision input area
+                const revInputArea = document.getElementById('revisionInputArea');
+                if (revInputArea) {
+                    const modalBodyInner = modal.querySelector('.cd-modal-body .cd-modal-inner') || stdGrid.parentElement;
+                    modalBodyInner.appendChild(revInputArea);
+                }
+
+                // Restore footer buttons
+                const submitForm = document.getElementById('submitStageForm');
+                const revBtn = document.getElementById('showRevisionBtn');
+                const delBtn = document.getElementById('modalDeleteBtn');
+                if (stdFooterInner) {
+                    if (submitForm) stdFooterInner.appendChild(submitForm);
+                    if (revBtn) stdFooterInner.appendChild(revBtn);
+                    if (delBtn) stdFooterInner.appendChild(delBtn);
+                }
+            }
+        };
+
+        window.handleDirectDesignRouteChange = function(choice) {
+            const sendToInput = document.getElementById('directDesignSendTo');
+            const writerArea = document.getElementById('writerSelectionArea');
+            const apprArea = document.getElementById('approverSelectionArea');
+            const nextBtn = document.getElementById('submitStageBtn');
+            const apprCard = document.getElementById('directRouteApproverLabel');
+            const writerCard = document.getElementById('directRouteWriterLabel');
+            const radioApprover = document.getElementById('directRouteApproverRadio');
+            const radioWriter = document.getElementById('directRouteWriterRadio');
+
+            if (sendToInput) sendToInput.value = choice;
+
+            const wSel = writerArea ? writerArea.querySelector('select') : null;
+            const aSel = apprArea ? apprArea.querySelector('select') : null;
+
+            if (choice === 'approver') {
+                if (radioApprover) radioApprover.checked = true;
+                if (radioWriter) radioWriter.checked = false;
+                if (apprCard) {
+                    apprCard.style.borderColor = 'rgba(234,88,12,0.5)';
+                    apprCard.style.background = 'rgba(234,88,12,0.08)';
+                }
+                if (writerCard) {
+                    writerCard.style.borderColor = 'var(--color-border-primary)';
+                    writerCard.style.background = 'transparent';
+                }
+                if (apprArea) {
+                    apprArea.style.display = 'block';
+                    if (aSel) aSel.disabled = false;
+                }
+                if (writerArea) {
+                    writerArea.style.display = 'none';
+                    if (wSel) wSel.disabled = true;
+                }
+                if (nextBtn) {
+                    nextBtn.textContent = 'Submit to Approver';
+                    nextBtn.style.background = '#ea580c';
+                }
+            } else {
+                if (radioWriter) radioWriter.checked = true;
+                if (radioApprover) radioApprover.checked = false;
+                if (writerCard) {
+                    writerCard.style.borderColor = 'rgba(14,165,233,0.5)';
+                    writerCard.style.background = 'rgba(14,165,233,0.08)';
+                }
+                if (apprCard) {
+                    apprCard.style.borderColor = 'var(--color-border-primary)';
+                    apprCard.style.background = 'transparent';
+                }
+                if (writerArea) {
+                    writerArea.style.display = 'block';
+                    if (wSel) wSel.disabled = false;
+                }
+                if (apprArea) {
+                    apprArea.style.display = 'none';
+                    if (aSel) aSel.disabled = true;
+                }
+                if (nextBtn) {
+                    nextBtn.textContent = 'Submit for Writer Review';
+                    nextBtn.style.background = '#0ea5e9';
+                }
+            }
+        };
 
         async function openTaskModal(task) {
             try {
@@ -2377,6 +3059,15 @@
                 const postTypeNorm = (task.post_type || '').toLowerCase().trim();
                 const isDirectDesign = (task.flow_type === 'direct_design' || task.is_direct_design);
                 const isOtherDeliverable = !isDirectDesign && projectWorkflowType !== 'retainer' && (task.workflow_stages?.length === 3 || (!['outlines', 'outline'].includes(postTypeNorm)));
+
+                // Setup 2-Column Responsive Layout strictly for Direct Design deliverables
+                if (typeof window.setupModalLayout === 'function') {
+                    window.setupModalLayout(Boolean(isDirectDesign));
+                }
+                if (isDirectDesign && typeof window.switchArtworkDeliveryTab === 'function') {
+                    window.switchArtworkDeliveryTab('upload');
+                }
+
                 const isAssignedWriter      = AUTH_USER_ID == task.writer_id;
                 const isAssignedApprover    = AUTH_USER_ID == task.approver_id;
                 const isAssignedBrandMgr    = AUTH_USER_ID == task.brand_manager_id;
@@ -2557,37 +3248,40 @@
                 // Populate top deadlines list
                 const topDeadlinesEl = document.getElementById('modalTopDeadlines');
                 if (topDeadlinesEl) {
-                    topDeadlinesEl.innerHTML = '';
-                    
-                    // 1. Deliverable Due Date
-                    const displayDeadline = task.deadline || (task.parent ? task.parent.deadline : null);
-                    if (displayDeadline) {
-                        const dDate = new Date(displayDeadline);
-                        const dateStr = dDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
-                        const dueBadge = document.createElement('div');
-                        dueBadge.style.cssText = 'background: rgba(59, 130, 246, 0.08); color: #3b82f6; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
-                        dueBadge.textContent = `Del: ${dateStr}`;
-                        topDeadlinesEl.appendChild(dueBadge);
-                    }
+                    if (isDirectDesign) {
+                        topDeadlinesEl.style.display = 'none';
+                        topDeadlinesEl.innerHTML = '';
+                    } else {
+                        topDeadlinesEl.style.display = 'flex';
+                        topDeadlinesEl.innerHTML = '';
+                        
+                        // 1. Deliverable Due Date
+                        const displayDeadline = task.deadline || (task.parent ? task.parent.deadline : null);
+                        if (displayDeadline) {
+                            const dateStr = formatLocalDateStr(displayDeadline);
+                            const dueBadge = document.createElement('div');
+                            dueBadge.style.cssText = 'background: rgba(59, 130, 246, 0.08); color: #3b82f6; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
+                            dueBadge.textContent = `Del: ${dateStr}`;
+                            topDeadlinesEl.appendChild(dueBadge);
+                        }
 
-                    // 2. Designer Due Date
-                    if (task.designer_deadline && !isOtherDeliverable && !isDirectDesign) {
-                        const desDate = new Date(task.designer_deadline);
-                        const desDateStr = desDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
-                        const desBadge = document.createElement('div');
-                        desBadge.style.cssText = 'background: rgba(236, 72, 153, 0.08); color: #ec4899; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(236, 72, 153, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
-                        desBadge.textContent = `Designer Due: ${desDateStr}`;
-                        topDeadlinesEl.appendChild(desBadge);
-                    }
+                        // 2. Designer Due Date
+                        if (task.designer_deadline && !isOtherDeliverable) {
+                            const desDateStr = formatLocalDateStr(task.designer_deadline);
+                            const desBadge = document.createElement('div');
+                            desBadge.style.cssText = 'background: rgba(236, 72, 153, 0.08); color: #ec4899; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(236, 72, 153, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
+                            desBadge.textContent = `Designer Due: ${desDateStr}`;
+                            topDeadlinesEl.appendChild(desBadge);
+                        }
 
-                    // 3. Revision Due Date
-                    if (task.revision_deadline && (task.revision_instructions || (task.revisions && task.revisions > 0))) {
-                        const revDate = new Date(task.revision_deadline);
-                        const revDateStr = revDate.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
-                        const revBadge = document.createElement('div');
-                        revBadge.style.cssText = 'background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.25); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em; display:flex; align-items:center; gap:4px;';
-                        revBadge.innerHTML = `<svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Revision Due: ${revDateStr}`;
-                        topDeadlinesEl.appendChild(revBadge);
+                        // 3. Revision Due Date
+                        if (task.revision_deadline && (task.revision_instructions || (task.revisions && task.revisions > 0))) {
+                            const revDateStr = formatLocalDateStr(task.revision_deadline);
+                            const revBadge = document.createElement('div');
+                            revBadge.style.cssText = 'background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.25); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em; display:flex; align-items:center; gap:4px;';
+                            revBadge.innerHTML = `<svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Revision Due: ${revDateStr}`;
+                            topDeadlinesEl.appendChild(revBadge);
+                        }
                     }
                 }
 
@@ -2679,44 +3373,86 @@
                     }
                 }
 
+                let refUrls = [];
+                if (task.reference_urls_list && Array.isArray(task.reference_urls_list)) {
+                    refUrls = task.reference_urls_list;
+                } else if (task.reference) {
+                    if (typeof task.reference === 'string' && task.reference.startsWith('[')) {
+                        try { refUrls = JSON.parse(task.reference); } catch(e) { refUrls = [task.reference]; }
+                    } else if (Array.isArray(task.reference)) {
+                        refUrls = task.reference;
+                    } else if (typeof task.reference === 'string' && task.reference.trim()) {
+                        refUrls = [task.reference.trim()];
+                    }
+                }
+
+                // Deduplicate reference URLs against reference files (prevents uploaded files from showing twice as links)
+                if (refUrls && refUrls.length > 0 && refFiles && refFiles.length > 0) {
+                    refUrls = refUrls.filter(u => {
+                        if (!u || typeof u !== 'string') return false;
+                        const trimmed = u.trim();
+                        return !refFiles.includes(trimmed) && !refFiles.some(f => f.includes(trimmed) || trimmed.includes(f));
+                    });
+                }
+
+                let refParts = [];
                 if (refFiles && refFiles.length > 0) {
-                    refHtml = '<div style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; margin-top:8px;">';
+                    let filesHtml = '<div style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px;">';
                     refFiles.forEach((refUrl, rIdx) => {
                         const isVideo = refUrl.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
                         const isPdf = refUrl.match(/\.pdf(?:$|\?)/i);
-                        const rLabel = refFiles.length > 1 ? `Ref #${rIdx + 1}` : 'Reference';
+                        const rLabel = refFiles.length > 1 ? `Ref File #${rIdx + 1}` : 'Reference File';
                         if (isPdf) {
-                            refHtml += `
+                            filesHtml += `
                                 <div onclick="window.open('${refUrl}', '_blank')" style="display:inline-block; cursor:pointer;">
                                     <div style="display:flex; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px;">
                                         <svg width="22" height="22" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                                         <span style="font-size:11px; font-weight:800; color:#ef4444;">VIEW PDF</span>
                                     </div>
-                                    <span style="display:block; font-size:9px; font-weight:800; color:#0055D4; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
+                                    <span style="display:block; font-size:9px; font-weight:800; color:#0ea5e9; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
                                 </div>`;
                         } else if (isVideo) {
-                            refHtml += `
+                            filesHtml += `
                                 <div style="display:inline-block;">
                                     <video controls src="${refUrl}" style="width:100%; max-width:260px; border-radius:10px; border:1px solid var(--color-border-primary);"></video>
-                                    <span style="display:block; font-size:9px; font-weight:800; color:#0055D4; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
+                                    <span style="display:block; font-size:9px; font-weight:800; color:#0ea5e9; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
                                 </div>`;
                         } else {
-                            refHtml += `
+                            filesHtml += `
                                 <div onclick="openImagePreview('${refUrl}', false)" style="display:inline-block; cursor:pointer;">
                                     <img src="${refUrl}" style="width:100%; max-width:180px; height:auto; border-radius:10px; border:1px solid var(--color-border-primary);">
-                                    <span style="display:block; font-size:9px; font-weight:800; color:#0055D4; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
+                                    <span style="display:block; font-size:9px; font-weight:800; color:#0ea5e9; text-transform:uppercase; margin-top:4px;">${rLabel}</span>
                                 </div>`;
                         }
                     });
+                    filesHtml += '</div>';
+                    refParts.push(filesHtml);
+                }
+
+                if (refUrls && refUrls.length > 0) {
+                    let urlsHtml = '<div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">';
+                    refUrls.forEach((u, uIdx) => {
+                        let hostname = '';
+                        try {
+                            hostname = new URL(u).hostname.replace(/^www\./, '');
+                        } catch(e) {
+                            hostname = u.length > 25 ? u.substring(0, 25) + '…' : u;
+                        }
+                        const uLabel = refUrls.length > 1 ? `Link #${uIdx + 1} (${hostname})` : `Visit ${hostname || 'Link'}`;
+                        urlsHtml += `<a href="${u}" target="_blank" class="ref-chip" style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.25); border-radius:8px; color:#0ea5e9; font-size:12px; font-weight:700; text-decoration:none; transition:all 0.15s ease;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            ${uLabel}
+                        </a>`;
+                    });
+                    urlsHtml += '</div>';
+                    refParts.push(urlsHtml);
+                }
+
+                if (refParts.length > 0) {
+                    refHtml = '<div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">' + refParts.join('') + '</div>';
                     if (removeRefBtnHtml) {
-                        refHtml += removeRefBtnHtml;
+                        refHtml += '<div style="margin-top:8px;">' + removeRefBtnHtml + '</div>';
                     }
-                    refHtml += '</div>';
-                } else if (task.reference) {
-                    refHtml = `<a href="${task.reference}" target="_blank" class="ref-chip">
-                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                        Visit Link
-                    </a>`;
                 } else {
                     refHtml = '<span style="color:#94a3b8; font-size:13px; font-weight:500;">No reference provided</span>';
                 }
@@ -2736,84 +3472,97 @@
                 // Team Grid
                 const teamGrid = document.getElementById('modalTeamGrid');
                 teamGrid.innerHTML = '';
-                if (task.associates) {
-                    let roles = [];
-                    if (isOtherDeliverable || task.is_other_deliverable) {
-                        // Other Deliverables in Campaign / Pitch: Assign -> Approve -> Close
-                        roles = [
-                            {key: 'assignee', label: 'Assignee'},
-                            {key: 'brand_manager', label: 'Brand Manager'},
-                        ];
-                    } else if (task.flow_type === 'direct_design' || task.is_direct_design) {
-                        // Direct Design: Designer -> Writer Review -> Approver Review -> Further Approver -> Final Approval -> Closed
-                        roles = [
-                            {key: 'designer', label: 'Designer'},
-                            {key: 'writer', label: 'Writer'},
-                            {key: 'approver', label: 'Approver'},
-                        ];
-                        if (task.associates && task.associates.further_approver && task.associates.further_approver !== 'None') {
-                            roles.push({key: 'further_approver', label: 'Further Approver'});
-                        }
-                        roles.push({key: 'brand_manager', label: 'Brand Manager'});
-                    } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
-                        // Campaign / Pitch Outlines
-                        roles = [
-                            {key: 'assignee', label: 'Assignee'},
-                            {key: 'brand_manager', label: 'Brand Manager'},
-                        ];
-                        if (task.associates.approver && task.associates.approver !== 'None') {
-                            roles.push({key: 'approver', label: 'Approver'});
-                        }
-                        if (task.associates.further_approver && task.associates.further_approver !== 'None') {
-                            roles.push({key: 'further_approver', label: 'Further Approver'});
-                        }
-                        if (task.associates.coordinator && task.associates.coordinator !== 'None') {
-                            roles.push({key: 'coordinator', label: 'Coordinator'});
-                        }
-                        if (task.associates.designer && task.associates.designer !== 'None') {
-                            roles.push({key: 'designer', label: 'Designer'});
-                        }
-                    } else {
-                        // Standard Retainer Workflow
-                        roles = [
-                            {key: 'writer', label: 'Writer'},
-                            {key: 'approver', label: 'Approver'},
-                        ];
-                        if (task.associates.further_approver && task.associates.further_approver !== 'None') {
-                            roles.push({key: 'further_approver', label: 'Further Approver'});
-                        }
-                        roles.push(
-                            {key: 'brand_manager', label: 'Brand Manager'},
-                            {key: 'coordinator', label: 'Coordinator'},
-                            {key: 'designer', label: 'Designer'}
-                        );
+                const associates = task.associates || {};
+                let roles = [];
+                if (isOtherDeliverable || task.is_other_deliverable) {
+                    // Other Deliverables in Campaign / Pitch: Assign -> Approve -> Close
+                    roles = [
+                        {key: 'assignee', label: 'Assignee'},
+                        {key: 'brand_manager', label: 'Brand Manager'},
+                    ];
+                } else if (task.flow_type === 'direct_design' || task.is_direct_design) {
+                    // Direct Design: Designer -> Writer Review -> Approver Review -> Further Approver -> Final Approval -> Closed
+                    roles = [
+                        {key: 'designer', label: 'Designer'},
+                        {key: 'writer', label: 'Writer'},
+                        {key: 'approver', label: 'Approver'},
+                    ];
+                    if (associates.further_approver && associates.further_approver !== 'None') {
+                        roles.push({key: 'further_approver', label: 'Further Approver'});
                     }
-                    
-                    roles.forEach(role => {
-                        const name = task.associates[role.key]
-                            || (role.key === 'assignee' ? (task.assignee_name || task.writer?.name || task.associates.writer) : null)
-                            || 'None';
+                    roles.push({key: 'brand_manager', label: 'Brand Manager'});
+                } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
+                    // Campaign / Pitch Outlines
+                    roles = [
+                        {key: 'assignee', label: 'Assignee'},
+                        {key: 'brand_manager', label: 'Brand Manager'},
+                    ];
+                    if (associates.approver && associates.approver !== 'None') {
+                        roles.push({key: 'approver', label: 'Approver'});
+                    }
+                    if (associates.further_approver && associates.further_approver !== 'None') {
+                        roles.push({key: 'further_approver', label: 'Further Approver'});
+                    }
+                    if (associates.coordinator && associates.coordinator !== 'None') {
+                        roles.push({key: 'coordinator', label: 'Coordinator'});
+                    }
+                    if (associates.designer && associates.designer !== 'None') {
+                        roles.push({key: 'designer', label: 'Designer'});
+                    }
+                } else {
+                    // Standard Retainer Workflow
+                    roles = [
+                        {key: 'writer', label: 'Writer'},
+                        {key: 'approver', label: 'Approver'},
+                    ];
+                    if (associates.further_approver && associates.further_approver !== 'None') {
+                        roles.push({key: 'further_approver', label: 'Further Approver'});
+                    }
+                    roles.push(
+                        {key: 'brand_manager', label: 'Brand Manager'},
+                        {key: 'coordinator', label: 'Coordinator'},
+                        {key: 'designer', label: 'Designer'}
+                    );
+                }
+                
+                roles.forEach(role => {
+                    const name = associates[role.key]
+                        || (role.key === 'assignee' ? (task.assignee_name || task.writer?.name || associates.writer) : null)
+                        || (role.key === 'designer' ? (task.designer?.name || task.designer_name) : null)
+                        || (role.key === 'writer' ? (task.writer?.name || task.writer_name) : null)
+                        || (role.key === 'approver' ? (task.approver?.name || task.approver_name) : null)
+                        || (role.key === 'brand_manager' ? (task.brand_manager?.name || task.brand_manager_name) : null)
+                        || (role.key === 'coordinator' ? (task.coordinator?.name || task.coordinator_name) : null)
+                        || 'None';
 
-                        let rCol = '100,116,139';
-                        if (role.key === 'writer' || role.key === 'assignee') rCol = '59,130,246';
-                        else if (role.key === 'approver' || role.key === 'further_approver') rCol = '234,88,12';
-                        else if (role.key === 'brand_manager') rCol = '37,99,235';
-                        else if (role.key === 'coordinator') rCol = '14,165,233';
-                        else if (role.key === 'designer') rCol = '139,92,246';
+                    let rCol = '100,116,139';
+                    if (role.key === 'writer' || role.key === 'assignee') rCol = '59,130,246';
+                    else if (role.key === 'approver' || role.key === 'further_approver') rCol = '234,88,12';
+                    else if (role.key === 'brand_manager') rCol = '37,99,235';
+                    else if (role.key === 'coordinator') rCol = '14,165,233';
+                    else if (role.key === 'designer') rCol = '139,92,246';
 
-                        const item = document.createElement('div');
-                        item.style.cssText = `display:flex; align-items:center; gap:10px; padding:10px; background:rgba(${rCol},0.05); border-radius:12px; border:1px solid rgba(${rCol},0.2);`;
-                        item.innerHTML = `
-                            <div style="width:30px; height:30px; border-radius:50%; background:rgba(${rCol},0.1); color:rgb(${rCol}); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; border:1.5px solid rgba(${rCol},0.25);">
-                                ${name !== 'None' ? name.charAt(0) : '?'}
-                            </div>
-                            <div style="overflow:hidden;">
-                                <div style="font-size:9px; font-weight:800; color:rgb(${rCol}); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:1px; opacity:0.9;">${role.label}</div>
-                                <div style="font-size:12px; font-weight:700; color:var(--color-text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
-                            </div>
-                        `;
-                        teamGrid.appendChild(item);
-                    });
+                    const item = document.createElement('div');
+                    item.style.cssText = `display:flex; align-items:center; gap:10px; padding:10px; background:rgba(${rCol},0.05); border-radius:12px; border:1px solid rgba(${rCol},0.2);`;
+                    item.innerHTML = `
+                        <div style="width:30px; height:30px; border-radius:50%; background:rgba(${rCol},0.1); color:rgb(${rCol}); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; border:1.5px solid rgba(${rCol},0.25);">
+                            ${name !== 'None' ? name.charAt(0) : '?'}
+                        </div>
+                        <div style="overflow:hidden;">
+                            <div style="font-size:9px; font-weight:800; color:rgb(${rCol}); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:1px; opacity:0.9;">${role.label}</div>
+                            <div style="font-size:12px; font-weight:700; color:var(--color-text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
+                        </div>
+                    `;
+                    teamGrid.appendChild(item);
+                });
+
+                if (teamGrid.children.length === 0) {
+                    teamGrid.innerHTML = `
+                        <div style="grid-column: 1 / -1; display:flex; align-items:center; gap:10px; padding:12px 14px; background:rgba(255,255,255,0.03); border:1px dashed var(--color-border-primary); border-radius:12px; color:var(--color-text-secondary); font-size:12px; font-weight:600;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                            <span>Team members will be populated as deliverable advances through review.</span>
+                        </div>
+                    `;
                 }
                 
                 let finalHtml = '';
@@ -2961,10 +3710,11 @@
                 const revHistory = document.getElementById('modalRevisionHistory');
                 revHistory.innerHTML = '';
                 if (task.revisions_history && task.revisions_history.length > 0) {
-                    task.revisions_history.forEach(rev => {
+                    task.revisions_history.forEach((rev, rIdx) => {
                         const dateStr = new Date(rev.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
                         const row = document.createElement('div');
                         row.style.cssText = 'display:flex; flex-direction:column; gap:8px; background:rgba(239, 68, 68, 0.05); padding:12px; border-radius:12px; border:1px solid rgba(239, 68, 68, 0.1);';
+                        const revLabel = `R${task.revisions_history.length - rIdx}`;
                         
                         let fixedBadge = '';
                         if (rev.fixed_at) {
@@ -3098,6 +3848,7 @@
                         row.innerHTML = `
                             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                                 <div style="font-size:11px; font-weight:800; color:#ef4444; text-transform:uppercase; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                    <span style="display:inline-flex; align-items:center; justify-content:center; background:#ef4444; color:#fff; padding:1px 6px; border-radius:4px; font-size:9.5px; font-weight:900;">${revLabel}</span>
                                     <span>Requested by ${rev.user ? rev.user.name : 'Unknown'}</span>
                                     <span style="color:#ef4444; opacity:0.5;">•</span>
                                     <span>${rev.stage_at_revision || 'Unknown Stage'}</span>
@@ -3157,8 +3908,7 @@
                     const revDeadlineBadge = document.getElementById('modalRevisionDeadlineBadge');
                     const revDeadlineText = document.getElementById('modalRevisionDeadlineText');
                     if (task.revision_deadline && revDeadlineBadge && revDeadlineText) {
-                        const d = new Date(task.revision_deadline);
-                        const dStr = d.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+                        const dStr = formatLocalDateStr(task.revision_deadline);
                         revDeadlineText.textContent = `Due: ${dStr}`;
                         revDeadlineBadge.style.display = 'inline-flex';
                     } else if (revDeadlineBadge) {
@@ -3171,7 +3921,37 @@
                 // Workflow Tracker dots
                 let taskStages;
                 if (isDirectDesign || task.is_direct_design) {
-                    taskStages = ['Designer', 'Writer Review', 'Approver Review', 'Further Approver', 'Final Approval'];
+                    const stageHistory = task.approvals_history || task.approvalsHistory || [];
+                    const isInHistory = (stg) => {
+                        if (Array.isArray(stageHistory)) {
+                            return stageHistory.some(h => (h.stage || h.approval_stage) === stg);
+                        }
+                        if (typeof stageHistory === 'object' && stageHistory !== null) {
+                            return Object.values(stageHistory).some(h => (h.stage || h.approval_stage) === stg);
+                        }
+                        return false;
+                    };
+
+                    const hasWriterReview = Boolean(
+                        task.writer_id ||
+                        task.approval_stage === 'Writer Review' ||
+                        isInHistory('Writer Review')
+                    );
+                    const hasFurtherApprover = Boolean(
+                        task.further_approver_id ||
+                        task.approval_stage === 'Further Approver' ||
+                        isInHistory('Further Approver')
+                    );
+
+                    taskStages = ['Designer'];
+                    if (hasWriterReview) {
+                        taskStages.push('Writer Review');
+                    }
+                    taskStages.push('Approver Review');
+                    if (hasFurtherApprover) {
+                        taskStages.push('Further Approver');
+                    }
+                    taskStages.push('Final Approval');
                 } else if (isOtherDeliverable) {
                     taskStages = ['Assign', 'Approve', 'Close'];
                 } else if (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch') {
@@ -3193,9 +3973,16 @@
                 if (modalStepsEl) {
                     modalStepsEl.innerHTML = taskStages.map((stg, idx) => {
                         let cls = 'step-item';
-                        if (idx < currentStageIdx) cls += ' completed';
-                        else if (idx === currentStageIdx) cls += ' active';
-                        return `<div class="${cls}" data-stage="${stg}"><div class="step-dot">${idx + 1}</div><div class="step-label">${stg}</div></div>`;
+                        let dotContent = idx + 1;
+                        if (idx < currentStageIdx) {
+                            cls += ' completed';
+                            if (isDirectDesign || task.is_direct_design) {
+                                dotContent = `<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>`;
+                            }
+                        } else if (idx === currentStageIdx) {
+                            cls += ' active';
+                        }
+                        return `<div class="${cls}" data-stage="${stg}"><div class="step-dot">${dotContent}</div><div class="step-label">${stg}</div></div>`;
                     }).join('');
                 }
 
@@ -3252,6 +4039,8 @@
                 if (nextBtn) nextBtn.style.display = 'none';
                 if (showRevisionBtn) showRevisionBtn.style.display = 'none';
                 saveContentBtn.style.display = 'none';
+                const routeArea = document.getElementById('directDesignRouteArea');
+                if (routeArea) routeArea.style.display = 'none';
                 if (writerArea) {
                     writerArea.style.display = 'none';
                     const wSel = writerArea.querySelector('select');
@@ -3403,26 +4192,60 @@
 
                     if (isDirectDesign || task.is_direct_design) {
                         if (stage === 'Designer') {
-                            if (writerArea) {
-                                writerArea.style.display = 'block';
-                                const sel = writerArea.querySelector('select');
-                                if (sel) {
-                                    sel.disabled = false;
-                                    const projectWriterId = {!! json_encode($project->writer_id) !!};
-                                    if (task.writer_id) {
-                                        sel.value = task.writer_id;
-                                    } else if (projectWriterId && sel.querySelector(`option[value="${projectWriterId}"]`)) {
-                                        sel.value = projectWriterId;
-                                    } else if (sel.options.length > 1 && !sel.value) {
-                                        sel.value = sel.options[1].value;
+                            if (routeArea) {
+                                routeArea.style.display = 'block';
+
+                                // Populate Approver Select
+                                if (apprArea) {
+                                    const aSel = apprArea.querySelector('select');
+                                    if (aSel) {
+                                        const projectApproverId = {!! json_encode($project->approver_id ?? null) !!};
+                                        if (task.approver_id) {
+                                            aSel.value = task.approver_id;
+                                        } else if (projectApproverId && aSel.querySelector(`option[value="${projectApproverId}"]`)) {
+                                            aSel.value = projectApproverId;
+                                        } else if (aSel.options.length > 1 && !aSel.value) {
+                                            aSel.value = aSel.options[1].value;
+                                        }
                                     }
+                                }
+
+                                // Populate Writer Select
+                                if (writerArea) {
+                                    const wSel = writerArea.querySelector('select');
+                                    if (wSel) {
+                                        const projectWriterId = {!! json_encode($project->writer_id ?? null) !!};
+                                        if (task.writer_id) {
+                                            wSel.value = task.writer_id;
+                                        } else if (projectWriterId && wSel.querySelector(`option[value="${projectWriterId}"]`)) {
+                                            wSel.value = projectWriterId;
+                                        } else if (wSel.options.length > 1 && !wSel.value) {
+                                            wSel.value = wSel.options[1].value;
+                                        }
+                                    }
+                                }
+
+                                // Route selection: if task already has writer_id and no approver_id, select writer; otherwise default to approver (direct)
+                                if (task.writer_id && !task.approver_id) {
+                                    handleDirectDesignRouteChange('writer');
+                                } else {
+                                    handleDirectDesignRouteChange('approver');
                                 }
                             }
                         } else if (stage === 'Writer Review') {
+                            if (routeArea) routeArea.style.display = 'none';
                             if (apprArea) {
                                 apprArea.style.display = 'block';
                                 const sel = apprArea.querySelector('select');
-                                if (sel) sel.disabled = false;
+                                if (sel) {
+                                    sel.disabled = false;
+                                    const projectApproverId = {!! json_encode($project->approver_id ?? null) !!};
+                                    if (task.approver_id) {
+                                        sel.value = task.approver_id;
+                                    } else if (projectApproverId && sel.querySelector(`option[value="${projectApproverId}"]`)) {
+                                        sel.value = projectApproverId;
+                                    }
+                                }
                             }
                         } else if (stage === 'Approver Review') {
                             const faArea = document.getElementById('modalFurtherApproverGroup');
@@ -3498,11 +4321,13 @@
                     const isTaskInProgress = (task.status === 'In Progress');
                     const isTaskToDo = (!task.status || task.status === 'To Do' || task.status === 'To commence');
 
-                    const canShowArtworkUpload = isCampaignOrPitchProject
-                        ? (isTaskInProgress && (isOtherAssignedPerson || isAdmin || isCreator))
-                        : (isOtherDeliverable
-                            ? (isOtherAssignStage && isOtherAssignedPerson)
-                            : (stage === 'Designer'));
+                    const canShowArtworkUpload = (isDirectDesign || task.is_direct_design)
+                        ? (stage === 'Designer')
+                        : (isCampaignOrPitchProject
+                            ? (isTaskInProgress && (isOtherAssignedPerson || isAdmin || isCreator))
+                            : (isOtherDeliverable
+                                ? (isOtherAssignStage && isOtherAssignedPerson)
+                                : (stage === 'Designer')));
 
                     if (canShowArtworkUpload && delArea) {
                         delArea.style.display = 'block';
@@ -3552,9 +4377,23 @@
                     ? (isTaskToDo ? (isAdmin || isCreator) : (isOtherAssignedPerson || isAdmin || isCreator || isManagerOrApprover))
                     : (isAssignedWriter || isAssignedDesigner || isOtherAssignedPerson || isManagerOrApprover || isAdmin || canEditBriefAndRef);
                 if (refEditArea) {
-                    refEditArea.style.display = canUploadFiles ? 'flex' : 'none';
+                    const toggleBtn = document.getElementById('toggleRefEditBtn');
+                    const hasExistingRefs = refParts && refParts.length > 0;
+                    if ((isDirectDesign || task.is_direct_design) && hasExistingRefs) {
+                        refEditArea.style.display = 'none';
+                        if (toggleBtn) {
+                            toggleBtn.style.display = canUploadFiles ? 'inline-flex' : 'none';
+                            toggleBtn.textContent = '+ Add / Edit References';
+                        }
+                    } else {
+                        refEditArea.style.display = canUploadFiles ? 'flex' : 'none';
+                        if (toggleBtn) toggleBtn.style.display = 'none';
+                    }
                     const refInput = document.getElementById('modalReferenceUrl');
-                    if (refInput) refInput.value = task.reference || '';
+                    if (refInput) {
+                        const isFileUrl = task.reference && (refFiles.includes(task.reference) || task.reference.includes('/references/'));
+                        refInput.value = isFileUrl ? '' : (task.reference || '');
+                    }
                 }
 
                 const canSaveContent = isCampaignOrPitchProject
@@ -3672,6 +4511,9 @@
             setTimeout(() => {
                 overlay.style.display = 'none';
                 toggleRevisionInput(false);
+                if (typeof window.setupModalLayout === 'function') {
+                    window.setupModalLayout(false);
+                }
                 if (window._deliverableModalModified) {
                     window._deliverableModalModified = false;
                     window.location.reload();
@@ -4034,6 +4876,21 @@
                 </button>
             </div>
             <div class="cd-modal-body" style="padding: 24px 28px;">
+                <!-- Direct Design Review Route Selector -->
+                <div id="batchDirectDesignRouteGroup" style="display:none; margin-bottom:18px; padding:14px 16px; border-radius:12px; border:1.5px solid rgba(59,130,246,0.25); background:rgba(59,130,246,0.04);">
+                    <label class="detail-label" style="color:#2563eb; margin-bottom:8px; display:block; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:0.06em;">Route Deliverable To</label>
+                    <div style="display:flex; gap:16px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; font-weight:600; color:var(--color-text-primary);">
+                            <input type="radio" name="direct_design_route" value="Approver Review" id="batchRouteApprover" checked style="accent-color:#2563eb;">
+                            Approver Review <span style="font-size:10px; color:var(--color-text-secondary); font-weight:500;">(Direct)</span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; font-weight:600; color:var(--color-text-primary);">
+                            <input type="radio" name="direct_design_route" value="Writer Review" id="batchRouteWriter" style="accent-color:#2563eb;">
+                            Writer Review <span style="font-size:10px; color:var(--color-text-secondary); font-weight:500;">(Optional)</span>
+                        </label>
+                    </div>
+                </div>
+
                 <div id="batchStakeholderGroup" style="display: none;">
                     <label id="batchStakeholderLabel" class="detail-label">Assign Next Stakeholder</label>
                     <div style="position: relative;">
@@ -4213,7 +5070,8 @@
                     };
                 });
             } else {
-                title.textContent = `${itemType} Submission`;
+                const isApprovalAction = stakeholders && (stakeholders.currentStage === 'Approver Review' || stakeholders.currentStage === 'Further Approver');
+                title.textContent = isApprovalAction ? `${itemType} Approval` : `${itemType} Submission`;
                 const displayStage = nextStage === 'Further Approver' ? 'Brand Manager' : nextStage;
                 subtitle.textContent = isIndividual ? `Submitting this task to the ${displayStage} stage.` : `Preparing to submit ${count} tasks to ${displayStage} stage.`;
                 stakeholderGroup.style.display = 'none';
@@ -4234,8 +5092,24 @@
                 } else {
                     genericConfirm.textContent = isIndividual ? `Are you sure you want to advance this task?` : `Are you sure you want to advance this entire batch?`;
                 }
-                confirmBtn.textContent = 'Confirm & Submit';
+                confirmBtn.textContent = isApprovalAction ? 'Approve & Submit' : 'Confirm & Submit';
                 confirmBtn.style.background = ''; // default
+            }
+
+            // Direct Design Review Route Selector
+            const directDesignRouteGroup = document.getElementById('batchDirectDesignRouteGroup');
+            if (directDesignRouteGroup) {
+                const isDirectDesignerSubmit = type === 'submit' && stakeholders.isDirectDesign && (stakeholders.currentStage === 'Designer' || !stakeholders.currentStage);
+                directDesignRouteGroup.style.display = isDirectDesignerSubmit ? 'block' : 'none';
+                if (isDirectDesignerSubmit) {
+                    const routeApproverRadio = document.getElementById('batchRouteApprover');
+                    const routeWriterRadio = document.getElementById('batchRouteWriter');
+                    if (nextStage === 'Writer Review') {
+                        if (routeWriterRadio) routeWriterRadio.checked = true;
+                    } else {
+                        if (routeApproverRadio) routeApproverRadio.checked = true;
+                    }
+                }
             }
 
             stickyHint.style.display = 'none';
@@ -4246,7 +5120,7 @@
             const furtherApproverLabel = furtherApproverGroup ? furtherApproverGroup.querySelector('label') : null;
             if (furtherApproverGroup) {
                 const currentStage = stakeholders.currentStage || null;
-                const isApproverStage = (type === 'submit' && (nextStage === 'Further Approver' || currentStage === 'Approver'));
+                const isApproverStage = (type === 'submit' && (nextStage === 'Further Approver' || currentStage === 'Approver' || currentStage === 'Approver Review'));
                 const showFurther = isApproverStage;
                 furtherApproverGroup.style.display = showFurther ? 'block' : 'none';
                 if (furtherApproverSelect) {
@@ -4257,9 +5131,13 @@
                     let users, skipLabel, roleName, hintText;
                     if (isApproverStage) {
                         users = JSON.parse(document.getElementById('approvers-data').textContent);
-                        skipLabel = '— Skip, go directly to Brand Manager —';
+                        skipLabel = stakeholders.isDirectDesign
+                            ? '— Skip, go directly to Final Approval —'
+                            : '— Skip, go directly to Brand Manager —';
                         roleName = 'Further Approver';
-                        hintText = '(optional — adds another approval step before Brand Manager)';
+                        hintText = stakeholders.isDirectDesign
+                            ? '(optional — adds another approval step before Final Approval)'
+                            : '(optional — adds another approval step before Brand Manager)';
                     }
                     if (furtherApproverLabel) {
                         furtherApproverLabel.childNodes[0].textContent = roleName + ' ';
@@ -4272,14 +5150,20 @@
                         const opt = document.createElement('option');
                         opt.value = u.id;
                         opt.textContent = u.name;
+                        if (stakeholders.further_approver && u.id == stakeholders.further_approver) {
+                            opt.selected = true;
+                        }
                         furtherApproverSelect.appendChild(opt);
                     });
 
                     furtherApproverSelect.onchange = function() {
                         if (this.value) {
+                            currentBatchNextStage = 'Further Approver';
                             subtitle.textContent = isIndividual ? `Submitting this task to the Further Approver stage.` : `Preparing to submit ${count} tasks to Further Approver stage.`;
                         } else {
-                            subtitle.textContent = isIndividual ? `Submitting this task to the Brand Manager stage.` : `Preparing to submit ${count} tasks to Brand Manager stage.`;
+                            currentBatchNextStage = stakeholders.isDirectDesign ? 'Final Approval' : 'Brand Manager';
+                            const targetName = stakeholders.isDirectDesign ? 'Final Approval' : 'Brand Manager';
+                            subtitle.textContent = isIndividual ? `Submitting this task to the ${targetName} stage.` : `Preparing to submit ${count} tasks to ${targetName} stage.`;
                         }
                     };
                 }
@@ -4346,7 +5230,8 @@
             }
 
             if (roleToFill && type === 'submit') {
-                if ((nextStage === 'Approver' || nextStage === 'Approver Review') && stakeholders.approver) {
+                const isDirectDesignerSubmit = stakeholders.isDirectDesign && (stakeholders.currentStage === 'Designer' || !stakeholders.currentStage);
+                if ((nextStage === 'Approver' || nextStage === 'Approver Review') && stakeholders.approver && !isDirectDesignerSubmit) {
                     stakeholderGroup.style.display = 'none';
                     genericConfirm.style.display = 'block';
                     genericConfirm.textContent = isIndividual ? `Are you sure you want to submit this task to the ${nextStage} stage?` : `Are you sure you want to submit this entire batch to the ${nextStage} stage?`;
@@ -4354,7 +5239,7 @@
                     stakeholderGroup.style.display = 'none';
                     genericConfirm.style.display = 'block';
                     genericConfirm.textContent = isIndividual ? `Are you sure you want to submit this task to the Brand Manager stage?` : `Are you sure you want to submit this entire batch to the Brand Manager stage?`;
-                } else if (nextStage === 'Writer Review' && stakeholders.writer && stakeholders.writerName) {
+                } else if (nextStage === 'Writer Review' && stakeholders.writer && stakeholders.writerName && !isDirectDesignerSubmit) {
                     stakeholderGroup.style.display = 'none';
                     genericConfirm.style.display = 'block';
                     genericConfirm.innerHTML = isIndividual ? `Are you sure you want to submit this task to <b>${stakeholders.writerName}</b> for review?` : `Are you sure you want to submit this entire batch to <b>${stakeholders.writerName}</b> for review?`;
@@ -4401,6 +5286,48 @@
                         }
                     }
                 }
+            }
+
+            if (directDesignRouteGroup && type === 'submit' && stakeholders.isDirectDesign && (stakeholders.currentStage === 'Designer' || !stakeholders.currentStage)) {
+                const directRadios = directDesignRouteGroup.querySelectorAll('input[name="direct_design_route"]');
+                directRadios.forEach(radio => {
+                    radio.onchange = function() {
+                        const chosenRoute = this.value;
+                        currentBatchNextStage = chosenRoute;
+                        subtitle.textContent = isIndividual 
+                            ? `Submitting this deliverable to ${chosenRoute} stage.` 
+                            : `Preparing to submit ${count} tasks to ${chosenRoute} stage.`;
+
+                        let targetUsers = [];
+                        let targetLabel = '';
+                        let targetPreId = null;
+
+                        if (chosenRoute === 'Writer Review') {
+                            targetLabel = 'Select Writer for Review';
+                            const wEl = document.getElementById('writers-data');
+                            targetUsers = wEl ? JSON.parse(wEl.textContent) : [];
+                            targetPreId = stakeholders.writer || {!! json_encode($project->writer_id) !!};
+                            if (!targetPreId && targetUsers.length > 0) targetPreId = targetUsers[0].id;
+                        } else {
+                            targetLabel = 'Select Approver for Review';
+                            const aEl = document.getElementById('approvers-data');
+                            targetUsers = aEl ? JSON.parse(aEl.textContent) : [];
+                            targetPreId = stakeholders.approver || {!! json_encode($project->approver_id) !!};
+                        }
+
+                        stakeholderGroup.style.display = 'block';
+                        genericConfirm.style.display = 'none';
+                        stakeholderLabel.textContent = targetLabel;
+                        stakeholderSelect.innerHTML = '<option value="">-- Choose User --</option>';
+                        targetUsers.forEach(user => {
+                            const opt = document.createElement('option');
+                            opt.value = user.id;
+                            opt.textContent = user.name;
+                            if (user.id == targetPreId) opt.selected = true;
+                            stakeholderSelect.appendChild(opt);
+                        });
+                    };
+                });
             }
 
             modal.style.display = 'flex';
@@ -4503,6 +5430,14 @@
             const btn = document.getElementById('batchConfirmBtn');
             const originalText = btn.innerHTML;
             const stakeholderSelect = document.getElementById('batchStakeholderSelect');
+
+            // If Direct Design at Designer stage, sync currentBatchNextStage from radio
+            if (currentBatchStakeholders && currentBatchStakeholders.isDirectDesign && (currentBatchStakeholders.currentStage === 'Designer' || !currentBatchStakeholders.currentStage)) {
+                const checkedRadio = document.querySelector('input[name="direct_design_route"]:checked');
+                if (checkedRadio) {
+                    currentBatchNextStage = checkedRadio.value;
+                }
+            }
             
             const stakeholderRole = document.getElementById('batchStakeholderGroup').style.display !== 'none';
             let assigneeId = null;
@@ -4514,6 +5449,15 @@
             const hasFurtherApprover = furtherApproverSelectEl &&
                 furtherApproverSelectEl.closest('#batchFurtherApproverGroup')?.style.display !== 'none' &&
                 furtherApproverSelectEl.value;
+
+            // Direct design Approver Review: Further Approver is optional and can be skipped
+            if (furtherApproverSelectEl && furtherApproverSelectEl.closest('#batchFurtherApproverGroup')?.style.display !== 'none') {
+                if (hasFurtherApprover) {
+                    currentBatchNextStage = 'Further Approver';
+                } else if (currentBatchStakeholders && currentBatchStakeholders.isDirectDesign && (currentBatchStakeholders.currentStage === 'Approver Review' || currentBatchNextStage === 'Further Approver')) {
+                    currentBatchNextStage = 'Final Approval';
+                }
+            }
 
             const isApproverFlow = (currentBatchNextStage === 'Further Approver' || (currentBatchStakeholders.currentStage === 'Approver' && currentBatchNextStage === 'Brand Manager'));
 
@@ -4572,10 +5516,17 @@
             if (roleField && assigneeId && assigneeId !== 'individual') {
                 payload[roleField] = assigneeId;
             }
-            // Include further approver if selected
+            if (currentBatchStakeholders && currentBatchStakeholders.isDirectDesign) {
+                payload.next_stage = currentBatchNextStage;
+            }
+            // Include further approver if selected (or explicitly null if skipped in direct design)
             const furtherApproverSelect = document.getElementById('batchFurtherApproverSelect');
-            if (furtherApproverSelect && furtherApproverSelect.closest('#batchFurtherApproverGroup')?.style.display !== 'none' && furtherApproverSelect.value) {
-                payload.further_approver_id = furtherApproverSelect.value;
+            if (furtherApproverSelect && furtherApproverSelect.closest('#batchFurtherApproverGroup')?.style.display !== 'none') {
+                if (furtherApproverSelect.value) {
+                    payload.further_approver_id = furtherApproverSelect.value;
+                } else if (currentBatchStakeholders && currentBatchStakeholders.isDirectDesign) {
+                    payload.further_approver_id = null;
+                }
             }
             // Include designer deadline if set
             const desDeadlineVal = document.getElementById('batchDesignerDeadlineInput')?.value;
@@ -4596,8 +5547,13 @@
                 const fd = new FormData();
                 fd.append('batch_data', JSON.stringify(batchData));
                 if (roleField && assigneeId && assigneeId !== 'individual') fd.append(roleField, assigneeId);
-                if (payload.further_approver_id) fd.append('further_approver_id', payload.further_approver_id);
+                if (payload.further_approver_id) {
+                    fd.append('further_approver_id', payload.further_approver_id);
+                } else if (currentBatchStakeholders && currentBatchStakeholders.isDirectDesign && furtherApproverSelect && furtherApproverSelect.closest('#batchFurtherApproverGroup')?.style.display !== 'none') {
+                    fd.append('further_approver_id', '');
+                }
                 if (payload.designer_deadline) fd.append('designer_deadline', payload.designer_deadline);
+                if (currentBatchStakeholders && currentBatchStakeholders.isDirectDesign) fd.append('next_stage', currentBatchNextStage);
                 Object.entries(refFiles).forEach(([id, file]) => fd.append('reference_files[' + id + ']', file));
                 fetchOpts = { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }, body: fd };
 

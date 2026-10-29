@@ -221,11 +221,11 @@
                         {{-- Rev --}}
                         <td style="text-align:center;">
                             @if($task->revisions > 0)
-                                <span style="display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; background:#ef4444; color:#fff; font-size:10px; font-weight:800;">
-                                    {{ $task->revisions }}
+                                <span style="font-size:11px; font-weight:800; color:#ef4444;">
+                                    R{{ $task->revisions }}
                                 </span>
                             @else
-                                <span style="color:var(--color-text-secondary); opacity:0.5;">0</span>
+                                <span style="color:var(--color-text-secondary); opacity:0.5; font-size:11px;">—</span>
                             @endif
                         </td>
 
@@ -264,24 +264,29 @@
                                 {{-- 1. Submit Button --}}
                                 @php
                                     $hasArt = !empty($task->getFinalDesignsArray()) || !empty($task->getFinalDesignsUrlsArray());
-                                    $taskStakeholders = "{writer: " . ($task->writer_id ?? 'null') . ", approver: " . ($task->approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "', currentStage: '" . addslashes($stage) . "'}";
+                                    $nextStage = match($stage) {
+                                        'Designer' => ($task->writer_id && !$task->approver_id) ? 'Writer Review' : 'Approver Review',
+                                        'Writer Review' => 'Approver Review',
+                                        'Approver Review' => ($task->further_approver_id ? 'Further Approver' : 'Final Approval'),
+                                        'Further Approver' => 'Final Approval',
+                                        'Final Approval', 'Manager Review' => 'Closed',
+                                        default => 'Closed',
+                                    };
+                                    $taskStakeholders = "{writer: " . ($task->writer_id ?? 'null') . ", approver: " . ($task->approver_id ?? 'null') . ", further_approver: " . ($task->further_approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "', furtherApproverName: '" . addslashes($task->furtherApprover->name ?? '') . "', currentStage: '" . addslashes($stage) . "', isDirectDesign: true}";
                                 @endphp
                                 @if($isDesignerStage && $canDesignerSubmit)
-                                    @if($hasArt)
-                                        <button type="button" onclick="openBatchModal(event, {{ $task->id }}, 'Writer Review', {{ $hasSubtasks ? $subtasks->count() : 1 }}, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="Submit to Writer Review">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            Submit
-                                        </button>
-                                    @else
-                                        <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" class="quick-action-btn btn-approve-quick" title="Upload Artwork & Submit">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            Submit
-                                        </button>
-                                    @endif
-                                @elseif(($isWriterReviewStage && $canWriterReview) || ($isApproverReviewStage && $canApproverReview) || ($isFurtherApproverStage && $canFurtherApprover))
-                                    <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" class="quick-action-btn btn-approve-quick" title="Review Deliverable">
+                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $hasSubtasks ? $subtasks->count() : 1 }}, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="Submit Deliverable">
                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                        Review
+                                        Submit
+                                    </button>
+                                @elseif(($isWriterReviewStage && $canWriterReview) || ($isApproverReviewStage && $canApproverReview) || ($isFurtherApproverStage && $canFurtherApprover))
+                                    @php
+                                        $btnText = ($isApproverReviewStage || $isFurtherApproverStage) ? 'Approve' : 'Review';
+                                        $btnTitle = ($isApproverReviewStage || $isFurtherApproverStage) ? 'Approve Deliverable' : 'Review Deliverable';
+                                    @endphp
+                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $hasSubtasks ? $subtasks->count() : 1 }}, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="{{ $btnTitle }}">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        {{ $btnText }}
                                     </button>
                                 @elseif($isFinalApprovalStage && $canFinalApprove)
                                     <form action="{{ route('deliverables.submit', $task->id) }}" method="POST" onsubmit="return confirmAction(event, 'Approve Deliverable?', 'Approve artwork and close this deliverable?', false, 'Approve', 'success')" style="display:contents;" onclick="event.stopPropagation()">
@@ -490,7 +495,13 @@
 
                                 {{-- Rev --}}
                                 <td style="text-align:center;">
-                                    <span style="font-size:10px; color:var(--color-text-secondary);">{{ $sub->revisions ?? 0 }}</span>
+                                    @if(($sub->revisions ?? 0) > 0)
+                                        <span style="font-size:11px; font-weight:800; color:#ef4444;">
+                                            R{{ $sub->revisions }}
+                                        </span>
+                                    @else
+                                        <span style="color:var(--color-text-secondary); opacity:0.5; font-size:11px;">—</span>
+                                    @endif
                                 </td>
 
                                 {{-- Stage --}}
@@ -516,24 +527,29 @@
                                         {{-- 1. Submit / Approve Button --}}
                                         @php
                                             $subHasArt = !empty($sub->getFinalDesignsArray()) || !empty($sub->getFinalDesignsUrlsArray());
-                                            $subStakeholders = "{writer: " . ($sub->writer_id ?? 'null') . ", approver: " . ($sub->approver_id ?? 'null') . ", brand_manager: " . ($sub->brand_manager_id ?? 'null') . ", coordinator: " . ($sub->coordinator_id ?? 'null') . ", designer: " . ($sub->designer_id ?? 'null') . ", writerName: '" . addslashes($sub->writer->name ?? '') . "', approverName: '" . addslashes($sub->approver->name ?? $project->approver->name ?? '') . "', currentStage: '" . addslashes($subStage) . "'}";
+                                            $subNextStage = match($subStage) {
+                                                'Designer' => ($sub->writer_id && !$sub->approver_id) ? 'Writer Review' : 'Approver Review',
+                                                'Writer Review' => 'Approver Review',
+                                                'Approver Review' => ($sub->further_approver_id ? 'Further Approver' : 'Final Approval'),
+                                                'Further Approver' => 'Final Approval',
+                                                'Final Approval', 'Manager Review' => 'Closed',
+                                                default => 'Closed',
+                                            };
+                                            $subStakeholders = "{writer: " . ($sub->writer_id ?? 'null') . ", approver: " . ($sub->approver_id ?? 'null') . ", further_approver: " . ($sub->further_approver_id ?? 'null') . ", brand_manager: " . ($sub->brand_manager_id ?? 'null') . ", coordinator: " . ($sub->coordinator_id ?? 'null') . ", designer: " . ($sub->designer_id ?? 'null') . ", writerName: '" . addslashes($sub->writer->name ?? '') . "', approverName: '" . addslashes($sub->approver->name ?? $project->approver->name ?? '') . "', furtherApproverName: '" . addslashes($sub->furtherApprover->name ?? '') . "', currentStage: '" . addslashes($subStage) . "', isDirectDesign: true}";
                                         @endphp
                                         @if($subIsDesignerStage && $canSubDesignerSubmit)
-                                            @if($subHasArt)
-                                                <button type="button" onclick="openBatchModal(event, {{ $sub->id }}, 'Writer Review', 1, 'submit', {{ $subStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="Submit to Writer Review">
-                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                    Submit
-                                                </button>
-                                            @else
-                                                <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" class="quick-action-btn btn-approve-quick" title="Upload Artwork & Submit">
-                                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                    Submit
-                                                </button>
-                                            @endif
-                                        @elseif(($subIsWriterReviewStage && $canSubWriterReview) || ($subIsApproverReviewStage && $canSubApproverReview) || ($subIsFurtherApproverStage && $canSubFurtherApprover))
-                                            <button type="button" onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" class="quick-action-btn btn-approve-quick" title="Review Deliverable">
+                                            <button type="button" onclick="openBatchModal(event, {{ $sub->id }}, '{{ $subNextStage }}', 1, 'submit', {{ $subStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="Submit Deliverable">
                                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                                Review
+                                                Submit
+                                            </button>
+                                        @elseif(($subIsWriterReviewStage && $canSubWriterReview) || ($subIsApproverReviewStage && $canSubApproverReview) || ($subIsFurtherApproverStage && $canSubFurtherApprover))
+                                            @php
+                                                $subBtnText = ($subIsApproverReviewStage || $subIsFurtherApproverStage) ? 'Approve' : 'Review';
+                                                $subBtnTitle = ($subIsApproverReviewStage || $subIsFurtherApproverStage) ? 'Approve Deliverable' : 'Review Deliverable';
+                                            @endphp
+                                            <button type="button" onclick="openBatchModal(event, {{ $sub->id }}, '{{ $subNextStage }}', 1, 'submit', {{ $subStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="{{ $subBtnTitle }}">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                {{ $subBtnText }}
                                             </button>
                                         @elseif($subIsFinalApprovalStage && $canSubFinalApprove)
                                             <form action="{{ route('deliverables.submit', $sub->id) }}" method="POST" onsubmit="return confirmAction(event, 'Approve Deliverable?', 'Approve artwork and close this deliverable?', false, 'Approve', 'success')" style="display:contents;" onclick="event.stopPropagation()">

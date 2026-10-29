@@ -327,9 +327,9 @@ class Deliverable extends Model
         return $this->getWorkflow()->getStageProgress($this);
     }
 
-    public function getNextStage()
+    public function getNextStage(array $data = [])
     {
-        return $this->getWorkflow()->getNextStage($this);
+        return $this->getWorkflow()->getNextStage($this, $data);
     }
 
     public function getPrevStage()

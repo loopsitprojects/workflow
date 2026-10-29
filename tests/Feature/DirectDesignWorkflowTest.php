@@ -7,6 +7,8 @@ use App\Models\Deliverable;
 use App\Services\Workflows\DirectDesignWorkflowService;
 use App\Services\Workflows\WorkflowManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -838,4 +840,365 @@ test('deliverables table displays designer deadline and revision deadline badges
 
     // Verify sub3 has Revision deadline badge
     $response->assertSee('Rev: Oct 26, 2026');
+});
+
+test('designer can submit artwork and advance directly to Approver Review skipping optional Writer Review', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-direct-approver']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $approver = User::factory()->create(['role' => 'Approver']);
+    $brand->members()->attach([$manager->id, $designer->id, $approver->id]);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Direct To Approver',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $task = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Direct to Approver Task',
+        'flow_type' => 'direct_design',
+        'approval_stage' => 'Designer',
+        'designer_id' => $designer->id,
+        'brand_manager_id' => $manager->id,
+        'progress_percent' => 20,
+    ]);
+
+    // Submitting with send_to = 'approver' and approver_id advances straight to Approver Review
+    $response = $this->actingAs($designer)->post(route('deliverables.submit', $task->id), [
+        'final_designs_link' => 'https://figma.com/file/direct-approver-test',
+        'send_to' => 'approver',
+        'approver_id' => $approver->id,
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $task->refresh();
+    expect($task->approval_stage)->toBe('Approver Review');
+    expect($task->approver_id)->toBe($approver->id);
+    expect($task->progress_percent)->toBe(60);
+    expect($task->final_designs_link)->toBe('https://figma.com/file/direct-approver-test');
+});
+
+test('designer advancing directly to Approver Review requires approver_id because approver stage is mandatory', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-approver-mandatory']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $brand->members()->attach([$manager->id, $designer->id]);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Approver Mandatory',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $task = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Approver Mandatory Task',
+        'flow_type' => 'direct_design',
+        'approval_stage' => 'Designer',
+        'designer_id' => $designer->id,
+        'brand_manager_id' => $manager->id,
+        'progress_percent' => 20,
+    ]);
+
+    // Attempt to submit directly to approver without selecting an approver
+    $response = $this->actingAs($designer)->postJson(route('deliverables.submit', $task->id), [
+        'final_designs_link' => 'https://figma.com/file/no-approver-test',
+        'send_to' => 'approver',
+    ]);
+
+    expect($response->status())->toBe(422);
+    expect($response->json('message'))->toContain('Please select an approver for approver review.');
+
+    $task->refresh();
+    expect($task->approval_stage)->toBe('Designer');
+});
+
+test('deliverable that skipped writer review can receive revision request from approver back to designer', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-rev-skip-writer']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $approver = User::factory()->create(['role' => 'Approver']);
+    $brand->members()->attach([$manager->id, $designer->id, $approver->id]);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Rev Skip Writer',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $task = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Task Direct Approver Rev',
+        'flow_type' => 'direct_design',
+        'approval_stage' => 'Designer',
+        'designer_id' => $designer->id,
+        'brand_manager_id' => $manager->id,
+        'progress_percent' => 20,
+    ]);
+
+    // Advance directly to Approver Review
+    $this->actingAs($designer)->post(route('deliverables.submit', $task->id), [
+        'final_designs_link' => 'https://figma.com/file/direct-approver-rev',
+        'send_to' => 'approver',
+        'approver_id' => $approver->id,
+    ]);
+
+    $task->refresh();
+    expect($task->approval_stage)->toBe('Approver Review');
+
+    // Approver requests revisions
+    $revResponse = $this->actingAs($approver)->post(route('deliverables.revisions', $task->id), [
+        'revision_instructions' => 'Approver requested color adjustments',
+    ]);
+    $revResponse->assertSessionHasNoErrors();
+
+    $task->refresh();
+    expect($task->approval_stage)->toBe('Designer');
+    expect($task->progress_percent)->toBe(20);
+    expect($task->revisions)->toBe(1);
+    expect($task->revision_instructions)->toBe('Approver requested color adjustments');
+    expect($task->revision_target)->toBe('designer');
+});
+
+test('approver review is mandatory and advances to final approval', function () {
+    $brand = Brand::create(['name' => 'Brand Test', 'slug' => 'brand-test-approver-to-final']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $approver = User::factory()->create(['role' => 'Approver']);
+    $brand->members()->attach([$manager->id, $designer->id, $approver->id]);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Approver To Final',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $task = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Approver Review Task',
+        'flow_type' => 'direct_design',
+        'approval_stage' => 'Approver Review',
+        'designer_id' => $designer->id,
+        'approver_id' => $approver->id,
+        'brand_manager_id' => $manager->id,
+        'progress_percent' => 60,
+    ]);
+
+    // Approver approves task
+    $response = $this->actingAs($approver)->post(route('deliverables.submit', $task->id), []);
+    $response->assertSessionHasNoErrors();
+
+    $task->refresh();
+    expect($task->approval_stage)->toBe('Final Approval');
+    expect($task->progress_percent)->toBe(85);
+});
+
+test('direct design deliverable creation supports multiple reference URLs and multiple reference files in single mode', function () {
+    Storage::fake('s3');
+    Storage::fake('public');
+
+    $brand = Brand::create(['name' => 'Brand Multi Ref', 'slug' => 'brand-multi-ref-single']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $brand->members()->attach([$manager->id, $designer->id]);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Multi Ref Single',
+        'workflow_type' => 'campaign',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $file1 = UploadedFile::fake()->image('ref1.jpg');
+    $file2 = UploadedFile::fake()->create('ref2.pdf', 100);
+
+    $response = $this->actingAs($manager)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'creation_mode' => 'single',
+        'title' => 'Single Deliverable With Multiple References',
+        'designer_id' => $designer->id,
+        'post_type' => 'Static Post',
+        'priority' => 'High Priority',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 20,
+        'reference_urls' => [
+            'https://figma.com/file/ref-single-1',
+            'https://drive.google.com/folder/ref-single-2',
+        ],
+        'reference_files' => [
+            $file1,
+            $file2,
+        ],
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $deliverable = Deliverable::where('title', 'Single Deliverable With Multiple References')->first();
+    expect($deliverable)->not->toBeNull();
+    expect($deliverable->flow_type)->toBe('direct_design');
+    expect($deliverable->designer_id)->toBe($designer->id);
+    expect($deliverable->approval_stage)->toBe('Designer');
+
+    $refFiles = $deliverable->getReferenceFilesArray();
+    expect(count($refFiles))->toBe(2);
+
+    $refUrls = $deliverable->getReferenceUrlsArray();
+    expect(count($refUrls))->toBe(2);
+    expect($refUrls)->toContain('https://figma.com/file/ref-single-1');
+    expect($refUrls)->toContain('https://drive.google.com/folder/ref-single-2');
+});
+
+test('direct design deliverable creation supports multiple reference URLs and multiple reference files for subtasks in batch mode', function () {
+    Storage::fake('s3');
+    Storage::fake('public');
+
+    $brand = Brand::create(['name' => 'Brand Multi Ref Batch', 'slug' => 'brand-multi-ref-batch']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $brand->members()->attach([$manager->id, $designer->id]);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Multi Ref Batch',
+        'workflow_type' => 'campaign',
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $fileA = UploadedFile::fake()->image('itemA.png');
+    $fileB = UploadedFile::fake()->create('itemB.pdf', 50);
+
+    $response = $this->actingAs($manager)->post(route('deliverables.store'), [
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'creation_mode' => 'batch',
+        'title' => 'Batch Campaign Package',
+        'priority' => 'Medium',
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 20,
+        'subtasks' => [
+            [
+                'title' => 'Batch Item 1 with Multiple Refs',
+                'post_type' => 'Graphic',
+                'designer_id' => $designer->id,
+                'priority' => 'High Priority',
+                'reference_urls' => [
+                    'https://pinterest.com/pin/batch1-ref1',
+                    'https://dribbble.com/shots/batch1-ref2',
+                ],
+                'reference_files' => [
+                    $fileA,
+                    $fileB,
+                ],
+            ],
+            [
+                'title' => 'Batch Item 2 Single Ref',
+                'post_type' => 'Carousel',
+                'designer_id' => $designer->id,
+                'priority' => 'Medium',
+                'reference' => 'https://behance.net/gallery/item2',
+            ],
+        ],
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $parent = Deliverable::where('title', 'Batch Campaign Package')->first();
+    expect($parent)->not->toBeNull();
+
+    $item1 = Deliverable::where('title', 'Batch Item 1 with Multiple Refs')->first();
+    expect($item1)->not->toBeNull();
+    expect($item1->parent_deliverable_id)->toBe($parent->id);
+    expect($item1->flow_type)->toBe('direct_design');
+
+    $item1Files = $item1->getReferenceFilesArray();
+    expect(count($item1Files))->toBe(2);
+
+    $item1Urls = $item1->getReferenceUrlsArray();
+    expect(count($item1Urls))->toBe(2);
+    expect($item1Urls)->toContain('https://pinterest.com/pin/batch1-ref1');
+    expect($item1Urls)->toContain('https://dribbble.com/shots/batch1-ref2');
+
+    $item2 = Deliverable::where('title', 'Batch Item 2 Single Ref')->first();
+    expect($item2)->not->toBeNull();
+    expect($item2->getReferenceUrlsArray())->toContain('https://behance.net/gallery/item2');
+});
+
+test('further approver is optional in direct design flow and can be skipped', function () {
+    $brand = Brand::create(['name' => 'Brand Skip FA Test', 'slug' => 'brand-skip-fa-test']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $approver = User::factory()->create(['role' => 'Approver']);
+    $furtherApprover = User::factory()->create(['role' => 'Approver']);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Project Skip FA Test',
+        'workflow_type' => 'retainer',
+        'brand_manager_id' => $manager->id,
+        'approver_id' => $approver->id,
+    ]);
+
+    // Deliverable at Approver Review with NO further approver
+    $task1 = Deliverable::create([
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'title' => 'Direct Design Task Skip FA',
+        'approval_stage' => 'Approver Review',
+        'approver_id' => $approver->id,
+        'further_approver_id' => null,
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    // 1. Advance without further_approver_id -> should go straight to Final Approval
+    $res1 = $this->actingAs($approver)->postJson(route('deliverables.batchSubmit', $task1->id), [
+        'further_approver_id' => '',
+    ]);
+    $res1->assertOk();
+    $task1->refresh();
+    expect($task1->approval_stage)->toBe('Final Approval');
+    expect($task1->further_approver_id)->toBeNull();
+
+    // 2. Deliverable with further_approver_id set, but user skips it
+    $task2 = Deliverable::create([
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'title' => 'Direct Design Task Clear FA',
+        'approval_stage' => 'Approver Review',
+        'approver_id' => $approver->id,
+        'further_approver_id' => $furtherApprover->id,
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $res2 = $this->actingAs($approver)->postJson(route('deliverables.batchSubmit', $task2->id), [
+        'further_approver_id' => '',
+    ]);
+    $res2->assertOk();
+    $task2->refresh();
+    expect($task2->approval_stage)->toBe('Final Approval');
+    expect($task2->further_approver_id)->toBeNull();
+
+    // 3. Deliverable advancing with further_approver_id set -> advances to Further Approver
+    $task3 = Deliverable::create([
+        'project_id' => $project->id,
+        'flow_type' => 'direct_design',
+        'title' => 'Direct Design Task Use FA',
+        'approval_stage' => 'Approver Review',
+        'approver_id' => $approver->id,
+        'further_approver_id' => null,
+        'brand_manager_id' => $manager->id,
+    ]);
+
+    $res3 = $this->actingAs($approver)->postJson(route('deliverables.batchSubmit', $task3->id), [
+        'further_approver_id' => $furtherApprover->id,
+    ]);
+    $res3->assertOk();
+    $task3->refresh();
+    expect($task3->approval_stage)->toBe('Further Approver');
+    expect($task3->further_approver_id)->toBe($furtherApprover->id);
 });

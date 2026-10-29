@@ -79,12 +79,48 @@ class DirectDesignWorkflowService implements WorkflowInterface
 
     /**
      * Determine next stage in workflow.
+     * When at Designer stage, Writer Review is optional:
+     * - Can be sent straight to Approver Review (mandatory approver)
+     * - Or sent to Writer Review (writer reviews, then moves to mandatory approver)
      */
     public function getNextStage(Deliverable $deliverable, array $data = []): ?string
     {
         $currentStage = $this->normalizeStage($deliverable->approval_stage);
+
+        if ($currentStage === 'Designer') {
+            $target = strtolower(trim($data['next_stage'] ?? $data['target_stage'] ?? $data['route_to'] ?? $data['send_to'] ?? ''));
+            $skipWriter = !empty($data['skip_writer']) && filter_var($data['skip_writer'], FILTER_VALIDATE_BOOLEAN);
+
+            // Explicit target to approver / skip writer
+            if (in_array($target, ['approver review', 'approver', 'approver_review']) || $skipWriter) {
+                return 'Approver Review';
+            }
+
+            // Explicit target to writer review
+            if (in_array($target, ['writer review', 'writer', 'writer_review'])) {
+                return 'Writer Review';
+            }
+
+            // If approver_id is provided and writer_id is not
+            if (!empty($data['approver_id']) && empty($data['writer_id'])) {
+                return 'Approver Review';
+            }
+
+            // If writer_id is provided
+            if (!empty($data['writer_id'])) {
+                return 'Writer Review';
+            }
+
+            // If deliverable already has approver assigned and no writer assigned or available on project
+            if ($deliverable->approver_id && !$deliverable->writer_id && !$deliverable->project?->writer_id) {
+                return 'Approver Review';
+            }
+
+            // Default fallback: Writer Review
+            return 'Writer Review';
+        }
+
         return match ($currentStage) {
-            'Designer'         => 'Writer Review',
             'Writer Review'    => 'Approver Review',
             'Approver Review'  => !empty($data['further_approver_id']) ? 'Further Approver' : 'Final Approval',
             'Further Approver' => 'Final Approval',
@@ -99,11 +135,15 @@ class DirectDesignWorkflowService implements WorkflowInterface
     public function getPrevStage(Deliverable $deliverable): ?string
     {
         $currentStage = $this->normalizeStage($deliverable->approval_stage);
+        if ($currentStage === 'Approver Review') {
+            $hadWriterReview = $deliverable->approvalsHistory()->where('stage', 'Writer Review')->exists();
+            return $hadWriterReview ? 'Writer Review' : 'Designer';
+        }
+
         return match ($currentStage) {
             'Closed'           => 'Final Approval',
             'Final Approval'   => $deliverable->further_approver_id ? 'Further Approver' : 'Approver Review',
             'Further Approver' => 'Approver Review',
-            'Approver Review'  => 'Writer Review',
             'Writer Review'    => 'Designer',
             default            => null,
         };
@@ -177,21 +217,36 @@ class DirectDesignWorkflowService implements WorkflowInterface
                 ];
             }
 
-            // Require writer selection to advance to Writer Review
-            if (empty($data['writer_id']) && !$deliverable->writer_id) {
-                if ($deliverable->project?->writer_id) {
-                    $deliverable->writer_id = $deliverable->project->writer_id;
-                } else {
-                    $fallbackWriter = $deliverable->project?->brand?->members()->whereIn('role', ['Writer', 'Assignee'])->first()
-                        ?? User::whereIn('role', ['Writer', 'Assignee'])->first();
-                    if ($fallbackWriter) {
-                        $deliverable->writer_id = $fallbackWriter->id;
+            if ($nextStage === 'Approver Review') {
+                // Mandatory Approver check: Approver stage is mandatory
+                if (empty($data['approver_id']) && !$deliverable->approver_id) {
+                    if ($deliverable->project?->approver_id) {
+                        $deliverable->approver_id = $deliverable->project->approver_id;
                     } else {
                         return [
                             'success' => false,
-                            'message' => 'Please select a writer for writer approval.',
+                            'message' => 'Please select an approver for approver review.',
                             'code'    => 422,
                         ];
+                    }
+                }
+            } elseif ($nextStage === 'Writer Review') {
+                // Require writer selection to advance to Writer Review
+                if (empty($data['writer_id']) && !$deliverable->writer_id) {
+                    if ($deliverable->project?->writer_id) {
+                        $deliverable->writer_id = $deliverable->project->writer_id;
+                    } else {
+                        $fallbackWriter = $deliverable->project?->brand?->members()->whereIn('role', ['Writer', 'Assignee'])->first()
+                            ?? User::whereIn('role', ['Writer', 'Assignee'])->first();
+                        if ($fallbackWriter) {
+                            $deliverable->writer_id = $fallbackWriter->id;
+                        } else {
+                            return [
+                                'success' => false,
+                                'message' => 'Please select a writer for writer approval.',
+                                'code'    => 422,
+                            ];
+                        }
                     }
                 }
             }
@@ -280,15 +335,21 @@ class DirectDesignWorkflowService implements WorkflowInterface
         // Assign writer if passed
         if (!empty($data['writer_id'])) {
             $deliverable->writer_id = $data['writer_id'];
+        } elseif ($nextStage === 'Writer Review' && !$deliverable->writer_id && $deliverable->project?->writer_id) {
+            $deliverable->writer_id = $deliverable->project->writer_id;
         }
 
         // Assign approver if passed
         if (!empty($data['approver_id'])) {
             $deliverable->approver_id = $data['approver_id'];
+        } elseif ($nextStage === 'Approver Review' && !$deliverable->approver_id && $deliverable->project?->approver_id) {
+            $deliverable->approver_id = $deliverable->project->approver_id;
         }
 
-        // Assign further approver if passed (or clear if empty when transitioning from Approver Review)
-        if (array_key_exists('further_approver_id', $data)) {
+        // Assign further approver if passed (or clear if empty/skipped when transitioning from Approver Review directly to Final Approval)
+        if ($oldStage === 'Approver Review' && $nextStage === 'Final Approval') {
+            $deliverable->further_approver_id = null;
+        } elseif (array_key_exists('further_approver_id', $data)) {
             $deliverable->further_approver_id = !empty($data['further_approver_id']) ? $data['further_approver_id'] : null;
         }
 
@@ -373,7 +434,9 @@ class DirectDesignWorkflowService implements WorkflowInterface
 
         $msg = match ($nextStage) {
             'Writer Review'    => 'Artwork submitted and sent to Writer for review.',
-            'Approver Review'  => 'Deliverable approved by Writer and sent to Approver.',
+            'Approver Review'  => ($oldStage === 'Designer')
+                ? 'Artwork submitted and sent directly to Approver for review.'
+                : 'Deliverable approved by Writer and sent to Approver.',
             'Further Approver' => 'Deliverable sent to Further Approver.',
             'Final Approval'   => 'Deliverable sent to Brand Manager for final approval.',
             'Closed'           => 'Deliverable approved and closed.',

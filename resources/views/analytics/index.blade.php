@@ -51,20 +51,6 @@
         {{-- Top Header Section --}}
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <div class="flex items-center gap-2 mb-1">
-                    @if($isManager)
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                            Managerial Report
-                        </span>
-                        <span class="text-xs text-gray-400 dark:text-slate-500 font-medium">Brand-wise & Project-wise Oversight</span>
-                    @else
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            Individual Report
-                        </span>
-                        <span class="text-xs text-gray-400 dark:text-slate-500 font-medium">Personal Output for {{ $currentUser->name }}</span>
-                    @endif
-                </div>
-
                 <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
                     @if($isManager)
                         Analytics & Reports
@@ -81,20 +67,8 @@
                 </p>
             </div>
 
-            {{-- Action Buttons (Export CSV, Print & Admin Toggle) --}}
+            {{-- Action Buttons (Export CSV & Print) --}}
             <div class="flex items-center gap-2.5 flex-wrap">
-                @if(auth()->user() && auth()->user()->isAdmin())
-                    <form action="{{ route('admin.features.toggle-analytics') }}" method="POST" class="inline-flex items-center">
-                        @csrf
-                        <button type="submit" 
-                                title="{{ !empty($isFeatureDisabled) ? 'Enable Analytics tab for all team members' : 'Disable Analytics tab (hide from team members)' }}"
-                                class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 card-shadow {{ !empty($isFeatureDisabled) ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20' }}">
-                            <span class="w-2 h-2 rounded-full {{ !empty($isFeatureDisabled) ? 'bg-amber-500' : 'bg-emerald-500' }}"></span>
-                            <span>{{ !empty($isFeatureDisabled) ? 'Analytics: OFF (Enable)' : 'Analytics: ON (Disable)' }}</span>
-                        </button>
-                    </form>
-                @endif
-
                 <a href="{{ route('analytics.export', request()->query()) }}"
                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-slate-200 bg-white dark:bg-[#0F172A] border border-gray-200 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700 card-shadow transition-all hover:-translate-y-0.5">
                     <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

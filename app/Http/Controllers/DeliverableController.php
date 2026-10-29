@@ -433,13 +433,24 @@ class DeliverableController extends Controller
                 $taskData['designer_deadline'] = $subDeadline;
                 $taskData['deadline'] = $subDeadline;
             }
-            if ($request->hasFile("subtasks.0.reference_file")) {
-                $taskData['reference_file'] = $this->moveUploadedFile($request->file("subtasks.0.reference_file"), 'references');
+            // Reference file(s) upload handling (from main form or subtask 0)
+            $singleUploadedFiles = array_merge(
+                $this->collectUploadedFiles($request->file('reference_files')),
+                $this->collectUploadedFiles($request->file('reference_file')),
+                $this->collectUploadedFiles($request->file('subtasks.0.reference_files')),
+                $this->collectUploadedFiles($request->file('subtasks.0.reference_file'))
+            );
+            $uploadedRefUrls = $this->uploadReferenceFiles($singleUploadedFiles);
+            if (!empty($uploadedRefUrls)) {
+                $taskData['reference_file'] = count($uploadedRefUrls) === 1 ? $uploadedRefUrls[0] : json_encode($uploadedRefUrls);
                 $taskData['reference_uploaded_by'] = auth()->id();
-            } elseif ($request->hasFile("reference_file")) {
-                $taskData['reference_file'] = $this->moveUploadedFile($request->file("reference_file"), 'references');
-                $taskData['reference_uploaded_by'] = auth()->id();
-            } elseif (!empty($taskData['reference'])) {
+            }
+
+            // Reference URLs handling
+            $urlsInput = $request->input('reference_urls') ?? ($sub['reference_urls'] ?? null);
+            $normRef = $this->normalizeReferenceUrls($urlsInput, $taskData['reference'] ?? ($sub['reference'] ?? null));
+            if (!empty($normRef)) {
+                $taskData['reference'] = $normRef;
                 $taskData['reference_uploaded_by'] = auth()->id();
             }
 
@@ -448,10 +459,18 @@ class DeliverableController extends Controller
         }
 
         // Parent deliverable + subtasks or adding to existing parent
-        if ($request->hasFile("reference_file")) {
-            $taskData['reference_file'] = $this->moveUploadedFile($request->file("reference_file"), 'references');
+        $parentUploadedFiles = array_merge(
+            $this->collectUploadedFiles($request->file('reference_files')),
+            $this->collectUploadedFiles($request->file('reference_file'))
+        );
+        $parentRefUrls = $this->uploadReferenceFiles($parentUploadedFiles);
+        if (!empty($parentRefUrls)) {
+            $taskData['reference_file'] = count($parentRefUrls) === 1 ? $parentRefUrls[0] : json_encode($parentRefUrls);
             $taskData['reference_uploaded_by'] = auth()->id();
-        } elseif (!empty($taskData['reference'])) {
+        }
+        $parentNormRef = $this->normalizeReferenceUrls($request->input('reference_urls'), $taskData['reference'] ?? null);
+        if (!empty($parentNormRef)) {
+            $taskData['reference'] = $parentNormRef;
             $taskData['reference_uploaded_by'] = auth()->id();
         }
 
@@ -480,36 +499,44 @@ class DeliverableController extends Controller
                     ? $sub['title'] 
                     : $parentTask->title . ' - Design ' . ($existingCount + $index + 1);
 
+                $subUploadedFiles = array_merge(
+                    $this->collectUploadedFiles($request->file("subtasks.{$index}.reference_files")),
+                    $this->collectUploadedFiles($request->file("subtasks.{$index}.reference_file"))
+                );
+                $subRefUrls = $this->uploadReferenceFiles($subUploadedFiles);
                 $refFile = null;
                 $refUploadedBy = null;
-                if ($request->hasFile("subtasks.{$index}.reference_file")) {
-                    $refFile = $this->moveUploadedFile($request->file("subtasks.{$index}.reference_file"), 'references');
+                if (!empty($subRefUrls)) {
+                    $refFile = count($subRefUrls) === 1 ? $subRefUrls[0] : json_encode($subRefUrls);
                     $refUploadedBy = auth()->id();
-                } elseif (!empty($sub['reference'])) {
+                }
+
+                $subNormUrls = $this->normalizeReferenceUrls($sub['reference_urls'] ?? null, $sub['reference'] ?? null);
+                if (!empty($subNormUrls)) {
                     $refUploadedBy = auth()->id();
                 }
 
                 $subBrief = !empty($sub['concept']) ? $sub['concept'] : (!empty($sub['notes']) ? $sub['notes'] : (!empty($sub['brief']) ? $sub['brief'] : $mainBrief));
 
-                    $subDeadline = !empty($sub['deadline']) ? $sub['deadline'] : (!empty($sub['designer_deadline']) ? $sub['designer_deadline'] : ($parentTask->deadline ?? $parentTask->designer_deadline));
+                $subDeadline = !empty($sub['deadline']) ? $sub['deadline'] : (!empty($sub['designer_deadline']) ? $sub['designer_deadline'] : ($parentTask->deadline ?? $parentTask->designer_deadline));
 
-                    Deliverable::create([
-                        'parent_deliverable_id' => $parentTask->id,
-                        'project_id'            => $parentTask->project_id,
-                        'flow_type'             => 'direct_design',
-                        'title'                 => $subTitle,
-                        'status'                => 'To Do',
-                        'task_type'             => 'Deliverable',
-                        'progress_percent'      => 20,
-                        'approval_stage'        => 'Designer',
-                        'post_type'             => $sub['post_type'] ?? 'Graphic',
-                        'concept'               => $subBrief,
-                        'notes'                 => $subBrief,
-                        'reference'             => $sub['reference'] ?? null,
-                        'reference_file'        => $refFile,
-                        'reference_uploaded_by' => $refUploadedBy,
-                        'deadline'              => $subDeadline,
-                        'designer_deadline'     => $subDeadline,
+                Deliverable::create([
+                    'parent_deliverable_id' => $parentTask->id,
+                    'project_id'            => $parentTask->project_id,
+                    'flow_type'             => 'direct_design',
+                    'title'                 => $subTitle,
+                    'status'                => 'To Do',
+                    'task_type'             => 'Deliverable',
+                    'progress_percent'      => 20,
+                    'approval_stage'        => 'Designer',
+                    'post_type'             => $sub['post_type'] ?? 'Graphic',
+                    'concept'               => $subBrief,
+                    'notes'                 => $subBrief,
+                    'reference'             => $subNormUrls,
+                    'reference_file'        => $refFile,
+                    'reference_uploaded_by' => $refUploadedBy,
+                    'deadline'              => $subDeadline,
+                    'designer_deadline'     => $subDeadline,
                     'priority'              => $sub['priority'] ?? ($parentTask->priority ?? 'Medium'),
                     'designer_id'           => $subDesignerId,
                     'writer_id'             => $sub['writer_id'] ?? $batchWriterFallback,
@@ -1543,7 +1570,7 @@ class DeliverableController extends Controller
 
         $allTasks = collect([$deliverable])->concat($subtasks->all());
         
-        $nextStage = $deliverable->getNextStage();
+        $nextStage = $deliverable->getNextStage($request->all());
         
         if (!$nextStage) {
             return $request->wantsJson()
@@ -1658,6 +1685,35 @@ class DeliverableController extends Controller
             }
         }
         return $urls;
+    }
+
+    /**
+     * Normalize one or more reference URLs into either a single URL string or a JSON-encoded array of URLs.
+     */
+    private function normalizeReferenceUrls(mixed $urlsInput, ?string $fallbackString = null): ?string
+    {
+        $urls = [];
+        if (!empty($urlsInput)) {
+            foreach ((array) $urlsInput as $u) {
+                $u = trim((string) $u);
+                if ($u !== '' && !in_array($u, $urls)) {
+                    $urls[] = $u;
+                }
+            }
+        }
+        if (!empty($fallbackString)) {
+            $split = preg_split('/[\r\n,]+/', (string) $fallbackString);
+            foreach ($split as $u) {
+                $u = trim($u);
+                if ($u !== '' && !in_array($u, $urls)) {
+                    $urls[] = $u;
+                }
+            }
+        }
+        if (empty($urls)) {
+            return null;
+        }
+        return count($urls) === 1 ? $urls[0] : json_encode(array_values(array_unique($urls)));
     }
 
     private function moveUploadedFile($file, string $folder): string
