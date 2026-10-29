@@ -57,16 +57,19 @@ test('direct design workflow calculates 3-stage progress milestones accurately',
         'project_id' => $project->id,
         'title' => 'Design Task',
         'flow_type' => 'direct_design',
-        'approval_stage' => 'Designer',
+        'approval_stage' => 'Coordinator',
     ]);
 
-    expect($task->getStageProgress())->toBe(20);
+    expect($task->getStageProgress())->toBe(10);
+
+    $task->approval_stage = 'Designer';
+    expect($task->getStageProgress())->toBe(25);
 
     $task->approval_stage = 'Writer Review';
-    expect($task->getStageProgress())->toBe(40);
+    expect($task->getStageProgress())->toBe(45);
 
     $task->approval_stage = 'Approver Review';
-    expect($task->getStageProgress())->toBe(60);
+    expect($task->getStageProgress())->toBe(65);
 
     $task->approval_stage = 'Further Approver';
     expect($task->getStageProgress())->toBe(75);
@@ -119,14 +122,14 @@ test('manager can create a direct design batch with subtasks', function () {
     $parent = Deliverable::where('title', 'Banner Set Q4')->first();
     expect($parent)->not->toBeNull();
     expect($parent->flow_type)->toBe('direct_design');
-    expect($parent->approval_stage)->toBe('Designer');
+    expect($parent->approval_stage)->toBe('Coordinator');
     expect($parent->designer_id)->toBeNull();
     expect($parent->brand_manager_id)->toBe($manager->id);
 
     $subtasks = $parent->subtasks;
     expect($subtasks)->toHaveCount(2);
     expect($subtasks[0]->flow_type)->toBe('direct_design');
-    expect($subtasks[0]->approval_stage)->toBe('Designer');
+    expect($subtasks[0]->approval_stage)->toBe('Coordinator');
     expect($subtasks[0]->designer_id)->toBe($designer->id);
 });
 
@@ -171,7 +174,7 @@ test('designer can submit artwork and advance stage to Writer Review', function 
     $task->refresh();
     expect($task->approval_stage)->toBe('Writer Review');
     expect($task->writer_id)->toBe($writer->id);
-    expect($task->progress_percent)->toBe(40);
+    expect($task->progress_percent)->toBe(45);
     expect($task->final_designs_link)->toBe('https://figma.com/file/12345');
 });
 
@@ -234,7 +237,7 @@ test('manager can request revisions which returns deliverable to Designer stage'
 
     $task->refresh();
     expect($task->approval_stage)->toBe('Designer');
-    expect($task->progress_percent)->toBe(20);
+    expect($task->progress_percent)->toBe(25);
     expect($task->revisions)->toBe(1);
     expect($task->revision_instructions)->toBe('Please increase logo contrast and adjust CTA button size.');
     expect($task->revisionsHistory)->toHaveCount(1);
@@ -351,8 +354,18 @@ test('can access fast track creation form and store direct design for campaign a
     expect($deliverable)->not->toBeNull();
     expect($deliverable->isDirectDesign())->toBeTrue();
     expect($deliverable->isOtherDeliverable())->toBeFalse();
+    expect($deliverable->approval_stage)->toBe('Coordinator');
+    expect($deliverable->progress_percent)->toBe(10);
+
+    // Coordinator assigns designer and advances to Designer stage
+    $resCoordSubmit = $this->actingAs($manager)->post(route('deliverables.submit', $deliverable->id), [
+        'designer_id' => $designer->id,
+    ]);
+    $resCoordSubmit->assertRedirect();
+    $deliverable->refresh();
     expect($deliverable->approval_stage)->toBe('Designer');
-    expect($deliverable->progress_percent)->toBe(20);
+    expect($deliverable->progress_percent)->toBe(25);
+    expect($deliverable->designer_id)->toBe($designer->id);
 
     // Designer submits artwork in Campaign Direct Design deliverable -> advances to Writer Review
     $resDesignerSubmit = $this->actingAs($designer)->post(route('deliverables.submit', $deliverable->id), [
@@ -362,7 +375,7 @@ test('can access fast track creation form and store direct design for campaign a
     $resDesignerSubmit->assertRedirect();
     $deliverable->refresh();
     expect($deliverable->approval_stage)->toBe('Writer Review');
-    expect($deliverable->progress_percent)->toBe(40);
+    expect($deliverable->progress_percent)->toBe(45);
 
     // Writer advances to Approver Review
     $this->actingAs($writer)->post(route('deliverables.submit', $deliverable->id), [
@@ -370,7 +383,7 @@ test('can access fast track creation form and store direct design for campaign a
     ]);
     $deliverable->refresh();
     expect($deliverable->approval_stage)->toBe('Approver Review');
-    expect($deliverable->progress_percent)->toBe(60);
+    expect($deliverable->progress_percent)->toBe(65);
 
     // Approver advances to Further Approver
     $this->actingAs($approver)->post(route('deliverables.submit', $deliverable->id), [
@@ -626,14 +639,14 @@ test('fast track batch deliverable does not put designer for batch and assigns o
     $subtasks = $parent->subtasks;
     expect($subtasks)->toHaveCount(2);
 
-    // Subtasks MUST have their assigned designers
+    // Subtasks MUST have their assigned designers and start at Coordinator stage
     expect($subtasks[0]->title)->toBe('Deliverable Alpha');
     expect($subtasks[0]->designer_id)->toBe($designerAlice->id);
-    expect($subtasks[0]->assignee_name)->toBe('Alice Designer');
+    expect($subtasks[0]->approval_stage)->toBe('Coordinator');
 
     expect($subtasks[1]->title)->toBe('Deliverable Beta');
     expect($subtasks[1]->designer_id)->toBe($designerBob->id);
-    expect($subtasks[1]->assignee_name)->toBe('Bob Designer');
+    expect($subtasks[1]->approval_stage)->toBe('Coordinator');
 
     // Verify rendered table in projects.show shows deliverables' designers
     $projectView = $this->actingAs($manager)->get(route('projects.show', $project->id));
@@ -877,7 +890,7 @@ test('designer can submit artwork and advance directly to Approver Review skippi
     $task->refresh();
     expect($task->approval_stage)->toBe('Approver Review');
     expect($task->approver_id)->toBe($approver->id);
-    expect($task->progress_percent)->toBe(60);
+    expect($task->progress_percent)->toBe(65);
     expect($task->final_designs_link)->toBe('https://figma.com/file/direct-approver-test');
 });
 
@@ -959,7 +972,7 @@ test('deliverable that skipped writer review can receive revision request from a
 
     $task->refresh();
     expect($task->approval_stage)->toBe('Designer');
-    expect($task->progress_percent)->toBe(20);
+    expect($task->progress_percent)->toBe(25);
     expect($task->revisions)->toBe(1);
     expect($task->revision_instructions)->toBe('Approver requested color adjustments');
     expect($task->revision_target)->toBe('designer');
@@ -1044,7 +1057,7 @@ test('direct design deliverable creation supports multiple reference URLs and mu
     expect($deliverable)->not->toBeNull();
     expect($deliverable->flow_type)->toBe('direct_design');
     expect($deliverable->designer_id)->toBe($designer->id);
-    expect($deliverable->approval_stage)->toBe('Designer');
+    expect($deliverable->approval_stage)->toBe('Coordinator');
 
     $refFiles = $deliverable->getReferenceFilesArray();
     expect(count($refFiles))->toBe(2);
@@ -1201,4 +1214,78 @@ test('further approver is optional in direct design flow and can be skipped', fu
     $task3->refresh();
     expect($task3->approval_stage)->toBe('Further Approver');
     expect($task3->further_approver_id)->toBe($furtherApprover->id);
+});
+
+test('coordinator can assign designer and advance direct design deliverable to Designer stage', function () {
+    $brand = Brand::create(['name' => 'Brand Coord Test', 'slug' => 'brand-coord-test']);
+    $coordinator = User::factory()->create(['role' => 'Coordinator']);
+    $designer = User::factory()->create(['role' => 'Designer']);
+    $manager = User::factory()->create(['role' => 'Brand Manager']);
+    $brand->members()->attach([$coordinator->id, $designer->id, $manager->id]);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Direct Project With Coord',
+        'workflow_type' => 'campaign',
+    ]);
+
+    // Create direct design deliverable assigned to coordinator
+    $task = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Coordinator Assigned Direct Task',
+        'flow_type' => 'direct_design',
+        'approval_stage' => 'Coordinator',
+        'coordinator_id' => $coordinator->id,
+        'progress_percent' => 10,
+    ]);
+
+    // Verify coordinator sees "Assign" button on project page
+    $viewResponse = $this->actingAs($coordinator)->get(route('projects.show', $project->id));
+    $viewResponse->assertOk();
+    $viewResponse->assertSee('Assign');
+
+    // Coordinator submits and assigns designer
+    $response = $this->actingAs($coordinator)->post(route('deliverables.submit', $task->id), [
+        'designer_id' => $designer->id,
+    ]);
+
+    $response->assertRedirect();
+    $task->refresh();
+    expect($task->approval_stage)->toBe('Designer');
+    expect($task->progress_percent)->toBe(25);
+    expect($task->designer_id)->toBe($designer->id);
+    expect($task->assignee_name)->toBe($designer->name);
+});
+
+test('deliverable modal json includes brand manager associate and displays stage assignee', function () {
+    $brand = Brand::create(['name' => 'Brand Modal Assignee Test', 'slug' => 'brand-modal-assignee-test']);
+    $manager = User::factory()->create(['name' => 'Yoshini Manager', 'role' => 'Brand Manager']);
+    $designer = User::factory()->create(['name' => 'Bravin Designer', 'role' => 'Designer']);
+    $brand->members()->attach([$manager->id, $designer->id]);
+
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'APC',
+        'workflow_type' => 'campaign',
+    ]);
+
+    $task = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'wqe',
+        'flow_type' => 'direct_design',
+        'approval_stage' => 'Final Approval',
+        'brand_manager_id' => $manager->id,
+        'designer_id' => $designer->id,
+        'progress_percent' => 90,
+    ]);
+
+    // Fetch deliverable JSON (used by modal)
+    $response = $this->actingAs($manager)->getJson(route('deliverables.show', $task->id));
+    $response->assertOk();
+    $data = $response->json();
+
+    expect($data['approval_stage'])->toBe('Final Approval');
+    expect($data['brand_manager']['name'])->toBe('Yoshini Manager');
+    expect($data['associates']['brand_manager'])->toBe('Yoshini Manager');
+    expect($data['associates']['designer'])->toBe('Bravin Designer');
 });

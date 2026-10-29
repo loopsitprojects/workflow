@@ -2269,11 +2269,15 @@
                 const apprArea = document.getElementById('approverSelectionArea');
                 const bmArea = document.getElementById('brandManagerSelectionArea');
                 const faArea = document.getElementById('modalFurtherApproverGroup');
+                const coordArea = document.getElementById('coordinatorSelectionArea');
+                const dArea = document.getElementById('designerSelectionArea');
                 if (routeArea) ddSidebar.insertBefore(routeArea, ddActions);
                 if (writerArea) ddSidebar.insertBefore(writerArea, ddActions);
                 if (apprArea) ddSidebar.insertBefore(apprArea, ddActions);
                 if (bmArea) ddSidebar.insertBefore(bmArea, ddActions);
                 if (faArea) ddSidebar.insertBefore(faArea, ddActions);
+                if (coordArea) ddSidebar.insertBefore(coordArea, ddActions);
+                if (dArea) ddSidebar.insertBefore(dArea, ddActions);
 
                 // 4. Action buttons into ddActions
                 const submitForm = document.getElementById('submitStageForm');
@@ -2492,28 +2496,39 @@
                 document.getElementById('modalSubtaskCopy').value = task.subtask_copy || task.post_copy || '';
                 quillCopy.clipboard.dangerouslyPasteHTML(task.subtask_copy || task.post_copy || '');
 
+                const isCampaignOrPitch = (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch');
+                let displayStage = task.approval_stage || ((isOtherDeliverable || isCampaignOrPitch) ? 'Assignee' : 'Writer');
+                if (isOtherDeliverable || isCampaignOrPitch) {
+                    if (['writer', 'assign', 'assignee'].includes(String(displayStage || '').toLowerCase()) || !displayStage) displayStage = 'Assignee';
+                    else if (['close', 'closed'].includes(String(displayStage || '').toLowerCase())) displayStage = 'Closed';
+                }
+
+                let currentStageAssignee = null;
+                const normStage = String(displayStage || '').trim();
+                if (['Writer', 'Writer Review', 'Assign', 'Assignee'].includes(normStage)) {
+                    currentStageAssignee = task.writer?.name || task.writer_name || task.assignee_name || task.associates?.writer || task.associates?.assignee;
+                } else if (normStage === 'Designer') {
+                    currentStageAssignee = task.designer?.name || task.designer_name || task.associates?.designer;
+                } else if (['Brand Manager', 'AM/BD', 'Final Approval', 'Approve', 'Manager Review'].includes(normStage)) {
+                    currentStageAssignee = task.brand_manager?.name || task.brandManager?.name || task.brand_manager_name || task.associates?.brand_manager || task.associates?.brandManager;
+                } else if (normStage === 'Coordinator') {
+                    currentStageAssignee = task.coordinator?.name || task.coordinator_name || task.associates?.coordinator;
+                } else if (['Approver', 'Approver Review'].includes(normStage)) {
+                    currentStageAssignee = task.approver?.name || task.approver_name || task.associates?.approver;
+                } else if (normStage === 'Further Approver') {
+                    currentStageAssignee = task.further_approver?.name || task.furtherApprover?.name || task.further_approver_name || task.associates?.further_approver;
+                }
+
+                if (currentStageAssignee === 'None' || !currentStageAssignee) {
+                    currentStageAssignee = null;
+                }
+
                 if (document.getElementById('modalStage')) {
-                    const isCampaignOrPitch = (projectWorkflowType === 'campaign' || projectWorkflowType === 'pitch');
-                    let stage = task.approval_stage || ((isOtherDeliverable || isCampaignOrPitch) ? 'Assignee' : 'Writer');
-                    if (isOtherDeliverable || isCampaignOrPitch) {
-                        if (['writer', 'assign', 'assignee'].includes(String(stage || '').toLowerCase()) || !stage) stage = 'Assignee';
-                        else if (['close', 'closed'].includes(String(stage || '').toLowerCase())) stage = 'Closed';
+                    if (currentStageAssignee) {
+                        document.getElementById('modalStage').innerHTML = `${displayStage} <span style="font-size:13px; font-weight:700; color:var(--color-text-secondary); opacity:0.85;">(${currentStageAssignee})</span>`;
+                    } else {
+                        document.getElementById('modalStage').textContent = displayStage;
                     }
-                    let stageText = stage;
-                    
-                    let assignedUser = null;
-                    if (stage === 'Writer' || stage === 'Writer Review' || stage === 'Assign' || stage === 'Assignee') assignedUser = task.writer?.name || task.assignee_name;
-                    else if (stage === 'Designer') assignedUser = task.designer?.name;
-                    else if (stage === 'Brand Manager' || stage === 'AM/BD' || stage === 'Final Approval' || stage === 'Approve') assignedUser = task.brandManager?.name;
-                    else if (stage === 'Coordinator') assignedUser = task.coordinator?.name;
-                    else if (stage === 'Approver' || stage === 'Approver Review') assignedUser = task.approver?.name;
-                    else if (stage === 'Further Approver') assignedUser = task.furtherApprover?.name;
-                    
-                    if (assignedUser) {
-                        stageText += ` (${assignedUser})`;
-                    }
-                    
-                    document.getElementById('modalStage').textContent = stageText;
                 }
                 
                 if (document.getElementById('modalPriorityDisplay')) {
@@ -2874,8 +2889,9 @@
                         {key: 'brand_manager', label: 'Brand Manager'},
                     ];
                 } else if (task.flow_type === 'direct_design' || task.is_direct_design) {
-                    // Direct Design: Designer -> Writer Review -> Approver Review -> Further Approver -> Final Approval -> Closed
+                    // Direct Design: Coordinator -> Designer -> Writer Review -> Approver Review -> Further Approver -> Final Approval -> Closed
                     roles = [
+                        {key: 'coordinator', label: 'Coordinator'},
                         {key: 'designer', label: 'Designer'},
                         {key: 'writer', label: 'Writer'},
                         {key: 'approver', label: 'Approver'},
@@ -2935,14 +2951,26 @@
                     else if (role.key === 'coordinator') rCol = '14,165,233';
                     else if (role.key === 'designer') rCol = '139,92,246';
 
+                    const isCurrentStageRole = Boolean(normStage && (
+                        (role.key === 'coordinator' && normStage === 'Coordinator') ||
+                        (role.key === 'designer' && normStage === 'Designer') ||
+                        ((role.key === 'writer' || role.key === 'assignee') && ['Writer', 'Writer Review', 'Assign', 'Assignee'].includes(normStage)) ||
+                        (role.key === 'approver' && ['Approver', 'Approver Review'].includes(normStage)) ||
+                        (role.key === 'further_approver' && normStage === 'Further Approver') ||
+                        (role.key === 'brand_manager' && ['Brand Manager', 'AM/BD', 'Final Approval', 'Approve', 'Manager Review'].includes(normStage))
+                    ));
+
                     const item = document.createElement('div');
-                    item.style.cssText = `display:flex; align-items:center; gap:10px; padding:10px; background:rgba(${rCol},0.05); border-radius:12px; border:1px solid rgba(${rCol},0.2);`;
+                    item.style.cssText = `display:flex; align-items:center; gap:10px; padding:10px; background:rgba(${rCol},${isCurrentStageRole ? '0.12' : '0.05'}); border-radius:12px; border:1.5px solid rgba(${rCol},${isCurrentStageRole ? '0.6' : '0.2'}); ${isCurrentStageRole ? `box-shadow: 0 0 0 1px rgba(${rCol},0.25);` : ''}`;
                     item.innerHTML = `
-                        <div style="width:30px; height:30px; border-radius:50%; background:rgba(${rCol},0.1); color:rgb(${rCol}); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; border:1.5px solid rgba(${rCol},0.25);">
+                        <div style="width:30px; height:30px; border-radius:50%; background:rgba(${rCol},0.15); color:rgb(${rCol}); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; border:1.5px solid rgba(${rCol},0.3);">
                             ${name !== 'None' ? name.charAt(0) : '?'}
                         </div>
-                        <div style="overflow:hidden;">
-                            <div style="font-size:9px; font-weight:800; color:rgb(${rCol}); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:1px; opacity:0.9;">${role.label}</div>
+                        <div style="overflow:hidden; flex:1; min-width:0;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; margin-bottom:1px;">
+                                <span style="font-size:9px; font-weight:800; color:rgb(${rCol}); text-transform:uppercase; letter-spacing:0.02em; opacity:0.9;">${role.label}</span>
+                                ${isCurrentStageRole ? `<span style="font-size:8px; font-weight:800; background:rgba(${rCol},0.2); color:rgb(${rCol}); border:1px solid rgba(${rCol},0.35); padding:1px 5px; border-radius:4px; text-transform:uppercase;">Active</span>` : ''}
+                            </div>
                             <div style="font-size:12px; font-weight:700; color:var(--color-text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
                         </div>
                     `;
@@ -3370,7 +3398,7 @@
                         isInHistory('Further Approver')
                     );
 
-                    taskStages = ['Designer'];
+                    taskStages = ['Coordinator', 'Designer'];
                     if (hasWriterReview) {
                         taskStages.push('Writer Review');
                     }
@@ -3506,6 +3534,7 @@
                     ? (
                         isAdmin ||
                         userRole === 'operationsmanager' ||
+                        (stage === 'Coordinator' && (isAssignedCoordinator || (!task.coordinator_id && (userRole === 'coordinator' || userRole === 'approvercoordinator')) || userRole === 'brandmanager')) ||
                         (stage === 'Designer' && (isAssignedDesigner || (!task.designer_id && hasDesignerRole) || userRole === 'brandmanager')) ||
                         (stage === 'Writer Review' && (isAssignedWriter || (!task.writer_id && hasWriterRole))) ||
                         (stage === 'Approver Review' && (isAssignedApprover || (!task.approver_id && (userRole === 'approver' || userRole === 'approvercoordinator')))) ||
@@ -3542,6 +3571,7 @@
 
                 // Check if the current user is specifically assigned to handle this current stage
                 const isCurrentStageAssignee = (isDirectDesign || task.is_direct_design) ? (
+                    (stage === 'Coordinator') ? (isAssignedCoordinator || (!task.coordinator_id && (userRole === 'coordinator' || userRole === 'approvercoordinator')) || userRole === 'brandmanager') :
                     (stage === 'Designer') ? (isAssignedDesigner || (!task.designer_id && hasDesignerRole) || userRole === 'brandmanager') :
                     (stage === 'Writer Review') ? (isAssignedWriter || (!task.writer_id && hasWriterRole)) :
                     (stage === 'Approver Review') ? (isAssignedApprover || (!task.approver_id && (userRole === 'approver' || userRole === 'approvercoordinator'))) :
@@ -3581,7 +3611,10 @@
                             nextBtn.style.cursor = 'pointer';
                             nextBtn.style.boxShadow = '0 4px 12px rgba(0,85,212,0.4)';
                             if (isDirectDesign || task.is_direct_design) {
-                                if (stage === 'Designer') {
+                                if (stage === 'Coordinator') {
+                                    nextBtn.textContent = 'Submit to Designer';
+                                    nextBtn.style.background = '#0055D4';
+                                } else if (stage === 'Designer') {
                                     nextBtn.textContent = 'Submit for Writer Review';
                                     nextBtn.style.background = '#0055D4';
                                 } else if (stage === 'Writer Review') {
@@ -3758,7 +3791,7 @@
 
                 // Edit Permissions (already computed above)
                 const canEditBriefAndRef = (isDirectDesign || task.is_direct_design)
-                    ? (isAdmin || isManager || (task.brand_manager_id && AUTH_USER_ID == task.brand_manager_id))
+                    ? (isAdmin || isManager || (stage === 'Coordinator' && (isAssignedCoordinator || userRole === 'coordinator' || userRole === 'approvercoordinator')) || (task.brand_manager_id && AUTH_USER_ID == task.brand_manager_id))
                     : (isOtherDeliverable
                         ? (isAdmin || Boolean(task.can_remove_reference))
                         : writerEditPermission);

@@ -365,6 +365,8 @@
                                 'project' => $t->project,
                                 'priority' => $t->priority,
                                 'deadline' => $t->deadline,
+                                'designer_deadline' => $t->designer_deadline,
+                                'revision_deadline' => $t->revision_deadline,
                                 'subtasks' => [$t]
                             ];
                         }
@@ -376,7 +378,30 @@
                         return $grouped;
                     };
 
-                    $isOverdue = function($t) {
+                    $authUser = auth()->user();
+                    $authRole = strtolower(str_replace(' ', '', $authUser->role ?? ''));
+                    $isDesigner = $authRole === 'designer';
+                    $isWriter = in_array($authRole, ['writer', 'assignee']);
+
+                    $isOverdue = function($t) use ($isDesigner, $isWriter) {
+                        $revDeadline = $t->revision_deadline;
+                        if (!$revDeadline && method_exists($t, 'revisionsHistory')) {
+                            $revDeadline = $t->revisionsHistory()->latest()->first()?->revision_deadline;
+                        }
+                        $hasRev = (bool)($t->revision_instructions || ($t->revisions && (is_numeric($t->revisions) ? $t->revisions > 0 : $t->revisions->count() > 0)) || $revDeadline);
+
+                        if ($isDesigner) {
+                            $checkDate = $revDeadline ?: ($t->designer_deadline ?: $t->deadline);
+                            if (empty($checkDate)) return false;
+                            return \Carbon\Carbon::parse($checkDate)->startOfDay()->lt(now()->startOfDay());
+                        }
+
+                        if ($isWriter) {
+                            $checkDate = ($hasRev && $revDeadline) ? $revDeadline : $t->deadline;
+                            if (empty($checkDate)) return false;
+                            return \Carbon\Carbon::parse($checkDate)->startOfDay()->lt(now()->startOfDay());
+                        }
+
                         if (empty($t->deadline)) return false;
                         return \Carbon\Carbon::parse($t->deadline)->startOfDay()->lt(now()->startOfDay());
                     };
@@ -615,30 +640,166 @@
                         </svg>
                     </div>
                     @php
-                        $upcomingGroups = collect($groupedActive)->filter(function($g) { return !empty($g['deadline']); })->sortBy(function($g) { return $g['deadline']; })->take(5);
+                        $upcomingItems = collect();
+                        foreach($allActiveTasks as $t) {
+                            $proj = $t->project;
+                            if (!$proj) continue;
+
+                            $revDate = $t->revision_deadline;
+                            if (!$revDate && method_exists($t, 'revisionsHistory')) {
+                                $revDate = $t->revisionsHistory()->latest()->first()?->revision_deadline;
+                            }
+                            $hasRev = (bool)($t->revision_instructions || ($t->revisions && (is_numeric($t->revisions) ? $t->revisions > 0 : $t->revisions->count() > 0)) || $revDate);
+
+                            if ($isDesigner) {
+                                // For Designers: Revision deadline and Designer deadline only (no deliverable deadline)
+                                if ($revDate) {
+                                    $dLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($revDate)->startOfDay(), false);
+                                    if ($dLeft >= 0) {
+                                        $upcomingItems->push([
+                                            'title' => $t->title,
+                                            'project' => $proj,
+                                            'target_id' => $t->id,
+                                            'date' => $revDate,
+                                            'days_left' => $dLeft,
+                                            'type' => 'revision',
+                                            'label' => 'Rev Due'
+                                        ]);
+                                    }
+                                }
+                                if ($t->designer_deadline) {
+                                    $dLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($t->designer_deadline)->startOfDay(), false);
+                                    if ($dLeft >= 0) {
+                                        $upcomingItems->push([
+                                            'title' => $t->title,
+                                            'project' => $proj,
+                                            'target_id' => $t->id,
+                                            'date' => $t->designer_deadline,
+                                            'days_left' => $dLeft,
+                                            'type' => 'designer',
+                                            'label' => 'Des Due'
+                                        ]);
+                                    }
+                                }
+                                if (!$revDate && !$t->designer_deadline && $t->deadline) {
+                                    $dLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($t->deadline)->startOfDay(), false);
+                                    if ($dLeft >= 0) {
+                                        $upcomingItems->push([
+                                            'title' => $t->title,
+                                            'project' => $proj,
+                                            'target_id' => $t->id,
+                                            'date' => $t->deadline,
+                                            'days_left' => $dLeft,
+                                            'type' => 'deliverable',
+                                            'label' => 'Due'
+                                        ]);
+                                    }
+                                }
+                            } elseif ($isWriter) {
+                                // For Writers: Revision deadline if revision exists, else deliverable deadline
+                                if ($hasRev && $revDate) {
+                                    $dLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($revDate)->startOfDay(), false);
+                                    if ($dLeft >= 0) {
+                                        $upcomingItems->push([
+                                            'title' => $t->title,
+                                            'project' => $proj,
+                                            'target_id' => $t->id,
+                                            'date' => $revDate,
+                                            'days_left' => $dLeft,
+                                            'type' => 'revision',
+                                            'label' => 'Rev Due'
+                                        ]);
+                                    }
+                                } elseif ($t->deadline) {
+                                    $dLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($t->deadline)->startOfDay(), false);
+                                    if ($dLeft >= 0) {
+                                        $upcomingItems->push([
+                                            'title' => $t->title,
+                                            'project' => $proj,
+                                            'target_id' => $t->id,
+                                            'date' => $t->deadline,
+                                            'days_left' => $dLeft,
+                                            'type' => 'deliverable',
+                                            'label' => 'Due'
+                                        ]);
+                                    }
+                                }
+                            } else {
+                                // Default / Other Roles: Revision deadline, Designer deadline (if different from deliverable), and deliverable deadline
+                                if ($revDate) {
+                                    $dLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($revDate)->startOfDay(), false);
+                                    if ($dLeft >= 0) {
+                                        $upcomingItems->push([
+                                            'title' => $t->title,
+                                            'project' => $proj,
+                                            'target_id' => $t->id,
+                                            'date' => $revDate,
+                                            'days_left' => $dLeft,
+                                            'type' => 'revision',
+                                            'label' => 'Rev Due'
+                                        ]);
+                                    }
+                                }
+                                if ($t->designer_deadline && $t->designer_deadline != $t->deadline) {
+                                    $dLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($t->designer_deadline)->startOfDay(), false);
+                                    if ($dLeft >= 0) {
+                                        $upcomingItems->push([
+                                            'title' => $t->title,
+                                            'project' => $proj,
+                                            'target_id' => $t->id,
+                                            'date' => $t->designer_deadline,
+                                            'days_left' => $dLeft,
+                                            'type' => 'designer',
+                                            'label' => 'Des Due'
+                                        ]);
+                                    }
+                                }
+                                if ($t->deadline) {
+                                    $dLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($t->deadline)->startOfDay(), false);
+                                    if ($dLeft >= 0) {
+                                        $upcomingItems->push([
+                                            'title' => $t->title,
+                                            'project' => $proj,
+                                            'target_id' => $t->id,
+                                            'date' => $t->deadline,
+                                            'days_left' => $dLeft,
+                                            'type' => 'deliverable',
+                                            'label' => 'Due'
+                                        ]);
+                                    }
+                                }
+                            }
+                        }
+
+                        $sortedUpcoming = $upcomingItems->sortBy(function($item) {
+                            return \Carbon\Carbon::parse($item['date'])->timestamp;
+                        })->take(5);
                     @endphp
-                    @forelse($upcomingGroups as $group)
+                    @forelse($sortedUpcoming as $item)
                     @php
-                        $isBatch = $group['is_batch'];
-                        $mainTitle = $isBatch ? $group['parent']->title : $group['subtasks'][0]->title;
-                        $project = $group['project'];
-                        $deadline = $group['deadline'];
-                        $targetUpcomingId = $isBatch ? ($group['parent']->id ?? null) : ($group['subtasks'][0]->id ?? null);
+                        $deadline = $item['date'];
+                        $daysLeft = $item['days_left'];
+                        $project = $item['project'];
+                        $targetUpcomingId = $item['target_id'];
                     @endphp
                     <a href="{{ route('projects.show', ['project' => $project->id, 'deliverable_id' => $targetUpcomingId]) }}" class="flex flex-col gap-2 mb-4 last:mb-0 group block">
                         <div class="flex items-start gap-3">
-                            @php $daysLeft = now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($deadline)->startOfDay(), false); @endphp
                             <div class="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-black border
-                                {{ $daysLeft < 0 ? 'bg-red-100 text-red-800 dark:bg-red-950/80 dark:text-red-300 border-red-300 dark:border-red-800/60' : ($daysLeft <= 2 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-300 dark:border-amber-800/60' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-white/5') }}">
+                                {{ $item['type'] === 'revision' ? 'bg-red-50 text-red-700 dark:bg-red-950/70 dark:text-red-300 border-red-200 dark:border-red-800/50' : ($item['type'] === 'designer' ? 'bg-pink-50 text-pink-700 dark:bg-pink-950/70 dark:text-pink-300 border-pink-200 dark:border-pink-800/50' : ($daysLeft <= 2 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-300 dark:border-amber-800/60' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-white/5')) }}">
                                 {{ \Carbon\Carbon::parse($deadline)->format('d') }}
                             </div>
                             <div class="min-w-0 flex-1">
-                                <p class="text-[12px] font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ $mainTitle }}</p>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <p class="text-[12px] font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">{{ $item['title'] }}</p>
+                                    @if($item['type'] === 'revision')
+                                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[8.5px] font-extrabold uppercase tracking-wide bg-red-100 text-red-700 dark:bg-red-950/80 dark:text-red-300 border border-red-200 dark:border-red-800/50">Rev Due</span>
+                                    @elseif($item['type'] === 'designer')
+                                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[8.5px] font-bold uppercase tracking-wide bg-pink-100 text-pink-700 dark:bg-pink-950/80 dark:text-pink-300 border border-pink-200 dark:border-pink-800/50">Des Due</span>
+                                    @endif
+                                </div>
                                 <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                                     {{ \Carbon\Carbon::parse($deadline)->format('M j') }}
-                                    @if($daysLeft < 0)
-                                        · <span class="text-red-600 dark:text-red-400 font-bold">{{ abs($daysLeft) }}d overdue</span>
-                                    @elseif($daysLeft === 0)
+                                    @if($daysLeft === 0)
                                         · <span class="text-amber-600 dark:text-amber-400 font-bold">today</span>
                                     @elseif($daysLeft <= 7)
                                         · <span class="text-slate-700 dark:text-slate-300 font-bold">{{ $daysLeft }}d left</span>
@@ -646,15 +807,6 @@
                                 </p>
                             </div>
                         </div>
-                        @if($isBatch)
-                            <div class="ml-11 pl-2 border-l-2 border-gray-100 dark:border-slate-800 flex flex-col gap-1">
-                                @foreach($group['subtasks'] as $t)
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-[10px] font-semibold text-gray-500 dark:text-slate-400">{{ $t->title }}</span>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
                     </a>
                     @empty
                     <div x-show="!$store.theme.halloween && !$store.theme.christmas">

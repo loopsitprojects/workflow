@@ -27,6 +27,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
     use HandlesWorkflowUploads;
 
     public const STAGES = [
+        'Coordinator',
         'Designer',
         'Writer Review',
         'Approver Review',
@@ -42,6 +43,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
     {
         if (!$stage) return self::STAGES[0];
         $lower = strtolower(trim($stage));
+        if (in_array($lower, ['coordinator', 'coord'])) return 'Coordinator';
         if (in_array($lower, ['designer', 'design', 'in design', 'artwork'])) return 'Designer';
         if (in_array($lower, ['writer review', 'writer', 'writer approval'])) return 'Writer Review';
         if (in_array($lower, ['approver review', 'approver', 'approver approval'])) return 'Approver Review';
@@ -61,24 +63,26 @@ class DirectDesignWorkflowService implements WorkflowInterface
 
     /**
      * Calculate stage progress percentage.
-     * Designer: 20%, Writer Review: 40%, Approver Review: 60%, Further Approver: 75%, Final Approval: 85%, Closed: 100%
+     * Coordinator: 10%, Designer: 25%, Writer Review: 45%, Approver Review: 65%, Further Approver: 75%, Final Approval: 85%, Closed: 100%
      */
     public function getStageProgress(Deliverable $deliverable): int
     {
         $stage = $this->normalizeStage($deliverable->approval_stage);
         return match ($stage) {
-            'Designer'         => 20,
-            'Writer Review'    => 40,
-            'Approver Review'  => 60,
+            'Coordinator'      => 10,
+            'Designer'         => 25,
+            'Writer Review'    => 45,
+            'Approver Review'  => 65,
             'Further Approver' => 75,
             'Final Approval'   => 85,
             'Closed'           => 100,
-            default            => 20,
+            default            => 10,
         };
     }
 
     /**
      * Determine next stage in workflow.
+     * When at Coordinator stage, moves to Designer stage (with designer assigned).
      * When at Designer stage, Writer Review is optional:
      * - Can be sent straight to Approver Review (mandatory approver)
      * - Or sent to Writer Review (writer reviews, then moves to mandatory approver)
@@ -86,6 +90,10 @@ class DirectDesignWorkflowService implements WorkflowInterface
     public function getNextStage(Deliverable $deliverable, array $data = []): ?string
     {
         $currentStage = $this->normalizeStage($deliverable->approval_stage);
+
+        if ($currentStage === 'Coordinator') {
+            return 'Designer';
+        }
 
         if ($currentStage === 'Designer') {
             $target = strtolower(trim($data['next_stage'] ?? $data['target_stage'] ?? $data['route_to'] ?? $data['send_to'] ?? ''));
@@ -145,6 +153,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
             'Final Approval'   => $deliverable->further_approver_id ? 'Further Approver' : 'Approver Review',
             'Further Approver' => 'Approver Review',
             'Writer Review'    => 'Designer',
+            'Designer'         => 'Coordinator',
             default            => null,
         };
     }
@@ -156,6 +165,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
     {
         $norm = $this->normalizeStage($stage);
         return match ($norm) {
+            'Coordinator'      => 'coordinator_id',
             'Designer'         => 'designer_id',
             'Writer Review'    => 'writer_id',
             'Approver Review'  => 'approver_id',
@@ -172,6 +182,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
     {
         $norm = $this->normalizeStage($stage);
         $target = match ($norm) {
+            'Coordinator'      => $deliverable->coordinator ?? ($deliverable->coordinator_id ? User::find($deliverable->coordinator_id) : ($deliverable->project?->coordinator ?? null)),
             'Designer'         => $deliverable->designer ?? ($deliverable->designer_id ? User::find($deliverable->designer_id) : null),
             'Writer Review'    => $deliverable->writer ?? ($deliverable->writer_id ? User::find($deliverable->writer_id) : null),
             'Approver Review'  => $deliverable->approver ?? ($deliverable->approver_id ? User::find($deliverable->approver_id) : null),
@@ -205,7 +216,28 @@ class DirectDesignWorkflowService implements WorkflowInterface
         $userRole = strtolower(str_replace(' ', '', $user->role ?? ''));
         $isPrivileged = $user && ($user->isAdmin() || in_array($userRole, ['operationsmanager', 'brandmanager']));
 
-        if ($oldStage === 'Designer') {
+        if ($oldStage === 'Coordinator') {
+            $isAssignedCoord = $deliverable->coordinator_id && $user && $user->id == $deliverable->coordinator_id;
+            $isCoordRole = in_array($userRole, ['coordinator', 'approvercoordinator']);
+
+            if (!$isAssignedCoord && !$isCoordRole && !$isPrivileged) {
+                return [
+                    'success' => false,
+                    'message' => 'Only the assigned coordinator can submit this deliverable.',
+                    'code'    => 403,
+                ];
+            }
+
+            // Must have a designer assigned or selected when advancing to Designer
+            $chosenDesignerId = $data['designer_id'] ?? $deliverable->designer_id ?? $deliverable->project?->designer_id;
+            if (!$chosenDesignerId) {
+                return [
+                    'success' => false,
+                    'message' => 'Please select a designer.',
+                    'code'    => 422,
+                ];
+            }
+        } elseif ($oldStage === 'Designer') {
             $isAssignedDesigner = $deliverable->designer_id && $user && $user->id == $deliverable->designer_id;
             $isUnassignedDesigner = !$deliverable->designer_id && $userRole === 'designer';
 
@@ -327,9 +359,24 @@ class DirectDesignWorkflowService implements WorkflowInterface
             return ['success' => true];
         }
 
+        // Auto-assign coordinator if empty and acting user is coordinator
+        if ($oldStage === 'Coordinator' && !$deliverable->coordinator_id && $user && in_array(strtolower(str_replace(' ', '', $user->role)), ['coordinator', 'approvercoordinator'])) {
+            $deliverable->coordinator_id = $user->id;
+        }
+
         // Auto-assign designer if not already set and acting user is designer
         if ($oldStage === 'Designer' && !$deliverable->designer_id && $user && strtolower(str_replace(' ', '', $user->role)) === 'designer') {
             $deliverable->designer_id = $user->id;
+        }
+
+        // Assign designer if passed (advancing to Designer stage or reassignment)
+        if (!empty($data['designer_id'])) {
+            $deliverable->designer_id = $data['designer_id'];
+            $d = User::find($data['designer_id']);
+            if ($d) $deliverable->assignee_name = $d->name;
+        } elseif ($nextStage === 'Designer' && !$deliverable->designer_id && $deliverable->project?->designer_id) {
+            $deliverable->designer_id = $deliverable->project->designer_id;
+            if ($deliverable->project->designer) $deliverable->assignee_name = $deliverable->project->designer->name;
         }
 
         // Assign writer if passed
@@ -433,6 +480,7 @@ class DirectDesignWorkflowService implements WorkflowInterface
         $deliverable->notifyStageChange($oldStage, $nextStage, $user ?? auth()->user());
 
         $msg = match ($nextStage) {
+            'Designer'         => 'Deliverable assigned to designer and moved to Designer stage.',
             'Writer Review'    => 'Artwork submitted and sent to Writer for review.',
             'Approver Review'  => ($oldStage === 'Designer')
                 ? 'Artwork submitted and sent directly to Approver for review.'

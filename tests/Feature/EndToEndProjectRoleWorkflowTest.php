@@ -320,15 +320,25 @@ test('comprehensive end-to-end verification of all workflows and roles in a new 
     $fastTrack = Deliverable::where('title', 'Flash Sale Social Banners')->first();
     expect($fastTrack)->not->toBeNull();
     expect($fastTrack->flow_type)->toBe('direct_design');
-    expect($fastTrack->approval_stage)->toBe('Designer');
-    expect($fastTrack->getStageProgress())->toBe(20);
+    expect($fastTrack->approval_stage)->toBe('Coordinator');
+    expect($fastTrack->getStageProgress())->toBe(10);
 
-    // Authorization Test: Writer cannot submit Designer stage of fast track
+    // Authorization Test: Writer cannot submit Coordinator stage of fast track
     $ftUnauthResp = $this->actingAs($writer)->post(route('deliverables.submit', $fastTrack), []);
     $ftUnauthResp->assertSessionHas('error');
-    expect($fastTrack->fresh()->approval_stage)->toBe('Designer');
+    expect($fastTrack->fresh()->approval_stage)->toBe('Coordinator');
 
-    // Step 1: Designer Bravin submits Direct Design -> moves to Writer Review (40%)
+    // Step 0: Coordinator Kavi assigns designer and advances to Designer stage (25%)
+    $ftCoordResp = $this->actingAs($coordinator)->post(route('deliverables.submit', $fastTrack), [
+        'designer_id' => $designer->id,
+    ]);
+    expect($ftCoordResp->status())->toBeIn([200, 302]);
+    $fastTrack->refresh();
+    expect($fastTrack->approval_stage)->toBe('Designer');
+    expect($fastTrack->getStageProgress())->toBe(25);
+    expect($fastTrack->designer_id)->toBe($designer->id);
+
+    // Step 1: Designer Bravin submits Direct Design -> moves to Writer Review (45%)
     $ftFakeArt = UploadedFile::fake()->image('flash_sale_banner.png', 1080, 1920);
     $ftS1Resp = $this->actingAs($designer)->post(route('deliverables.submit', $fastTrack), [
         'final_designs_file' => $ftFakeArt,
@@ -338,16 +348,16 @@ test('comprehensive end-to-end verification of all workflows and roles in a new 
     expect($ftS1Resp->status())->toBeIn([200, 302]);
     $fastTrack->refresh();
     expect($fastTrack->approval_stage)->toBe('Writer Review');
-    expect($fastTrack->getStageProgress())->toBe(40);
+    expect($fastTrack->getStageProgress())->toBe(45);
 
-    // Step 2: Writer Review -> moves to Approver Review (60%)
+    // Step 2: Writer Review -> moves to Approver Review (65%)
     $ftS2Resp = $this->actingAs($writer)->post(route('deliverables.submit', $fastTrack), [
         'approver_id' => $approver->id,
     ]);
     expect($ftS2Resp->status())->toBeIn([200, 302]);
     $fastTrack->refresh();
     expect($fastTrack->approval_stage)->toBe('Approver Review');
-    expect($fastTrack->getStageProgress())->toBe(60);
+    expect($fastTrack->getStageProgress())->toBe(65);
 
     // Step 3: Approver Review -> moves to Further Approver (75%)
     $ftS3Resp = $this->actingAs($approver)->post(route('deliverables.submit', $fastTrack), [

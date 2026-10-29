@@ -83,13 +83,17 @@ class DeliverableController extends Controller
             }
             $projects = Project::with('brand')->get();
             $designers = \App\Models\User::where('role', 'Designer')->orderBy('name')->get();
+            $coordinators = \App\Models\User::whereIn('role', ['Coordinator', 'Approver Coordinator', 'Operations Manager'])->orderBy('name')->get();
+            if ($coordinators->isEmpty()) {
+                $coordinators = \App\Models\User::where('role', 'Coordinator')->orderBy('name')->get();
+            }
             $brandId = $project?->brand_id;
             $writers = $brandId ? \App\Models\User::whereIn('role', ['Writer', 'Assignee'])->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))->orderBy('name')->get() : collect();
             if ($writers->isEmpty()) {
                 $writers = \App\Models\User::whereIn('role', ['Writer', 'Assignee'])->orderBy('name')->get();
             }
             $subtaskTypes = \App\Models\SubtaskType::all();
-            return view('deliverables.create_design', compact('projects', 'project', 'designers', 'writers', 'selectedProjectId', 'parentId', 'parentTask', 'workflowType', 'subtaskTypes'));
+            return view('deliverables.create_design', compact('projects', 'project', 'designers', 'writers', 'coordinators', 'selectedProjectId', 'parentId', 'parentTask', 'workflowType', 'subtaskTypes'));
         }
 
         $users = ($workflowType === 'retainer')
@@ -370,6 +374,19 @@ class DeliverableController extends Controller
         $writerId = $isBatch ? $batchWriterFallback : ($validated['writer_id'] ?? ($project?->writer_id ?? null));
         $designerUser = $designerId ? User::find($designerId) : null;
         $designerName = $designerUser?->name ?? ($isBatch ? null : 'Unassigned');
+
+        // Coordinator resolution (Direct Design starts at Coordinator stage)
+        $coordinatorId = $validated['coordinator_id'] ?? ($project?->coordinator_id ?? null);
+        if (!$coordinatorId && in_array($creator->role, ['Coordinator', 'Approver Coordinator'])) {
+            $coordinatorId = $creator->id;
+        }
+        if (!$coordinatorId) {
+            $coordinatorId = $project?->brand?->members()->whereIn('role', ['Coordinator', 'Approver Coordinator'])->first()?->id
+                ?? User::whereIn('role', ['Coordinator', 'Approver Coordinator'])->first()?->id;
+        }
+        $coordUser = $coordinatorId ? User::find($coordinatorId) : null;
+        $coordName = $coordUser?->name ?? 'Unassigned';
+
         if (in_array($creator->role, ['Brand Manager', 'Operations Manager'])) {
             $brandManagerId = $creator->id;
         } elseif ($project?->brand_manager_id && in_array($project->brandManager?->role, ['Brand Manager', 'Operations Manager'])) {
@@ -387,13 +404,14 @@ class DeliverableController extends Controller
 
         $taskData = Arr::except($validated, ['subtasks', 'parent_deliverable_id']);
         $taskData['flow_type'] = 'direct_design';
-        $taskData['approval_stage'] = 'Designer';
+        $taskData['approval_stage'] = 'Coordinator';
         $taskData['status'] = 'To Do';
-        $taskData['progress_percent'] = 20;
+        $taskData['progress_percent'] = 10;
         $taskData['brand_manager_id'] = $brandManagerId;
+        $taskData['coordinator_id'] = $coordinatorId;
         $taskData['designer_id'] = $designerId;
         $taskData['writer_id'] = $writerId;
-        $taskData['assignee_name'] = $designerName;
+        $taskData['assignee_name'] = $coordName;
         $taskData['revisions'] = 0;
         $taskData['priority'] = $taskData['priority'] ?? 'Medium';
         $taskData['task_type'] = $taskData['task_type'] ?? 'Deliverable';
@@ -520,6 +538,7 @@ class DeliverableController extends Controller
 
                 $subDeadline = !empty($sub['deadline']) ? $sub['deadline'] : (!empty($sub['designer_deadline']) ? $sub['designer_deadline'] : ($parentTask->deadline ?? $parentTask->designer_deadline));
 
+                $subCoordinatorId = !empty($sub['coordinator_id']) ? $sub['coordinator_id'] : $coordinatorId;
                 Deliverable::create([
                     'parent_deliverable_id' => $parentTask->id,
                     'project_id'            => $parentTask->project_id,
@@ -527,8 +546,8 @@ class DeliverableController extends Controller
                     'title'                 => $subTitle,
                     'status'                => 'To Do',
                     'task_type'             => 'Deliverable',
-                    'progress_percent'      => 20,
-                    'approval_stage'        => 'Designer',
+                    'progress_percent'      => 10,
+                    'approval_stage'        => 'Coordinator',
                     'post_type'             => $sub['post_type'] ?? 'Graphic',
                     'concept'               => $subBrief,
                     'notes'                 => $subBrief,
@@ -538,16 +557,29 @@ class DeliverableController extends Controller
                     'deadline'              => $subDeadline,
                     'designer_deadline'     => $subDeadline,
                     'priority'              => $sub['priority'] ?? ($parentTask->priority ?? 'Medium'),
+                    'coordinator_id'        => $subCoordinatorId,
                     'designer_id'           => $subDesignerId,
                     'writer_id'             => $sub['writer_id'] ?? $batchWriterFallback,
                     'brand_manager_id'      => $parentTask->brand_manager_id,
-                    'assignee_name'         => $subDesignerName,
+                    'assignee_name'         => $coordName,
                     'revisions'             => 0,
                 ]);
             }
         }
 
-        return redirect()->route('projects.show', $parentTask->project_id)->with('success', 'Fast track deliverable created and assigned to designer.');
+        // Notify assigned coordinator
+        if ($parentTask->coordinator) {
+            try {
+                $parentTask->coordinator->notify(new \App\Notifications\DeliverableUpdated(
+                    $parentTask,
+                    "assigned you as coordinator for direct design deliverable **{$parentTask->title}**",
+                    'assignment',
+                    $creator
+                ));
+            } catch (\Throwable $e) {}
+        }
+
+        return redirect()->route('projects.show', $parentTask->project_id)->with('success', 'Fast track deliverable created and assigned to coordinator.');
     }
 
 

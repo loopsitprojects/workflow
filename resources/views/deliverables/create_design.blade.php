@@ -500,17 +500,19 @@
                     Direct Design Flow
                 </div>
                 <div class="direct-flow-steps" style="flex-wrap:wrap; gap:6px;">
-                    <div class="step-badge active">1. Designer</div>
+                    <div class="step-badge active">1. Coordinator</div>
                     <span class="step-arrow">→</span>
-                    <div class="step-badge">2. Writer Review</div>
+                    <div class="step-badge">2. Designer</div>
                     <span class="step-arrow">→</span>
-                    <div class="step-badge">3. Approver Review</div>
+                    <div class="step-badge">3. Writer Review</div>
                     <span class="step-arrow">→</span>
-                    <div class="step-badge">4. Further Approver</div>
+                    <div class="step-badge">4. Approver Review</div>
                     <span class="step-arrow">→</span>
-                    <div class="step-badge">5. Final Approval</div>
+                    <div class="step-badge">5. Further Approver</div>
                     <span class="step-arrow">→</span>
-                    <div class="step-badge">6. Closed</div>
+                    <div class="step-badge">6. Final Approval</div>
+                    <span class="step-arrow">→</span>
+                    <div class="step-badge">7. Closed</div>
                 </div>
             </div>
 
@@ -539,8 +541,8 @@
             <input type="hidden" name="creation_mode" :value="mode">
             <input type="hidden" name="status" value="To Do">
             <input type="hidden" name="task_type" value="Deliverable">
-            <input type="hidden" name="progress_percent" value="20">
-            <input type="hidden" name="approval_stage" value="Designer">
+            <input type="hidden" name="progress_percent" value="10">
+            <input type="hidden" name="approval_stage" value="Coordinator">
 
             @if(isset($parentId))
                 <input type="hidden" name="parent_deliverable_id" value="{{ $parentId }}">
@@ -601,12 +603,12 @@
                         {{-- Details Grid --}}
                         <div class="form-grid-2 form-field-group">
                             <div>
-                                <label class="field-label purple">Assigned Designer <span style="color:#ef4444;">*</span></label>
-                                <select name="designer_id" class="styled-input" :disabled="mode !== 'single'" :required="mode === 'single'">
-                                    <option value="">Select Designer...</option>
-                                    @foreach($designers as $d)
-                                        <option value="{{ $d->id }}" {{ (old('designer_id', $parentTask->designer_id ?? '') == $d->id) ? 'selected' : '' }}>
-                                            {{ $d->name }}
+                                <label class="field-label purple">Assigned Coordinator</label>
+                                <select name="coordinator_id" class="styled-input" :disabled="mode !== 'single'">
+                                    <option value="">Select Coordinator...</option>
+                                    @foreach($coordinators as $c)
+                                        <option value="{{ $c->id }}" {{ (old('coordinator_id', $project->coordinator_id ?? ($parentTask->coordinator_id ?? '')) == $c->id) ? 'selected' : '' }}>
+                                            {{ $c->name }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -823,8 +825,20 @@
                             @error('title') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:5px;">{{ $message }}</p> @enderror
                         </div>
 
-                        {{-- Batch Date & Priority (Clean 2-Column Row) --}}
-                        <div class="form-grid-2 form-field-group">
+                        {{-- Batch Coordinator, Date & Priority --}}
+                        <div class="form-grid-3 form-field-group">
+                            <div>
+                                <label class="field-label purple">Assigned Coordinator</label>
+                                <select name="coordinator_id" class="styled-input" :disabled="mode !== 'batch'">
+                                    <option value="">Select Coordinator...</option>
+                                    @foreach($coordinators as $c)
+                                        <option value="{{ $c->id }}" {{ (old('coordinator_id', $project->coordinator_id ?? ($parentTask->coordinator_id ?? '')) == $c->id) ? 'selected' : '' }}>
+                                            {{ $c->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                             <div>
                                 <label class="field-label">Batch Deliverable Deadline</label>
                                 <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'batch'"
@@ -886,12 +900,14 @@
 
                                     {{-- Deliverable Item Fields --}}
                                     <div class="deliverable-item-body">
-                                        {{-- Row 1: Title and Format --}}
+                                        {{-- Row 1: Title --}}
+                                        <div class="form-field-group" style="margin-bottom:12px;">
+                                            <label class="field-label purple">Deliverable Name / Dimensions <span style="color:#ef4444;">*</span></label>
+                                            <input type="text" :name="`subtasks[${index}][title]`" x-model="subtask.title" placeholder="e.g. 1080x1080 Feed Post / Story Ad / YouTube Banner" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
+                                        </div>
+
+                                        {{-- Row 2: Format & Custom Due Date --}}
                                         <div class="form-grid-2" style="margin-bottom:12px;">
-                                            <div>
-                                                <label class="field-label purple">Deliverable Name / Dimensions <span style="color:#ef4444;">*</span></label>
-                                                <input type="text" :name="`subtasks[${index}][title]`" x-model="subtask.title" placeholder="e.g. 1080x1080 Feed Post / Story Ad / YouTube Banner" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
-                                            </div>
                                             <div>
                                                 <label class="field-label">Deliverable Type <span style="color:#ef4444;">*</span></label>
                                                 <select :name="`subtasks[${index}][post_type]`" x-model="subtask.post_type" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
@@ -904,19 +920,6 @@
                                                     <option value="Thumbnail">Thumbnail</option>
                                                     <option value="Print">Print</option>
                                                     <option value="Graphic">Graphic</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {{-- Row 2: Assigned Designer & Custom Due Date --}}
-                                        <div class="form-grid-2" style="margin-bottom:12px;">
-                                            <div>
-                                                <label class="field-label purple">Assigned Designer <span style="color:#ef4444;">*</span></label>
-                                                <select :name="`subtasks[${index}][designer_id]`" x-model="subtask.designer_id" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
-                                                    <option value="">Select Designer...</option>
-                                                    @foreach($designers as $d)
-                                                        <option value="{{ $d->id }}">{{ $d->name }}</option>
-                                                    @endforeach
                                                 </select>
                                             </div>
                                             <div>
@@ -1135,7 +1138,6 @@
                         post_type: '',
                         deadline: '',
                         designer_deadline: '',
-                        designer_id: '{{ $designers->first()->id ?? '' }}',
                         concept: '',
                         reference_urls: ['']
                     });

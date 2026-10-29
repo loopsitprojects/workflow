@@ -52,6 +52,7 @@
                         $hasSubtasks = $subtasks->count() > 0;
                         $isClosed = $task->approval_stage === 'Closed';
                         $stage = $task->approval_stage;
+                        $isCoordinatorStage = $stage === 'Coordinator';
                         $isDesignerStage = $stage === 'Designer';
                         $isWriterReviewStage = $stage === 'Writer Review';
                         $isApproverReviewStage = $stage === 'Approver Review';
@@ -59,12 +60,14 @@
                         $isFinalApprovalStage = in_array($stage, ['Final Approval', 'Manager Review']);
                         $isReviewStage = in_array($stage, ['Writer Review', 'Approver Review', 'Further Approver', 'Final Approval', 'Manager Review']);
                         
+                        $isAssignedCoordinator = $task->coordinator_id && $currentUserId == $task->coordinator_id;
                         $isAssignedDesigner = $task->designer_id && $currentUserId == $task->designer_id;
                         $isAssignedWriter = $task->writer_id && $currentUserId == $task->writer_id;
                         $isAssignedApprover = $task->approver_id && $currentUserId == $task->approver_id;
                         $isAssignedFurtherApprover = $task->further_approver_id && $currentUserId == $task->further_approver_id;
                         $isAssignedBrandMgr = $task->brand_manager_id && $currentUserId == $task->brand_manager_id;
 
+                        $canCoordSubmit = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']) || ($isCoordinatorStage && ($isAssignedCoordinator || (!$task->coordinator_id && in_array($userRole, ['coordinator', 'approvercoordinator']))));
                         $canDesignerSubmit = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']) || ($isDesignerStage && ($isAssignedDesigner || (!$task->designer_id && $userRole === 'designer')));
                         $canWriterReview = $isAdmin || ($userRole === 'operationsmanager') || ($isWriterReviewStage && ($isAssignedWriter || (!$task->writer_id && in_array($userRole, ['writer', 'assignee']))));
                         $canApproverReview = $isAdmin || ($userRole === 'operationsmanager') || ($isApproverReviewStage && ($isAssignedApprover || (!$task->approver_id && in_array($userRole, ['approver', 'approvercoordinator']))));
@@ -251,6 +254,10 @@
                                 <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:800; text-transform:uppercase; background:#fef3c7; color:#b45309; border:1px solid #fde68a;">
                                     Further Approver
                                 </span>
+                            @elseif($task->approval_stage === 'Coordinator')
+                                <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:800; text-transform:uppercase; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;">
+                                    Coordinator
+                                </span>
                             @else
                                 <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:800; text-transform:uppercase; background:#fef3c7; color:#b45309; border:1px solid #fde68a;">
                                     Designer
@@ -265,6 +272,7 @@
                                 @php
                                     $hasArt = !empty($task->getFinalDesignsArray()) || !empty($task->getFinalDesignsUrlsArray());
                                     $nextStage = match($stage) {
+                                        'Coordinator' => 'Designer',
                                         'Designer' => ($task->writer_id && !$task->approver_id) ? 'Writer Review' : 'Approver Review',
                                         'Writer Review' => 'Approver Review',
                                         'Approver Review' => ($task->further_approver_id ? 'Further Approver' : 'Final Approval'),
@@ -274,7 +282,12 @@
                                     };
                                     $taskStakeholders = "{writer: " . ($task->writer_id ?? 'null') . ", approver: " . ($task->approver_id ?? 'null') . ", further_approver: " . ($task->further_approver_id ?? 'null') . ", brand_manager: " . ($task->brand_manager_id ?? 'null') . ", coordinator: " . ($task->coordinator_id ?? 'null') . ", designer: " . ($task->designer_id ?? 'null') . ", writerName: '" . addslashes($task->writer->name ?? '') . "', approverName: '" . addslashes($task->approver->name ?? $project->approver->name ?? '') . "', furtherApproverName: '" . addslashes($task->furtherApprover->name ?? '') . "', currentStage: '" . addslashes($stage) . "', isDirectDesign: true}";
                                 @endphp
-                                @if($isDesignerStage && $canDesignerSubmit)
+                                @if($isCoordinatorStage && $canCoordSubmit)
+                                    <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $hasSubtasks ? $subtasks->count() : 1 }}, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="Assign Designer">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        Assign
+                                    </button>
+                                @elseif($isDesignerStage && $canDesignerSubmit)
                                     <button type="button" onclick="openBatchModal(event, {{ $task->id }}, '{{ $nextStage }}', {{ $hasSubtasks ? $subtasks->count() : 1 }}, 'submit', {{ $taskStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="Submit Deliverable">
                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                         Submit
@@ -351,18 +364,21 @@
                             @php
                                 $subIsClosed = $sub->approval_stage === 'Closed';
                                 $subStage = $sub->approval_stage;
+                                $subIsCoordinatorStage = $subStage === 'Coordinator';
                                 $subIsDesignerStage = $subStage === 'Designer';
                                 $subIsWriterReviewStage = $subStage === 'Writer Review';
                                 $subIsApproverReviewStage = $subStage === 'Approver Review';
                                 $subIsFurtherApproverStage = $subStage === 'Further Approver';
                                 $subIsFinalApprovalStage = in_array($subStage, ['Final Approval', 'Manager Review']);
                                 
+                                $subIsAssignedCoordinator = $sub->coordinator_id && $currentUserId == $sub->coordinator_id;
                                 $subIsAssignedDesigner = $sub->designer_id && $currentUserId == $sub->designer_id;
                                 $subIsAssignedWriter = $sub->writer_id && $currentUserId == $sub->writer_id;
                                 $subIsAssignedApprover = $sub->approver_id && $currentUserId == $sub->approver_id;
                                 $subIsAssignedFurtherApprover = $sub->further_approver_id && $currentUserId == $sub->further_approver_id;
                                 $subIsAssignedBrandMgr = $sub->brand_manager_id && $currentUserId == $sub->brand_manager_id;
 
+                                $canSubCoordSubmit = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']) || ($subIsCoordinatorStage && ($subIsAssignedCoordinator || (!$sub->coordinator_id && in_array($userRole, ['coordinator', 'approvercoordinator']))));
                                 $canSubDesignerSubmit = $isAdmin || in_array($userRole, ['brandmanager', 'operationsmanager']) || ($subIsDesignerStage && ($subIsAssignedDesigner || (!$sub->designer_id && $userRole === 'designer')));
                                 $canSubWriterReview = $isAdmin || ($userRole === 'operationsmanager') || ($subIsWriterReviewStage && ($subIsAssignedWriter || (!$sub->writer_id && in_array($userRole, ['writer', 'assignee']))));
                                 $canSubApproverReview = $isAdmin || ($userRole === 'operationsmanager') || ($subIsApproverReviewStage && ($subIsAssignedApprover || (!$sub->approver_id && in_array($userRole, ['approver', 'approvercoordinator']))));
@@ -516,6 +532,8 @@
                                         <span style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#c2410c;">Approver Review</span>
                                     @elseif($sub->approval_stage === 'Further Approver')
                                         <span style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#b45309;">Further Approver</span>
+                                    @elseif($sub->approval_stage === 'Coordinator')
+                                        <span style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#0369a1;">Coordinator</span>
                                     @else
                                         <span style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#b45309;">Designer</span>
                                     @endif
@@ -528,6 +546,7 @@
                                         @php
                                             $subHasArt = !empty($sub->getFinalDesignsArray()) || !empty($sub->getFinalDesignsUrlsArray());
                                             $subNextStage = match($subStage) {
+                                                'Coordinator' => 'Designer',
                                                 'Designer' => ($sub->writer_id && !$sub->approver_id) ? 'Writer Review' : 'Approver Review',
                                                 'Writer Review' => 'Approver Review',
                                                 'Approver Review' => ($sub->further_approver_id ? 'Further Approver' : 'Final Approval'),
@@ -537,7 +556,12 @@
                                             };
                                             $subStakeholders = "{writer: " . ($sub->writer_id ?? 'null') . ", approver: " . ($sub->approver_id ?? 'null') . ", further_approver: " . ($sub->further_approver_id ?? 'null') . ", brand_manager: " . ($sub->brand_manager_id ?? 'null') . ", coordinator: " . ($sub->coordinator_id ?? 'null') . ", designer: " . ($sub->designer_id ?? 'null') . ", writerName: '" . addslashes($sub->writer->name ?? '') . "', approverName: '" . addslashes($sub->approver->name ?? $project->approver->name ?? '') . "', furtherApproverName: '" . addslashes($sub->furtherApprover->name ?? '') . "', currentStage: '" . addslashes($subStage) . "', isDirectDesign: true}";
                                         @endphp
-                                        @if($subIsDesignerStage && $canSubDesignerSubmit)
+                                        @if($subIsCoordinatorStage && $canSubCoordSubmit)
+                                            <button type="button" onclick="openBatchModal(event, {{ $sub->id }}, '{{ $subNextStage }}', 1, 'submit', {{ $subStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="Assign Designer">
+                                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                Assign
+                                            </button>
+                                        @elseif($subIsDesignerStage && $canSubDesignerSubmit)
                                             <button type="button" onclick="openBatchModal(event, {{ $sub->id }}, '{{ $subNextStage }}', 1, 'submit', {{ $subStakeholders }}, false)" class="quick-action-btn btn-approve-quick" title="Submit Deliverable">
                                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                                 Submit

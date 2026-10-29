@@ -284,6 +284,7 @@ class Deliverable extends Model
     ];
 
     const DIRECT_DESIGN_STAGES = [
+        'Coordinator',
         'Designer',
         'Writer Review',
         'Approver Review',
