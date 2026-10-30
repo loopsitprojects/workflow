@@ -33,11 +33,29 @@
                 <p class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{{ $deliverables->count() }}</p>
                 <p class="stat-subtext mt-2">deliverables</p>
             </div>
+            @php
+                $analyticsAccessible = \App\Services\FeatureManager::isAnalyticsEnabled() || (auth()->user() && auth()->user()->isAdmin());
+                $completedUrl = $analyticsAccessible ? route('analytics.index', ['state' => 'completed', 'tab' => 'deliverables']) : null;
+            @endphp
+            @if($completedUrl)
+            <a href="{{ $completedUrl }}" class="stat-card stat-completed rounded-2xl p-6 card-shadow flex flex-col justify-between min-h-[132px] transition-all hover:shadow-md group block cursor-pointer" title="View completed deliverables in Analytics">
+                <div class="flex items-center justify-between">
+                    <p class="stat-label">Completed</p>
+                    <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:underline inline-flex items-center gap-0.5">
+                        <span>Analytics</span>
+                        <svg class="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                    </span>
+                </div>
+                <p class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{{ $deliverables->where('status', 'Done')->count() }}</p>
+                <p class="stat-subtext mt-2">closed out &middot; view in analytics &rarr;</p>
+            </a>
+            @else
             <div class="stat-card stat-completed rounded-2xl p-6 card-shadow flex flex-col justify-between min-h-[132px] transition-all hover:shadow-md">
                 <p class="stat-label mb-2">Completed</p>
                 <p class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{{ $deliverables->where('status', 'Done')->count() }}</p>
                 <p class="stat-subtext mt-2">closed out</p>
             </div>
+            @endif
             <div class="stat-card stat-pending rounded-2xl p-6 card-shadow flex flex-col justify-between min-h-[132px] transition-all hover:shadow-md">
                 <p class="stat-label mb-2">Pending</p>
                 <p class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{{ $deliverables->where('status', '!=', 'Done')->count() }}</p>
@@ -539,90 +557,25 @@
                 </div>
                 @endif
 
-                {{-- Completed --}}
-                @if($deliverables->where('status', 'Done')->count() > 0)
-                <div>
-                    <p class="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-3">Completed</p>
-                    @php
-                        $completedTasks = $deliverables->where('status', 'Done')->sortByDesc(function($t) {
-                            return $t->created_at ? $t->created_at->timestamp : $t->id;
-                        });
-                        $groupedCompleted = [];
-                        foreach($completedTasks as $t) {
-                            $key = 'single_' . $t->id;
-                            $groupedCompleted[$key] = [
-                                'is_batch' => false,
-                                'parent' => $t->parent,
-                                'project' => $t->project,
-                                'subtasks' => [$t]
-                            ];
-                        }
-                    @endphp
-                    @foreach($groupedCompleted as $group)
-                    @php
-                        $isBatch = $group['is_batch'];
-                        $mainTitle = $isBatch ? $group['parent']->title : $group['subtasks'][0]->title;
-                        $project = $group['project'];
-                        $subtasks = $group['subtasks'];
-                        $targetCompletedId = $isBatch ? ($group['parent']->id ?? null) : ($subtasks[0]->id ?? null);
-
-                        $completedType = null;
-                        if (!$isBatch && !empty($subtasks[0])) {
-                            $t = $subtasks[0];
-                            if (!empty($t->post_type)) {
-                                $completedType = $t->post_type . ($t->flow_type === 'direct_design' ? ' (Direct Design)' : '');
-                            } elseif ($t->flow_type === 'direct_design') {
-                                $completedType = 'Direct Design';
-                            } elseif (!empty($t->task_type) && $t->task_type !== 'Deliverable') {
-                                $completedType = $t->task_type;
-                            }
-                        } elseif ($isBatch && !empty($group['parent'])) {
-                            $p = $group['parent'];
-                            if (!empty($p->post_type)) {
-                                $completedType = $p->post_type . ($p->flow_type === 'direct_design' ? ' (Direct Design)' : '');
-                            } elseif ($p->flow_type === 'direct_design') {
-                                $completedType = 'Direct Design';
-                            }
-                        }
-                    @endphp
-                    <a href="{{ route('projects.show', ['project' => $project->id, 'deliverable_id' => $targetCompletedId]) }}"
-                       class="flex flex-col bg-white dark:bg-[#111827] rounded-xl px-5 py-4 border border-gray-200 dark:border-white/[0.08] card-shadow mb-2.5 transition-all hover:border-gray-300 dark:hover:border-white/20 group block">
-                        <div class="flex items-start justify-between min-w-0">
-                            <div class="flex items-start gap-4 min-w-0">
-                                <svg width="12" height="12" fill="#10b981" viewBox="0 0 16 16" style="flex-shrink:0; margin-top:4px;">
-                                    <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
-                                </svg>
-                                <div class="min-w-0">
-                                    <h3 class="text-[13px] font-bold text-slate-800 dark:text-slate-200 line-through decoration-slate-400 dark:decoration-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ $mainTitle }}</h3>
-                                    <div class="flex items-center gap-1.5 mt-1 flex-wrap text-[10px]">
-                                        @if(!empty($project->brand->name))
-                                            <span class="text-slate-500 dark:text-slate-400 font-medium">Brand: <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $project->brand->name }}</span></span>
-                                        @endif
-                                        @if($project)
-                                            <span class="text-gray-300 dark:text-slate-600">·</span>
-                                            <span class="text-slate-500 dark:text-slate-400 font-medium">Project: <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $project->name }}</span></span>
-                                        @endif
-                                        @if($completedType)
-                                            <span class="text-gray-300 dark:text-slate-600">·</span>
-                                            <span class="text-slate-500 dark:text-slate-400 font-medium">Type: <span class="font-semibold text-slate-800 dark:text-slate-200">{{ $completedType }}</span></span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 flex-shrink-0 ml-4 shadow-xs">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"></span>
-                                Closed
-                            </span>
+                {{-- Completed Deliverables Callout (Moved to Analytics) --}}
+                @if($deliverables->where('status', 'Done')->count() > 0 && (\App\Services\FeatureManager::isAnalyticsEnabled() || (auth()->user() && auth()->user()->isAdmin())))
+                <div class="bg-white dark:bg-[#111827] rounded-xl p-4 border border-dashed border-gray-200 dark:border-white/10 card-shadow flex items-center justify-between gap-4 transition-all hover:border-emerald-300 dark:hover:border-emerald-700/60">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                         </div>
-                        @if($isBatch)
-                            <div class="mt-2.5 ml-7 pl-3 border-l-2 border-gray-200 dark:border-slate-700 flex flex-col gap-1.5">
-                                @foreach($subtasks as $t)
-                                    <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 line-through decoration-slate-400 dark:decoration-slate-500">{{ $t->title }}</span>
-                                @endforeach
-                            </div>
-                        @endif
+                        <div class="min-w-0">
+                            <p class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                                {{ $deliverables->where('status', 'Done')->count() }} Completed {{ Str::plural('Deliverable', $deliverables->where('status', 'Done')->count()) }}
+                            </p>
+                            <p class="text-[11px] text-gray-400 dark:text-slate-500 truncate">Completed deliverables have moved to Analytics &amp; Reports.</p>
+                        </div>
+                    </div>
+                    <a href="{{ route('analytics.index', ['state' => 'completed', 'tab' => 'deliverables']) }}"
+                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition flex-shrink-0">
+                        <span>View in Analytics</span>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </a>
-                    @endforeach
                 </div>
                 @endif
 
