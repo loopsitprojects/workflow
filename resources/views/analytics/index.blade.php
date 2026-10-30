@@ -122,20 +122,55 @@
                         @php
                             $periodOptions = [
                                 'all' => 'All Time',
+                                'this_week' => 'This Week',
+                                'last_week' => 'Last Week',
+                                'month' => 'This Month',
+                                'last_month' => 'Last Month',
                                 'today' => 'Today',
                                 'yesterday' => 'Yesterday',
                                 '7d' => 'Last 7 Days',
                                 '30d' => 'Last 30 Days',
-                                'month' => 'This Month',
-                                'last_month' => 'Last Month',
                             ];
                         @endphp
                         @foreach($periodOptions as $key => $label)
-                            <a href="{{ route('analytics.index', array_merge(request()->except(['period', 'start_date', 'end_date']), ['period' => $key])) }}"
-                               class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 {{ $currentPeriod === $key ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-white shadow-sm font-bold' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white' }}">
+                            <a href="{{ route('analytics.index', array_merge(request()->except(['period', 'start_date', 'end_date', 'month', 'week']), ['period' => $key])) }}"
+                               class="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 {{ ($currentPeriod === $key && empty($filters['month']) && empty($filters['week'])) ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-white shadow-sm font-bold' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white' }}">
                                 {{ $label }}
                             </a>
                         @endforeach
+
+                        {{-- Quick Month Dropdown Filter --}}
+                        @if(!empty($months_list))
+                        <div class="relative inline-flex items-center ml-1">
+                            <select onchange="if(this.value) window.location.href=this.value"
+                                    class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border {{ !empty($filters['month']) ? 'border-blue-500 text-blue-600 dark:text-blue-400 font-bold shadow-xs' : 'border-gray-200/80 dark:border-slate-700 text-gray-600 dark:text-slate-300' }} cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="{{ route('analytics.index', array_merge(request()->except(['month', 'week', 'period', 'start_date', 'end_date']), ['period' => 'all'])) }}">🗓️ Month: All</option>
+                                @foreach($months_list as $mVal => $mLabel)
+                                    <option value="{{ route('analytics.index', array_merge(request()->except(['month', 'week', 'period', 'start_date', 'end_date']), ['month' => $mVal])) }}"
+                                            {{ ($filters['month'] ?? '') === $mVal ? 'selected' : '' }}>
+                                        {{ $mLabel }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
+
+                        {{-- Quick Week Dropdown Filter --}}
+                        @if(!empty($weeks_list))
+                        <div class="relative inline-flex items-center">
+                            <select onchange="if(this.value) window.location.href=this.value"
+                                    class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 border {{ !empty($filters['week']) ? 'border-blue-500 text-blue-600 dark:text-blue-400 font-bold shadow-xs' : 'border-gray-200/80 dark:border-slate-700 text-gray-600 dark:text-slate-300' }} cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="{{ route('analytics.index', array_merge(request()->except(['month', 'week', 'period', 'start_date', 'end_date']), ['period' => 'all'])) }}">📅 Week: All</option>
+                                @foreach($weeks_list as $wVal => $wLabel)
+                                    <option value="{{ route('analytics.index', array_merge(request()->except(['month', 'week', 'period', 'start_date', 'end_date']), ['week' => $wVal])) }}"
+                                            {{ ($filters['week'] ?? '') === $wVal ? 'selected' : '' }}>
+                                        {{ $wLabel }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
+
                         <button type="button"
                                 @click="customDatesOpen = !customDatesOpen"
                                 :class="customDatesOpen ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-white shadow-sm font-bold' : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'"
@@ -148,7 +183,7 @@
                     </div>
 
                     {{-- Clear Filters link if filtered --}}
-                    @if(request()->hasAny(['brand_id', 'project_id', 'workflow_type', 'state', 'status', 'user_id', 'start_date', 'end_date']) || $currentPeriod !== 'all')
+                    @if(request()->hasAny(['brand_id', 'project_id', 'workflow_type', 'state', 'status', 'user_id', 'start_date', 'end_date', 'month', 'week']) || ($currentPeriod !== 'all' && !empty($currentPeriod)))
                         <a href="{{ route('analytics.index') }}"
                            class="text-xs font-bold text-red-500 hover:text-red-600 flex items-center gap-1 flex-shrink-0">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,7 +195,7 @@
                 </div>
 
                 {{-- Custom Date Form (Accordion) --}}
-                <form method="GET" action="{{ route('analytics.index') }}" x-show="customDatesOpen" x-cloak class="pt-3 border-t border-gray-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <form method="GET" action="{{ route('analytics.index') }}" x-show="customDatesOpen" x-cloak class="pt-3 border-t border-gray-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                     <input type="hidden" name="period" value="custom">
                     @if(request('brand_id')) <input type="hidden" name="brand_id" value="{{ request('brand_id') }}"> @endif
                     @if(request('workflow_type')) <input type="hidden" name="workflow_type" value="{{ request('workflow_type') }}"> @endif
@@ -168,18 +203,23 @@
                     @if(request('tab')) <input type="hidden" name="tab" value="{{ request('tab') }}"> @endif
 
                     <div>
+                        <label class="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">By Month</label>
+                        <input type="month" name="month" value="{{ $filters['month'] ?? '' }}"
+                               class="w-full px-3 py-1.5 text-xs rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
                         <label class="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">Start Date</label>
-                        <input type="date" name="start_date" value="{{ $filters['start_date'] ?? '' }}" required
+                        <input type="date" name="start_date" value="{{ $filters['start_date'] ?? '' }}"
                                class="w-full px-3 py-1.5 text-xs rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1">End Date</label>
-                        <input type="date" name="end_date" value="{{ $filters['end_date'] ?? '' }}" required
+                        <input type="date" name="end_date" value="{{ $filters['end_date'] ?? '' }}"
                                class="w-full px-3 py-1.5 text-xs rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
-                        <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition">
-                            Filter by Range
+                        <button type="submit" class="w-full px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition">
+                            Apply Filter
                         </button>
                     </div>
                 </form>
@@ -188,8 +228,11 @@
                 @if($isManager)
                     <form method="GET" action="{{ route('analytics.index') }}" class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-gray-100 dark:border-slate-800">
                         <input type="hidden" name="period" value="{{ $currentPeriod }}">
-                        @if($filters['start_date']) <input type="hidden" name="start_date" value="{{ $filters['start_date'] }}"> @endif
-                        @if($filters['end_date']) <input type="hidden" name="end_date" value="{{ $filters['end_date'] }}"> @endif
+                        @if(!empty($filters['start_date'])) <input type="hidden" name="start_date" value="{{ $filters['start_date'] }}"> @endif
+                        @if(!empty($filters['end_date'])) <input type="hidden" name="end_date" value="{{ $filters['end_date'] }}"> @endif
+                        @if(!empty($filters['month'])) <input type="hidden" name="month" value="{{ $filters['month'] }}"> @endif
+                        @if(!empty($filters['week'])) <input type="hidden" name="week" value="{{ $filters['week'] }}"> @endif
+                        @if(!empty($filters['state'])) <input type="hidden" name="state" value="{{ $filters['state'] }}"> @endif
                         @if(request('tab')) <input type="hidden" name="tab" value="{{ request('tab') }}"> @endif
 
                         <div>
@@ -236,8 +279,8 @@
         {{-- Core 4 Simplified Metric Cards: Total, Active, Completed, Overdue --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {{-- Total Deliverables --}}
-            <a href="{{ route('analytics.index', array_merge(request()->except(['state']), ['state' => 'all'])) }}"
-               class="block bg-white dark:bg-[#0F172A] rounded-2xl p-5 card-shadow border transition-all hover:scale-[1.01] {{ $currentState === 'all' || empty($currentState) ? 'border-gray-300 dark:border-slate-700 ring-2 ring-gray-400/20' : 'border-gray-100 dark:border-slate-800' }}">
+            <a href="{{ route('analytics.index', array_merge(request()->except(['state', 'tab']), ['state' => 'all', 'tab' => 'deliverables'])) }}"
+               class="block bg-white dark:bg-[#0F172A] rounded-2xl p-5 card-shadow border transition-all hover:scale-[1.01] cursor-pointer {{ $currentState === 'all' || empty($currentState) ? 'border-gray-300 dark:border-slate-700 ring-2 ring-gray-400/20' : 'border-gray-100 dark:border-slate-800' }}">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-slate-500">Total Work</span>
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400">
@@ -245,12 +288,12 @@
                     </span>
                 </div>
                 <p class="text-3xl font-black text-gray-900 dark:text-white">{{ $kpis['total_deliverables'] }}</p>
-                <p class="text-xs text-gray-400 dark:text-slate-500 font-medium mt-1">all deliverables in date range</p>
+                <p class="text-xs text-gray-400 dark:text-slate-500 font-medium mt-1">all deliverables in date range &rarr;</p>
             </a>
 
             {{-- Active Deliverables --}}
-            <a href="{{ route('analytics.index', array_merge(request()->except(['state']), ['state' => 'active'])) }}"
-               class="block bg-white dark:bg-[#0F172A] rounded-2xl p-5 card-shadow border transition-all hover:scale-[1.01] {{ $currentState === 'active' ? 'border-blue-500 dark:border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-100 dark:border-slate-800' }}">
+            <a href="{{ route('analytics.index', array_merge(request()->except(['state', 'tab']), ['state' => 'active', 'tab' => 'deliverables'])) }}"
+               class="block bg-white dark:bg-[#0F172A] rounded-2xl p-5 card-shadow border transition-all hover:scale-[1.01] cursor-pointer {{ $currentState === 'active' ? 'border-blue-500 dark:border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-100 dark:border-slate-800' }}">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400">Active</span>
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500">
@@ -259,7 +302,7 @@
                 </div>
                 <p class="text-3xl font-black text-blue-600 dark:text-blue-400">{{ $kpis['active_deliverables'] }}</p>
                 <div class="flex items-center justify-between mt-1 text-xs text-gray-400 dark:text-slate-500 font-medium">
-                    <span>in production or review</span>
+                    <span>in production or review &rarr;</span>
                     @if($kpis['overdue_count'] > 0)
                         <span class="text-red-500 font-bold">({{ $kpis['overdue_count'] }} overdue)</span>
                     @endif
@@ -267,8 +310,8 @@
             </a>
 
             {{-- Completed Deliverables (Close means completed) --}}
-            <a href="{{ route('analytics.index', array_merge(request()->except(['state']), ['state' => 'completed'])) }}"
-               class="block bg-white dark:bg-[#0F172A] rounded-2xl p-5 card-shadow border transition-all hover:scale-[1.01] {{ in_array($currentState, ['completed', 'done', 'closed']) ? 'border-emerald-500 dark:border-emerald-500 ring-2 ring-emerald-500/20' : 'border-gray-100 dark:border-slate-800' }}">
+            <a href="{{ route('analytics.index', array_merge(request()->except(['state', 'tab']), ['state' => 'completed', 'tab' => 'deliverables'])) }}"
+               class="block bg-white dark:bg-[#0F172A] rounded-2xl p-5 card-shadow border transition-all hover:scale-[1.01] cursor-pointer {{ in_array($currentState, ['completed', 'done', 'closed']) ? 'border-emerald-500 dark:border-emerald-500 ring-2 ring-emerald-500/20' : 'border-gray-100 dark:border-slate-800' }}">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Completed</span>
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">
@@ -276,12 +319,12 @@
                     </span>
                 </div>
                 <p class="text-3xl font-black text-emerald-600 dark:text-emerald-400">{{ $kpis['completed_deliverables'] }}</p>
-                <p class="text-xs text-gray-400 dark:text-slate-500 font-medium mt-1">creative work finished</p>
+                <p class="text-xs text-gray-400 dark:text-slate-500 font-medium mt-1">view completed deliverables &rarr;</p>
             </a>
 
             {{-- Overdue Deliverables --}}
-            <a href="{{ route('analytics.index', array_merge(request()->except(['state']), ['state' => 'overdue'])) }}"
-               class="block bg-white dark:bg-[#0F172A] rounded-2xl p-5 card-shadow border transition-all hover:scale-[1.01] {{ $currentState === 'overdue' ? 'border-red-500 dark:border-red-500 ring-2 ring-red-500/20' : 'border-gray-100 dark:border-slate-800' }}">
+            <a href="{{ route('analytics.index', array_merge(request()->except(['state', 'tab']), ['state' => 'overdue', 'tab' => 'deliverables'])) }}"
+               class="block bg-white dark:bg-[#0F172A] rounded-2xl p-5 card-shadow border transition-all hover:scale-[1.01] cursor-pointer {{ $currentState === 'overdue' ? 'border-red-500 dark:border-red-500 ring-2 ring-red-500/20' : 'border-gray-100 dark:border-slate-800' }}">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-[10px] font-extrabold uppercase tracking-wider text-red-600 dark:text-red-400">Overdue</span>
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500">
@@ -289,7 +332,7 @@
                     </span>
                 </div>
                 <p class="text-3xl font-black text-red-600 dark:text-red-400">{{ $kpis['overdue_count'] }}</p>
-                <p class="text-xs text-gray-400 dark:text-slate-500 font-medium mt-1">past target deadline</p>
+                <p class="text-xs text-gray-400 dark:text-slate-500 font-medium mt-1">past target deadline &rarr;</p>
             </a>
         </div>
 

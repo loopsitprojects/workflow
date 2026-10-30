@@ -55,31 +55,94 @@ class AnalyticsService
         $startDate = null;
         $endDate = null;
 
-        if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
+        $selectedMonth = !empty($filters['month']) ? $filters['month'] : null;
+        $selectedWeek = !empty($filters['week']) ? $filters['week'] : null;
+
+        // 1. Direct Month filter: e.g. '2026-10' (from month selector or parameter)
+        if (!empty($selectedMonth) && preg_match('/^\d{4}-\d{2}$/', $selectedMonth)) {
+            $startDate = Carbon::createFromFormat('Y-m', $selectedMonth)->startOfMonth();
+            $endDate = Carbon::createFromFormat('Y-m', $selectedMonth)->endOfMonth();
+            $period = 'custom_month';
+        }
+        // 2. Direct Week filter: e.g. '2026-W42' (from week selector or parameter)
+        elseif (!empty($selectedWeek) && preg_match('/^(\d{4})-W(\d{2})$/', $selectedWeek, $m)) {
+            $startDate = Carbon::now()->setISODate((int)$m[1], (int)$m[2])->startOfWeek();
+            $endDate = Carbon::now()->setISODate((int)$m[1], (int)$m[2])->endOfWeek();
+            $period = 'custom_week';
+        }
+        // 3. Custom Date range: start_date and/or end_date
+        elseif (!empty($filters['start_date']) && !empty($filters['end_date'])) {
             $startDate = Carbon::parse($filters['start_date'])->startOfDay();
             $endDate = Carbon::parse($filters['end_date'])->endOfDay();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
-        } elseif ($period === 'today') {
+        } elseif (!empty($filters['start_date'])) {
+            $startDate = Carbon::parse($filters['start_date'])->startOfDay();
+        } elseif (!empty($filters['end_date'])) {
+            $endDate = Carbon::parse($filters['end_date'])->endOfDay();
+        }
+        // 4. Period presets
+        elseif ($period === 'today') {
             $startDate = now()->startOfDay();
             $endDate = now()->endOfDay();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
         } elseif ($period === 'yesterday') {
             $startDate = now()->subDay()->startOfDay();
             $endDate = now()->subDay()->endOfDay();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
+        } elseif ($period === 'this_week' || $period === 'week') {
+            $startDate = now()->startOfWeek();
+            $endDate = now()->endOfWeek();
+        } elseif ($period === 'last_week') {
+            $startDate = now()->subWeek()->startOfWeek();
+            $endDate = now()->subWeek()->endOfWeek();
         } elseif ($period === '7d') {
             $startDate = now()->subDays(7)->startOfDay();
-            $query->where('created_at', '>=', $startDate);
+            $endDate = now()->endOfDay();
         } elseif ($period === '30d') {
             $startDate = now()->subDays(30)->startOfDay();
-            $query->where('created_at', '>=', $startDate);
-        } elseif ($period === 'month') {
+            $endDate = now()->endOfDay();
+        } elseif ($period === 'month' || $period === 'this_month') {
             $startDate = now()->startOfMonth();
-            $query->where('created_at', '>=', $startDate);
+            $endDate = now()->endOfMonth();
         } elseif ($period === 'last_month') {
             $startDate = now()->subMonth()->startOfMonth();
             $endDate = now()->subMonth()->endOfMonth();
-            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        if ($startDate || $endDate) {
+            $query->where(function ($q) use ($startDate, $endDate) {
+                // 1. Deliverables created within this date range
+                $q->where(function ($createdQ) use ($startDate, $endDate) {
+                    if ($startDate && $endDate) {
+                        $createdQ->whereBetween('created_at', [$startDate, $endDate]);
+                    } elseif ($startDate) {
+                        $createdQ->where('created_at', '>=', $startDate);
+                    } elseif ($endDate) {
+                        $createdQ->where('created_at', '<=', $endDate);
+                    }
+                })
+                // 2. OR completed deliverables whose completion occurred within this date range
+                ->orWhere(function ($doneQ) use ($startDate, $endDate) {
+                    $doneQ->where(function ($st) {
+                        $st->where('status', 'Done')
+                           ->orWhereIn('approval_stage', ['Closed', 'Close', 'closed', 'close']);
+                    })->where(function ($timeQ) use ($startDate, $endDate) {
+                        if ($startDate && $endDate) {
+                            $timeQ->whereBetween('updated_at', [$startDate, $endDate])
+                                  ->orWhereHas('approvalsHistory', function ($apprQ) use ($startDate, $endDate) {
+                                      $apprQ->whereBetween('created_at', [$startDate, $endDate]);
+                                  });
+                        } elseif ($startDate) {
+                            $timeQ->where('updated_at', '>=', $startDate)
+                                  ->orWhereHas('approvalsHistory', function ($apprQ) use ($startDate) {
+                                      $apprQ->where('created_at', '>=', $startDate);
+                                  });
+                        } elseif ($endDate) {
+                            $timeQ->where('updated_at', '<=', $endDate)
+                                  ->orWhereHas('approvalsHistory', function ($apprQ) use ($endDate) {
+                                      $apprQ->where('created_at', '<=', $endDate);
+                                  });
+                        }
+                    });
+                });
+            });
         }
 
         // Apply Brand Filter
@@ -116,8 +179,26 @@ class AnalyticsService
         $allPeriodDeliverables = $query->orderByDesc('created_at')->get();
 
         // Categorize into Active and Completed (Close means completed)
-        $completedDeliverables = $allPeriodDeliverables->filter(function ($d) {
-            return $d->status === 'Done' || in_array(strtolower((string) $d->approval_stage), ['closed', 'close']);
+        $completedDeliverables = $allPeriodDeliverables->filter(function ($d) use ($startDate, $endDate) {
+            $isClosed = in_array(strtolower((string) $d->approval_stage), ['closed', 'close']);
+            $isDone = ($d->status === 'Done' || $isClosed);
+            if (!$isDone) return false;
+
+            if ($startDate || $endDate) {
+                $closedDate = $this->resolveClosedDate($d);
+                if ($closedDate) {
+                    if ($startDate && $endDate) {
+                        return $closedDate->between($startDate, $endDate) || ($d->created_at && $d->created_at->between($startDate, $endDate));
+                    }
+                    if ($startDate) {
+                        return $closedDate->gte($startDate) || ($d->created_at && $d->created_at->gte($startDate));
+                    }
+                    if ($endDate) {
+                        return $closedDate->lte($endDate) || ($d->created_at && $d->created_at->lte($endDate));
+                    }
+                }
+            }
+            return true;
         });
 
         $activeDeliverables = $allPeriodDeliverables->filter(function ($d) {
@@ -167,6 +248,26 @@ class AnalyticsService
         $projectsList = Project::orderBy('name')->get(['id', 'name', 'brand_id', 'workflow_type']);
         $usersList = User::orderBy('name')->get(['id', 'name', 'role']);
 
+        // Available months list for quick filtering (past 12 months)
+        $monthsList = collect();
+        for ($i = 0; $i < 12; $i++) {
+            $mDate = now()->subMonths($i);
+            $monthsList[$mDate->format('Y-m')] = $mDate->format('F Y');
+        }
+
+        // Available weeks list for quick filtering (current week + past 7 weeks)
+        $weeksList = collect();
+        for ($w = 0; $w < 8; $w++) {
+            $wDate = now()->subWeeks($w);
+            $wVal = $wDate->format('o-\WW');
+            $startW = $wDate->copy()->startOfWeek()->format('M d');
+            $endW = $wDate->copy()->endOfWeek()->format('M d');
+            $wLabel = ($w === 0) ? "This Week ({$startW} – {$endW})"
+                    : (($w === 1) ? "Last Week ({$startW} – {$endW})"
+                    : "{$startW} – {$endW} ({$w} weeks ago)");
+            $weeksList[$wVal] = $wLabel;
+        }
+
         return [
             'isManager' => $isManager,
             'currentUser' => $currentUser,
@@ -180,7 +281,11 @@ class AnalyticsService
                 'user_id' => $userId,
                 'start_date' => $filters['start_date'] ?? null,
                 'end_date' => $filters['end_date'] ?? null,
+                'month' => $selectedMonth,
+                'week' => $selectedWeek,
             ],
+            'months_list' => $monthsList,
+            'weeks_list' => $weeksList,
             'kpis' => [
                 'total_deliverables' => $totalCount,
                 'active_deliverables' => $activeCount,
