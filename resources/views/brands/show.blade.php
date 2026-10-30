@@ -66,13 +66,6 @@
                 <h2 class="text-xs font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">{{ $typeLabels[$type] ?? 'Projects' }}</h2>
                 <span class="px-2 py-0.5 bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-slate-300 text-[11px] font-extrabold rounded-md border border-gray-200/60 dark:border-white/[0.08]">{{ $projects->count() }}</span>
             </div>
-            @if($type === 'retainer')
-                <a href="{{ route('brands.retainer-board', $brand) }}"
-                   class="text-[12px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline flex items-center gap-1.5 transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-                    View Retainer Board
-                </a>
-            @endif
         </div>
 
         {{-- Modern Project Tiles Grid --}}

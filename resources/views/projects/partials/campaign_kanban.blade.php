@@ -287,6 +287,7 @@ const kanbanIsAdmin = {{ (auth()->user() && auth()->user()->isAdmin()) ? 'true' 
 const kanbanIsAdminOrManager = {{ (auth()->user() && (auth()->user()->isAdmin() || in_array(auth()->user()->role, ['Admin', 'Owner', 'Operations Manager']))) ? 'true' : 'false' }};
 const kanbanCanManageDeliverables = {{ $canManageDeliverables ? 'true' : 'false' }};
 const kanbanProjectApproverId = {{ $project->approver_id ?? ($project->brand_manager_id ?? ($project->lead_id ?? 'null')) }};
+const kanbanProjectName = @json($project->name ?? 'Campaign Project');
 
 const campaignDeliverablesData = {};
 @foreach($tasks as $t)
@@ -1472,12 +1473,16 @@ function confirmAssignApprover() {
 }
 
 function openRevisionPromptModal(taskId, targetStatus, oldStatus, card) {
+    if (!card) card = document.getElementById('kanban-card-' + taskId);
     // Revisions must always route to In Progress
     targetStatus = 'In Progress';
     pendingRevisionAction = { taskId, targetStatus, oldStatus, card };
     const modal = document.getElementById('revisionPromptModal');
     const titleEl = document.getElementById('revisionPromptTaskTitle');
-    const cardTitle = card.querySelector('#card-view-title-' + taskId)?.textContent || 'Deliverable';
+    const cardTitle = (card && card.querySelector('#card-view-title-' + taskId)?.textContent) 
+        || document.getElementById('card-view-title-' + taskId)?.textContent 
+        || (campaignDeliverablesData[taskId]?.title)
+        || 'Deliverable';
     if (titleEl) titleEl.textContent = cardTitle.trim();
 
     const textarea = document.getElementById('revisionPromptInstructions');
@@ -1738,7 +1743,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
 
     const creatorId = d.created_by || d.effective_creator_id || null;
     const isCreator = creatorId && kanbanCurrentUserId == creatorId;
-    const canEdit = kanbanIsAdmin || isCreator;
+    const canEdit = kanbanIsAdmin || isCreator || kanbanCanManageDeliverables;
     const hasArtwork = Boolean(d.has_artwork || d.final_designs || d.final_designs_link || (d.final_designs_list && d.final_designs_list.length > 0));
     const isInProgress = (d.status === 'In Progress');
     const assignedId = d.writer_id || d.designer_id || null;
@@ -2570,42 +2575,83 @@ function renderCampaignDetailsModalContent(task) {
     const body = document.getElementById('campaignModalBody');
     if (!body) return;
 
-    let html = '';
+    const stLower = (task.status || '').toLowerCase().trim();
+    let taskStatusColor = 'var(--color-text-secondary)';
+    let taskStatusBg = 'var(--color-bg-secondary)';
+    let taskStatusBorder = 'var(--color-border-primary)';
+    if (['done', 'completed', 'complete'].includes(stLower)) {
+        taskStatusColor = '#10b981';
+        taskStatusBg = 'rgba(16, 185, 129, 0.1)';
+        taskStatusBorder = 'rgba(16, 185, 129, 0.3)';
+    } else if (['approval stage', 'approval', 'review', 'under review'].includes(stLower)) {
+        taskStatusColor = '#f59e0b';
+        taskStatusBg = 'rgba(245, 158, 11, 0.1)';
+        taskStatusBorder = 'rgba(245, 158, 11, 0.3)';
+    } else if (['in progress', 'on hold'].includes(stLower)) {
+        taskStatusColor = '#6366f1';
+        taskStatusBg = 'rgba(99, 102, 241, 0.1)';
+        taskStatusBorder = 'rgba(99, 102, 241, 0.3)';
+    }
 
-    // 1. Brief Section
-    html += `
-        <div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border-primary);">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="width: 26px; height: 26px; border-radius: 7px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center;">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    </div>
-                    <span style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
-                        Deliverable Brief
-                    </span>
-                </div>
-            </div>
-    `;
-
+    // 1. Brief Card Construction
     const hasConcept = Boolean(task.concept && String(task.concept).trim());
     const hasCaption = Boolean(task.caption && String(task.caption).trim());
     const hasPostCopy = Boolean(task.post_copy && String(task.post_copy).trim());
     const hasNotes = Boolean(task.notes && String(task.notes).trim() && String(task.notes).trim() !== String(task.concept || '').trim());
+    const hasAnyBrief = hasConcept || hasCaption || hasPostCopy || hasNotes;
 
-    if (!hasConcept && !hasCaption && !hasPostCopy && !hasNotes) {
-        html += `
-            <div style="padding: 24px 20px; background: var(--color-bg-secondary); border: 1.5px dashed var(--color-border-primary); border-radius: 12px; text-align: center; color: var(--color-text-secondary);">
-                <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.6" style="margin: 0 auto 8px auto; opacity: 0.5;"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
-                <div style="font-size: 12.5px; font-weight: 500;">No brief or creative notes have been added yet for this deliverable.</div>
+    let briefCardHtml = `
+        <div class="cd-detail-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--card-border);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <span style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
+                        Deliverable Brief
+                    </span>
+                </div>
+                ${hasAnyBrief ? `
+                    <button type="button" 
+                            onclick="toggleCampaignBriefEditor(${task.id}, true)"
+                            style="background: transparent; border: 1px solid var(--card-border); color: #2563eb; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s;"
+                            onmouseover="this.style.borderColor='#2563eb';"
+                            onmouseout="this.style.borderColor='var(--card-border)';">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        <span>Edit Brief</span>
+                    </button>
+                ` : ''}
+            </div>
+
+            <!-- Read-only View / Actionable Empty State -->
+            <div id="campaignBriefView-${task.id}">
+    `;
+
+    if (!hasAnyBrief) {
+        briefCardHtml += `
+            <div style="padding: 22px 20px; background: var(--subcard-bg); border: 1.5px dashed var(--card-border); border-radius: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(59, 130, 246, 0.08); color: #2563eb; display: flex; align-items: center; justify-content: center;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                </div>
+                <div style="font-size: 12.5px; font-weight: 500; color: var(--color-text-secondary);">
+                    No brief or creative notes have been added yet for this deliverable.
+                </div>
+                <button type="button" 
+                        onclick="toggleCampaignBriefEditor(${task.id}, true)"
+                        class="cd-btn-primary"
+                        style="padding: 6px 14px; font-size: 11.5px; border-radius: 7px; margin-top: 2px;">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    <span>+ Add Deliverable Brief</span>
+                </button>
             </div>
         `;
     } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 14px;">`;
+        briefCardHtml += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
 
         if (hasConcept) {
             const isHtml = /<[a-z][\s\S]*>/i.test(task.concept);
-            html += `
-                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 14px 16px;">
+            briefCardHtml += `
+                <div class="cd-detail-subcard">
                     <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #3b82f6; margin-bottom: 6px;">Concept / Creative Brief</div>
                     <div class="brief-body" style="font-size: 13px; line-height: 1.6; color: var(--color-text-primary); ${isHtml ? '' : 'white-space: pre-wrap;'} word-break: break-word;">
                         ${isHtml ? task.concept : escapeHtml(task.concept)}
@@ -2616,8 +2662,8 @@ function renderCampaignDetailsModalContent(task) {
 
         if (hasCaption) {
             const isHtml = /<[a-z][\s\S]*>/i.test(task.caption);
-            html += `
-                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 14px 16px;">
+            briefCardHtml += `
+                <div class="cd-detail-subcard">
                     <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #10b981; margin-bottom: 6px;">Caption</div>
                     <div class="brief-body" style="font-size: 13px; line-height: 1.6; color: var(--color-text-primary); ${isHtml ? '' : 'white-space: pre-wrap;'} word-break: break-word;">
                         ${isHtml ? task.caption : escapeHtml(task.caption)}
@@ -2628,8 +2674,8 @@ function renderCampaignDetailsModalContent(task) {
 
         if (hasPostCopy) {
             const isHtml = /<[a-z][\s\S]*>/i.test(task.post_copy);
-            html += `
-                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 14px 16px;">
+            briefCardHtml += `
+                <div class="cd-detail-subcard">
                     <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #8b5cf6; margin-bottom: 6px;">Post Copy</div>
                     <div class="brief-body" style="font-size: 13px; line-height: 1.6; color: var(--color-text-primary); ${isHtml ? '' : 'white-space: pre-wrap;'} word-break: break-word;">
                         ${isHtml ? task.post_copy : escapeHtml(task.post_copy)}
@@ -2639,8 +2685,8 @@ function renderCampaignDetailsModalContent(task) {
         }
 
         if (hasNotes) {
-            html += `
-                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 14px 16px;">
+            briefCardHtml += `
+                <div class="cd-detail-subcard">
                     <div style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #f59e0b; margin-bottom: 6px;">Additional Notes</div>
                     <div class="brief-body" style="font-size: 13px; line-height: 1.6; color: var(--color-text-primary); white-space: pre-wrap; word-break: break-word;">
                         ${escapeHtml(task.notes)}
@@ -2649,46 +2695,159 @@ function renderCampaignDetailsModalContent(task) {
             `;
         }
 
-        html += `</div>`;
+        briefCardHtml += `</div>`;
     }
-    html += `</div>`;
 
-    // 2. References Section
-    html += `
-        <div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border-primary);">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="width: 26px; height: 26px; border-radius: 7px; background: rgba(16, 185, 129, 0.12); color: #10b981; display: flex; align-items: center; justify-content: center;">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                    </div>
-                    <span style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
-                        References & Assets
-                    </span>
-                </div>
+    briefCardHtml += `
             </div>
+
+            <!-- Inline Brief Editor (Hidden by default) -->
+            <div id="campaignBriefEditor-${task.id}" style="display: none;">
+                <form onsubmit="event.preventDefault(); saveCampaignBriefInline(${task.id});" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label style="display: block; font-size: 11px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">
+                            Concept / Creative Brief
+                        </label>
+                        <textarea id="campaignBriefInputConcept-${task.id}" 
+                                  rows="4" 
+                                  placeholder="Describe the creative direction, concept or brief requirements…"
+                                  style="width: 100%; box-sizing: border-box; background: var(--subcard-bg); border: 1px solid var(--card-border); color: var(--color-text-primary); border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.5; resize: vertical; outline: none; font-family: inherit;">${escapeHtml(task.concept || '')}</textarea>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 11px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">
+                            Additional Notes (Optional)
+                        </label>
+                        <textarea id="campaignBriefInputNotes-${task.id}" 
+                                  rows="2" 
+                                  placeholder="Extra client notes, reference context, or instructions…"
+                                  style="width: 100%; box-sizing: border-box; background: var(--subcard-bg); border: 1px solid var(--card-border); color: var(--color-text-primary); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; line-height: 1.5; resize: vertical; outline: none; font-family: inherit;">${escapeHtml(task.notes || '')}</textarea>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 6px; border-top: 1px solid var(--card-border);">
+                        <button type="button" 
+                                onclick="toggleCampaignBriefEditor(${task.id}, false)" 
+                                class="cd-btn-outline" 
+                                style="padding: 6px 14px; font-size: 11.5px;">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                id="campaignBriefSaveBtn-${task.id}"
+                                class="cd-btn-primary" 
+                                style="padding: 6px 16px; font-size: 11.5px;">
+                            <span>Save Brief</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     `;
 
+    // 2. References & Assets Card Construction
     const refFiles = Array.isArray(task.reference_files_list) ? task.reference_files_list : [];
     const refUrls = Array.isArray(task.reference_urls_list) ? task.reference_urls_list : [];
+    const totalRefs = refFiles.length + refUrls.length;
 
-    if (refFiles.length === 0 && refUrls.length === 0) {
-        html += `
-            <div style="padding: 24px 20px; background: var(--color-bg-secondary); border: 1.5px dashed var(--color-border-primary); border-radius: 12px; text-align: center; color: var(--color-text-secondary);">
-                <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.6" style="margin: 0 auto 8px auto; opacity: 0.5;"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                <div style="font-size: 12.5px; font-weight: 500;">No reference files or links attached to this deliverable.</div>
+    let refCardHtml = `
+        <div class="cd-detail-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--card-border);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
+                            References & Assets
+                        </span>
+                        ${totalRefs > 0 ? `
+                            <span style="font-size: 10.5px; font-weight: 800; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); padding: 1px 7px; border-radius: 9999px;">
+                                ${totalRefs}
+                            </span>
+                        ` : ''}
+                    </div>
+                </div>
+                <button type="button" 
+                        onclick="toggleCampaignRefUploader(${task.id}, true)"
+                        style="background: transparent; border: 1px solid var(--card-border); color: #10b981; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s;"
+                        onmouseover="this.style.borderColor='#10b981';"
+                        onmouseout="this.style.borderColor='var(--card-border)';">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    <span>Attach Files / Links</span>
+                </button>
+            </div>
+
+            <!-- Inline Uploader Dropzone / Form (Hidden by default) -->
+            <div id="campaignRefUploader-${task.id}" style="display: none; padding: 14px; background: var(--subcard-bg); border: 1px solid var(--card-border); border-radius: 12px;">
+                <form onsubmit="event.preventDefault(); uploadCampaignReferencesInline(${task.id});" style="display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <label style="display: block; font-size: 11px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">
+                            Upload Files (Images, PDFs, Videos, Documents)
+                        </label>
+                        <input type="file" 
+                               id="campaignRefFileInput-${task.id}" 
+                               multiple 
+                               style="width: 100%; box-sizing: border-box; font-size: 12px; color: var(--color-text-primary); background: var(--card-bg); border: 1px dashed var(--card-border); border-radius: 8px; padding: 10px 12px; cursor: pointer;">
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 11px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">
+                            Or Add Reference Link (Figma, Drive, Loom, Miro)
+                        </label>
+                        <input type="url" 
+                               id="campaignRefUrlInput-${task.id}" 
+                               placeholder="https://www.figma.com/file/... or Google Drive link"
+                               style="width: 100%; box-sizing: border-box; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--color-text-primary); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; outline: none;">
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 4px;">
+                        <button type="button" 
+                                onclick="toggleCampaignRefUploader(${task.id}, false)" 
+                                class="cd-btn-outline" 
+                                style="padding: 5px 12px; font-size: 11px;">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                id="campaignRefSubmitBtn-${task.id}"
+                                class="cd-btn-success" 
+                                style="padding: 5px 14px; font-size: 11px;">
+                            <span>Upload & Attach</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- References List / Actionable Empty State -->
+            <div id="campaignRefView-${task.id}">
+    `;
+
+    if (totalRefs === 0) {
+        refCardHtml += `
+            <div id="campaignRefEmptyBox-${task.id}" style="padding: 22px 20px; background: var(--subcard-bg); border: 1.5px dashed var(--card-border); border-radius: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(16, 185, 129, 0.08); color: #10b981; display: flex; align-items: center; justify-content: center;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                </div>
+                <div style="font-size: 12.5px; font-weight: 500; color: var(--color-text-secondary);">
+                    No reference files or links attached to this deliverable.
+                </div>
+                <button type="button" 
+                        onclick="toggleCampaignRefUploader(${task.id}, true)"
+                        class="cd-btn-success"
+                        style="padding: 6px 14px; font-size: 11.5px; border-radius: 7px; margin-top: 2px;">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    <span>+ Attach Files or Links</span>
+                </button>
             </div>
         `;
     } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 16px;">`;
+        refCardHtml += `<div style="display: flex; flex-direction: column; gap: 16px;">`;
 
-        // Reference Files
         if (refFiles.length > 0) {
-            html += `
+            refCardHtml += `
                 <div>
                     <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 8px;">
                         Reference Files (${refFiles.length})
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">
             `;
 
             refFiles.forEach(fileUrl => {
@@ -2698,18 +2857,16 @@ function renderCampaignDetailsModalContent(task) {
                 const isPdf = ext === 'pdf';
                 const isVid = ['mp4', 'webm', 'ogg', 'mov', 'avi'].includes(ext);
 
-                html += `
-                    <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.15s, box-shadow 0.15s;"
-                         onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';"
-                         onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                refCardHtml += `
+                    <div class="cd-detail-subcard" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
                 `;
 
                 if (isImg) {
-                    html += `
-                        <div style="height: 110px; width: 100%; background: #000; overflow: hidden; position: relative; cursor: pointer;"
+                    refCardHtml += `
+                        <div style="height: 100px; width: 100%; background: #000; overflow: hidden; position: relative; cursor: pointer;"
                              onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(fileUrl)}')">
                             <img src="${escapeHtml(fileUrl)}" alt="${escapeHtml(fname)}" style="width: 100%; height: 100%; object-fit: cover;">
-                            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); opacity: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; gap: 4px; transition: opacity 0.15s;"
+                            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; gap: 4px; transition: opacity 0.15s;"
                                  onmouseover="this.style.opacity='1'"
                                  onmouseout="this.style.opacity='0'">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
@@ -2717,47 +2874,30 @@ function renderCampaignDetailsModalContent(task) {
                             </div>
                         </div>
                     `;
-                } else if (isPdf) {
-                    html += `
-                        <div style="height: 80px; width: 100%; background: rgba(239, 68, 68, 0.08); display: flex; align-items: center; justify-content: center; gap: 8px; color: #ef4444; cursor: pointer;"
-                             onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(fileUrl)}')">
-                            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">PDF FILE</span>
-                        </div>
-                    `;
-                } else if (isVid) {
-                    html += `
-                        <div style="height: 80px; width: 100%; background: rgba(139, 92, 246, 0.08); display: flex; align-items: center; justify-content: center; gap: 8px; color: #8b5cf6; cursor: pointer;"
-                             onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(fileUrl)}')">
-                            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">VIDEO FILE</span>
-                        </div>
-                    `;
                 } else {
-                    html += `
-                        <div style="height: 80px; width: 100%; background: rgba(59, 130, 246, 0.08); display: flex; align-items: center; justify-content: center; gap: 8px; color: #2563eb;">
-                            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    refCardHtml += `
+                        <div style="height: 70px; width: 100%; background: rgba(59, 130, 246, 0.08); display: flex; align-items: center; justify-content: center; gap: 8px; color: #2563eb; cursor: pointer;"
+                             onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(fileUrl)}')">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">${escapeHtml(ext.toUpperCase() || 'FILE')}</span>
                         </div>
                     `;
                 }
 
-                html += `
-                        <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; flex: 1;">
-                            <div style="font-size: 11px; font-weight: 700; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(fname)}">
+                refCardHtml += `
+                        <div style="padding: 10px; display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                            <div style="font-size: 11.5px; font-weight: 700; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(fname)}">
                                 ${escapeHtml(fname)}
                             </div>
-                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--color-border-primary);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--card-border);">
                                 <button type="button" 
                                         onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(fileUrl)}')" 
-                                        style="background: transparent; border: 1px solid var(--color-border-primary); color: #3b82f6; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;">
-                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        style="background: transparent; border: 1px solid var(--card-border); color: #3b82f6; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;">
                                     <span>Preview</span>
                                 </button>
                                 <a href="${escapeHtml(fileUrl)}" download="${escapeHtml(fname)}" 
-                                   style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;"
+                                   style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;"
                                    title="Download file">
-                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                                     <span>Download</span>
                                 </a>
                             </div>
@@ -2766,15 +2906,14 @@ function renderCampaignDetailsModalContent(task) {
                 `;
             });
 
-            html += `
+            refCardHtml += `
                     </div>
                 </div>
             `;
         }
 
-        // Reference Links
         if (refUrls.length > 0) {
-            html += `
+            refCardHtml += `
                 <div>
                     <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 8px;">
                         Reference Links (${refUrls.length})
@@ -2783,8 +2922,8 @@ function renderCampaignDetailsModalContent(task) {
             `;
 
             refUrls.forEach(url => {
-                html += `
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 8px;">
+                refCardHtml += `
+                    <div class="cd-detail-subcard" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px;">
                         <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
                             <svg width="14" height="14" fill="none" stroke="#2563eb" viewBox="0 0 24 24" stroke-width="2.2" style="flex-shrink: 0;"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                             <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" 
@@ -2796,12 +2935,12 @@ function renderCampaignDetailsModalContent(task) {
                         <div style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;">
                             <button type="button" 
                                     onclick="copyReferenceUrlToClipboard('${escapeHtml(url)}', this)" 
-                                    style="background: transparent; border: 1px solid var(--color-border-primary); color: var(--color-text-secondary); font-size: 10.5px; font-weight: 600; padding: 3px 8px; border-radius: 6px; cursor: pointer;"
+                                    style="background: transparent; border: 1px solid var(--card-border); color: var(--color-text-secondary); font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; cursor: pointer;"
                                     title="Copy link to clipboard">
                                 Copy
                             </button>
                             <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" 
-                               style="background: #2563eb; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 4px 10px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;">
+                               style="background: #2563eb; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 5px; text-decoration: none; display: inline-flex; align-items: center; gap: 2px;">
                                 <span>Open ↗</span>
                             </a>
                         </div>
@@ -2809,19 +2948,22 @@ function renderCampaignDetailsModalContent(task) {
                 `;
             });
 
-            html += `
+            refCardHtml += `
                     </div>
                 </div>
             `;
         }
 
-        html += `</div>`;
+        refCardHtml += `</div>`;
     }
-    html += `</div>`;
 
-    // 3. Revision History Section
+    refCardHtml += `
+            </div>
+        </div>
+    `;
+
+    // 3. Consolidated Activity & History Card Construction
     const revs = Array.isArray(task.revisions_history) ? [...task.revisions_history] : [];
-    // Fallback: If revisions count > 0 or revision_instructions exist but array is empty, synthesize latest entry
     if (revs.length === 0 && (Number(task.revisions) > 0 || task.revision_instructions)) {
         revs.push({
             round: Number(task.revisions) || 1,
@@ -2836,153 +2978,62 @@ function renderCampaignDetailsModalContent(task) {
             fixed_by_user_name: null
         });
     }
-
-    html += `
-        <div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border-primary);">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="width: 26px; height: 26px; border-radius: 7px; background: rgba(245, 158, 11, 0.12); color: #d97706; display: flex; align-items: center; justify-content: center;">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    </div>
-                    <span style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
-                        Revision History
-                    </span>
-                    ${revs.length > 0 ? `
-                        <span style="font-size: 10px; font-weight: 800; background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); padding: 1px 7px; border-radius: 9999px;">
-                            ${revs.length} ${revs.length === 1 ? 'Round' : 'Rounds'}
-                        </span>
-                    ` : ''}
-                </div>
-            </div>
-    `;
-
-    if (revs.length === 0) {
-        html += `
-            <div style="padding: 20px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; display: flex; align-items: center; gap: 12px;">
-                <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                </div>
-                <div>
-                    <div style="font-size: 12.5px; font-weight: 700; color: var(--color-text-primary);">No revisions requested</div>
-                    <div style="font-size: 11.5px; color: var(--color-text-secondary); margin-top: 2px;">This deliverable has not required any revision cycles.</div>
-                </div>
-            </div>
-        `;
-    } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
-        revs.forEach((r, idx) => {
-            const roundNum = r.round !== undefined ? r.round : (revs.length - idx);
-            const dateStr = r.date || (r.created_at ? formatDateTimeDisplay(r.created_at) : '');
-            const hasImage = Boolean(r.image_path);
-            const isResolved = Boolean(r.fixed_at);
-
-            html += `
-                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 8px; border-radius: 6px;">
-                                Round ${roundNum}
-                            </span>
-                            <span style="font-size: 11.5px; font-weight: 700; color: var(--color-text-primary);">
-                                By ${escapeHtml(r.user_name || 'Approver')}
-                            </span>
-                            <span style="font-size: 11px; color: var(--color-text-secondary);">
-                                • from ${escapeHtml(r.stage || 'Approval Stage')}
-                            </span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            ${isResolved ? `
-                                <span style="font-size: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px;">
-                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    Resolved
-                                </span>
-                            ` : `
-                                <span style="font-size: 10px; font-weight: 700; background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 7px; border-radius: 5px;">
-                                    Awaiting Updates
-                                </span>
-                            `}
-                            ${dateStr ? `
-                                <span style="font-size: 11px; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 4px;">
-                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    ${escapeHtml(dateStr)}
-                                </span>
-                            ` : ''}
-                        </div>
-                    </div>
-
-                    ${r.instructions ? `
-                        <div style="padding: 10px 12px; background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 8px; font-size: 12.5px; line-height: 1.55; color: var(--color-text-primary); white-space: pre-wrap; word-break: break-word;">
-                            ${escapeHtml(r.instructions)}
-                        </div>
-                    ` : ''}
-
-                    ${r.revision_deadline ? `
-                        <div style="font-size: 11px; color: #ef4444; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
-                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            Revision Deadline: ${escapeHtml(r.revision_deadline)}
-                        </div>
-                    ` : ''}
-
-                    ${hasImage ? `
-                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 2px;">
-                            <button type="button" 
-                                    onclick="previewDeliverableArtwork('${escapeHtml(r.image_path)}', 'Revision Markup - Round ${roundNum}', '${escapeHtml(r.image_path)}')" 
-                                    style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: #3b82f6; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
-                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                <span>View Annotated Markup</span>
-                            </button>
-                        </div>
-                    ` : ''}
-
-                    ${isResolved && r.fixed_at ? `
-                        <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; display: inline-flex; align-items: center; gap: 4px;">
-                            <svg width="12" height="12" fill="none" stroke="#10b981" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            <span>Resolved on ${escapeHtml(r.fixed_at)}${r.fixed_by_user_name ? ' by ' + escapeHtml(r.fixed_by_user_name) : ''}</span>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-        });
-        html += `</div>`;
-    }
-    html += `</div>`;
-
-    // 4. Sent for Approval & Stage History Section
     const approvals = Array.isArray(task.approvals_history) ? [...task.approvals_history] : [];
+    let activeHistoryTab = window.currentCampaignHistoryTab || 'approvals';
+    if (approvals.length === 0 && revs.length > 0 && !window.currentCampaignHistoryTab) {
+        activeHistoryTab = 'revisions';
+    }
 
-    html += `
-        <div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border-primary);">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="width: 26px; height: 26px; border-radius: 7px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center;">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    let historyCardHtml = `
+        <div class="cd-detail-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); color: #d97706; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </div>
-                    <span style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
-                        Sent for Approval & Stage History
+                    <span style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
+                        Activity & History
                     </span>
-                    ${approvals.length > 0 ? `
-                        <span style="font-size: 10px; font-weight: 800; background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.25); padding: 1px 7px; border-radius: 9999px;">
-                            ${approvals.length} ${approvals.length === 1 ? 'Event' : 'Events'}
+                </div>
+
+                <!-- Tabs switcher -->
+                <div style="display: inline-flex; align-items: center; background: var(--subcard-bg); padding: 3px; border-radius: 8px; border: 1px solid var(--card-border); gap: 2px;">
+                    <button type="button" 
+                            id="campaignHistoryTabBtn-approvals"
+                            onclick="switchCampaignHistoryTab('approvals')" 
+                            class="cd-history-tab-btn ${activeHistoryTab === 'approvals' ? 'active' : ''}">
+                        <span>Approval Stages</span>
+                        <span style="font-size: 10px; padding: 1px 6px; border-radius: 9999px; background: ${activeHistoryTab === 'approvals' ? 'rgba(59, 130, 246, 0.15)' : 'transparent'}; color: ${activeHistoryTab === 'approvals' ? '#2563eb' : 'inherit'}; font-weight: 800;">
+                            ${approvals.length}
                         </span>
-                    ` : ''}
+                    </button>
+                    <button type="button" 
+                            id="campaignHistoryTabBtn-revisions"
+                            onclick="switchCampaignHistoryTab('revisions')" 
+                            class="cd-history-tab-btn ${activeHistoryTab === 'revisions' ? 'active' : ''}">
+                        <span>Revisions</span>
+                        <span style="font-size: 10px; padding: 1px 6px; border-radius: 9999px; background: ${activeHistoryTab === 'revisions' ? 'rgba(239, 68, 68, 0.15)' : 'transparent'}; color: ${activeHistoryTab === 'revisions' ? '#ef4444' : 'inherit'}; font-weight: 800;">
+                            ${revs.length}
+                        </span>
+                    </button>
                 </div>
             </div>
+
+            <!-- Panel 1: Approvals History -->
+            <div id="campaignHistoryPanel-approvals" style="display: ${activeHistoryTab === 'approvals' ? 'block' : 'none'};">
     `;
 
     if (approvals.length === 0) {
-        html += `
-            <div style="padding: 20px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 12px; display: flex; align-items: center; gap: 12px;">
-                <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(59, 130, 246, 0.1); color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-                <div>
-                    <div style="font-size: 12.5px; font-weight: 700; color: var(--color-text-primary);">No approval submissions logged yet</div>
-                    <div style="font-size: 11.5px; color: var(--color-text-secondary); margin-top: 2px;">When this deliverable is submitted for review or approved, stage history will appear here.</div>
+        historyCardHtml += `
+            <div style="padding: 14px 16px; background: var(--subcard-bg); border: 1px solid var(--card-border); border-radius: 10px; display: flex; align-items: center; gap: 10px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="color: var(--color-text-secondary); flex-shrink: 0;"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div style="font-size: 12px; color: var(--color-text-secondary);">
+                    No approval submissions logged yet. Stage updates and reviews will appear here.
                 </div>
             </div>
         `;
     } else {
-        html += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
+        historyCardHtml += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
         approvals.forEach((a) => {
             const dateStr = a.date || (a.created_at ? formatDateTimeDisplay(a.created_at) : '');
             const stageLower = (a.stage || '').toLowerCase();
@@ -2992,14 +3043,14 @@ function renderCampaignDetailsModalContent(task) {
             const badgeBg = isApproved ? 'rgba(16, 185, 129, 0.12)' : 'rgba(59, 130, 246, 0.12)';
             const badgeBorder = isApproved ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.25)';
 
-            html += `
-                <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+            historyCardHtml += `
+                <div class="cd-detail-subcard" style="display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; background: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeBorder}; padding: 2px 8px; border-radius: 6px;">
                                 ${escapeHtml(a.stage || 'Stage Update')}
                             </span>
-                            <span style="font-size: 11.5px; font-weight: 700; color: var(--color-text-primary);">
+                            <span style="font-size: 12px; font-weight: 700; color: var(--color-text-primary);">
                                 ${escapeHtml(a.user_name || 'Team Member')}
                             </span>
                         </div>
@@ -3018,11 +3069,535 @@ function renderCampaignDetailsModalContent(task) {
                 </div>
             `;
         });
-        html += `</div>`;
+        historyCardHtml += `</div>`;
     }
-    html += `</div>`;
 
-    body.innerHTML = html;
+    historyCardHtml += `
+            </div>
+
+            <!-- Panel 2: Revisions History -->
+            <div id="campaignHistoryPanel-revisions" style="display: ${activeHistoryTab === 'revisions' ? 'block' : 'none'};">
+    `;
+
+    if (revs.length === 0) {
+        historyCardHtml += `
+            <div style="padding: 14px 16px; background: var(--subcard-bg); border: 1px solid var(--card-border); border-radius: 10px; display: flex; align-items: center; gap: 10px;">
+                <svg width="16" height="16" fill="none" stroke="#10b981" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink: 0;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div style="font-size: 12px; color: var(--color-text-secondary);">
+                    <strong style="color: var(--color-text-primary);">No revisions requested.</strong> This deliverable has completed its cycles without revisions.
+                </div>
+            </div>
+        `;
+    } else {
+        historyCardHtml += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
+        revs.forEach((r, idx) => {
+            const roundNum = r.round !== undefined ? r.round : (revs.length - idx);
+            const dateStr = r.date || (r.created_at ? formatDateTimeDisplay(r.created_at) : '');
+            const hasImage = Boolean(r.image_path);
+            const isResolved = Boolean(r.fixed_at);
+
+            historyCardHtml += `
+                <div class="cd-detail-subcard" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 8px; border-radius: 6px;">
+                                Round ${roundNum}
+                            </span>
+                            <span style="font-size: 12px; font-weight: 700; color: var(--color-text-primary);">
+                                By ${escapeHtml(r.user_name || 'Approver')}
+                            </span>
+                            <span style="font-size: 11px; color: var(--color-text-secondary);">
+                                • from ${escapeHtml(r.stage || 'Approval Stage')}
+                            </span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            ${isResolved ? `
+                                <span style="font-size: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    Resolved
+                                </span>
+                            ` : `
+                                <span style="font-size: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 7px; border-radius: 5px;">
+                                    Awaiting Updates
+                                </span>
+                            `}
+                            ${dateStr ? `
+                                <span style="font-size: 11px; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 4px;">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    ${escapeHtml(dateStr)}
+                                </span>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    ${r.instructions ? `
+                        <div style="padding: 10px 12px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; font-size: 12.5px; line-height: 1.55; color: var(--color-text-primary); white-space: pre-wrap; word-break: break-word;">
+                            ${escapeHtml(r.instructions)}
+                        </div>
+                    ` : ''}
+
+                    ${r.revision_deadline ? `
+                        <div style="font-size: 11px; color: #ef4444; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Revision Deadline: ${escapeHtml(r.revision_deadline)}
+                        </div>
+                    ` : ''}
+
+                    ${hasImage ? `
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 2px;">
+                            <button type="button" 
+                                    onclick="previewDeliverableArtwork('${escapeHtml(r.image_path)}', 'Revision Markup - Round ${roundNum}', '${escapeHtml(r.image_path)}')" 
+                                    style="background: var(--card-bg); border: 1px solid var(--card-border); color: #3b82f6; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                <span>View Annotated Markup</span>
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        historyCardHtml += `</div>`;
+    }
+
+    historyCardHtml += `
+            </div>
+        </div>
+    `;
+
+    // 4. Quick Actions Card Construction (Sidebar)
+    const isToDo = ['to do', 'todo'].includes(stLower);
+    const isInProgress = ['in progress', 'progress'].includes(stLower);
+    const isApproval = ['approval stage', 'approval', 'review', 'under review'].includes(stLower);
+    const isDone = ['done', 'completed', 'complete'].includes(stLower);
+
+    let quickActionsHtml = '';
+    if (isToDo) {
+        quickActionsHtml = `
+            <button type="button" class="cd-btn-primary" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'In Progress')">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Start Task</span>
+            </button>
+            <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Approval Stage')">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Submit for Approval</span>
+            </button>
+        `;
+    } else if (isInProgress) {
+        quickActionsHtml = `
+            <button type="button" class="cd-btn-primary" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Approval Stage')">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Submit for Approval</span>
+            </button>
+            <button type="button" class="cd-btn-success" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Done')">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Mark Complete</span>
+            </button>
+            <button type="button" class="cd-btn-danger" style="width: 100%;" onclick="openRevisionPromptModal(${task.id}, 'In Progress', '${escapeHtml(task.status || 'In Progress')}', document.getElementById('kanban-card-${task.id}'))">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <span>Request Changes / Revisions</span>
+            </button>
+        `;
+    } else if (isApproval) {
+        quickActionsHtml = `
+            <button type="button" class="cd-btn-success" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Done')">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Approve & Mark Complete</span>
+            </button>
+            <button type="button" class="cd-btn-danger" style="width: 100%;" onclick="openRevisionPromptModal(${task.id}, 'In Progress', '${escapeHtml(task.status || 'Approval Stage')}', document.getElementById('kanban-card-${task.id}'))">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <span>Request Revisions</span>
+            </button>
+            <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'In Progress')">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                <span>Return to In Progress</span>
+            </button>
+        `;
+    } else if (isDone) {
+        quickActionsHtml = `
+            <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'In Progress')">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <span>Reopen Task (In Progress)</span>
+            </button>
+            <button type="button" class="cd-btn-danger" style="width: 100%;" onclick="openRevisionPromptModal(${task.id}, 'In Progress', '${escapeHtml(task.status || 'Done')}', document.getElementById('kanban-card-${task.id}'))">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <span>Request Revisions</span>
+            </button>
+        `;
+    }
+
+    quickActionsHtml += `
+        <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="closeCampaignDetailsModal(); setTimeout(() => { toggleCardEditor(${task.id}, true); const el = document.getElementById('kanban-card-${task.id}'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150);">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            <span>Edit in Kanban Card</span>
+        </button>
+    `;
+
+    let actionsCardHtml = `
+        <div class="cd-detail-card">
+            <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); padding-bottom: 10px; border-bottom: 1px solid var(--card-border);">
+                Quick Actions
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                ${quickActionsHtml}
+            </div>
+        </div>
+    `;
+
+    // 5. Task Details Card Construction (Sidebar)
+    let detailsCardHtml = `
+        <div class="cd-detail-card">
+            <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); padding-bottom: 10px; border-bottom: 1px solid var(--card-border);">
+                Task Details
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px; font-size: 12.5px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <span style="color: var(--color-text-secondary); font-weight: 500;">Project</span>
+                    <span style="font-weight: 700; color: var(--color-text-primary); text-align: right; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(kanbanProjectName)}">
+                        ${escapeHtml(kanbanProjectName)}
+                    </span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <span style="color: var(--color-text-secondary); font-weight: 500;">Status</span>
+                    <span style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: ${taskStatusColor}; background: ${taskStatusBg}; border: 1px solid ${taskStatusBorder}; padding: 2px 8px; border-radius: 6px;">
+                        ${escapeHtml(task.status || 'To Do')}
+                    </span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <span style="color: var(--color-text-secondary); font-weight: 500;">Priority</span>
+                    <span style="font-weight: 700; color: ${prioColor}; display: inline-flex; align-items: center; gap: 5px;">
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: ${prioColor};"></span>
+                        <span>${escapeHtml(prio)}</span>
+                    </span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <span style="color: var(--color-text-secondary); font-weight: 500;">Deliverable Type</span>
+                    <span style="font-weight: 700; color: #3b82f6; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); padding: 1px 7px; border-radius: 5px; font-size: 11px;">
+                        ${escapeHtml(task.post_type || 'Outlines')}
+                    </span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px dashed var(--card-border);">
+                    <span style="color: var(--color-text-secondary); font-weight: 500;">Assignee</span>
+                    <span style="font-weight: 700; color: var(--color-text-primary); display: inline-flex; align-items: center; gap: 6px;">
+                        <span style="width: 20px; height: 20px; border-radius: 50%; background: rgba(59, 130, 246, 0.15); color: #2563eb; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900;">
+                            ${escapeHtml((task.assignee_name || 'U').charAt(0).toUpperCase())}
+                        </span>
+                        <span>${escapeHtml(task.assignee_name || 'Unassigned')}</span>
+                    </span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <span style="color: var(--color-text-secondary); font-weight: 500;">Approver</span>
+                    <span style="font-weight: 700; color: ${task.approver_name ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'}; display: inline-flex; align-items: center; gap: 6px;">
+                        ${task.approver_name ? `
+                            <span style="width: 20px; height: 20px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); color: #10b981; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900;">
+                                ${escapeHtml(task.approver_name.charAt(0).toUpperCase())}
+                            </span>
+                            <span>${escapeHtml(task.approver_name)}</span>
+                        ` : `<span>Unassigned</span>`}
+                    </span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px dashed var(--card-border);">
+                    <span style="color: var(--color-text-secondary); font-weight: 500;">Due Date</span>
+                    <span style="font-weight: 700; color: var(--color-text-primary); display: inline-flex; align-items: center; gap: 5px;">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span>${escapeHtml(task.deadline_formatted || 'No deadline')}</span>
+                    </span>
+                </div>
+
+                ${task.created_at_formatted ? `
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <span style="color: var(--color-text-secondary); font-weight: 500;">Created</span>
+                        <span style="font-weight: 600; color: var(--color-text-secondary);">
+                            ${escapeHtml(task.created_at_formatted)}
+                        </span>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+
+    // Assembly into Two-Column Split Layout
+    body.innerHTML = `
+        <div class="campaign-detail-layout" style="display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr); gap: 24px; align-items: start;">
+            <!-- Left Column: Content Canvas (~70%) -->
+            <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+                ${briefCardHtml}
+                ${refCardHtml}
+                ${historyCardHtml}
+            </div>
+
+            <!-- Right Column: Metadata & Quick Actions Sidebar (~30%) -->
+            <div style="display: flex; flex-direction: column; gap: 20px; position: sticky; top: 12px;">
+                ${actionsCardHtml}
+                ${detailsCardHtml}
+            </div>
+        </div>
+    `;
+}
+
+// Inline Brief Editor Handlers
+function toggleCampaignBriefEditor(taskId, show) {
+    const view = document.getElementById('campaignBriefView-' + taskId);
+    const editor = document.getElementById('campaignBriefEditor-' + taskId);
+    if (view && editor) {
+        view.style.display = show ? 'none' : 'block';
+        editor.style.display = show ? 'block' : 'none';
+        if (show) {
+            const input = document.getElementById('campaignBriefInputConcept-' + taskId);
+            if (input) input.focus();
+        }
+    }
+}
+
+async function saveCampaignBriefInline(taskId) {
+    const conceptInput = document.getElementById('campaignBriefInputConcept-' + taskId);
+    const notesInput = document.getElementById('campaignBriefInputNotes-' + taskId);
+    const saveBtn = document.getElementById('campaignBriefSaveBtn-' + taskId);
+
+    const concept = conceptInput ? conceptInput.value.trim() : '';
+    const notes = notesInput ? notesInput.value.trim() : '';
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"/></svg>
+            <span>Saving…</span>
+        `;
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    try {
+        const res = await fetch(`/deliverables/${taskId}/quick-update-kanban`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken || '',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ concept, notes })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+            alert(data.message || 'Failed to save deliverable brief.');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<span>Save Brief</span>';
+            }
+            return;
+        }
+
+        if (campaignDeliverablesData[taskId]) {
+            campaignDeliverablesData[taskId].concept = concept;
+            campaignDeliverablesData[taskId].notes = notes;
+            renderCampaignDetailsModalContent(campaignDeliverablesData[taskId]);
+        }
+
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Deliverable brief updated successfully', type: 'success' } }));
+    } catch (err) {
+        console.error('Error saving brief inline:', err);
+        alert('Network error while saving brief.');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<span>Save Brief</span>';
+        }
+    }
+}
+
+// Inline References Handlers
+function toggleCampaignRefUploader(taskId, show) {
+    const uploader = document.getElementById('campaignRefUploader-' + taskId);
+    const emptyBox = document.getElementById('campaignRefEmptyBox-' + taskId);
+    if (uploader) {
+        uploader.style.display = show ? 'block' : 'none';
+        if (emptyBox) {
+            emptyBox.style.display = show ? 'none' : 'flex';
+        }
+        if (show) {
+            const fileInput = document.getElementById('campaignRefFileInput-' + taskId);
+            if (fileInput) fileInput.focus();
+        }
+    }
+}
+
+async function uploadCampaignReferencesInline(taskId) {
+    const fileInput = document.getElementById('campaignRefFileInput-' + taskId);
+    const urlInput = document.getElementById('campaignRefUrlInput-' + taskId);
+    const submitBtn = document.getElementById('campaignRefSubmitBtn-' + taskId);
+
+    const hasFiles = fileInput && fileInput.files && fileInput.files.length > 0;
+    const urlVal = urlInput ? urlInput.value.trim() : '';
+
+    if (!hasFiles && !urlVal) {
+        alert('Please choose a file or enter a reference URL to attach.');
+        return;
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"/></svg>
+            <span>Uploading…</span>
+        `;
+    }
+
+    const fd = new FormData();
+    fd.append('action', 'save_only');
+    if (hasFiles) {
+        Array.from(fileInput.files).forEach(f => fd.append('reference_files[]', f));
+    }
+    if (urlVal) {
+        fd.append('reference_urls[]', urlVal);
+    }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    try {
+        const res = await fetch(`/deliverables/${taskId}/submit`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken || '',
+                'Accept': 'application/json'
+            },
+            body: fd
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+            alert(data.message || 'Failed to attach references.');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>Upload & Attach</span>';
+            }
+            return;
+        }
+
+        // Refresh task from server to get parsed reference URLs & S3 files
+        const freshRes = await fetch(`/deliverables/${taskId}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (freshRes.ok) {
+            const freshData = await freshRes.json();
+            if (campaignDeliverablesData[taskId]) {
+                campaignDeliverablesData[taskId].reference_files_list = extractReferenceFiles(freshData);
+                campaignDeliverablesData[taskId].reference_urls_list = extractReferenceUrls(freshData);
+                renderCampaignDetailsModalContent(campaignDeliverablesData[taskId]);
+            }
+        }
+
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'References attached successfully', type: 'success' } }));
+    } catch (err) {
+        console.error('Error attaching references:', err);
+        alert('Network error while uploading references.');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Upload & Attach</span>';
+        }
+    }
+}
+
+// Activity & History Tab Switcher
+function switchCampaignHistoryTab(tab) {
+    window.currentCampaignHistoryTab = tab;
+    const btnApprovals = document.getElementById('campaignHistoryTabBtn-approvals');
+    const btnRevisions = document.getElementById('campaignHistoryTabBtn-revisions');
+    const panelApprovals = document.getElementById('campaignHistoryPanel-approvals');
+    const panelRevisions = document.getElementById('campaignHistoryPanel-revisions');
+
+    if (btnApprovals && btnRevisions && panelApprovals && panelRevisions) {
+        if (tab === 'revisions') {
+            btnApprovals.classList.remove('active');
+            btnRevisions.classList.add('active');
+            panelApprovals.style.display = 'none';
+            panelRevisions.style.display = 'block';
+        } else {
+            btnRevisions.classList.remove('active');
+            btnApprovals.classList.add('active');
+            panelRevisions.style.display = 'none';
+            panelApprovals.style.display = 'block';
+        }
+    }
+}
+
+// Status Transition from Detail Modal
+async function transitionDeliverableStatus(taskId, targetStatus) {
+    const card = document.getElementById('kanban-card-' + taskId);
+    const oldStatus = (card ? card.getAttribute('data-status') : null) || campaignDeliverablesData[taskId]?.status || 'To Do';
+    if (oldStatus === targetStatus) return;
+
+    const isTargetApproval = ['Approval Stage', 'Approval', 'Review'].includes(targetStatus);
+    const currentApproverId = card ? card.getAttribute('data-approver-id') : null;
+    const hasFile = card ? (card.getAttribute('data-has-file') === 'true') : false;
+
+    if (isTargetApproval && !kanbanIsAdmin) {
+        if (!hasFile) {
+            openUploadDeliverableModal(taskId, targetStatus, oldStatus, card);
+            return;
+        }
+        if (!currentApproverId) {
+            openAssignApproverModal(taskId, targetStatus, oldStatus, card);
+            return;
+        }
+    }
+
+    if (['Approval Stage', 'Approval', 'Review', 'Under Review'].includes(oldStatus)) {
+        if (targetStatus === 'To Do' || targetStatus === 'In Progress') {
+            openRevisionPromptModal(taskId, 'In Progress', oldStatus, card);
+            return;
+        }
+    }
+
+    const taskTitle = (card && card.querySelector('#card-view-title-' + taskId)?.textContent?.trim())
+        || (campaignDeliverablesData[taskId]?.title)
+        || 'Deliverable';
+    const displayTarget = (targetStatus === 'Done') ? 'Completed' : targetStatus;
+    const displayOld = (oldStatus === 'Done') ? 'Completed' : oldStatus;
+
+    let confirmTitle = 'Move Deliverable?';
+    let confirmMessage = `Are you sure you want to move <strong>"${escapeHtml(taskTitle)}"</strong> to <strong>${displayTarget}</strong>?`;
+    let confirmBtnText = `Yes, Move`;
+    let confirmType = 'info';
+
+    if (targetStatus === 'Done') {
+        confirmTitle = 'Complete Deliverable?';
+        confirmMessage = `Are you sure you want to mark <strong>"${escapeHtml(taskTitle)}"</strong> as completed?`;
+        confirmBtnText = 'Yes, Complete';
+        confirmType = 'success';
+    } else if (targetStatus === 'Approval Stage') {
+        confirmTitle = 'Submit to Approval?';
+        confirmMessage = `Are you sure you want to move <strong>"${escapeHtml(taskTitle)}"</strong> to <strong>Approval Stage</strong>?`;
+        confirmBtnText = 'Yes, Submit';
+        confirmType = 'info';
+    }
+
+    let confirmed = false;
+    if (typeof window.customConfirm === 'function') {
+        confirmed = await window.customConfirm({
+            title: confirmTitle,
+            message: confirmMessage,
+            confirmText: confirmBtnText,
+            cancelText: 'Cancel',
+            isDanger: false,
+            type: confirmType
+        });
+    } else {
+        confirmed = window.confirm(`Move "${taskTitle}" to ${displayTarget}?`);
+    }
+
+    if (!confirmed) return;
+
+    await executeKanbanMove(taskId, targetStatus, oldStatus, card, { approver_id: currentApproverId });
+
+    if (campaignDeliverablesData[taskId]) {
+        campaignDeliverablesData[taskId].status = targetStatus;
+        renderCampaignDetailsModalContent(campaignDeliverablesData[taskId]);
+    }
 }
 
 // Collapse card editor or inline creator on click outside
@@ -3317,6 +3892,82 @@ document.addEventListener('keydown', function(event) {
 .dark .cd-history-tab-btn.active {
     background: rgba(255, 255, 255, 0.12) !important;
     color: #ffffff !important;
+}
+
+.cd-btn-primary {
+    background: #2563EB !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    transition: all 0.15s !important;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25) !important;
+}
+.cd-btn-primary:hover {
+    background: #1D4ED8 !important;
+}
+.cd-btn-success {
+    background: #10B981 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    transition: all 0.15s !important;
+    box-shadow: 0 1px 3px rgba(16, 185, 129, 0.25) !important;
+}
+.cd-btn-success:hover {
+    background: #059669 !important;
+}
+.cd-btn-danger {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #EF4444 !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    transition: all 0.15s !important;
+}
+.cd-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+}
+.cd-btn-outline {
+    background: transparent !important;
+    color: var(--color-text-primary) !important;
+    border: 1px solid var(--card-border) !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 8px 16px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    transition: all 0.15s !important;
+}
+.cd-btn-outline:hover {
+    border-color: #2563EB !important;
+    color: #2563EB !important;
 }
 
 @media (max-width: 1024px) {

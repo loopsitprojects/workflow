@@ -57,8 +57,8 @@
     $creatorId = $task->effective_creator_id;
     $isCreator = $creatorId && ((int)$currentUserId === (int)$creatorId);
 
-    // Only the person who created the deliverable or a Super Admin can make changes
-    $canEditCard = $isSuperAdmin || $isCreator;
+    // Deliverable editor permission: Super Admin, Creator, or users with manage permissions (Brand Managers, Managers, Approvers)
+    $canEditCard = $isSuperAdmin || $isCreator || ($canManageDeliverables ?? false);
 
     $artworkFiles = $task->getFinalDesignsArray();
     $hasArtwork = !empty($artworkFiles);
