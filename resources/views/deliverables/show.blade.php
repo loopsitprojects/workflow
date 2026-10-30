@@ -830,6 +830,27 @@
             background: var(--color-bg-primary) !important;
             color: var(--color-text-primary) !important;
         }
+        .dark #modalDeliverableDeadlineInput,
+        .dark #modalDesignerDeadlineInput,
+        .dark #modalRevisionDeadlineInputBox,
+        .dark input[type="date"] {
+            color-scheme: dark !important;
+        }
+        .dark #modalDeliverableDeadlineInput::-webkit-calendar-picker-indicator,
+        .dark #modalDesignerDeadlineInput::-webkit-calendar-picker-indicator,
+        .dark #modalRevisionDeadlineInputBox::-webkit-calendar-picker-indicator,
+        .dark input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: none !important;
+            cursor: pointer !important;
+            opacity: 0.9 !important;
+            transition: opacity 0.15s !important;
+        }
+        .dark #modalDeliverableDeadlineInput::-webkit-calendar-picker-indicator:hover,
+        .dark #modalDesignerDeadlineInput::-webkit-calendar-picker-indicator:hover,
+        .dark #modalRevisionDeadlineInputBox::-webkit-calendar-picker-indicator:hover,
+        .dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1 !important;
+        }
         #ddSidebarActions {
             display: flex !important;
             flex-direction: column !important;
