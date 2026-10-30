@@ -800,6 +800,18 @@
     #modalCaptionLabel * {
         color: #ffffff !important;
     }
+    .dark input[type="date"] {
+        color-scheme: dark !important;
+    }
+    .dark input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: none !important;
+        cursor: pointer !important;
+        opacity: 0.9 !important;
+        transition: opacity 0.15s !important;
+    }
+    .dark input[type="date"]::-webkit-calendar-picker-indicator:hover {
+        opacity: 1 !important;
+    }
     .direct-design-modal .workflow-steps {
         display: flex !important;
         align-items: center !important;
@@ -1465,7 +1477,7 @@
                                         <td>
                                             @php
                                                 $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
-                                                $subRevHistory = $subtask->getRelation('revisionsHistory') ?? collect();
+                                                $subRevHistory = $subtask->relationLoaded('revisionsHistory') ? $subtask->getRelation('revisionsHistory') : ($subtask->revisionsHistory ?? collect());
                                                 $subWrevs = $subRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
                                                 $subDrevs = $subRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
                                             @endphp
@@ -1747,7 +1759,7 @@
                                         <td>
                                             @php
                                                 $dsRevStages = ['Final Approval', 'Writer Review', 'Approver Review'];
-                                                $taskRevHistory = $task->getRelation('revisionsHistory') ?? collect();
+                                                $taskRevHistory = $task->relationLoaded('revisionsHistory') ? $task->getRelation('revisionsHistory') : ($task->revisionsHistory ?? collect());
                                                 $taskWrevs = $taskRevHistory->filter(fn($r) => !in_array($r->stage_at_revision, $dsRevStages))->count();
                                                 $taskDrevs = $taskRevHistory->filter(fn($r) => in_array($r->stage_at_revision, $dsRevStages))->count();
                                             @endphp

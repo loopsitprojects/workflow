@@ -2604,9 +2604,17 @@ class DeliverableController extends Controller
             'approver_id' => 'nullable',
             'deadline' => 'nullable|date',
             'priority' => 'nullable|string|in:Low,Medium,High Priority,Urgent,High',
+            'concept' => 'nullable|string',
+            'notes' => 'nullable|string',
         ]);
 
         $deliverable->title = $validated['title'];
+        if (array_key_exists('concept', $validated)) {
+            $deliverable->concept = $validated['concept'];
+        }
+        if (array_key_exists('notes', $validated)) {
+            $deliverable->notes = $validated['notes'];
+        }
         // Once a deliverable is set for a task type it cannot be changed
         if (array_key_exists('post_type', $validated) && !empty($validated['post_type']) && empty($deliverable->post_type)) {
             $deliverable->post_type = $validated['post_type'];

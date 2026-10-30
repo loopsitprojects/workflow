@@ -236,8 +236,8 @@
         $isOtherDeliv = $post->isOtherDeliverable();
         $isBriefOnly = $isOtherDeliv || $isDirectDesign;
         $stageClass = in_array($stage, ['Closed', 'Close']) ? 'stage-done' : ($post->revisions > 0 && in_array($stage, ['Writer','Assignee','Assign']) ? 'stage-rev' : 'stage-open');
-        $revs      = $post->getRelation('revisionsHistory') ?? collect();
-        $approvals = $post->getRelation('approvalsHistory') ?? collect();
+        $revs      = $post->relationLoaded('revisionsHistory') ? $post->getRelation('revisionsHistory') : ($post->revisionsHistory ?? collect());
+        $approvals = $post->relationLoaded('approvalsHistory') ? $post->getRelation('approvalsHistory') : ($post->approvalsHistory ?? collect());
         $isImg     = $post->final_designs && preg_match('/\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mov)/i', $post->final_designs);
 
         $canApprove = $isAdmin || (

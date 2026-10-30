@@ -3257,40 +3257,94 @@ document.addEventListener('keydown', function(event) {
 </div>
 
 {{-- Full Page View: Deliverable Brief, References, Revision History & Stage Progression --}}
+<style>
+/* Campaign Deliverable Details Modal Styles */
+#campaignDetailsModalOverlay {
+    --canvas-bg: #F8FAFC;
+    --card-bg: #FFFFFF;
+    --card-border: #E2E8F0;
+    --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    --subcard-bg: #F8FAFC;
+    --subcard-border: #E2E8F0;
+}
+.dark #campaignDetailsModalOverlay {
+    --canvas-bg: #0F172A;
+    --card-bg: #1E293B;
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    --subcard-bg: #0F172A;
+    --subcard-border: rgba(255, 255, 255, 0.07);
+}
+
+.cd-detail-card {
+    background: var(--card-bg) !important;
+    border: 1px solid var(--card-border) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--card-shadow) !important;
+    padding: 18px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cd-detail-subcard {
+    background: var(--subcard-bg) !important;
+    border: 1px solid var(--subcard-border) !important;
+    border-radius: 10px !important;
+    padding: 12px 14px !important;
+}
+
+.cd-history-tab-btn {
+    border: none !important;
+    background: transparent !important;
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    border-radius: 7px !important;
+    cursor: pointer !important;
+    color: var(--color-text-secondary) !important;
+    transition: all 0.15s !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+.cd-history-tab-btn.active {
+    background: var(--card-bg) !important;
+    color: var(--color-text-primary) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+.dark .cd-history-tab-btn.active {
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+}
+
+@media (max-width: 1024px) {
+    .campaign-detail-layout {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+}
+</style>
+
 <div id="campaignDetailsModalOverlay" 
-     style="display: none; position: fixed; inset: 0; z-index: 99990; width: 100vw; height: 100vh; background: var(--color-bg-primary); flex-direction: column; overflow: hidden;">
+     style="display: none; position: fixed; inset: 0; z-index: 99990; width: 100vw; height: 100vh; background: var(--canvas-bg); flex-direction: column; overflow: hidden;">
     <div id="campaignDeliverableDetailsModal" 
-         style="background: var(--color-bg-primary); width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+         style="background: var(--canvas-bg); width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden;">
         
         {{-- Full Page Top Navigation Bar --}}
-        <div style="padding: 16px 28px; border-bottom: 1px solid var(--color-border-primary); background: var(--color-bg-secondary); flex-shrink: 0;">
+        <div style="padding: 14px 28px; border-bottom: 1px solid var(--color-border-primary); background: var(--color-bg-secondary); flex-shrink: 0;">
             <div style="max-width: 1400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
-                <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 14px; min-width: 0;">
                     <button type="button" 
                             onclick="closeCampaignDetailsModal()" 
-                            style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: var(--color-text-primary); font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; flex-shrink: 0;"
-                            onmouseover="this.style.borderColor='var(--color-text-primary)';"
-                            onmouseout="this.style.borderColor='var(--color-border-primary)';"
+                            style="background: var(--color-bg-primary); border: 1.5px solid var(--color-border-primary); color: var(--color-text-primary); font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; flex-shrink: 0;"
+                            onmouseover="this.style.borderColor='#2563eb'; this.style.color='#2563eb';"
+                            onmouseout="this.style.borderColor='var(--color-border-primary)'; this.style.color='var(--color-text-primary)';"
                             title="Back to Kanban Board (Esc)">
                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                         <span>Back to Board</span>
                     </button>
-                    
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <span id="campaignModalIdBadge" style="font-size: 11px; font-family: monospace; font-weight: 800; background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: var(--color-text-secondary); padding: 2px 7px; border-radius: 5px;">
-                            #...
-                        </span>
-                        <span id="campaignModalPostTypeBadge" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #3b82f6; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); padding: 2px 8px; border-radius: 5px;">
-                            Outlines
-                        </span>
-                        <span id="campaignModalStatusBadge" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); padding: 2px 8px; border-radius: 5px;">
-                            To Do
-                        </span>
-                        <span id="campaignModalPriorityBadge" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #10b981; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); padding: 2px 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 5px;">
-                            <span id="campaignModalPriorityDot" style="width: 5px; height: 5px; border-radius: 50%; background: #10b981;"></span>
-                            <span id="campaignModalPriorityText">Medium</span>
-                        </span>
-                    </div>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
@@ -3313,61 +3367,45 @@ document.addEventListener('keydown', function(event) {
                 </div>
             </div>
 
-            {{-- Title Row in Header --}}
+            {{-- Title Row in Header with Badges directly beneath title --}}
             <div style="max-width: 1400px; margin: 12px auto 0 auto;">
-                <h1 id="campaignModalTitle" style="margin: 0; font-size: 24px; font-weight: 900; color: var(--color-text-primary); line-height: 1.3; letter-spacing: -0.015em; word-break: break-word;">
+                <h1 id="campaignModalTitle" style="margin: 0 0 8px 0; font-size: 22px; font-weight: 900; color: var(--color-text-primary); line-height: 1.3; letter-spacing: -0.015em; word-break: break-word;">
                     Deliverable Details
                 </h1>
-            </div>
-        </div>
-
-        {{-- Meta Information Bar --}}
-        <div style="padding: 12px 28px; background: var(--color-bg-primary); border-bottom: 1px solid var(--color-border-primary); flex-shrink: 0;">
-            <div style="max-width: 1400px; margin: 0 auto; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; font-size: 12px;">
-                <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    <span>Assignee:</span>
-                    <strong id="campaignModalAssignee" style="color: var(--color-text-primary); font-weight: 700;">Unassigned</strong>
-                </div>
-                <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                    <span>Approver:</span>
-                    <strong id="campaignModalApprover" style="color: var(--color-text-primary); font-weight: 700;">Unassigned</strong>
-                </div>
-                <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary);">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    <span>Due Date:</span>
-                    <strong id="campaignModalDeadline" style="color: var(--color-text-primary); font-weight: 700;">No deadline</strong>
-                </div>
-                <div style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); margin-left: auto;">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                    <span>Project:</span>
-                    <strong style="color: var(--color-text-primary); font-weight: 700;">{{ $project->name }}</strong>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span id="campaignModalIdBadge" style="font-size: 11px; font-family: monospace; font-weight: 800; background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: var(--color-text-secondary); padding: 3px 8px; border-radius: 6px;">
+                        #...
+                    </span>
+                    <span id="campaignModalPostTypeBadge" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #3b82f6; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); padding: 3px 9px; border-radius: 6px;">
+                        Outlines
+                    </span>
+                    <span id="campaignModalStatusBadge" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); padding: 3px 9px; border-radius: 6px;">
+                        To Do
+                    </span>
+                    <span id="campaignModalPriorityBadge" style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #10b981; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); padding: 3px 9px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;">
+                        <span id="campaignModalPriorityDot" style="width: 5px; height: 5px; border-radius: 50%; background: #10b981;"></span>
+                        <span id="campaignModalPriorityText">Medium</span>
+                    </span>
                 </div>
             </div>
         </div>
 
-        {{-- Full Page Scrollable Content Body --}}
+        {{-- Full Page Scrollable Content Body (Two-Column Split Layout) --}}
         <div style="overflow-y: auto; flex: 1; width: 100%;">
-            <div id="campaignModalBody" style="max-width: 1400px; margin: 0 auto; width: 100%; padding: 32px 28px 60px 28px; display: flex; flex-direction: column; gap: 32px;">
+            <div id="campaignModalBody" style="max-width: 1400px; margin: 0 auto; width: 100%; padding: 24px 28px 48px 28px;">
                 {{-- Content injected by renderCampaignDetailsModalContent() --}}
             </div>
         </div>
 
-        {{-- Full Page Bottom Bar --}}
-        <div style="padding: 14px 28px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); flex-shrink: 0;">
+        {{-- Full Page Bottom Bar (Clean metadata without redundant navigation) --}}
+        <div style="padding: 12px 28px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); flex-shrink: 0;">
             <div style="max-width: 1400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
                 <div id="campaignModalFooterMeta" style="font-size: 11.5px; color: var(--color-text-secondary);">
                     {{-- ID / Created date --}}
                 </div>
-                <button type="button" 
-                        onclick="closeCampaignDetailsModal()" 
-                        style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); color: var(--color-text-primary); font-size: 12px; font-weight: 700; padding: 7px 18px; border-radius: 8px; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;"
-                        onmouseover="this.style.background='var(--color-bg-secondary)';"
-                        onmouseout="this.style.background='var(--color-bg-primary)';">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                    <span>Back to Kanban Board</span>
-                </button>
+                <div style="font-size: 11px; color: var(--color-text-secondary); opacity: 0.7;">
+                    Press <kbd style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); padding: 1px 5px; border-radius: 4px; font-size: 10px;">Esc</kbd> to return to Kanban
+                </div>
             </div>
         </div>
     </div>
