@@ -477,82 +477,35 @@
             transform: scale(1) !important;
         }
 
-        /* Direct Design 2-Column Responsive Layout */
-        .direct-design-modal {
-            position: relative !important;
-            inset: auto !important;
-            margin: auto !important;
-            width: 95vw !important;
-            max-width: 1400px !important;
-            height: auto !important;
-            max-height: 94vh !important;
-            border-radius: 20px !important;
-            border: 1px solid var(--color-border-primary) !important;
-            box-shadow: 0 25px 70px -15px rgba(0,0,0,0.6) !important;
-        }
-        #taskModalOverlay:has(.direct-design-modal) {
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-            padding: 20px !important;
-            box-sizing: border-box !important;
-            overflow-y: auto !important;
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
-        }
-        #taskModalOverlay:has(.direct-design-modal)::-webkit-scrollbar {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-        }
-        .direct-design-modal,
-        .direct-design-modal * {
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
-        }
-        .direct-design-modal::-webkit-scrollbar,
-        .direct-design-modal *::-webkit-scrollbar {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-        }
-        .direct-design-modal .cd-modal-body {
-            padding: 24px 28px !important;
-            padding-bottom: 36px !important;
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
-        }
-        .direct-design-modal .cd-modal-body::-webkit-scrollbar {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-        }
-        .direct-design-modal .dd-two-col-layout {
+        /* Two-Column Responsive Workspace Layout */
+        .dd-two-col-layout {
             display: grid !important;
-            grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr) !important;
-            gap: 28px !important;
+            grid-template-columns: minmax(0, 1.7fr) minmax(360px, 1fr) !important;
+            gap: 24px !important;
             align-items: start !important;
             width: 100% !important;
+            max-width: 1600px !important;
+            margin: 0 auto !important;
         }
-        @media (max-width: 1024px) {
-            .direct-design-modal .dd-two-col-layout {
+        @media (max-width: 1100px) {
+            .dd-two-col-layout {
                 grid-template-columns: 1fr !important;
                 gap: 20px !important;
             }
-            .direct-design-modal .dd-col-sidebar {
+            .dd-col-sidebar {
                 position: static !important;
                 max-height: none !important;
             }
         }
-        .direct-design-modal .dd-col-main {
+        .dd-col-main {
             display: flex !important;
             flex-direction: column !important;
             gap: 20px !important;
             min-width: 0 !important;
         }
-        .direct-design-modal .dd-col-sidebar {
+        .dd-col-sidebar {
             position: sticky !important;
-            top: 0 !important;
+            top: 76px !important;
             display: flex !important;
             flex-direction: column !important;
             gap: 16px !important;
@@ -560,64 +513,145 @@
             overflow: visible !important;
             padding-bottom: 24px !important;
         }
-        .direct-design-modal .dd-card-section {
-            background: var(--color-bg-secondary) !important;
-            border: 1px solid var(--color-border-primary) !important;
+
+        /* Card Section - Contrast & Boundaries */
+        .dd-card-section {
+            background: #ffffff !important;
+            border: 1px solid rgba(226, 232, 240, 0.9) !important;
             border-radius: 16px !important;
             padding: 20px !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
             margin: 0 !important;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .dark .direct-design-modal .dd-card-section {
-            background: rgba(22, 19, 31, 0.75) !important;
+        .dark .dd-card-section {
+            background: #161E2E !important;
             border-color: rgba(255, 255, 255, 0.08) !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.25) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
         }
-        .direct-design-modal .dd-section-label,
-        .direct-design-modal .detail-label {
+
+        .dd-section-label,
+        .detail-label {
             font-size: 11px !important;
             font-weight: 800 !important;
-            letter-spacing: 0.07em !important;
+            letter-spacing: 0.06em !important;
             text-transform: uppercase !important;
             color: var(--color-text-secondary) !important;
         }
-        .dark .direct-design-modal .dd-section-label,
-        .dark .direct-design-modal .detail-label {
-            color: #cbd5e1 !important;
+        .dark .dd-section-label,
+        .dark .detail-label {
+            color: #94a3b8 !important;
         }
-        .direct-design-modal .workflow-steps {
-            display: flex !important;
+        #modalConceptLabel,
+        #modalConceptLabel *,
+        #modalCopyLabel,
+        #modalCopyLabel *,
+        #modalCaptionLabel,
+        #modalCaptionLabel * {
+            color: #ffffff !important;
+        }
+
+        /* Creative Tabs Navigation */
+        .creative-tab-btn {
+            padding: 6px 14px !important;
+            border-radius: 8px !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            border: none !important;
+            background: transparent !important;
+            color: var(--color-text-secondary) !important;
+            transition: all 0.15s !important;
+            display: inline-flex !important;
             align-items: center !important;
-            justify-content: space-between !important;
             gap: 6px !important;
-            padding: 12px 14px !important;
+        }
+        .creative-tab-btn.active {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
+        }
+        .creative-tab-btn:hover:not(.active) {
+            color: var(--color-text-primary) !important;
+            background: rgba(148, 163, 184, 0.12) !important;
+        }
+
+        /* Active Holder Banner & Pulse */
+        .active-holder-banner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(37, 99, 235, 0.06);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            transition: all 0.2s;
+        }
+        .dark .active-holder-banner {
+            background: rgba(37, 99, 235, 0.1);
+            border-color: rgba(37, 99, 235, 0.28);
+        }
+        @keyframes holder-pulse-anim {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+        .active-pulse-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2563eb;
+            display: inline-block;
+            animation: holder-pulse-anim 2s infinite;
+            flex-shrink: 0;
+        }
+
+        /* Streamlined Stepper in Sidebar (No scrollbar, wraps cleanly into rows) */
+        .workflow-steps {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: flex-start !important;
+            justify-content: space-between !important;
+            gap: 12px 2px !important;
+            padding: 12px 8px !important;
             background: var(--color-bg-secondary) !important;
             border: 1px solid var(--color-border-primary) !important;
             border-radius: 14px !important;
+            overflow: hidden !important;
+            overflow-x: hidden !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
             margin-bottom: 0 !important;
             position: relative !important;
         }
-        .dark .direct-design-modal .workflow-steps {
+        .workflow-steps::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+        .dark .workflow-steps {
             background: rgba(22, 19, 31, 0.75) !important;
             border-color: rgba(255, 255, 255, 0.08) !important;
         }
-        .direct-design-modal .workflow-steps::before {
+        .workflow-steps::before {
             display: none !important;
         }
-        .direct-design-modal .step-item {
+        .step-item {
             display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
-            gap: 5px !important;
-            flex: 1 !important;
-            min-width: 0 !important;
-            padding: 4px 2px !important;
+            gap: 4px !important;
+            flex: 0 0 calc(20% - 2px) !important;
+            max-width: calc(20% - 2px) !important;
+            padding: 2px !important;
+            box-sizing: border-box !important;
         }
-        .direct-design-modal .step-dot {
+        .step-dot {
             width: 24px !important;
             height: 24px !important;
             border-radius: 50% !important;
-            font-size: 11px !important;
+            font-size: 10.5px !important;
             font-weight: 800 !important;
             display: flex !important;
             align-items: center !important;
@@ -627,80 +661,156 @@
             color: var(--color-text-secondary) !important;
             transition: all 0.2s !important;
         }
-        .direct-design-modal .step-label {
-            font-size: 9.5px !important;
+        .step-label {
+            font-size: 8.5px !important;
             font-weight: 700 !important;
-            letter-spacing: 0.03em !important;
+            letter-spacing: 0.02em !important;
             text-transform: uppercase !important;
             text-align: center !important;
             color: var(--color-text-secondary) !important;
             white-space: normal !important;
             word-break: normal !important;
             line-height: 1.2 !important;
-            overflow: visible !important;
-            width: 100% !important;
+            max-width: 60px !important;
         }
-        .direct-design-modal .step-item.completed .step-dot {
+        .step-item.completed .step-dot {
             background: #10b981 !important;
             border-color: #10b981 !important;
             color: #ffffff !important;
             box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
         }
-        .direct-design-modal .step-item.completed .step-label {
+        .step-item.completed .step-label {
             color: #10b981 !important;
             font-weight: 800 !important;
         }
-        .direct-design-modal .step-item.active .step-dot {
-            background: #ea580c !important;
-            border-color: #ea580c !important;
+        .step-item.active .step-dot {
+            background: #2563eb !important;
+            border-color: #2563eb !important;
             color: #ffffff !important;
-            box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.2), 0 2px 8px rgba(234, 88, 12, 0.35) !important;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25), 0 2px 8px rgba(37, 99, 235, 0.35) !important;
         }
-        .direct-design-modal .step-item.active .step-label {
-            color: #ea580c !important;
+        .step-item.active .step-label {
+            color: #2563eb !important;
             font-weight: 900 !important;
         }
-        .direct-design-modal .step-item:not(.completed):not(.active) .step-dot {
+        .step-item:not(.completed):not(.active) .step-dot {
             opacity: 0.45 !important;
             background: transparent !important;
         }
-        .direct-design-modal .step-item:not(.completed):not(.active) .step-label {
+        .step-item:not(.completed):not(.active) .step-label {
             opacity: 0.55 !important;
         }
-        .direct-design-modal #modalMetaRow {
+
+        /* Standardized Thumbnail Cards with Hover Action Overlay */
+        .art-thumb-card {
+            position: relative !important;
+            width: 160px !important;
+            height: 110px !important;
+            border-radius: 12px !important;
+            overflow: hidden !important;
+            border: 1.5px solid var(--color-border-primary) !important;
+            background: var(--color-bg-secondary) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+            flex-shrink: 0 !important;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s !important;
+        }
+        .art-thumb-card:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+            border-color: #2563eb !important;
+        }
+        .art-thumb-card:hover .thumb-hover-overlay {
+            opacity: 1 !important;
+        }
+        .thumb-hover-overlay {
+            position: absolute !important;
+            inset: 0 !important;
+            background: rgba(15, 23, 42, 0.75) !important;
+            backdrop-filter: blur(2px) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            opacity: 0 !important;
+            transition: opacity 0.2s !important;
+            z-index: 5 !important;
+        }
+        .thumb-action-btn {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 8px !important;
+            background: rgba(255, 255, 255, 0.2) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            color: #ffffff !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            transition: all 0.15s !important;
+            text-decoration: none !important;
+        }
+        .thumb-action-btn:hover {
+            background: #2563eb !important;
+            border-color: #2563eb !important;
+            transform: scale(1.1) !important;
+        }
+        .thumb-action-btn.trash:hover {
+            background: #ef4444 !important;
+            border-color: #ef4444 !important;
+        }
+        .thumb-badge {
+            position: absolute !important;
+            bottom: 6px !important;
+            left: 6px !important;
+            padding: 2px 6px !important;
+            border-radius: 4px !important;
+            font-size: 9px !important;
+            font-weight: 800 !important;
+            background: rgba(15, 23, 42, 0.8) !important;
+            color: #ffffff !important;
+            backdrop-filter: blur(4px) !important;
+            pointer-events: none !important;
+            z-index: 2 !important;
+        }
+
+        /* Sidebar Meta, Deadlines & Actions */
+        #modalMetaRow {
             display: flex !important;
             flex-direction: column !important;
             gap: 12px !important;
             margin-bottom: 0 !important;
-            padding: 16px !important;
+            padding: 14px 16px !important;
             background: var(--color-bg-secondary) !important;
             border: 1px solid var(--color-border-primary) !important;
             border-radius: 14px !important;
         }
-        .dark .direct-design-modal #modalMetaRow {
+        .dark #modalMetaRow {
             background: rgba(22, 19, 31, 0.75) !important;
             border-color: rgba(255, 255, 255, 0.08) !important;
         }
-        .direct-design-modal #modalDeadlineRow {
+        #modalDeadlineRow {
             display: flex !important;
             flex-direction: column !important;
-            gap: 12px !important;
+            gap: 10px !important;
             margin-bottom: 0 !important;
             padding-top: 12px !important;
             border-top: 1px solid var(--color-border-primary) !important;
             width: 100% !important;
         }
-        .direct-design-modal #modalDeliverableDeadlineBox,
-        .direct-design-modal #modalRevisionDeadlineBox {
+        #modalDeliverableDeadlineBox,
+        #modalDesignerDeadlineBox,
+        #modalRevisionDeadlineBox {
             display: flex !important;
-            flex-direction: column !important;
-            gap: 6px !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            gap: 8px !important;
             width: 100% !important;
             min-width: 0 !important;
             margin: 0 !important;
         }
-        .direct-design-modal #modalDeliverableDeadlineBox label,
-        .direct-design-modal #modalRevisionDeadlineBox label {
+        #modalDeliverableDeadlineBox label,
+        #modalDesignerDeadlineBox label,
+        #modalRevisionDeadlineBox label {
             font-size: 11px !important;
             font-weight: 800 !important;
             text-transform: uppercase !important;
@@ -708,40 +818,34 @@
             margin-bottom: 0 !important;
             display: block !important;
         }
-        .direct-design-modal #modalDeliverableDeadlineBox > div,
-        .direct-design-modal #modalRevisionDeadlineBox > div {
-            display: flex !important;
-            gap: 8px !important;
-            width: 100% !important;
-            align-items: center !important;
-        }
-        .direct-design-modal #modalDeliverableDeadlineInput,
-        .direct-design-modal #modalRevisionDeadlineInputBox {
-            flex: 1 !important;
-            width: 100% !important;
-            min-width: 0 !important;
-            padding: 9px 12px !important;
+        #modalDeliverableDeadlineInput,
+        #modalDesignerDeadlineInput,
+        #modalRevisionDeadlineInputBox {
+            width: 130px !important;
+            padding: 6px 10px !important;
             border-radius: 8px !important;
-            font-size: 13px !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
             box-sizing: border-box !important;
+            background: var(--color-bg-primary) !important;
+            color: var(--color-text-primary) !important;
         }
-        .direct-design-modal #ddSidebarActions {
+        #ddSidebarActions {
             display: flex !important;
             flex-direction: column !important;
             gap: 10px !important;
             width: 100% !important;
             margin-top: 4px !important;
             padding-top: 14px !important;
-            padding-bottom: 16px !important;
             border-top: 1px solid var(--color-border-primary) !important;
         }
-        .direct-design-modal #submitStageForm {
+        #submitStageForm {
             display: flex !important;
             flex-direction: column !important;
             gap: 8px !important;
             width: 100% !important;
         }
-        .direct-design-modal #submitStageBtn {
+        #submitStageBtn {
             width: 100% !important;
             padding: 12px 18px !important;
             border-radius: 10px !important;
@@ -749,22 +853,22 @@
             font-size: 13px !important;
             text-transform: uppercase !important;
             letter-spacing: 0.04em !important;
-            background: #ea580c !important;
+            background: #2563eb !important;
             color: #ffffff !important;
             border: none !important;
             cursor: pointer !important;
-            box-shadow: 0 4px 14px rgba(234, 88, 12, 0.25) !important;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3) !important;
             transition: all 0.15s !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             gap: 6px !important;
         }
-        .direct-design-modal #submitStageBtn:hover {
-            background: #c2410c !important;
+        #submitStageBtn:hover {
+            background: #1d4ed8 !important;
             transform: translateY(-1px) !important;
         }
-        .direct-design-modal #saveContentBtn {
+        #saveContentBtn {
             width: 100% !important;
             padding: 10px 18px !important;
             border-radius: 10px !important;
@@ -779,19 +883,25 @@
             align-items: center !important;
             justify-content: center !important;
         }
-        .direct-design-modal #saveContentBtn:hover {
-            border-color: #3b82f6 !important;
-            color: #3b82f6 !important;
+        #saveContentBtn:hover {
+            border-color: #2563eb !important;
+            color: #2563eb !important;
         }
-        .direct-design-modal #showRevisionBtn {
+        #showRevisionBtn {
             width: 100% !important;
             padding: 10px 18px !important;
             border-radius: 10px !important;
             font-weight: 700 !important;
             font-size: 13px !important;
             text-align: center !important;
+            background: rgba(239, 68, 68, 0.06) !important;
+            color: #ef4444 !important;
+            border: 1.5px solid rgba(239, 68, 68, 0.3) !important;
         }
-        .direct-design-modal #modalDeleteBtn {
+        #showRevisionBtn:hover {
+            background: rgba(239, 68, 68, 0.12) !important;
+        }
+        #modalDeleteBtn {
             width: 100% !important;
             padding: 8px 14px !important;
             border-radius: 8px !important;
@@ -828,13 +938,14 @@
             </div>
         </div>
 
-        <!-- Detail Modal -->
+        <!-- Detail Workspace / Modal -->
     <div id="taskModalOverlay" class="cd-modal-overlay" onclick="closeTaskModal(event)">
-        <div class="cd-modal" >
-            <div class="cd-modal-header" style="padding:0; margin-bottom:16px; align-items:center; gap:16px; justify-content:space-between;">
+        <div class="cd-modal">
+            <!-- Header Bar -->
+            <div class="cd-modal-header" style="padding:0; margin-bottom:18px; align-items:center; gap:16px; justify-content:space-between; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
                     <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:0; flex-shrink:0;"></div>
-                    <div id="modalTopDeadlines" style="display:flex; align-items:center; gap:8px; flex-shrink:0;"></div>
+                    <div id="modalTopDeadlines" style="display:none; align-items:center; gap:8px; flex-shrink:0;"></div>
                 </div>
                 <div style="display:flex; align-items:center; gap:12px;">
                     @if($isAdmin || in_array($userRole, ['brandmanager', 'coordinator', 'approvercoordinator']))
@@ -843,8 +954,8 @@
                         Reassign Designer
                     </button>
                     @endif
-                    <a id="btnExportPpt" href="{{ route('deliverables.export.ppt', $deliverable) }}" class="cd-btn" style="padding:8px 14px; font-size:12px; background:#ea580c; color:#fff; border:none; box-shadow:0 4px 12px rgba(234,88,12,0.25); font-weight:800; border-radius:8px; transition:transform 0.15s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'" title="Download PPT">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right:4px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    <a id="btnExportPpt" href="{{ route('deliverables.export.ppt', $deliverable) }}" class="cd-btn cd-btn-outline" style="padding:7px 14px; font-size:12px; font-weight:700; border-radius:8px; display:inline-flex; align-items:center; gap:6px; color:var(--color-text-secondary); border:1.5px solid var(--color-border-primary); background:var(--color-bg-primary); text-decoration:none; transition:all 0.15s;" onmouseover="this.style.color='var(--color-text-primary)'; this.style.borderColor='#2563eb';" onmouseout="this.style.color='var(--color-text-secondary)'; this.style.borderColor='var(--color-border-primary)';" title="Download PPT">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                         Download PPT
                     </a>
                     <button type="button" onclick="closeTaskModal()" class="cd-btn cd-btn-outline" style="padding:8px; border-radius:8px; color:var(--color-text-secondary); cursor:pointer;" title="Close Modal">
@@ -852,516 +963,555 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Modal Body (Two-Column Layout) -->
             <div class="cd-modal-body">
-                <div id="standardTopContainer">
-                <!-- 1. Workflow Progress Stepper (TOP) -->
-                @php $stages = $stages ?? ($deliverable->getStages() ?? []); @endphp
-                <div class="workflow-steps" id="modalWorkflowSteps" style="margin-top: 4px; margin-bottom: 20px;">
-                    @foreach(collect($stages)->filter(fn($s) => !in_array($s, ['Closed', 'Close']))->values() as $index => $stage)
-                        <div class="step-item" data-stage="{{ $stage }}">
-                            <div class="step-dot">{{ $index + 1 }}</div>
-                            <div class="step-label">{{ $stage }}</div>
+                <div id="ddTwoColLayout" class="dd-two-col-layout">
+                    <!-- Left Column: Main Canvas & Creative Assets -->
+                    <div id="ddColMain" class="dd-col-main">
+                        <!-- Alert Banners -->
+                        <div id="modalRevisionAlert" style="display:none; padding:14px; background:rgba(239, 68, 68, 0.05); border:1px solid rgba(239, 68, 68, 0.25); border-radius:14px;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <svg width="18" height="18" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    <span style="color:#ef4444; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">Revision Requested</span>
+                                    <span id="modalRevisionAlertTargetBadge" style="display:none; align-items:center; gap:3px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:2px 7px; border-radius:5px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;"></span>
+                                </div>
+                                <div id="modalRevisionDeadlineBadge" style="display:none; align-items:center; gap:6px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:3px 8px; border-radius:6px; font-size:11px; font-weight:800; letter-spacing:0.02em;">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span id="modalRevisionDeadlineText"></span>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:12px; align-items:flex-start;">
+                                <div id="modalRevisionAlertText" style="flex:1; color:#ef4444; font-size:13px; font-weight:500; line-height:1.5; background:var(--color-bg-primary); padding:10px 14px; border-radius:10px; border:1px solid rgba(239, 68, 68, 0.25);"></div>
+                                <img id="modalRevisionAlertImage" src="" style="display:none; max-width:120px; max-height:80px; border-radius:8px; border:1px solid rgba(239, 68, 68, 0.3); object-fit:cover;">
+                            </div>
                         </div>
-                    @endforeach
-                </div>
 
-                <!-- 2. Compact Metadata Bar -->
-                <div id="modalMetaBar" style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px; background:var(--color-bg-secondary); padding:12px 16px; border-radius:12px; border:1px solid var(--color-border-primary);">
-                    <!-- Row 1: Core Stage, Priority & Client Status -->
-                    <div id="modalMetaRow" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px;">
-                        <div class="detail-item" style="display:flex; align-items:center; gap:8px; margin:0;">
-                            <label class="detail-label" style="margin:0; flex-shrink:0;">Current Stage:</label>
-                            <div id="modalStage" class="detail-val" style="font-weight:900; color:#0055D4; font-size:13px;">-</div>
-                        </div>
-                        <div class="detail-item" style="display:flex; align-items:center; gap:8px; margin:0;">
-                            <label class="detail-label" style="margin:0; flex-shrink:0;">Priority:</label>
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <input type="hidden" id="modalPriorityTaskId" value="">
-                                @if($isAdmin || in_array($userRole, ['brandmanager', 'writer', 'approver', 'approvercoordinator', 'coordinator']))
-                                    <select id="prioritySelect" onchange="updatePriorityInlineModal(this, document.getElementById('modalPriorityTaskId').value)" class="cd-btn cd-btn-outline" style="padding:3px 6px; border-radius:6px; font-size:12px; font-weight:800; background:transparent; border:none; color:var(--color-text-primary); cursor:pointer;">
-                                        <option value="High Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">High Priority (Urgent)</option>
-                                        <option value="Medium" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Medium (Stable)</option>
-                                        <option value="Low Priority" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Low Priority (Paused)</option>
-                                    </select>
-                                @else
-                                    <div id="modalPriorityDisplay" class="detail-val" style="font-weight:800; font-size:12px; color:var(--color-text-primary);"></div>
-                                @endif
+                        <div id="modalLatestCommentAlert" style="display:none; padding:14px; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.2); border-radius:14px;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                                    <span style="color:#10b981; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:0.05em;" id="modalLatestCommentTitle">Latest Comment</span>
+                                </div>
+                                <span id="modalLatestCommentDate" style="font-size:10px; color:#10b981; font-weight:600; opacity:0.8;"></span>
                             </div>
+                            <div id="modalLatestCommentText" style="color:var(--color-text-primary); font-size:13px; font-weight:500; font-style:italic; line-height:1.5; background:var(--color-bg-primary); padding:10px 14px; border-radius:10px; border:1px solid rgba(16, 185, 129, 0.15); white-space:pre-wrap;"></div>
                         </div>
-                        <div class="detail-item" style="display:flex; align-items:center; gap:8px; margin:0;">
-                            <label class="detail-label" style="margin:0; flex-shrink:0;">Client Status:</label>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <div id="modalClientStatusDisplay" class="detail-val" style="font-weight:800; font-size:12px; color:var(--color-text-primary);">Not Sent</div>
-                                <a id="modalClientReviewLink" href="#" target="_blank" style="display:none; align-items:center; gap:3px; font-size:11px; font-weight:800; color:#3b82f6; text-decoration:none;" title="Open Client Review Page">
-                                    🔗 Review Link
-                                </a>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Row 2: Deadlines (with dedicated breathing room and clean alignment) -->
-                    <div id="modalDeadlineRow" style="display:flex; flex-wrap:wrap; align-items:center; gap:20px; padding-top:10px; border-top:1px solid var(--color-border-primary);">
-                        <div class="detail-item" id="modalDeliverableDeadlineBox" style="display:flex; align-items:center; gap:8px; margin:0;">
-                            <label class="detail-label" style="color:#3b82f6; margin:0; flex-shrink:0;">Deliverable Due:</label>
-                            <div style="display:flex; gap:6px; align-items:center;">
-                                <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm" min="{{ date('Y-m-d') }}"
-                                    style="width:130px; padding:4px 8px; border:1.5px solid rgba(59,130,246,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                    onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
-                                <button type="button" id="saveDeadlineBtn" style="display:none; padding:4px 8px; background:#3b82f6; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
-                            </div>
-                        </div>
-                        <div class="detail-item" id="modalDesignerDeadlineBox" style="display:flex; align-items:center; gap:8px; margin:0;">
-                            <label class="detail-label" style="color:#ec4899; margin:0; flex-shrink:0;">Designer Due:</label>
-                            <div style="display:flex; gap:6px; align-items:center;">
-                                <input type="date" id="modalDesignerDeadlineInput" name="designer_deadline" form="submitStageForm"
-                                    style="width:130px; padding:4px 8px; border:1.5px solid rgba(236,72,153,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                    onfocus="this.style.borderColor='#ec4899'" onblur="this.style.borderColor='rgba(236,72,153,0.25)'"
-                                    onchange="showSaveDesignerDeadlineBtn()">
-                                <button type="button" id="saveDesignerDeadlineBtn" style="display:none; padding:4px 8px; background:#ec4899; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDesignerDeadline(this)">Save</button>
-                            </div>
-                        </div>
-                        <div class="detail-item" id="modalRevisionDeadlineBox" style="display:none; align-items:center; gap:8px; margin:0;">
-                            <label class="detail-label" style="color:#ef4444; margin:0; flex-shrink:0;">Revision Due:</label>
-                            <div style="display:flex; gap:6px; align-items:center;">
-                                <input type="date" id="modalRevisionDeadlineInputBox" name="revision_deadline" form="submitStageForm"
-                                    style="width:130px; padding:4px 8px; border:1.5px solid rgba(239,68,68,0.25); border-radius:6px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
-                                    onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='rgba(239,68,68,0.25)'"
-                                    onchange="showSaveRevisionDeadlineBtn()">
-                                <button type="button" id="saveRevisionDeadlineBtn" style="display:none; padding:4px 8px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveRevisionDeadline(this)">Save</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. Deliverable Name Field (Below Current Stage / Metadata Bar) -->
-                <div id="modalTaskTitleRow" style="display:flex; align-items:center; gap:12px; margin-bottom:20px; background:var(--color-bg-secondary); padding:10px 16px; border-radius:12px; border:1px solid var(--color-border-primary);">
-                    <label class="detail-label" style="margin:0; flex-shrink:0; font-size:11px; font-weight:900; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.1em;">Deliverable Name:</label>
-                    <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" value="{{ $deliverable->title ?? '' }}" style="font-size:15px; font-weight:800; color:var(--color-text-primary); margin:0; border:1.5px solid var(--color-border-primary); background:var(--color-bg-primary); width:100%; flex:1; outline:none; border-radius:8px; padding:6px 12px; transition:all 0.2s;" onfocus="this.style.borderColor='#0055D4'; this.style.background='var(--color-bg-primary)'" onblur="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-primary)'">
-                </div>
-
-
-                <div style="display:flex; gap:24px; flex-wrap:wrap;">
-                    <!-- Latest Comment Banner -->
-                    <div id="modalLatestCommentAlert" style="display:none; flex:1; min-width:300px; padding:12px; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.2); border-radius:12px; margin-bottom:16px;">
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                                <span style="color:#10b981; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:0.05em;" id="modalLatestCommentTitle">Latest Comment</span>
-                            </div>
-                            <span id="modalLatestCommentDate" style="font-size:10px; color:#10b981; font-weight:600; opacity:0.8;"></span>
-                        </div>
-                        <div id="modalLatestCommentText" style="color:var(--color-text-primary); font-size:13px; font-weight:500; font-style:italic; line-height:1.5; background:var(--color-bg-primary); padding:10px 12px; border-radius:8px; border:1px solid rgba(16, 185, 129, 0.15); white-space:pre-wrap;"></div>
-                    </div>
-    
-                    <!-- Revision Alert Banner -->
-                    <div id="modalRevisionAlert" style="display:none; flex:1; min-width:300px; padding:12px; background:rgba(239, 68, 68, 0.05); border:1px solid rgba(239, 68, 68, 0.2); border-radius:12px; margin-bottom:16px;">
-                        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <svg width="18" height="18" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                <span style="color:#ef4444; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">Revision Requested</span>
-                                <span id="modalRevisionAlertTargetBadge" style="display:none; align-items:center; gap:3px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:2px 7px; border-radius:5px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;"></span>
-                            </div>
-                            <div id="modalRevisionDeadlineBadge" style="display:none; align-items:center; gap:6px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:3px 8px; border-radius:6px; font-size:11px; font-weight:800; letter-spacing:0.02em;">
-                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                <span id="modalRevisionDeadlineText"></span>
-                            </div>
-                        </div>
-                        <div style="display:flex; gap:12px; align-items:flex-start;">
-                            <div id="modalRevisionAlertText" style="flex:1; color:#ef4444; font-size:13px; font-weight:500; line-height:1.5; background:var(--color-bg-primary); padding:10px 12px; border-radius:8px; border:1px solid rgba(239, 68, 68, 0.3);"></div>
-                            <img id="modalRevisionAlertImage" src="" style="display:none; max-width:120px; max-height:80px; border-radius:8px; border:1px solid rgba(239, 68, 68, 0.3); object-fit:cover;">
-                        </div>
-                    </div>
-                </div>
-            </div> <!-- /#standardTopContainer -->
-
-            <!-- 2-Column Responsive Layout Container for Direct Design -->
-            <div id="ddTwoColLayout" class="dd-two-col-layout" style="display:none;">
-                <div id="ddColMain" class="dd-col-main"></div>
-                <div id="ddColSidebar" class="dd-col-sidebar">
-                    <div id="ddSidebarMetaCard"></div>
-                    <div id="ddSidebarActions"></div>
-                </div>
-            </div>
-
-            <div class="detail-grid" id="standardDetailGrid">
-                    <div class="detail-item full dd-card-section" id="modalConceptGroup" style="margin-bottom: 24px !important; padding-top: 16px;">
+                        <!-- 1. Creative Content Card (Concept, Copy, Caption) -->
                         @php
                             $isOtherDeliv = ($deliverable->project?->workflow_type ?? '') !== 'retainer' && !in_array(strtolower(trim($deliverable->post_type ?? '')), ['outlines', 'outline']);
                             $isBriefOnlyDeliverable = $isOtherDeliv || $deliverable->isDirectDesign();
                             $initialBriefOrConcept = $deliverable->concept ?: ($deliverable->notes ?: '');
                         @endphp
-                        <label class="detail-label dd-section-label" style="font-size:12px; font-weight:900; color:#fff; background:{{ $deliverable->isDirectDesign() ? '#6366f1' : '#3b82f6' }}; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3);">{{ $isBriefOnlyDeliverable ? 'Brief' : 'Concept' }}</label>
-                        <input type="hidden" id="modalConcept" name="concept" value="{{ $initialBriefOrConcept }}" form="submitStageForm">
-                        <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px; border-radius:10px;">{!! $initialBriefOrConcept !!}</div>
-                    </div>
-                    <div class="detail-item full dd-card-section" id="modalCopyGroup" style="{{ $isBriefOnlyDeliverable ? 'display:none;' : '' }} margin-bottom: 24px !important; padding-top: 24px;">
-                        <label class="detail-label dd-section-label" style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3);">Copy</label>
-                        <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
-                        <input type="hidden" id="deleteReferenceFile" name="delete_reference_file" value="0" form="submitStageForm">
-                        <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:140px; background:var(--color-bg-primary); border-color:var(--color-border-primary); border-radius:10px;"></div>
-                    </div>
-                    <div class="detail-item full dd-card-section" id="modalCaptionGroup" style="{{ $isBriefOnlyDeliverable ? 'display:none;' : '' }} margin-bottom: 24px !important; padding-top: 24px;">
-                        <label class="detail-label dd-section-label" style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3);">Caption</label>
-                        <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
-                        <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px; border-radius:10px;"></div>
-                    </div>
-                    <div class="detail-item full dd-card-section" id="modalReferenceGroup" style="clear:both; position:relative; z-index:10; margin-top:32px !important; padding-top:16px;">
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
-                            <div id="modalReferenceLabel" class="detail-label dd-section-label" style="font-size:12px; font-weight:900; color:#fff; background:#0ea5e9; padding:6px 12px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(14,165,233,0.3); position:relative; z-index:20;">Reference</div>
-                            <button type="button" id="toggleRefEditBtn" onclick="
-                                const el = document.getElementById('modalReferenceEditArea');
-                                if (el) {
-                                    const isHidden = el.style.display === 'none' || !el.style.display;
-                                    el.style.display = isHidden ? 'grid' : 'none';
-                                    this.textContent = isHidden ? '✕ Close' : '+ Add / Edit References';
-                                }
-                            " style="display:none; background:rgba(14,165,233,0.1); color:#0ea5e9; border:1px solid rgba(14,165,233,0.25); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer;">+ Add / Edit References</button>
-                        </div>
-                        <div id="modalReference" class="detail-val" style="margin-bottom: 24px; display: block; overflow: hidden; margin-top: 8px;"></div>
-                        <div id="modalReferenceEditArea" style="display:none; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top: 16px;">
-                            <!-- Section 1: Reference Files & Images -->
-                            <div style="padding:16px; background:rgba(0,85,212,0.03); border:1px solid rgba(0,85,212,0.12); border-radius:14px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-                                    <div style="display:flex; align-items:center; gap:8px;">
-                                        <span style="font-size:11px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em;">📁 Reference Images & Files</span>
-                                        <div id="modalReferenceUploadStatus" style="display:none; align-items:center; gap:6px; font-size:10px; font-weight:800;"></div>
-                                    </div>
-                                    <button type="button" onclick="addReferenceInputRow('file')" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.2); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;">
-                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                                        Add Image / File
-                                    </button>
-                                </div>
-                                <div id="modalReferenceFilesContainer" style="display:flex; flex-direction:column; gap:10px;">
-                                    <div class="ref-input-row">
-                                        <input type="file" id="modalReferenceFileInput" name="reference_files[]" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" multiple style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="autoUploadModalReference(this)">
-                                        <div id="modalReferenceMultiPreviews" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Section 2: Reference Links & URLs -->
-                            <div style="padding:16px; background:rgba(59,130,246,0.03); border:1px solid rgba(59,130,246,0.12); border-radius:14px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-                                    <span style="font-size:11px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em;">🔗 Reference Links & URLs</span>
-                                    <button type="button" onclick="addReferenceInputRow('link')" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:rgba(59,130,246,0.1); color:#2563eb; border:1px solid rgba(59,130,246,0.2); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;">
-                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                                        Add Link
-                                    </button>
-                                </div>
-                                <div id="modalReferenceLinksContainer" style="display:flex; flex-direction:column; gap:10px;">
-                                    <div class="ref-input-row">
-                                        <input type="url" id="modalReferenceUrl" name="reference_urls[]" form="submitStageForm" placeholder="https://..." style="width:100%; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div class="detail-item full dd-card-section" id="modalTeamGroup" style="border-top:1px solid var(--color-border-primary); padding-top:24px; margin-top:0px;">
-                        <label class="detail-label dd-section-label" style="margin-bottom:16px; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em; font-size:11px;">Deliverable Team</label>
-                        <div id="modalTeamGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:12px;"></div>
-                    </div>
-                    <div class="detail-item full hist-box dd-card-section" id="modalApprovalsBox" style="display:none; border-top:1px solid var(--color-border-primary); margin-top:10px;">
-                        <button class="hist-toggle" onclick="toggleHistory('modalApprovalHistory', this)">
-                            <span style="display:flex; align-items:center; gap:8px; flex:1;">
-                                <span style="width:7px;height:7px;border-radius:50%;background:#10b981;flex-shrink:0;"></span>
-                                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#10b981;">Submission History</span>
-                                <span id="modalApprovalsCount" class="hist-count hist-count-green"></span>
-                            </span>
-                            <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div id="modalApprovalHistory" class="hist-body" style="display:none; flex-direction:column; gap:10px;"></div>
-                    </div>
-
-                    {{-- Direct Design Review Route (Send to Approver or Writer) --}}
-                    <div id="directDesignRouteArea" class="detail-item full dd-card-section" style="display:none; margin-top:10px; padding:16px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:16px;">
-                        <label class="detail-label dd-section-label" style="color:var(--color-text-primary); margin-bottom:10px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:6px;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
-                            Next Review Step
-                        </label>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                            <label id="directRouteApproverLabel" style="display:flex; flex-direction:column; gap:4px; padding:12px; border:1.5px solid rgba(234,88,12,0.4); background:rgba(234,88,12,0.05); border-radius:12px; cursor:pointer; transition:all 0.15s;">
+                        <div class="dd-card-section" id="modalCreativeCard">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--color-border-primary); padding-bottom:12px; flex-wrap:wrap; gap:10px;">
                                 <div style="display:flex; align-items:center; gap:8px;">
-                                    <input type="radio" name="direct_design_route" id="directRouteApproverRadio" value="approver" checked onchange="handleDirectDesignRouteChange('approver')" style="accent-color:#ea580c; cursor:pointer;">
-                                    <span style="font-weight:700; font-size:12px; color:var(--color-text-primary);">Send to Approver</span>
+                                    <div style="width:28px; height:28px; border-radius:8px; background:rgba(37,99,235,0.1); display:flex; align-items:center; justify-content:center; color:#2563eb;">
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    </div>
+                                    <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">Creative Content</span>
                                 </div>
-                                <span style="font-size:10px; color:var(--color-text-secondary); padding-left:22px; font-weight:500;">Mandatory approval · skips writer</span>
-                            </label>
-                            <label id="directRouteWriterLabel" style="display:flex; flex-direction:column; gap:4px; padding:12px; border:1.5px solid var(--color-border-primary); background:transparent; border-radius:12px; cursor:pointer; transition:all 0.15s;">
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <input type="radio" name="direct_design_route" id="directRouteWriterRadio" value="writer" onchange="handleDirectDesignRouteChange('writer')" style="accent-color:#0ea5e9; cursor:pointer;">
-                                    <span style="font-weight:700; font-size:12px; color:var(--color-text-primary);">Send to Writer</span>
+                            </div>
+
+                            <!-- Section 1: Concept / Brief -->
+                            <div class="detail-item full" id="modalConceptGroup" style="display:block; margin:0 0 20px 0;">
+                                <div style="margin-bottom:8px;">
+                                    <label class="detail-label dd-section-label" id="modalConceptLabel" style="font-size:11px; font-weight:900; color:#ffffff !important; background:{{ $deliverable->isDirectDesign() ? '#6366f1' : '#3b82f6' }}; padding:4px 10px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.06em; box-shadow:0 2px 6px rgba(59,130,246,0.25);">
+                                        <span id="modalConceptTitleText" style="color:#ffffff !important;">{{ $isBriefOnlyDeliverable ? 'Brief' : 'Concept' }}</span>
+                                    </label>
                                 </div>
-                                <span style="font-size:10px; color:var(--color-text-secondary); padding-left:22px; font-weight:500;">Optional · writer reviews first</span>
-                            </label>
-                        </div>
-                        <input type="hidden" name="send_to" id="directDesignSendTo" value="approver" form="submitStageForm">
-                    </div>
+                                <input type="hidden" id="modalConcept" name="concept" value="{{ $initialBriefOrConcept }}" form="submitStageForm">
+                                <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:160px; border-radius:10px;">{!! $initialBriefOrConcept !!}</div>
+                            </div>
 
-                    <div id="writerSelectionArea" class="detail-item full dd-card-section" style="display:none; margin-top:10px; padding:18px; background:rgba(14,165,233,0.05); border:1px solid rgba(14,165,233,0.15); border-radius:16px;">
-                        <label class="detail-label dd-section-label" style="color:#0ea5e9; margin-bottom:10px;">Assign Writer for Review</label>
-                        <select name="writer_id" form="submitStageForm" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                            <option value="">Select Writer...</option>
-                            @if(isset($writers))
-                                @foreach($writers as $writer)
-                                    <option value="{{ $writer->id }}">{{ $writer->name }}</option>
-                                @endforeach
-                            @endif
-                        </select>
-                        <p style="font-size:11px; color:#0ea5e9; margin-top:8px; font-weight:600;">Selection required to advance to Writer Review stage.</p>
-                    </div>
+                            <!-- Section 2: Copy -->
+                            <div class="detail-item full" id="modalCopyGroup" style="{{ $isBriefOnlyDeliverable ? 'display:none;' : 'display:block;' }} margin:0 0 20px 0;">
+                                <div style="margin-bottom:8px;">
+                                    <label class="detail-label dd-section-label" id="modalCopyLabel" style="font-size:11px; font-weight:900; color:#ffffff !important; background:#3b82f6; padding:4px 10px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.06em; box-shadow:0 2px 6px rgba(59,130,246,0.25);">
+                                        <span style="color:#ffffff !important;">Copy</span>
+                                    </label>
+                                </div>
+                                <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
+                                <input type="hidden" id="deleteReferenceFile" name="delete_reference_file" value="0" form="submitStageForm">
+                                <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:160px; background:var(--color-bg-primary); border-color:var(--color-border-primary); border-radius:10px;"></div>
+                            </div>
 
-                    <div id="approverSelectionArea" class="detail-item full dd-card-section" style="display:none; margin-top:10px; padding:18px; background:rgba(234,88,12,0.05); border:1px solid rgba(234,88,12,0.15); border-radius:16px;">
-                        <label class="detail-label dd-section-label" style="color:#ea580c; margin-bottom:10px;">Assign Next Approver</label>
-                        <select name="approver_id" form="submitStageForm" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                            <option value="">Select Approver...</option>
-                            @foreach($approvers as $approver)
-                                <option value="{{ $approver->id }}">{{ $approver->name }}</option>
-                            @endforeach
-                        </select>
-                        <p style="font-size:11px; color:#ea580c; margin-top:8px; font-weight:600;">Selection required to advance to Approver stage.</p>
-                    </div>
-
-                    <div id="brandManagerSelectionArea" class="detail-item full dd-card-section" style="display:none; margin-top:10px; padding:18px; background:rgba(37,99,235,0.05); border:1px solid rgba(37,99,235,0.15); border-radius:16px;">
-                        <label class="detail-label dd-section-label" style="color:#3b82f6; margin-bottom:10px;">Assign Next Brand Manager</label>
-                        <select name="brand_manager_id" form="submitStageForm" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                            <option value="">Select Brand Manager...</option>
-                            @foreach($brandManagers as $bm)
-                                <option value="{{ $bm->id }}">{{ $bm->name }}</option>
-                            @endforeach
-                        </select>
-                        <p style="font-size:11px; color:#3b82f6; margin-top:8px; font-weight:600;">Selection required to advance to Brand Manager stage.</p>
-                    </div>
-
-                    <div id="modalFurtherApproverGroup" class="detail-item full dd-card-section" style="display:none; margin-top:10px; padding:18px; background:rgba(124,58,237,0.05); border:1px solid rgba(124,58,237,0.15); border-radius:16px;">
-                        <label class="detail-label dd-section-label" style="color:#7c3aed; margin-bottom:10px; text-transform:uppercase; font-size:10px; letter-spacing:0.08em; font-weight:700;">
-                            Further Approver <span style="text-transform:none; letter-spacing:0; font-weight:500; opacity:0.8;">(optional — adds another approval step before Brand Manager)</span>
-                        </label>
-                        <select name="further_approver_id" form="submitStageForm" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(124,58,237,0.2); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                            <option value="">— Skip, go directly to Brand Manager —</option>
-                            @foreach($approvers as $approver)
-                                <option value="{{ $approver->id }}">{{ $approver->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div id="coordinatorSelectionArea" class="detail-item full" style="display:none; margin-top:0px; padding:20px; background:rgba(14,165,233,0.05); border:1px solid rgba(14,165,233,0.1); border-radius:16px;">
-                        <label class="detail-label" style="color:#0ea5e9; margin-bottom:12px;">Assign Next Coordinator</label>
-                        <select name="coordinator_id" form="submitStageForm" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                            <option value="">Select Coordinator...</option>
-                            @foreach($coordinators as $coord)
-                                <option value="{{ $coord->id }}">{{ $coord->name }}</option>
-                            @endforeach
-                        </select>
-                        <p style="font-size:11px; color:#0ea5e9; margin-top:8px; font-weight:600;">Selection required to advance to Coordinator stage.</p>
-                    </div>
-
-                    <div id="designerSelectionArea" class="detail-item full" style="display:none; margin-top:0px; padding:20px; background:rgba(139,92,246,0.05); border:1px solid rgba(139,92,246,0.1); border-radius:16px;">
-                        <label class="detail-label" style="color:#8b5cf6; margin-bottom:12px;">Assign Next Designer</label>
-                        <select name="designer_id" form="submitStageForm" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                            <option value="">Select Designer...</option>
-                            @foreach($designers as $designer)
-                                <option value="{{ $designer->id }}">{{ $designer->name }}</option>
-                            @endforeach
-                        </select>
-                        <p style="font-size:11px; color:#8b5cf6; margin-top:8px; font-weight:600;">Selection required to advance to Designer stage.</p>
-                    </div>
-
-                    <!-- Deliver Final Artwork (Tabbed Attachment Block) -->
-                    <div id="designerDeliveryArea" class="detail-item full dd-card-section" style="display:none; margin-top:20px; padding:20px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:16px;">
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-                            <label class="detail-label dd-section-label" style="color:#10b981; margin:0; font-size:11px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
-                                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                Deliver Final Artwork
-                            </label>
-                            <!-- Tab Switcher -->
-                            <div class="dd-tab-switcher" style="display:flex; background:var(--color-bg-primary); padding:3px; border-radius:8px; border:1px solid var(--color-border-primary); gap:4px;">
-                                <button type="button" id="tabArtworkUploadBtn" onclick="switchArtworkDeliveryTab('upload')" class="dd-tab-btn active" style="padding:5px 12px; border-radius:6px; font-size:11px; font-weight:700; border:none; cursor:pointer; background:rgba(16,185,129,0.15); color:#10b981; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px;">
-                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                    Upload File(s)
-                                </button>
-                                <button type="button" id="tabArtworkLinkBtn" onclick="switchArtworkDeliveryTab('link')" class="dd-tab-btn" style="padding:5px 12px; border-radius:6px; font-size:11px; font-weight:700; border:none; cursor:pointer; background:transparent; color:var(--color-text-secondary); transition:all 0.15s; display:inline-flex; align-items:center; gap:6px;">
-                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                    External Link
-                                </button>
+                            <!-- Section 3: Caption -->
+                            <div class="detail-item full" id="modalCaptionGroup" style="{{ $isBriefOnlyDeliverable ? 'display:none;' : 'display:block;' }} margin:0;">
+                                <div style="margin-bottom:8px;">
+                                    <label class="detail-label dd-section-label" id="modalCaptionLabel" style="font-size:11px; font-weight:900; color:#ffffff !important; background:#3b82f6; padding:4px 10px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.06em; box-shadow:0 2px 6px rgba(59,130,246,0.25);">
+                                        <span style="color:#ffffff !important;">Caption</span>
+                                    </label>
+                                </div>
+                                <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
+                                <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:160px; border-radius:10px;"></div>
                             </div>
                         </div>
 
-                        {{-- Self-contained form --}}
-                        <form id="artworkDeliveryForm" method="POST" enctype="multipart/form-data" onsubmit="event.preventDefault(); submitArtworkDeliveryForm(this);">
-                            @csrf
-                            <input type="hidden" name="action" value="save_only">
+                        <!-- 2. Final Designs Preview & Delivery Card (Placed right under Creative Content) -->
+                        <div class="dd-card-section" id="modalFinalGroup">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--color-border-primary); padding-bottom:12px; flex-wrap:wrap; gap:10px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:28px; height:28px; border-radius:8px; background:rgba(16,185,129,0.1); display:flex; align-items:center; justify-content:center; color:#10b981;">
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    </div>
+                                    <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">Final Designs Preview</span>
+                                </div>
+                            </div>
+                            <div id="modalFinal" class="thumbnail-gallery" style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; min-height:40px;"></div>
+
+                            <!-- Deliver Final Artwork (Tabbed block) -->
+                            <div id="designerDeliveryArea" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--color-border-primary);">
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                                    <label class="detail-label dd-section-label" style="color:#10b981; margin:0; font-size:11px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        Deliver Final Artwork
+                                    </label>
+                                    <!-- Tab Switcher -->
+                                    <div class="dd-tab-switcher" style="display:flex; background:var(--color-bg-primary); padding:3px; border-radius:8px; border:1px solid var(--color-border-primary); gap:4px;">
+                                        <button type="button" id="tabArtworkUploadBtn" onclick="switchArtworkDeliveryTab('upload')" class="dd-tab-btn active" style="padding:5px 12px; border-radius:6px; font-size:11px; font-weight:700; border:none; cursor:pointer; background:rgba(16,185,129,0.15); color:#10b981; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px;">
+                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                            Upload File(s)
+                                        </button>
+                                        <button type="button" id="tabArtworkLinkBtn" onclick="switchArtworkDeliveryTab('link')" class="dd-tab-btn" style="padding:5px 12px; border-radius:6px; font-size:11px; font-weight:700; border:none; cursor:pointer; background:transparent; color:var(--color-text-secondary); transition:all 0.15s; display:inline-flex; align-items:center; gap:6px;">
+                                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                            External Link
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <form id="artworkDeliveryForm" method="POST" enctype="multipart/form-data" onsubmit="event.preventDefault(); submitArtworkDeliveryForm(this);">
+                                    @csrf
+                                    <input type="hidden" name="action" value="save_only">
+                                    
+                                    <!-- Pane 1: File Upload Dropzone -->
+                                    <div id="paneArtworkUpload" style="display:block;">
+                                        <label for="modalArtworkFile" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:22px 16px; border:1.5px dashed var(--color-border-primary); border-radius:12px; cursor:pointer; background:var(--color-bg-primary); transition:all 0.2s;" onmouseenter="this.style.borderColor='#10b981'; this.style.background='rgba(16,185,129,0.03)';" onmouseleave="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-primary)';">
+                                            <div style="width:40px; height:40px; border-radius:10px; background:rgba(16,185,129,0.1); display:flex; align-items:center; justify-content:center; margin-bottom:8px; color:#10b981;">
+                                                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                            </div>
+                                            <div style="font-size:13px; font-weight:700; color:var(--color-text-primary);" id="artworkFileLabel">Click to browse or drop artwork files here</div>
+                                            <div style="font-size:11px; color:var(--color-text-secondary); margin-top:4px;">Supports PNG, JPG, GIF, WebP, MP4, WebM, PDF (auto-saves on selection)</div>
+                                            <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*,video/*,application/pdf,.pdf" multiple style="display:none;" onchange="autoUploadModalArtwork(this)">
+                                        </label>
+                                        <div id="modalArtworkPdfPreview" style="display:none; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:260px; margin-top:10px;">
+                                            <svg width="22" height="22" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+                                            <span id="modalArtworkPdfName" style="font-size:11px; font-weight:700; color:#ef4444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                                        </div>
+                                        <img id="modalArtworkPreview" src="" style="display:none; margin-top:10px; max-width:100%; max-height:160px; border-radius:10px; border:1px solid var(--color-border-primary); object-fit:contain;">
+                                        <video id="modalArtworkVideoPreview" controls style="display:none; margin-top:10px; max-width:100%; max-height:160px; border-radius:10px; border:1px solid var(--color-border-primary);"></video>
+                                    </div>
+
+                                    <!-- Pane 2: External Link Input -->
+                                    <div id="paneArtworkLink" style="display:none;">
+                                        <div style="font-size:11px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">External Cloud / Figma Link</div>
+                                        <div style="display:flex; gap:8px;">
+                                            <input type="url" name="final_designs_link" placeholder="https://drive.google.com/… or Figma / Dropbox URL" style="flex:1; padding:10px 14px; border:1.5px solid var(--color-border-primary); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='var(--color-border-primary)'">
+                                            <button type="submit" style="padding:10px 18px; background:#10b981; color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 2px 8px rgba(16,185,129,0.25);">
+                                                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                                Save Link
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- 3. References & Attachments Card -->
+                        <div class="dd-card-section" id="modalReferenceGroup">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:28px; height:28px; border-radius:8px; background:rgba(14,165,233,0.1); display:flex; align-items:center; justify-content:center; color:#0ea5e9;">
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                                    </div>
+                                    <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">References & Attachments</span>
+                                </div>
+                                <button type="button" id="toggleRefEditBtn" onclick="
+                                    const el = document.getElementById('modalReferenceEditArea');
+                                    if (el) {
+                                        const isHidden = el.style.display === 'none' || !el.style.display;
+                                        el.style.display = isHidden ? 'grid' : 'none';
+                                        this.textContent = isHidden ? '✕ Close' : '+ Add / Edit References';
+                                    }
+                                " style="display:inline-flex; align-items:center; gap:6px; background:rgba(14,165,233,0.1); color:#0ea5e9; border:1px solid rgba(14,165,233,0.25); border-radius:8px; padding:5px 12px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;">+ Add / Edit References</button>
+                            </div>
+                            <div id="modalReference" class="thumbnail-gallery" style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; min-height:40px; margin-bottom:8px;"></div>
                             
-                            <!-- Pane 1: File Upload Dropzone -->
-                            <div id="paneArtworkUpload" style="display:block;">
-                                <label for="modalArtworkFile" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:22px 16px; border:1.5px dashed var(--color-border-primary); border-radius:12px; cursor:pointer; background:var(--color-bg-primary); transition:all 0.2s;" onmouseenter="this.style.borderColor='#10b981'; this.style.background='rgba(16,185,129,0.03)';" onmouseleave="this.style.borderColor='var(--color-border-primary)'; this.style.background='var(--color-bg-primary)';">
-                                    <div style="width:40px; height:40px; border-radius:10px; background:rgba(16,185,129,0.1); display:flex; align-items:center; justify-content:center; margin-bottom:8px; color:#10b981;">
-                                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            <div id="modalReferenceEditArea" style="display:none; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top:16px; padding-top:16px; border-top:1px solid var(--color-border-primary);">
+                                <!-- Files & Images Section -->
+                                <div style="padding:16px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:14px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            <span style="font-size:11px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em;">📁 Images & Files</span>
+                                            <div id="modalReferenceUploadStatus" style="display:none; align-items:center; gap:6px; font-size:10px; font-weight:800;"></div>
+                                        </div>
+                                        <button type="button" onclick="addReferenceInputRow('file')" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.2); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                            Add File
+                                        </button>
                                     </div>
-                                    <div style="font-size:13px; font-weight:700; color:var(--color-text-primary);" id="artworkFileLabel">Click to browse or drop artwork files here</div>
-                                    <div style="font-size:11px; color:var(--color-text-secondary); margin-top:4px;">Supports PNG, JPG, GIF, WebP, MP4, WebM, PDF (auto-saves on selection)</div>
-                                    <input id="modalArtworkFile" type="file" name="final_designs_file" accept="image/*,video/*,application/pdf,.pdf" multiple style="display:none;" onchange="autoUploadModalArtwork(this)">
-                                </label>
-                                <div id="modalArtworkPdfPreview" style="display:none; align-items:center; gap:8px; padding:10px 14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; max-width:260px; margin-top:10px;">
-                                    <svg width="22" height="22" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
-                                    <span id="modalArtworkPdfName" style="font-size:11px; font-weight:700; color:#ef4444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                                    <div id="modalReferenceFilesContainer" style="display:flex; flex-direction:column; gap:10px;">
+                                        <div class="ref-input-row">
+                                            <input type="file" id="modalReferenceFileInput" name="reference_files[]" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" multiple style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="autoUploadModalReference(this)">
+                                            <div id="modalReferenceMultiPreviews" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;"></div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <img id="modalArtworkPreview" src="" style="display:none; margin-top:10px; max-width:100%; max-height:160px; border-radius:10px; border:1px solid var(--color-border-primary); object-fit:contain;">
-                                <video id="modalArtworkVideoPreview" controls style="display:none; margin-top:10px; max-width:100%; max-height:160px; border-radius:10px; border:1px solid var(--color-border-primary);"></video>
+
+                                <!-- Links Section -->
+                                <div style="padding:16px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:14px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                                        <span style="font-size:11px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em;">🔗 Links & URLs</span>
+                                        <button type="button" onclick="addReferenceInputRow('link')" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:rgba(59,130,246,0.1); color:#2563eb; border:1px solid rgba(59,130,246,0.2); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                            Add Link
+                                        </button>
+                                    </div>
+                                    <div id="modalReferenceLinksContainer" style="display:flex; flex-direction:column; gap:10px;">
+                                        <div class="ref-input-row">
+                                            <input type="url" id="modalReferenceUrl" name="reference_urls[]" form="submitStageForm" placeholder="https://..." style="width:100%; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Histories (Accordions) -->
+                        <div class="detail-item full hist-box dd-card-section" id="modalApprovalsBox" style="display:none;">
+                            <button class="hist-toggle" onclick="toggleHistory('modalApprovalHistory', this)">
+                                <span style="display:flex; align-items:center; gap:8px; flex:1;">
+                                    <span style="width:7px;height:7px;border-radius:50%;background:#10b981;flex-shrink:0;"></span>
+                                    <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#10b981;">Submission History</span>
+                                    <span id="modalApprovalsCount" class="hist-count hist-count-green"></span>
+                                </span>
+                                <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div id="modalApprovalHistory" class="hist-body" style="display:none; flex-direction:column; gap:10px;"></div>
+                        </div>
+
+                        <div class="detail-item full hist-box dd-card-section" id="modalHistoryBox" style="display:none;">
+                            <button class="hist-toggle" onclick="toggleHistory('modalRevisionHistory', this)">
+                                <span style="display:flex; align-items:center; gap:8px; flex:1;">
+                                    <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>
+                                    <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#ef4444;">Revision History</span>
+                                    <span id="modalRevisionsCount" class="hist-count hist-count-red"></span>
+                                </span>
+                                <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div id="modalRevisionHistory" class="hist-body" style="display:none; flex-wrap:wrap; flex-direction:row; gap:12px; align-items:stretch;"></div>
+                        </div>
+
+                        <div class="detail-item full hist-box dd-card-section" id="modalReassignmentHistoryBox" style="display:none;">
+                            <button class="hist-toggle" onclick="toggleHistory('modalReassignmentHistory', this)">
+                                <span style="display:flex; align-items:center; gap:8px; flex:1;">
+                                    <span style="width:7px;height:7px;border-radius:50%;background:#ec4899;flex-shrink:0;"></span>
+                                    <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#ec4899;">Reassignment History</span>
+                                    <span id="modalReassignmentsCount" class="hist-count" style="background:rgba(236,72,153,0.1); color:#ec4899; border:1px solid rgba(236,72,153,0.2);"></span>
+                                </span>
+                                <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div id="modalReassignmentHistory" class="hist-body" style="display:none; flex-direction:column; gap:12px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Sidebar (Sticky Workflow, Metadata, Actions) -->
+                    <div id="ddColSidebar" class="dd-col-sidebar">
+                        <!-- Sidebar Card 1: Deliverable Name, Active Stage, Stepper & Deadlines -->
+                        <div class="dd-card-section" id="ddSidebarMetaCard">
+                            <!-- Deliverable Title Input -->
+                            <div id="modalTaskTitleRow" style="margin-bottom:14px;">
+                                <label class="detail-label" style="margin:0 0 6px 0; display:block;">Deliverable Name</label>
+                                <input type="text" id="modalTaskTitle" name="title" form="submitStageForm" class="batch-field" data-field="title" value="{{ $deliverable->title ?? '' }}" style="font-size:14px; font-weight:800; color:var(--color-text-primary); border:1.5px solid var(--color-border-primary); background:var(--color-bg-secondary); width:100%; outline:none; border-radius:10px; padding:10px 14px; box-sizing:border-box; transition:all 0.2s;" onfocus="this.style.borderColor='#2563eb';" onblur="this.style.borderColor='var(--color-border-primary)';">
                             </div>
 
-                            <!-- Pane 2: External Link Input -->
-                            <div id="paneArtworkLink" style="display:none;">
-                                <div style="font-size:11px; font-weight:700; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;">External Cloud / Figma Link</div>
-                                <div style="display:flex; gap:8px;">
-                                    <input type="url" name="final_designs_link" placeholder="https://drive.google.com/… or Figma / Dropbox URL" style="flex:1; padding:10px 14px; border:1.5px solid var(--color-border-primary); border-radius:10px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='var(--color-border-primary)'">
-                                    <button type="submit" style="padding:10px 18px; background:#10b981; color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 2px 8px rgba(16,185,129,0.25);">
-                                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                                        Save Link
+                            <!-- Active Stage Holder Banner -->
+                            <div id="activeStageHolderBanner" class="active-holder-banner" style="margin-bottom:14px;">
+                                <span class="active-pulse-dot"></span>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+                                        <span style="font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:0.08em; color:#2563eb;">ACTIVE STAGE</span>
+                                        <span id="activeHolderStageBadge" style="font-size:11px; font-weight:800; color:var(--color-text-primary);">-</span>
+                                    </div>
+                                    <div id="activeHolderUserText" style="font-size:11.5px; color:var(--color-text-secondary); font-weight:600; margin-top:2px;">Holding: <strong style="color:var(--color-text-primary);">-</strong></div>
+                                </div>
+                            </div>
+
+                            <!-- Streamlined Stepper -->
+                            <div style="margin-bottom:14px; overflow:hidden;">
+                                <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:var(--color-text-secondary); margin-bottom:6px;">Workflow Pipeline</div>
+                                @php $stages = $stages ?? ($deliverable->getStages() ?? []); @endphp
+                                <div class="workflow-steps" id="modalWorkflowSteps">
+                                    @foreach(collect($stages)->filter(fn($s) => !in_array($s, ['Closed', 'Close']))->values() as $index => $stage)
+                                        <div class="step-item" data-stage="{{ $stage }}">
+                                            <div class="step-dot">{{ $index + 1 }}</div>
+                                            <div class="step-label">{{ $stage }}</div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <!-- Meta Details: Stage, Priority, Client Status -->
+                            <div id="modalMetaRow">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span class="detail-label" style="margin:0;">Current Stage:</span>
+                                    <div id="modalStage" style="font-weight:900; color:#2563eb; font-size:12px;">-</div>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span class="detail-label" style="margin:0;">Priority:</span>
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <input type="hidden" id="modalPriorityTaskId" value="">
+                                        @if($isAdmin || in_array($userRole, ['brandmanager', 'writer', 'approver', 'approvercoordinator', 'coordinator']))
+                                            <select id="prioritySelect" onchange="updatePriorityInlineModal(this, document.getElementById('modalPriorityTaskId').value)" class="cd-btn cd-btn-outline" style="padding:4px 8px; border-radius:6px; font-size:11px; font-weight:800; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); color:var(--color-text-primary); cursor:pointer;">
+                                                <option value="High Priority">High Priority (Urgent)</option>
+                                                <option value="Medium">Medium (Stable)</option>
+                                                <option value="Low Priority">Low Priority (Paused)</option>
+                                            </select>
+                                        @else
+                                            <div id="modalPriorityDisplay" style="font-weight:800; font-size:12px; color:var(--color-text-primary);"></div>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span class="detail-label" style="margin:0;">Client Status:</span>
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <div id="modalClientStatusDisplay" style="font-weight:800; font-size:12px; color:var(--color-text-primary);">Not Sent</div>
+                                        <a id="modalClientReviewLink" href="#" target="_blank" style="display:none; align-items:center; gap:3px; font-size:11px; font-weight:800; color:#3b82f6; text-decoration:none;" title="Open Client Review Page">
+                                            🔗 Review Link
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- Deadlines -->
+                                <div id="modalDeadlineRow">
+                                    <div id="modalDeliverableDeadlineBox">
+                                        <label class="detail-label" style="color:#3b82f6; margin:0;">Deliverable Due:</label>
+                                        <div style="display:flex; gap:6px; align-items:center;">
+                                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm" min="{{ date('Y-m-d') }}" style="border:1.5px solid rgba(59,130,246,0.25);" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
+                                            <button type="button" id="saveDeadlineBtn" style="display:none; padding:4px 8px; background:#3b82f6; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>
+                                        </div>
+                                    </div>
+                                    <div id="modalDesignerDeadlineBox">
+                                        <label class="detail-label" style="color:#ec4899; margin:0;">Designer Due:</label>
+                                        <div style="display:flex; gap:6px; align-items:center;">
+                                            <input type="date" id="modalDesignerDeadlineInput" name="designer_deadline" form="submitStageForm" style="border:1.5px solid rgba(236,72,153,0.25);" onfocus="this.style.borderColor='#ec4899'" onblur="this.style.borderColor='rgba(236,72,153,0.25)'" onchange="showSaveDesignerDeadlineBtn()">
+                                            <button type="button" id="saveDesignerDeadlineBtn" style="display:none; padding:4px 8px; background:#ec4899; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveDesignerDeadline(this)">Save</button>
+                                        </div>
+                                    </div>
+                                    <div id="modalRevisionDeadlineBox" style="display:none;">
+                                        <label class="detail-label" style="color:#ef4444; margin:0;">Revision Due:</label>
+                                        <div style="display:flex; gap:6px; align-items:center;">
+                                            <input type="date" id="modalRevisionDeadlineInputBox" name="revision_deadline" form="submitStageForm" style="border:1.5px solid rgba(239,68,68,0.25);" onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='rgba(239,68,68,0.25)'" onchange="showSaveRevisionDeadlineBtn()">
+                                            <button type="button" id="saveRevisionDeadlineBtn" style="display:none; padding:4px 8px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer;" onclick="saveRevisionDeadline(this)">Save</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar Card 2: Client Artwork Review (if enabled) -->
+                        @if(\App\Services\FeatureManager::isClientReviewEnabled())
+                        <div class="dd-card-section" id="sendToClientSection">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                                <label class="detail-label" style="margin:0;">Client Artwork Review</label>
+                                <div style="display:flex; gap:8px; align-items:center;">
+                                    <a id="viewAnnotationsLink" href="#" target="_blank" style="display:none; align-items:center; gap:5px; padding:5px 12px; background:rgba(139,92,246,0.1); color:#8b5cf6; border:1px solid rgba(139,92,246,0.2); border-radius:8px; font-size:10px; font-weight:700; text-decoration:none; transition:all 0.15s;">
+                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        View Annotations
+                                    </a>
+                                    <button onclick="openSendArtworkModal()" id="sendArtworkBtn" style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.08)); color:#10b981; border:1px solid rgba(16,185,129,0.25); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(16,185,129,0.2)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.08))'">
+                                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                                        Send to Client
                                     </button>
                                 </div>
                             </div>
-                        </form>
-                    </div>
-
-                    <div id="submitNotesArea" class="detail-item full dd-card-section" style="margin-top:20px; padding:20px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:16px;">
-                        <label class="detail-label dd-section-label" style="margin-bottom:10px; color:var(--color-text-secondary); font-size:11px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
-                            Submission Comments (Optional)
-                        </label>
-                        <textarea name="submit_notes" form="submitStageForm" placeholder="Add an optional comment when submitting..." style="width:100%; height:80px; padding:12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); resize:vertical; outline:none; transition:border-color 0.15s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='var(--color-border-primary)'"></textarea>
-                    </div>
-
-                    <div class="detail-item full dd-card-section" id="modalFinalGroup">
-                        <label class="detail-label dd-section-label" style="font-size:12px; font-weight:900; color:#fff; background:#10b981; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(16,185,129,0.3);">Final Designs Preview</label>
-                        <div id="modalFinal" class="detail-val"></div>
-                    </div>
-
-                    {{-- ── Send Artwork to Client ────────────────────────────────────── --}}
-                    @if(\App\Services\FeatureManager::isClientReviewEnabled())
-                    <div class="detail-item full" id="sendToClientSection">
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                            <label class="detail-label" style="margin:0;">Client Artwork Review</label>
-                            <div style="display:flex; gap:8px; align-items:center;">
-                                <a id="viewAnnotationsLink" href="#" target="_blank"
-                                   style="display:none; align-items:center; gap:5px; padding:5px 12px; background:rgba(139,92,246,0.1); color:#8b5cf6; border:1px solid rgba(139,92,246,0.2); border-radius:8px; font-size:10px; font-weight:700; text-decoration:none; transition:all 0.15s;">
-                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                    View Annotations
-                                </a>
-                                <button onclick="openSendArtworkModal()" id="sendArtworkBtn"
-                                        style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.08)); color:#10b981; border:1px solid rgba(16,185,129,0.25); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;"
-                                        onmouseover="this.style.background='rgba(16,185,129,0.2)'"
-                                        onmouseout="this.style.background='linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.08))'">
-                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
-                                    Send to Client
-                                </button>
+                            <div id="reviewLinksSummary" style="display:none; padding:10px 14px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.15); border-radius:12px; font-size:12px; color:var(--color-text-secondary);">
+                                <div id="reviewLinksContent"></div>
                             </div>
                         </div>
+                        @endif
 
-                        {{-- Existing review links summary --}}
-                        <div id="reviewLinksSummary" style="display:none; padding:10px 14px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.15); border-radius:12px; font-size:12px; color:var(--color-text-secondary);">
-                            <div id="reviewLinksContent"></div>
+                        <!-- Sidebar Card 3: Deliverable Team -->
+                        <div class="dd-card-section" id="modalTeamGroup">
+                            <label class="detail-label dd-section-label" style="margin-bottom:12px; display:block;">Deliverable Team</label>
+                            <div id="modalTeamGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:10px;"></div>
                         </div>
-                    </div>
-                    @endif
 
-
-                    <div class="detail-item full hist-box dd-card-section" id="modalHistoryBox" style="display:none; border-top:1px solid var(--color-border-primary); margin-top:10px;">
-                        <button class="hist-toggle" onclick="toggleHistory('modalRevisionHistory', this)">
-                            <span style="display:flex; align-items:center; gap:8px; flex:1;">
-                                <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>
-                                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#ef4444;">Revision History</span>
-                                <span id="modalRevisionsCount" class="hist-count hist-count-red"></span>
-                            </span>
-                            <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div id="modalRevisionHistory" class="hist-body" style="display:none; flex-wrap:wrap; flex-direction:row; gap:12px; align-items:stretch;"></div>
-                    </div>
-
-                    <!-- Reassignment History -->
-                    <div class="detail-item full hist-box dd-card-section" id="modalReassignmentHistoryBox" style="display:none; border-top:1px solid var(--color-border-primary); margin-top:10px;">
-                        <button class="hist-toggle" onclick="toggleHistory('modalReassignmentHistory', this)">
-                            <span style="display:flex; align-items:center; gap:8px; flex:1;">
-                                <span style="width:7px;height:7px;border-radius:50%;background:#ec4899;flex-shrink:0;"></span>
-                                <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#ec4899;">Reassignment History</span>
-                                <span id="modalReassignmentsCount" class="hist-count" style="background:rgba(236,72,153,0.1); color:#ec4899; border:1px solid rgba(236,72,153,0.2);"></span>
-                            </span>
-                            <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div id="modalReassignmentHistory" class="hist-body" style="display:none; flex-direction:column; gap:12px;"></div>
-                    </div>
-                </div>
-
-                <!-- New Revision Input -->
-                <div id="revisionInputArea" style="display:none; margin-top:10px; padding:24px; background:rgba(239, 68, 68, 0.05); border:1px solid rgba(239, 68, 68, 0.1); border-radius:24px;">
-                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
-                        <div class="w-10 h-10 bg-red-100 dark:bg-red-900/20 rounded-xl flex items-center justify-center text-red-600 dark:text-red-400">
-                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                        </div>
-                        <div>
-                            <h3 style="font-size:16px; font-weight:900; color:#ef4444; margin:0;">Request Revisions</h3>
-                            <p id="modalRevisionTargetNote" style="font-size:12px; color:#ef4444; font-weight:600; margin:0; opacity:0.8;">The task will be sent back to the Writer</p>
-                        </div>
-                    </div>
-                    <form id="revisionsForm" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        <input type="hidden" name="revision_target" id="modalRevisionTarget" value="designer">
-                        <!-- Post-designer revision target toggle (shown only for Approver Review / Further Approver / Final Approval) -->
-                        <div id="modalRevisionTargetGroup" style="display:none; margin-bottom:16px; padding:12px 14px; border-radius:10px; border:1.5px solid rgba(239,68,68,0.15); background:rgba(239,68,68,0.04);">
-                            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;display:block;margin-bottom:8px;">Send back to</span>
-                            <div style="display:flex;gap:16px;">
-                                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-primary);">
-                                    <input type="radio" name="modal_revision_target_radio" value="designer" id="modalReviseTargetDesigner" checked style="accent-color:#ef4444;" onchange="document.getElementById('modalRevisionTarget').value=this.value; document.getElementById('modalRevisionTargetNote').textContent='The task will be sent back to the Designer.'">
-                                    Designer
+                        <!-- Sidebar Card 4: Assignments & Stage Submission Actions -->
+                        <div class="dd-card-section" id="ddSidebarActionsCard">
+                            <!-- Direct Design Review Route -->
+                            <div id="directDesignRouteArea" style="display:none; margin-bottom:14px; padding:14px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:14px;">
+                                <label class="detail-label dd-section-label" style="color:var(--color-text-primary); margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                                    Next Review Step
                                 </label>
-                                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-primary);">
-                                    <input type="radio" name="modal_revision_target_radio" value="writer" id="modalReviseTargetWriter" style="accent-color:#ef4444;" onchange="document.getElementById('modalRevisionTarget').value=this.value; document.getElementById('modalRevisionTargetNote').textContent='The task will be sent back to the Writer.'">
-                                    Writer
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                                    <label id="directRouteApproverLabel" style="display:flex; flex-direction:column; gap:4px; padding:10px; border:1.5px solid rgba(234,88,12,0.4); background:rgba(234,88,12,0.05); border-radius:10px; cursor:pointer; transition:all 0.15s;">
+                                        <div style="display:flex; align-items:center; gap:6px;">
+                                            <input type="radio" name="direct_design_route" id="directRouteApproverRadio" value="approver" checked onchange="handleDirectDesignRouteChange('approver')" style="accent-color:#ea580c; cursor:pointer;">
+                                            <span style="font-weight:700; font-size:11px; color:var(--color-text-primary);">Approver</span>
+                                        </div>
+                                    </label>
+                                    <label id="directRouteWriterLabel" style="display:flex; flex-direction:column; gap:4px; padding:10px; border:1.5px solid var(--color-border-primary); background:transparent; border-radius:10px; cursor:pointer; transition:all 0.15s;">
+                                        <div style="display:flex; align-items:center; gap:6px;">
+                                            <input type="radio" name="direct_design_route" id="directRouteWriterRadio" value="writer" onchange="handleDirectDesignRouteChange('writer')" style="accent-color:#0ea5e9; cursor:pointer;">
+                                            <span style="font-weight:700; font-size:11px; color:var(--color-text-primary);">Writer</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <input type="hidden" name="send_to" id="directDesignSendTo" value="approver" form="submitStageForm">
+                            </div>
+
+                            <!-- Assignment Selects -->
+                            <div id="writerSelectionArea" style="display:none; margin-bottom:12px; padding:14px; background:rgba(14,165,233,0.05); border:1px solid rgba(14,165,233,0.15); border-radius:12px;">
+                                <label class="detail-label dd-section-label" style="color:#0ea5e9; margin-bottom:8px; display:block;">Assign Writer for Review</label>
+                                <select name="writer_id" form="submitStageForm" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--color-border-primary); font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                    <option value="">Select Writer...</option>
+                                    @if(isset($writers))
+                                        @foreach($writers as $writer)
+                                            <option value="{{ $writer->id }}">{{ $writer->name }}</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                            </div>
+
+                            <div id="approverSelectionArea" style="display:none; margin-bottom:12px; padding:14px; background:rgba(234,88,12,0.05); border:1px solid rgba(234,88,12,0.15); border-radius:12px;">
+                                <label class="detail-label dd-section-label" style="color:#ea580c; margin-bottom:8px; display:block;">Assign Next Approver</label>
+                                <select name="approver_id" form="submitStageForm" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--color-border-primary); font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                    <option value="">Select Approver...</option>
+                                    @foreach($approvers as $approver)
+                                        <option value="{{ $approver->id }}">{{ $approver->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div id="brandManagerSelectionArea" style="display:none; margin-bottom:12px; padding:14px; background:rgba(37,99,235,0.05); border:1px solid rgba(37,99,235,0.15); border-radius:12px;">
+                                <label class="detail-label dd-section-label" style="color:#3b82f6; margin-bottom:8px; display:block;">Assign Next Brand Manager</label>
+                                <select name="brand_manager_id" form="submitStageForm" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--color-border-primary); font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                    <option value="">Select Brand Manager...</option>
+                                    @foreach($brandManagers as $bm)
+                                        <option value="{{ $bm->id }}">{{ $bm->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div id="modalFurtherApproverGroup" style="display:none; margin-bottom:12px; padding:14px; background:rgba(124,58,237,0.05); border:1px solid rgba(124,58,237,0.15); border-radius:12px;">
+                                <label class="detail-label dd-section-label" style="color:#7c3aed; margin-bottom:8px; display:block;">Further Approver (Optional)</label>
+                                <select name="further_approver_id" form="submitStageForm" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid rgba(124,58,237,0.2); font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                    <option value="">— Skip, go directly to Brand Manager —</option>
+                                    @foreach($approvers as $approver)
+                                        <option value="{{ $approver->id }}">{{ $approver->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div id="coordinatorSelectionArea" style="display:none; margin-bottom:12px; padding:14px; background:rgba(14,165,233,0.05); border:1px solid rgba(14,165,233,0.15); border-radius:12px;">
+                                <label class="detail-label dd-section-label" style="color:#0ea5e9; margin-bottom:8px; display:block;">Assign Next Coordinator</label>
+                                <select name="coordinator_id" form="submitStageForm" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--color-border-primary); font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                    <option value="">Select Coordinator...</option>
+                                    @foreach($coordinators as $coord)
+                                        <option value="{{ $coord->id }}">{{ $coord->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div id="designerSelectionArea" style="display:none; margin-bottom:12px; padding:14px; background:rgba(139,92,246,0.05); border:1px solid rgba(139,92,246,0.15); border-radius:12px;">
+                                <label class="detail-label dd-section-label" style="color:#8b5cf6; margin-bottom:8px; display:block;">Assign Next Designer</label>
+                                <select name="designer_id" form="submitStageForm" style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--color-border-primary); font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                    <option value="">Select Designer...</option>
+                                    @foreach($designers as $designer)
+                                        <option value="{{ $designer->id }}">{{ $designer->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Submission Comments -->
+                            <div id="submitNotesArea" style="margin-bottom:14px;">
+                                <label class="detail-label dd-section-label" style="margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                                    Submission Comments (Optional)
                                 </label>
+                                <textarea name="submit_notes" form="submitStageForm" placeholder="Add an optional comment when advancing..." style="width:100%; height:75px; padding:10px 12px; border-radius:10px; border:1px solid var(--color-border-primary); font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-secondary); resize:vertical; outline:none; transition:border-color 0.15s; box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='var(--color-border-primary)'"></textarea>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div id="ddSidebarActions">
+                                <form id="submitStageForm" method="POST" enctype="multipart/form-data">
+                                    @csrf
+                                    <button type="submit" name="action" value="submit" class="cd-btn cd-btn-primary" id="submitStageBtn" style="display:none;">Submit to Next</button>
+                                    <button type="submit" name="action" value="save_only" class="cd-btn cd-btn-outline" id="saveContentBtn" style="display:none;">Save Content</button>
+                                </form>
+                                <button type="button" class="cd-btn cd-btn-outline" id="showRevisionBtn" style="display:none;" onclick="toggleRevisionInput(true)">Request Revisions</button>
+                                <button id="modalDeleteBtn" type="button" class="cd-btn" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1.5px solid rgba(239,68,68,0.3); display:none;" onclick="deleteTaskFromModal()">Delete</button>
+                            </div>
+
+                            <!-- Revision Request Form (Inline Drawer) -->
+                            <div id="revisionInputArea" style="display:none; margin-top:16px; padding:16px; background:rgba(239, 68, 68, 0.05); border:1px solid rgba(239, 68, 68, 0.2); border-radius:14px;">
+                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                                    <div style="width:28px; height:28px; border-radius:8px; background:rgba(239,68,68,0.1); display:flex; align-items:center; justify-content:center; color:#ef4444;">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                    </div>
+                                    <div>
+                                        <h4 style="font-size:13px; font-weight:900; color:#ef4444; margin:0;">Request Revisions</h4>
+                                        <p id="modalRevisionTargetNote" style="font-size:10.5px; color:#ef4444; font-weight:600; margin:0; opacity:0.85;">Task routes back for revisions</p>
+                                    </div>
+                                </div>
+                                <form id="revisionsForm" method="POST" enctype="multipart/form-data">
+                                    @csrf
+                                    <input type="hidden" name="revision_target" id="modalRevisionTarget" value="designer">
+                                    <div id="modalRevisionTargetGroup" style="display:none; margin-bottom:12px; padding:10px; border-radius:8px; border:1px solid rgba(239,68,68,0.2); background:rgba(239,68,68,0.04);">
+                                        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;display:block;margin-bottom:6px;">Send back to:</span>
+                                        <div style="display:flex;gap:14px;">
+                                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--color-text-primary);">
+                                                <input type="radio" name="modal_revision_target_radio" value="designer" id="modalReviseTargetDesigner" checked style="accent-color:#ef4444;" onchange="document.getElementById('modalRevisionTarget').value=this.value; document.getElementById('modalRevisionTargetNote').textContent='The task will be sent back to the Designer.'">
+                                                Designer
+                                            </label>
+                                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--color-text-primary);">
+                                                <input type="radio" name="modal_revision_target_radio" value="writer" id="modalReviseTargetWriter" style="accent-color:#ef4444;" onchange="document.getElementById('modalRevisionTarget').value=this.value; document.getElementById('modalRevisionTargetNote').textContent='The task will be sent back to the Writer.'">
+                                                Writer
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <textarea name="revision_instructions" required placeholder="Describe specifically what needs to be fixed..." style="width:100%; height:110px; padding:10px 12px; border-radius:10px; border:1.5px solid rgba(239, 68, 68, 0.25); font-size:12px; resize:vertical; font-family:inherit; margin-bottom:10px; display:block; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); box-sizing:border-box;"></textarea>
+                                    
+                                    <div style="margin-bottom:10px;">
+                                        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;margin-bottom:4px;">
+                                            Revision Deadline (Optional)
+                                        </label>
+                                        <input type="date" id="modalRevisionDeadlineInput" name="revision_deadline" min="{{ date('Y-m-d') }}" style="width:100%; padding:7px 10px; border-radius:8px; border:1.5px solid rgba(239,68,68,0.25); font-size:12px; font-weight:600; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
+                                    </div>
+
+                                    <div style="margin-bottom:14px;">
+                                        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;margin-bottom:4px;">Attach Image (Optional)</label>
+                                        <label for="revisionImageInput" style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1.5px dashed rgba(239,68,68,0.3);background:rgba(239,68,68,0.04);cursor:pointer;font-size:11px;font-weight:600;color:#ef4444;transition:all 0.15s;">
+                                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            <span id="revisionImageLabel">Choose image…</span>
+                                        </label>
+                                        <input type="file" id="revisionImageInput" name="revision_image" accept="image/*,video/*" style="display:none;" onchange="
+                                            const f = this.files[0];
+                                            document.getElementById('revisionImageLabel').textContent = f ? f.name : 'Choose image…';
+                                            const prev = document.getElementById('revisionImagePreview');
+                                            if (f) { const r = new FileReader(); r.onload = e => { prev.src = e.target.result; prev.style.display='block'; }; r.readAsDataURL(f); }
+                                            else { prev.style.display='none'; prev.src=''; }
+                                        ">
+                                        <img id="revisionImagePreview" src="" alt="" style="display:none;margin-top:8px;max-width:100%;max-height:140px;border-radius:8px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;">
+                                    </div>
+
+                                    <div style="display:flex; justify-content:flex-end; gap:8px;">
+                                        <button type="button" class="cd-btn cd-btn-outline" onclick="toggleRevisionInput(false)" style="padding:8px 14px; font-size:12px;">Cancel</button>
+                                        <button type="submit" class="cd-btn" style="background:#ef4444; color:#fff; border:none; padding:8px 18px; font-weight:800; font-size:12px; border-radius:8px; cursor:pointer;">Send Request</button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
-                        <textarea name="revision_instructions" required placeholder="Describe specifically what needs to be fixed..." style="width:100%; height:160px; padding:16px; border-radius:16px; border:1.5px solid rgba(239, 68, 68, 0.2); font-size:14px; resize:none; font-family:inherit; margin-bottom:12px; display:block; outline:none; background:var(--color-bg-primary); color:var(--color-text-primary); transition:all 0.2s;"></textarea>
-                        <!-- Optional revision deadline -->
-                        <div style="margin-bottom:16px;">
-                            <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;margin-bottom:8px;">
-                                Revision Deadline <span style="font-weight:500;opacity:0.6;text-transform:none;letter-spacing:0;">(optional)</span>
-                            </label>
-                            <input type="date" id="modalRevisionDeadlineInput" name="revision_deadline" min="{{ date('Y-m-d') }}" style="width:100%; max-width:260px; padding:9px 14px; border-radius:10px; border:1.5px solid rgba(239,68,68,0.25); font-size:13px; font-weight:600; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; box-sizing:border-box;">
-                        </div>
-                        <!-- Optional revision image -->
-                        <div style="margin-bottom:20px;">
-                            <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;margin-bottom:8px;">Attach Image <span style="font-weight:500;opacity:0.6;text-transform:none;letter-spacing:0;">(optional)</span></label>
-                            <label for="revisionImageInput" style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;border:1.5px dashed rgba(239,68,68,0.3);background:rgba(239,68,68,0.04);cursor:pointer;font-size:13px;font-weight:600;color:#ef4444;transition:all 0.15s;" onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='rgba(239,68,68,0.04)'">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                <span id="revisionImageLabel">Choose image…</span>
-                            </label>
-                            <input type="file" id="revisionImageInput" name="revision_image" accept="image/*,video/*" style="display:none;" onchange="
-                                const f = this.files[0];
-                                document.getElementById('revisionImageLabel').textContent = f ? f.name : 'Choose image…';
-                                const prev = document.getElementById('revisionImagePreview');
-                                if (f) { const r = new FileReader(); r.onload = e => { prev.src = e.target.result; prev.style.display='block'; }; r.readAsDataURL(f); }
-                                else { prev.style.display='none'; prev.src=''; }
-                            ">
-                            <img id="revisionImagePreview" src="" alt="" style="display:none;margin-top:10px;max-width:100%;max-height:200px;border-radius:10px;border:1px solid rgba(239,68,68,0.2);object-fit:contain;">
-                        </div>
-                        <div style="display:flex; justify-content:flex-end; gap:12px;">
-                            <button type="button" class="cd-btn cd-btn-outline" onclick="toggleRevisionInput(false)" style="padding:12px 24px;">Cancel</button>
-                            <button type="submit" class="cd-btn" style="background:#ef4444; color:#fff; border:none; padding:12px 32px; font-weight:800; font-size:14px; border-radius:14px; cursor:pointer; shadow:0 10px 20px rgba(239,68,68,0.2);">Send Request</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
-            <div class="cd-modal-footer" style="flex-direction: column; align-items: stretch; gap: 12px;">
-                <div id="standardModalFooterInner" style="display:flex; align-items:center; gap:12px;">
-                    <form id="submitStageForm" method="POST" enctype="multipart/form-data" style="display:none; align-items:center; gap:12px;">
-                        @csrf
-                        <button type="submit" name="action" value="save_only" class="cd-btn" id="saveContentBtn" style="background:rgba(59,130,246,0.1); color:#3b82f6; border:1.5px solid rgba(59,130,246,0.4); display:none; padding:10px 20px; font-size:12px; transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.2)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'">Save Content</button>
-                        <button type="submit" name="action" value="submit" class="cd-btn cd-btn-primary" id="submitStageBtn" style="display:none; padding:10px 20px; font-size:12px; box-shadow:0 4px 12px rgba(0,85,212,0.4);">Submit to Next</button>
-                    </form>
-                    <button type="button" class="cd-btn cd-btn-outline" id="showRevisionBtn" style="color:#ef4444; border-color:rgba(239,68,68,0.4); background:rgba(239,68,68,0.1); display:none; padding:10px 20px; font-size:12px; font-weight:700;" onclick="toggleRevisionInput(true)">Request Revisions</button>
-                    <button id="modalDeleteBtn" type="button" class="cd-btn" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1.5px solid rgba(239,68,68,0.4); display:none; padding:10px 20px; font-size:12px; transition:all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'" onclick="deleteTaskFromModal()">Delete</button>
-                </div>
+
+                <!-- Hidden Containers for backward compatibility -->
+                <div id="standardTopContainer" style="display:none;"></div>
+                <div id="standardDetailGrid" style="display:none;"></div>
+                <div id="standardModalFooterInner" style="display:none;"></div>
             </div>
         </div>
     </div>
@@ -2217,188 +2367,37 @@
             }
         };
 
+        window.switchCreativeTab = function(tab) {
+            // Legacy no-op: Concept, Copy, and Caption are now always visible stacked
+        };
+
         window.setupModalLayout = function(isDirectDesign) {
             const overlay = document.getElementById('taskModalOverlay');
             if (!overlay) return;
-            const modal = overlay.querySelector('.cd-modal');
             const ddLayout = document.getElementById('ddTwoColLayout');
-            const ddMain = document.getElementById('ddColMain');
-            const ddSidebar = document.getElementById('ddColSidebar');
-            const ddSidebarMeta = document.getElementById('ddSidebarMetaCard');
-            const ddActions = document.getElementById('ddSidebarActions');
+            if (ddLayout) ddLayout.style.display = 'grid';
 
-            const stdTop = document.getElementById('standardTopContainer');
-            const stdGrid = document.getElementById('standardDetailGrid');
-            const stdFooterInner = document.getElementById('standardModalFooterInner');
-            const modalFooter = modal ? modal.querySelector('.cd-modal-footer') : null;
+            const topDeadlines = document.getElementById('modalTopDeadlines');
+            if (topDeadlines) {
+                topDeadlines.style.display = 'none';
+                topDeadlines.innerHTML = '';
+            }
 
-            if (!modal || !ddLayout || !ddMain || !ddSidebar || !stdTop || !stdGrid) return;
+            const conceptTitle = document.getElementById('modalConceptTitleText');
+            const conceptLabel = document.getElementById('modalConceptLabel');
+            const copyGroup = document.getElementById('modalCopyGroup');
+            const captionGroup = document.getElementById('modalCaptionGroup');
 
             if (isDirectDesign) {
-                overlay.style.display = 'flex';
-                overlay.style.justifyContent = 'center';
-                overlay.style.alignItems = 'center';
-                overlay.style.padding = '20px';
-                modal.classList.add('direct-design-modal');
-                ddLayout.style.display = 'grid';
-                stdTop.style.display = 'none';
-                stdGrid.style.display = 'none';
-                if (modalFooter) modalFooter.style.display = 'none';
-
-                // Hide top header deadlines in Direct Design (they belong cleanly in the sidebar)
-                const topDeadlines = document.getElementById('modalTopDeadlines');
-                if (topDeadlines) {
-                    topDeadlines.style.display = 'none';
-                    topDeadlines.innerHTML = '';
-                }
-
-                // Sidebar items:
-                // 1. Stepper
-                const stepper = document.getElementById('modalWorkflowSteps');
-                if (stepper) ddSidebar.insertBefore(stepper, ddSidebarMeta);
-
-                // 2. Metadata into ddSidebarMetaCard
-                const metaRow = document.getElementById('modalMetaRow');
-                const deadlineRow = document.getElementById('modalDeadlineRow');
-                if (metaRow) ddSidebarMeta.appendChild(metaRow);
-                if (deadlineRow) ddSidebarMeta.appendChild(deadlineRow);
-
-                // 3. Routing & Assignments into ddSidebar (above ddActions)
-                const routeArea = document.getElementById('directDesignRouteArea');
-                const writerArea = document.getElementById('writerSelectionArea');
-                const apprArea = document.getElementById('approverSelectionArea');
-                const bmArea = document.getElementById('brandManagerSelectionArea');
-                const faArea = document.getElementById('modalFurtherApproverGroup');
-                const coordArea = document.getElementById('coordinatorSelectionArea');
-                const dArea = document.getElementById('designerSelectionArea');
-                if (routeArea) ddSidebar.insertBefore(routeArea, ddActions);
-                if (writerArea) ddSidebar.insertBefore(writerArea, ddActions);
-                if (apprArea) ddSidebar.insertBefore(apprArea, ddActions);
-                if (bmArea) ddSidebar.insertBefore(bmArea, ddActions);
-                if (faArea) ddSidebar.insertBefore(faArea, ddActions);
-                if (coordArea) ddSidebar.insertBefore(coordArea, ddActions);
-                if (dArea) ddSidebar.insertBefore(dArea, ddActions);
-
-                // 4. Action buttons into ddActions
-                const submitForm = document.getElementById('submitStageForm');
-                const revBtn = document.getElementById('showRevisionBtn');
-                const delBtn = document.getElementById('modalDeleteBtn');
-                if (submitForm) ddActions.appendChild(submitForm);
-                if (revBtn) ddActions.appendChild(revBtn);
-                if (delBtn) ddActions.appendChild(delBtn);
-
-                // Main Column items:
-                // Alerts
-                const commentAlert = document.getElementById('modalLatestCommentAlert');
-                const revAlert = document.getElementById('modalRevisionAlert');
-                if (commentAlert) ddMain.appendChild(commentAlert);
-                if (revAlert) ddMain.appendChild(revAlert);
-
-                // Creative Brief / Description
-                const conceptItem = document.getElementById('modalConceptGroup');
-                if (conceptItem) ddMain.appendChild(conceptItem);
-
-                // Deliverable Team
-                const teamItem = document.getElementById('modalTeamGroup');
-                if (teamItem) ddMain.appendChild(teamItem);
-
-                // Reference Files & Links
-                const refItem = document.getElementById('modalReferenceGroup');
-                if (refItem) ddMain.appendChild(refItem);
-
-                // Deliver Final Artwork (Tabbed block)
-                const deliveryArea = document.getElementById('designerDeliveryArea');
-                if (deliveryArea) ddMain.appendChild(deliveryArea);
-
-                // Final Artwork Preview
-                const finalItem = document.getElementById('modalFinalGroup');
-                if (finalItem) ddMain.appendChild(finalItem);
-
-                // Submission Comments
-                const notesArea = document.getElementById('submitNotesArea');
-                if (notesArea) ddMain.appendChild(notesArea);
-
-                // History accordions
-                const appBox = document.getElementById('modalApprovalsBox');
-                const revBox = document.getElementById('modalHistoryBox');
-                const reassBox = document.getElementById('modalReassignmentHistoryBox');
-                if (appBox) ddMain.appendChild(appBox);
-                if (revBox) ddMain.appendChild(revBox);
-                if (reassBox) ddMain.appendChild(reassBox);
-
-                // Revision Form
-                const revInputArea = document.getElementById('revisionInputArea');
-                if (revInputArea) ddMain.appendChild(revInputArea);
-
+                if (conceptTitle) conceptTitle.textContent = 'Brief';
+                if (conceptLabel) conceptLabel.style.background = '#6366f1';
+                if (copyGroup) copyGroup.style.display = 'none';
+                if (captionGroup) captionGroup.style.display = 'none';
             } else {
-                // Restore standard Retainer / standard deliverable layout
-                overlay.style.display = '';
-                overlay.style.justifyContent = '';
-                overlay.style.alignItems = '';
-                overlay.style.padding = '';
-                modal.classList.remove('direct-design-modal');
-                ddLayout.style.display = 'none';
-                stdTop.style.display = '';
-                stdGrid.style.display = '';
-                if (modalFooter) modalFooter.style.display = '';
-
-                // Restore top deadlines
-                const topDeadlines = document.getElementById('modalTopDeadlines');
-                if (topDeadlines) topDeadlines.style.display = 'flex';
-
-                // Restore top container
-                const metaRow = document.getElementById('modalMetaRow');
-                const stepper = document.getElementById('modalWorkflowSteps');
-                const commentAlert = document.getElementById('modalLatestCommentAlert');
-                const deadlineRow = document.getElementById('modalDeadlineRow');
-                const revAlert = document.getElementById('modalRevisionAlert');
-
-                if (metaRow) stdTop.appendChild(metaRow);
-                if (stepper) stdTop.appendChild(stepper);
-                if (commentAlert) stdTop.appendChild(commentAlert);
-                if (deadlineRow) stdTop.appendChild(deadlineRow);
-                if (revAlert) stdTop.appendChild(revAlert);
-
-                // Restore detail grid items in original order
-                const conceptItem = document.getElementById('modalConceptGroup');
-                const copyItem = document.getElementById('modalCopyGroup');
-                const captionItem = document.getElementById('modalCaptionGroup');
-                const refItem = document.getElementById('modalReferenceGroup');
-                const teamItem = document.getElementById('modalTeamGroup');
-                const appBox = document.getElementById('modalApprovalsBox');
-                const routeArea = document.getElementById('directDesignRouteArea');
-                const writerArea = document.getElementById('writerSelectionArea');
-                const apprArea = document.getElementById('approverSelectionArea');
-                const bmArea = document.getElementById('brandManagerSelectionArea');
-                const faArea = document.getElementById('modalFurtherApproverGroup');
-                const coordArea = document.getElementById('coordinatorSelectionArea');
-                const dArea = document.getElementById('designerSelectionArea');
-                const deliveryArea = document.getElementById('designerDeliveryArea');
-                const notesArea = document.getElementById('submitNotesArea');
-                const finalItem = document.getElementById('modalFinalGroup');
-                const revBox = document.getElementById('modalHistoryBox');
-                const reassBox = document.getElementById('modalReassignmentHistoryBox');
-
-                [conceptItem, copyItem, captionItem, refItem, teamItem, appBox, routeArea, writerArea, apprArea, bmArea, faArea, coordArea, dArea, deliveryArea, notesArea, finalItem, revBox, reassBox].forEach(el => {
-                    if (el) stdGrid.appendChild(el);
-                });
-
-                // Restore revision input area
-                const revInputArea = document.getElementById('revisionInputArea');
-                if (revInputArea) {
-                    const modalBodyInner = modal.querySelector('.cd-modal-body .cd-modal-inner') || stdGrid.parentElement;
-                    modalBodyInner.appendChild(revInputArea);
-                }
-
-                // Restore footer buttons
-                const submitForm = document.getElementById('submitStageForm');
-                const revBtn = document.getElementById('showRevisionBtn');
-                const delBtn = document.getElementById('modalDeleteBtn');
-                if (stdFooterInner) {
-                    if (submitForm) stdFooterInner.appendChild(submitForm);
-                    if (revBtn) stdFooterInner.appendChild(revBtn);
-                    if (delBtn) stdFooterInner.appendChild(delBtn);
-                }
+                if (conceptTitle) conceptTitle.textContent = 'Concept';
+                if (conceptLabel) conceptLabel.style.background = '#3b82f6';
+                if (copyGroup) copyGroup.style.display = 'block';
+                if (captionGroup) captionGroup.style.display = 'block';
             }
         };
 
@@ -2625,44 +2624,39 @@
                     }
                 }
 
-                // Populate top deadlines list
+                // Keep top header clean (deadlines are neatly presented in sidebar)
                 const topDeadlinesEl = document.getElementById('modalTopDeadlines');
                 if (topDeadlinesEl) {
-                    if (isDirectDesign) {
-                        topDeadlinesEl.style.display = 'none';
-                        topDeadlinesEl.innerHTML = '';
-                    } else {
-                        topDeadlinesEl.style.display = 'flex';
-                        topDeadlinesEl.innerHTML = '';
-                        
-                        // 1. Deliverable Due Date
-                        const displayDeadline = task.deadline || (task.parent ? task.parent.deadline : null);
-                        if (displayDeadline) {
-                            const dateStr = formatLocalDateStr(displayDeadline);
-                            const dueBadge = document.createElement('div');
-                            dueBadge.style.cssText = 'background: rgba(59, 130, 246, 0.08); color: #3b82f6; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
-                            dueBadge.textContent = `Del: ${dateStr}`;
-                            topDeadlinesEl.appendChild(dueBadge);
-                        }
+                    topDeadlinesEl.style.display = 'none';
+                    topDeadlinesEl.innerHTML = '';
+                }
 
-                        // 2. Designer Due Date
-                        if (task.designer_deadline && !isOtherDeliverable) {
-                            const desDateStr = formatLocalDateStr(task.designer_deadline);
-                            const desBadge = document.createElement('div');
-                            desBadge.style.cssText = 'background: rgba(236, 72, 153, 0.08); color: #ec4899; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(236, 72, 153, 0.15); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em;';
-                            desBadge.textContent = `Designer Due: ${desDateStr}`;
-                            topDeadlinesEl.appendChild(desBadge);
-                        }
+                // Populate Active Stage Holder Banner
+                const activeHolderStageBadge = document.getElementById('activeHolderStageBadge');
+                const activeHolderUserText = document.getElementById('activeHolderUserText');
+                if (activeHolderStageBadge && activeHolderUserText) {
+                    const curStage = task.approval_stage || 'Draft';
+                    activeHolderStageBadge.textContent = curStage;
 
-                        // 3. Revision Due Date
-                        if (task.revision_deadline && (task.revision_instructions || (task.revisions && task.revisions > 0))) {
-                            const revDateStr = formatLocalDateStr(task.revision_deadline);
-                            const revBadge = document.createElement('div');
-                            revBadge.style.cssText = 'background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.25); font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.02em; display:flex; align-items:center; gap:4px;';
-                            revBadge.innerHTML = `<svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Revision Due: ${revDateStr}`;
-                            topDeadlinesEl.appendChild(revBadge);
-                        }
+                    let holder = 'Team';
+                    const sLower = curStage.toLowerCase().trim();
+                    const assoc = task.associates || {};
+                    if (sLower.includes('writer review') || sLower === 'writer' || sLower === 'assignee') {
+                        holder = task.writer?.name || assoc.writer || assoc.assignee || 'Writer';
+                    } else if (sLower.includes('approver review') || sLower === 'approver') {
+                        holder = task.approver?.name || assoc.approver || 'Approver';
+                    } else if (sLower.includes('further approver')) {
+                        holder = task.further_approver?.name || assoc.further_approver || 'Further Approver';
+                    } else if (sLower.includes('brand manager') || sLower.includes('final approval') || sLower.includes('am/bd')) {
+                        holder = task.brand_manager?.name || assoc.brand_manager || 'Brand Manager';
+                    } else if (sLower.includes('coordinator')) {
+                        holder = task.coordinator?.name || assoc.coordinator || 'Coordinator';
+                    } else if (sLower.includes('designer')) {
+                        holder = task.designer?.name || assoc.designer || 'Designer';
+                    } else if (sLower.includes('closed') || sLower.includes('close')) {
+                        holder = 'Completed';
                     }
+                    activeHolderUserText.innerHTML = `Holding: <strong style="color:var(--color-text-primary); font-weight:800;">${holder}</strong>`;
                 }
 
                 // Hide designer deadline box for Other Deliverables & Fast Track (where deliverable deadline is used directly)
@@ -2778,41 +2772,40 @@
                     const isVideo = fileUrl.match(/\.(mp4|webm|ogg|mov)(?:$|\?)/i);
                     const isPdf = /\.pdf(?:$|\?)/i.test(fileUrl);
                     const boxId = `modalRefFileBox_${index}`;
-                    const labelText = refFiles.length > 1 ? `Reference File #${index + 1}` : 'Reference File';
-                    const removeBtnHtml = task.can_remove_reference ? `
-                        <button type="button" onclick="removeSpecificRefFile('${boxId}', ${index})" style="background:rgba(239,68,68,0.1); color:#ef4444; border:none; padding:6px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; margin-bottom:8px;">Remove</button>
-                    ` : '';
+                    const ext = isPdf ? 'PDF' : (isVideo ? 'VIDEO' : (fileUrl.split('.').pop().split(/[?#]/)[0].toUpperCase().substring(0, 4) || 'REF'));
+                    const previewClick = isPdf ? `window.open('${fileUrl}', '_blank')` : `openImagePreview('${fileUrl}', false)`;
+                    
+                    let mediaEl = '';
                     if (isPdf) {
-                        refParts.push(`
-                        <div id="${boxId}" style="display:flex; align-items:flex-end; gap:12px; margin-bottom:8px; margin-top:8px;">
-                            <div onclick="window.open('${fileUrl}', '_blank')" style="display:inline-block; cursor:pointer;">
-                                <div style="display:flex; align-items:center; gap:8px; padding:12px 16px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:12px; margin-bottom:4px;">
-                                    <svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
-                                    <span style="font-size:12px; font-weight:800; color:#ef4444;">VIEW PDF</span>
-                                </div>
-                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">${labelText}</span>
-                            </div>
-                            ${removeBtnHtml}
-                        </div>`);
+                        mediaEl = `<div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(239,68,68,0.08); color:#ef4444;">
+                            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+                            <span style="font-size:10px; font-weight:800; margin-top:4px;">PDF</span>
+                        </div>`;
                     } else if (isVideo) {
-                        refParts.push(`
-                        <div id="${boxId}" style="display:flex; align-items:flex-end; gap:12px; margin-bottom:8px; margin-top:8px;">
-                            <div style="display:inline-block;">
-                                <video controls src="${fileUrl}" style="width:100%; max-width:260px; max-height:160px; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:4px;"></video>
-                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">${labelText}</span>
-                            </div>
-                            ${removeBtnHtml}
-                        </div>`);
+                        mediaEl = `<video src="${fileUrl}" style="width:100%; height:100%; object-fit:cover;" preload="metadata"></video>`;
                     } else {
-                        refParts.push(`
-                        <div id="${boxId}" style="display:flex; align-items:flex-end; gap:12px; margin-bottom:8px; margin-top:8px;">
-                            <div onclick="openImagePreview('${fileUrl}', false)" style="display:inline-block; cursor:pointer;">
-                                <img src="${fileUrl}" style="width:100%; max-width:180px; max-height:140px; height:auto; border-radius:12px; border:1px solid var(--color-border-primary); margin-bottom:4px; object-fit:cover;">
-                                <span style="display:block; font-size:10px; font-weight:800; color:#0055D4; text-transform:uppercase;">${labelText}</span>
-                            </div>
-                            ${removeBtnHtml}
-                        </div>`);
+                        mediaEl = `<img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover;" alt="Reference" onerror="this.src='/images/placeholder.png'">`;
                     }
+
+                    refParts.push(`
+                        <div id="${boxId}" class="art-thumb-card" style="position:relative; width:160px; height:110px; border-radius:12px; overflow:hidden; border:1.5px solid var(--color-border-primary); background:var(--color-bg-secondary); box-shadow:0 2px 8px rgba(0,0,0,0.06); flex-shrink:0;">
+                            ${mediaEl}
+                            <div class="thumb-badge">${ext}</div>
+                            <div class="thumb-hover-overlay">
+                                <button type="button" onclick="${previewClick}" class="thumb-action-btn" title="Preview">
+                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                </button>
+                                <a href="${fileUrl}" download target="_blank" class="thumb-action-btn" title="Download">
+                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                </a>
+                                ${task.can_remove_reference ? `
+                                    <button type="button" onclick="removeSpecificRefFile('${boxId}', ${index})" class="thumb-action-btn trash" title="Remove">
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `);
                 });
 
                 let refUrls = [];
@@ -3019,52 +3012,75 @@
                     const isVideo = /\.(mp4|webm|ogg|mov)(?:$|\?)/i.test(fileUrl);
                     const isPdf = /\.pdf(?:$|\?)/i.test(fileUrl);
                     const boxId = `modalArtFileBox_${index}`;
-                    const labelText = artFiles.length > 1 ? `Artwork File #${index + 1}` : 'Preview Artwork';
-                    let thumbHtml = '';
+                    const ext = isPdf ? 'PDF' : (isVideo ? 'VIDEO' : (fileUrl.split('.').pop().split(/[?#]/)[0].toUpperCase().substring(0, 4) || 'IMG'));
+                    const previewClick = isPdf ? `window.open('${fileUrl}', '_blank')` : `openImagePreview('${fileUrl}', ${canRemoveArt}, ${task.id})`;
+                    
+                    let mediaEl = '';
                     if (isPdf) {
-                        thumbHtml = `<div class="task-thumbnail" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25);">
-                            <svg width="28" height="28" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
-                            <span style="font-size:10px; font-weight:800; color:#ef4444;">PDF</span>
+                        mediaEl = `<div style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(239,68,68,0.08); color:#ef4444;">
+                            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+                            <span style="font-size:10px; font-weight:800; margin-top:4px;">PDF DOCUMENT</span>
                         </div>`;
                     } else if (isVideo) {
-                        thumbHtml = `<video src="${fileUrl}" class="task-thumbnail" preload="metadata"></video>`;
+                        mediaEl = `<video src="${fileUrl}" style="width:100%; height:100%; object-fit:cover;" preload="metadata"></video>`;
                     } else {
-                        thumbHtml = `<img src="${fileUrl}" class="task-thumbnail" alt="Final Design">`;
+                        mediaEl = `<img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover;" alt="Artwork" onerror="this.src='/images/placeholder.png'">`;
                     }
+
                     finalParts.push(`
-                        <div id="${boxId}" class="art-box-item" style="display:inline-block; margin-right:12px; margin-bottom:8px; vertical-align:top; text-align:center;">
-                            <div onclick="${isPdf ? `window.open('${fileUrl}', '_blank')` : `openImagePreview('${fileUrl}', ${canRemoveArt}, ${task.id})`}" style="text-decoration:none; cursor:pointer;">
-                                ${thumbHtml}
-                                <span style="display:block; font-size:10px; font-weight:800; color:#10b981; text-transform:uppercase; margin-top:6px; text-align:center;">${labelText}</span>
-                            </div>
-                            ${canRemoveArt ? `
-                                <button type="button" onclick="removeSpecificArtFile('${boxId}', ${index}, '${fileUrl}')" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
-                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    Remove
+                        <div id="${boxId}" class="art-thumb-card" style="position:relative; width:160px; height:110px; border-radius:12px; overflow:hidden; border:1.5px solid var(--color-border-primary); background:var(--color-bg-secondary); box-shadow:0 2px 8px rgba(0,0,0,0.06); flex-shrink:0;">
+                            ${mediaEl}
+                            <div class="thumb-badge">${ext}</div>
+                            <div class="thumb-hover-overlay">
+                                <button type="button" onclick="${previewClick}" class="thumb-action-btn" title="Preview">
+                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                 </button>
-                            ` : ''}
-                        </div>`);
+                                <a href="${fileUrl}" download target="_blank" class="thumb-action-btn" title="Download">
+                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                </a>
+                                ${canRemoveArt ? `
+                                    <button type="button" onclick="removeSpecificArtFile('${boxId}', ${index}, '${fileUrl}')" class="thumb-action-btn trash" title="Remove">
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `);
                 });
 
                 artUrls.forEach((url, index) => {
                     if (!url) return;
                     const label = artUrls.length > 1 ? `External Link #${index + 1}` : 'External Link';
                     const linkBoxId = `modalArtUrlBox_${index}`;
+                    let domain = '';
+                    try { domain = new URL(url).hostname.replace('www.', ''); } catch(e) { domain = 'External'; }
                     finalParts.push(`
-                        <div id="${linkBoxId}" class="art-box-item" style="display:inline-block; vertical-align:top; text-align:center; margin-right:12px; margin-bottom:8px;">
-                            <a href="${url}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; padding:10px 16px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:10px; color:#10b981; text-decoration:none; vertical-align:top;">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                                <span style="font-size:11px; font-weight:800; text-transform:uppercase;">${label}</span>
-                            </a>
-                            ${canRemoveArt ? `
-                                <button type="button" onclick="removeSpecificArtUrl('${linkBoxId}', ${index}, '${url}')" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding:4px 8px; font-size:10px; margin-top:8px; width:100%; height:auto; line-height:1; display:inline-flex; align-items:center; justify-content:center; gap:4px; font-weight:700;">
-                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    Remove Link
-                                </button>
-                            ` : ''}
-                        </div>`);
+                        <div id="${linkBoxId}" class="art-thumb-card" style="position:relative; width:160px; height:110px; border-radius:12px; overflow:hidden; border:1.5px solid rgba(16,185,129,0.3); background:rgba(16,185,129,0.05); display:flex; flex-direction:column; justify-content:space-between; padding:12px; box-sizing:border-box;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <div style="width:26px; height:26px; border-radius:6px; background:rgba(16,185,129,0.15); color:#10b981; display:flex; align-items:center; justify-content:center;">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                </div>
+                                <span style="font-size:9px; font-weight:800; color:#10b981; text-transform:uppercase; letter-spacing:0.04em;">LINK</span>
+                            </div>
+                            <div>
+                                <a href="${url}" target="_blank" style="font-size:11px; font-weight:800; color:#10b981; text-decoration:none; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${url}">
+                                    ${label}
+                                </a>
+                                <div style="font-size:9.5px; color:var(--color-text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px;">${domain}</div>
+                            </div>
+                            <div class="thumb-hover-overlay">
+                                <a href="${url}" target="_blank" class="thumb-action-btn" title="Open Link">
+                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                </a>
+                                ${canRemoveArt ? `
+                                    <button type="button" onclick="removeSpecificArtUrl('${linkBoxId}', ${index}, '${url}')" class="thumb-action-btn trash" title="Remove Link">
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `);
                 });
-
                 document.getElementById('modalFinal').innerHTML = finalParts.join('') || '<span style="color:#94a3b8; font-size:13px; font-weight:500;">Pending Delivery</span>';
 
                 const artLinksContainer = document.getElementById('modalArtworkLinksContainer') || document.getElementById('modalArtworkLinksContainerPrj');
@@ -3441,20 +3457,20 @@
                 }
 
                 // Adjust fields for Other Deliverables & Fast Track (hide caption/copy, show brief)
-                const captionItem = document.getElementById('quillCaption')?.closest('.detail-item');
-                const copyItem = document.getElementById('quillCopy')?.closest('.detail-item');
-                const conceptLabel = document.getElementById('quillConcept')?.closest('.detail-item')?.querySelector('.detail-label');
+                const captionItem = document.getElementById('modalCaptionGroup') || document.getElementById('quillCaption')?.closest('.detail-item');
+                const copyItem = document.getElementById('modalCopyGroup') || document.getElementById('quillCopy')?.closest('.detail-item');
+                const conceptTitle = document.getElementById('modalConceptTitleText');
+                const conceptLabel = document.getElementById('modalConceptLabel') || document.getElementById('quillConcept')?.closest('.detail-item')?.querySelector('.detail-label');
                 const refGroup = document.getElementById('modalReferenceGroup') || document.getElementById('modalReference')?.closest('.detail-item');
                 const submitNotesArea = document.getElementById('submitNotesArea');
                 const isBriefOnly = isOtherDeliverable || isDirectDesign || task.is_direct_design;
                 if (isBriefOnly) {
                     if (captionItem) captionItem.style.display = 'none';
                     if (copyItem) copyItem.style.display = 'none';
+                    if (conceptTitle) conceptTitle.textContent = 'Brief';
                     if (conceptLabel) {
-                        conceptLabel.textContent = 'Brief';
-                        if (isDirectDesign || task.is_direct_design) {
-                            conceptLabel.style.background = '#6366f1';
-                        }
+                        if (!conceptTitle) conceptLabel.textContent = 'Brief';
+                        conceptLabel.style.background = (isDirectDesign || task.is_direct_design) ? '#6366f1' : '#3b82f6';
                     }
                     if (refGroup) {
                         refGroup.style.marginTop = '36px';
@@ -3462,10 +3478,11 @@
                     }
                     if (submitNotesArea && isOtherDeliverable) submitNotesArea.style.display = 'none';
                 } else {
-                    if (captionItem) captionItem.style.display = '';
-                    if (copyItem) copyItem.style.display = '';
+                    if (captionItem) captionItem.style.display = 'block';
+                    if (copyItem) copyItem.style.display = 'block';
+                    if (conceptTitle) conceptTitle.textContent = 'Concept';
                     if (conceptLabel) {
-                        conceptLabel.textContent = 'Concept';
+                        if (!conceptTitle) conceptLabel.textContent = 'Concept';
                         conceptLabel.style.background = '#3b82f6';
                     }
                     if (refGroup) {

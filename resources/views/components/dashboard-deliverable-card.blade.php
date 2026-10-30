@@ -117,7 +117,7 @@
                     @endif
                     @if(!$isBatch && !empty($subtasks[0]->client_status) && $subtasks[0]->client_status !== 'Not Sent')
                         <span class="text-gray-300 dark:text-slate-600">·</span>
-                        <span class="text-[10px] font-extrabold text-blue-700 dark:text-blue-300 uppercase tracking-wide bg-blue-100 dark:bg-blue-500/20 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-500/30">{{ $subtasks[0]->client_status }}</span>
+                        <span class="text-[10px] font-extrabold text-blue-700 dark:text-blue-300 uppercase tracking-wide bg-blue-50 dark:bg-blue-500/20 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-500/30">{{ $subtasks[0]->client_status }}</span>
                     @endif
 
                     {{-- Main deliverable deadline displayed as date data --}}
@@ -143,21 +143,21 @@
             @if($primaryDate)
                 @php $daysLeft = (int) now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($primaryDate)->startOfDay(), false); @endphp
                 @if($daysLeft < 0)
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800 dark:bg-red-950/80 dark:text-red-300 border border-red-300 dark:border-red-700/60 shadow-xs" title="{{ $primaryType === 'revision' ? 'Revision Deadline' : ($primaryType === 'designer' ? 'Designer Deadline' : 'Deliverable Deadline') }}: {{ \Carbon\Carbon::parse($primaryDate)->format('M d, Y') }}">
-                        <span class="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-red-400"></span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-50 text-red-600 dark:bg-red-950/80 dark:text-red-300 border border-red-200 dark:border-red-700/60 shadow-xs" title="{{ $primaryType === 'revision' ? 'Revision Deadline' : ($primaryType === 'designer' ? 'Designer Deadline' : 'Deliverable Deadline') }}: {{ \Carbon\Carbon::parse($primaryDate)->format('M d, Y') }}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-400"></span>
                         {{ $primaryLabel }}Overdue
                     </span>
                 @elseif($daysLeft === 0)
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60 shadow-xs" title="{{ $primaryType === 'revision' ? 'Revision Deadline' : ($primaryType === 'designer' ? 'Designer Deadline' : 'Deliverable Deadline') }}: {{ \Carbon\Carbon::parse($primaryDate)->format('M d, Y') }}">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400"></span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-200 dark:border-amber-700/60 shadow-xs" title="{{ $primaryType === 'revision' ? 'Revision Deadline' : ($primaryType === 'designer' ? 'Designer Deadline' : 'Deliverable Deadline') }}: {{ \Carbon\Carbon::parse($primaryDate)->format('M d, Y') }}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400"></span>
                         {{ $primaryLabel }}Due Today
                     </span>
                 @elseif($daysLeft <= 3)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50" title="{{ $primaryType === 'revision' ? 'Revision Deadline' : ($primaryType === 'designer' ? 'Designer Deadline' : 'Deliverable Deadline') }}: {{ \Carbon\Carbon::parse($primaryDate)->format('M d, Y') }}">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 dark:bg-orange-950/50 dark:text-orange-300 border border-amber-200 dark:border-orange-800/50" title="{{ $primaryType === 'revision' ? 'Revision Deadline' : ($primaryType === 'designer' ? 'Designer Deadline' : 'Deliverable Deadline') }}: {{ \Carbon\Carbon::parse($primaryDate)->format('M d, Y') }}">
                         {{ $primaryLabel }}{{ $daysLeft }}d left
                     </span>
                 @else
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-white/5" title="{{ $primaryType === 'revision' ? 'Revision Deadline' : ($primaryType === 'designer' ? 'Designer Deadline' : 'Deliverable Deadline') }}: {{ \Carbon\Carbon::parse($primaryDate)->format('M d, Y') }}">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/5" title="{{ $primaryType === 'revision' ? 'Revision Deadline' : ($primaryType === 'designer' ? 'Designer Deadline' : 'Deliverable Deadline') }}: {{ \Carbon\Carbon::parse($primaryDate)->format('M d, Y') }}">
                         {{ $primaryLabel }}{{ \Carbon\Carbon::parse($primaryDate)->format('M j') }}
                     </span>
                 @endif

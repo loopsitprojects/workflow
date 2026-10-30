@@ -16,8 +16,8 @@
         .cd-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer; border:none; transition:all 0.15s; text-decoration:none; white-space:nowrap; }
         .cd-btn-outline { background:var(--color-bg-primary); color:var(--color-text-secondary); border:1.5px solid var(--color-border-primary); }
         .cd-btn-outline:hover { color:var(--color-text-primary); background:var(--color-bg-secondary); }
-        .cd-btn-primary { background:#0055D4; color:#fff; box-shadow:0 4px 12px rgba(0,85,212,0.2); }
-        .cd-btn-primary:hover { background:#0044aa; }
+        .cd-btn-primary { background:#2563EB; color:#fff; box-shadow:0 1px 3px rgba(37,99,235,0.25); }
+        .cd-btn-primary:hover { background:#1D4ED8; }
         .cd-table { width:100%; border-collapse:collapse; table-layout: fixed; }
         .cd-table thead tr { border-bottom:1px solid var(--color-border-primary); }
         .cd-table thead th { padding:10px 10px; text-align:left; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--color-text-secondary); white-space:nowrap; background:var(--color-bg-secondary); }
@@ -389,7 +389,8 @@
         .deliverable-name-cell { display: flex; align-items: center; }
 
         /* Workflow Steps Tracker */
-        .workflow-steps { display: flex; justify-content: space-between; position: relative; margin-bottom: 44px; padding: 0 10px; gap: 4px; }
+        .workflow-steps { display: flex; justify-content: space-between; position: relative; margin-bottom: 44px; padding: 0 10px; gap: 4px; overflow-x: hidden !important; scrollbar-width: none !important; -ms-overflow-style: none !important; }
+        .workflow-steps::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
         .workflow-steps::before { content: ''; position: absolute; top: 15px; left: 40px; right: 40px; height: 2px; background: var(--color-border-primary); z-index: 0; }
         .step-item { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 0; }
         .step-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--color-bg-primary); border: 2px solid var(--color-border-primary); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--color-text-secondary); transition: all 0.3s; flex-shrink: 0; }
@@ -791,6 +792,14 @@
     .dark .direct-design-modal .detail-label {
         color: #cbd5e1 !important;
     }
+    #modalConceptLabel,
+    #modalConceptLabel *,
+    #modalCopyLabel,
+    #modalCopyLabel *,
+    #modalCaptionLabel,
+    #modalCaptionLabel * {
+        color: #ffffff !important;
+    }
     .direct-design-modal .workflow-steps {
         display: flex !important;
         align-items: center !important;
@@ -802,6 +811,14 @@
         border-radius: 14px !important;
         margin-bottom: 0 !important;
         position: relative !important;
+        overflow-x: hidden !important;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+    .direct-design-modal .workflow-steps::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
     }
     .dark .direct-design-modal .workflow-steps {
         background: rgba(22, 19, 31, 0.75) !important;
@@ -1041,13 +1058,13 @@
                     @endif
                     @if(!in_array($project->workflow_type, ['campaign', 'pitch']) && auth()->user()->can('create-deliverable', $project))
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id]) }}"
-                       style="padding: 8px 16px; background: #0055D4; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(0,85,212,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
+                       style="padding: 8px 16px; background: #2563EB; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 1px 3px rgba(37,99,235,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         New Deliverable
                     </a>
                     @if(\App\Services\FeatureManager::isDirectDesignEnabled())
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id, 'flow' => 'design']) }}"
-                       style="padding: 8px 16px; background: #6366f1; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(99,102,241,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
+                       style="padding: 8px 16px; background: #4f46e5; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 1px 3px rgba(79,70,229,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         Direct Design
                     </a>
@@ -1058,7 +1075,7 @@
         </div>
 
         @if($project->description || $project->brief_file_path)
-            <div x-data="{ expanded: false }" style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.04); padding: 16px 20px; display:flex; flex-direction: column; gap:12px;">
+            <div x-data="{ expanded: false }" class="project-brief-card" style="background: var(--bg-card, #ffffff); border: 1px solid var(--border-card, rgba(226, 232, 240, 0.8)); border-radius: 12px; box-shadow: var(--shadow-card, 0 1px 2px 0 rgba(0,0,0,0.04)); padding: 16px 20px; display:flex; flex-direction: column; gap:12px;">
                 <div @click="expanded = !expanded" style="display:flex; align-items:center; gap:12px; cursor:pointer;">
                     <svg width="14" height="14" fill="none" stroke="#3b82f6" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     <div style="flex:1; min-width:0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--color-text-secondary);">
@@ -1889,7 +1906,7 @@
 
                     @if(auth()->user()->can('create-deliverable', $project))
                     <a href="{{ route('deliverables.create', ['project_id' => $project->id]) }}"
-                       style="padding: 7px 16px; background: #0055D4; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 4px 12px rgba(0,85,212,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
+                       style="padding: 7px 16px; background: #2563EB; border-radius: 9px; font-size: 12px; font-weight: 700; color: #fff; text-decoration: none; box-shadow: 0 1px 3px rgba(37,99,235,0.25); transition: all 0.15s; display:inline-flex; align-items:center; gap:6px;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                         <span>New Deliverable</span>
                     </a>

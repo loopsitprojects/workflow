@@ -25,6 +25,8 @@ class User extends Authenticatable
         'password',
         'role',
         'job_title',
+        'google_id',
+        'avatar',
     ];
 
     /**
@@ -73,6 +75,9 @@ class User extends Authenticatable
 
     public function getAvatarUrlAttribute()
     {
+        if (!empty($this->avatar)) {
+            return $this->avatar;
+        }
         return "https://ui-avatars.com/api/?name=" . urlencode($this->name) . "&background=FFEDD5&color=C2410C";
     }
 

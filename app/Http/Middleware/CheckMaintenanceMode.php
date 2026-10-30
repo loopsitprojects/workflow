@@ -24,8 +24,8 @@ class CheckMaintenanceMode
                 return $next($request);
             }
 
-            // 2. Allow login/logout & admin routes so admins can authenticate and manage system
-            if ($request->is('login') || $request->is('logout') || $request->is('admin/*')) {
+            // 2. Allow login/logout, auth/google/* & admin routes so admins can authenticate and manage system
+            if ($request->is('login') || $request->is('logout') || $request->is('auth/google/*') || $request->is('admin/*')) {
                 return $next($request);
             }
 

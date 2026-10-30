@@ -55,7 +55,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 16px;">
                  @can('create-deliverable')
-                 <a href="{{ route('deliverables.create') }}" style="padding: 12px 24px; background: #0055D4; border-radius: 12px; font-size: 11px; font-weight: 900; text-transform: uppercase; color: #ffffff; text-decoration: none; box-shadow: 0 10px 25px rgba(0,85,212,0.2);">New Deliverable</a>
+                 <a href="{{ route('deliverables.create') }}" style="padding: 10px 20px; background: #2563EB; border-radius: 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; color: #ffffff; text-decoration: none; box-shadow: 0 1px 3px rgba(37,99,235,0.25);">New Deliverable</a>
                  @endcan
             </div>
         </div>

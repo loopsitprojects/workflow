@@ -11,7 +11,7 @@ html:not(.dark) {
     color-scheme: light;
     /* Legacy variables fallback */
     --color-bg-primary: #ffffff;
-    --color-bg-secondary: #f8fafc;
+    --color-bg-secondary: #f1f5f9;
     --color-text-primary: #0f172a;
     --color-text-secondary: #64748b;
     --color-border-primary: #e2e8f0;
@@ -22,16 +22,16 @@ html:not(.dark) {
     --text-navbar-muted: #94A3B8;
     
     /* Board Canvas */
-    --bg-app: #F8FAFC;
-    --bg-column: #F1F5F9;
-    --border-column: #E2E8F0;
+    --bg-app: #f1f5f9;
+    --bg-column: #ffffff; /* Pure white card/board containers */
+    --border-column: rgba(226, 232, 240, 0.8);
     
     /* Cards */
-    --bg-card: #FFFFFF;
-    --border-card: #E2E8F0;
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.03);
-    --text-card-title: #0F172A;
-    --text-card-sub: #64748B;
+    --bg-card: #ffffff;
+    --border-card: #e2e8f0;
+    --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+    --text-card-title: #0f172a;
+    --text-card-sub: #64748b;
 }
 
 .dark,
@@ -563,7 +563,7 @@ select option {
 }
 
 /* =========================================================
-   DEEP BLUE NAVBAR & KANBAN REFINEMENTS
+   DEEP BLUE NAVBAR & CORE LAYOUT REFINEMENTS
    ========================================================= */
 nav.site-navbar {
     background: var(--bg-navbar, #0A2540) !important;
@@ -586,28 +586,40 @@ nav.site-navbar {
     color: #FFFFFF !important;
     background-color: rgba(255, 255, 255, 0.18) !important;
     font-weight: 700 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }
 
 .campaign-kanban-wrapper {
-    background: var(--bg-app);
+    background: transparent;
 }
 
 .kanban-column {
-    background: var(--bg-column, #F1F5F9) !important;
-    border: 1px solid var(--border-column, #E2E8F0) !important;
-    border-radius: 18px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    background: var(--bg-column, #ffffff) !important;
+    border: 1px solid var(--border-column, rgba(226, 232, 240, 0.8)) !important;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+.dark .kanban-column {
+    background: var(--bg-column, #111827) !important;
+    border-color: var(--border-column, #1f2937) !important;
 }
 
 .kanban-card {
-    background: var(--bg-card, #FFFFFF) !important;
-    border-color: var(--border-card, #E2E8F0) !important;
-    box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,0.05)) !important;
+    background: var(--bg-card, #ffffff) !important;
+    border: 1px solid var(--border-card, #e2e8f0) !important;
+    box-shadow: var(--shadow-card, 0 1px 2px 0 rgba(0, 0, 0, 0.04)) !important;
+    border-radius: 12px;
 }
 
 .kanban-card:hover {
-    box-shadow: var(--shadow-card), 0 6px 18px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.06) !important;
+    border-color: #cbd5e1 !important;
+}
+
+.dark .kanban-card {
+    background: #1f2937 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Subtle Ghost + Add Task Button */
@@ -640,5 +652,83 @@ html.dark .kanban-add-task-btn:hover {
     background: rgba(255, 255, 255, 0.05);
     border-color: var(--border-column, #1F2937);
     color: var(--text-card-title, #F9FAFB);
+}
+
+/* =========================================================
+   LIGHT MODE SOFT PASTEL BADGES & SMOOTH ACTION BUTTONS
+   ========================================================= */
+html:not(.dark) .badge-retainer,
+:root[data-theme="light"] .badge-retainer {
+    background: #EFF6FF !important;
+    color: #1D4ED8 !important;
+    border: 1px solid #DBEAFE !important;
+}
+
+html:not(.dark) .badge-campaign,
+:root[data-theme="light"] .badge-campaign {
+    background: #FAF5FF !important;
+    color: #7E22CE !important;
+    border: 1px solid #F3E8FF !important;
+}
+
+html:not(.dark) .badge-pitch,
+:root[data-theme="light"] .badge-pitch {
+    background: #FFFBEB !important;
+    color: #B45309 !important;
+    border: 1px solid #FEF3C7 !important;
+}
+
+html:not(.dark) .badge-job-number,
+:root[data-theme="light"] .badge-job-number {
+    background: #F1F5F9 !important;
+    color: #475569 !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+html:not(.dark) .badge-due,
+html:not(.dark) .badge-due-warning,
+:root[data-theme="light"] .badge-due,
+:root[data-theme="light"] .badge-due-warning {
+    background: #FFFBEB !important;
+    color: #B45309 !important;
+    border: 1px solid #FEF3C7 !important;
+}
+
+html:not(.dark) .badge-due-today,
+:root[data-theme="light"] .badge-due-today {
+    background: #FFF7ED !important;
+    color: #C2410C !important;
+    border: 1px solid #FFEDD5 !important;
+}
+
+html:not(.dark) .badge-due-urgent,
+:root[data-theme="light"] .badge-due-urgent {
+    background: #FEF2F2 !important;
+    color: #DC2626 !important;
+    border: 1px solid #FECACA !important;
+}
+
+html:not(.dark) .badge-due-normal,
+:root[data-theme="light"] .badge-due-normal {
+    background: #F8FAFC !important;
+    color: #64748B !important;
+    border: 1px solid #E2E8F0 !important;
+}
+
+/* Primary Action Buttons */
+.btn-primary-action,
+.btn-new-deliverable {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    box-shadow: 0 1px 3px 0 rgba(37, 99, 235, 0.25), 0 1px 2px -1px rgba(37, 99, 235, 0.1) !important;
+    transition: all 0.15s ease !important;
+}
+
+.btn-primary-action:hover,
+.btn-new-deliverable:hover {
+    background: #1d4ed8 !important;
+    box-shadow: 0 2px 6px 0 rgba(37, 99, 235, 0.35) !important;
 }
 

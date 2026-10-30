@@ -138,11 +138,25 @@
                 <p class="text-[10px] text-gray-400 dark:text-slate-500 font-black uppercase tracking-[0.2em] opacity-80">Directory of all users by role</p>
             </div>
             <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] shadow-sm w-56">
-                    <svg class="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <input type="text" x-model="search" placeholder="Search by username or role…"
-                           class="flex-1 bg-transparent border-none outline-none text-sm text-gray-700 dark:text-slate-300 placeholder-gray-400 dark:placeholder-slate-500">
-                    <span x-show="search" @click="search=''" class="text-[10px] font-bold text-gray-400 cursor-pointer hover:text-gray-600 uppercase tracking-wide">Clear</span>
+                <div class="relative flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] shadow-xs w-64 sm:w-72 flex-shrink-0 focus-within:border-blue-500/60 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                    <svg class="w-4 h-4 text-gray-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text"
+                           x-model="search"
+                           placeholder="Search by username or role…"
+                           spellcheck="false"
+                           autocomplete="off"
+                           autocorrect="off"
+                           autocapitalize="off"
+                           class="w-full min-w-0 flex-1 bg-transparent border-0 p-0 text-sm text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-0">
+                    <button type="button"
+                            x-show="search"
+                            x-cloak
+                            @click="search=''"
+                            class="flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                            title="Clear search">
+                        <span>Clear</span>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
                 </div>
                 <button @click="showInviteModal = true" class="px-6 py-3 bg-fuchsia-600 text-white rounded-xl text-[10px] font-black hover:bg-fuchsia-700 transition-all shadow-lg shadow-fuchsia-500/20 uppercase tracking-widest flex items-center gap-2">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>

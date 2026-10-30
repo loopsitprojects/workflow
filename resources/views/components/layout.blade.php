@@ -98,19 +98,29 @@
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         [x-cloak] { display: none !important; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--color-bg-secondary); color: var(--color-text-primary); transition: background-color 0.3s, color 0.3s; }
-        .dark body, body.dark { background-color: var(--color-bg-secondary); }
+        body { font-family: 'Inter', sans-serif; background-color: var(--color-bg-secondary, #F1F5F9); color: var(--color-text-primary, #0F172A); transition: background-color 0.3s, color 0.3s; }
+        .dark body, body.dark { background-color: var(--color-bg-secondary, #0b1120); }
 
         /* Premium dark background — subtle blue-tinted radial gradient */
         .dark main, html.dark body { background-color: #0b1120; }
+        html:not(.dark) body { background-color: #F1F5F9; }
 
         .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); }
         .dark .glass { background: rgba(17, 24, 39, 0.75); border-color: rgba(255, 255, 255, 0.06); }
         .nav-active { color: var(--color-text-primary); font-weight: 600; border-bottom: 2px solid var(--color-text-primary); }
 
-        /* Light mode: crisp, refined shadow. Dark mode: visible depth without harsh outline */
-        .card-shadow { box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 4px 14px -1px rgba(15, 23, 42, 0.05); }
-        .dark .card-shadow { box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 24px rgba(0, 0, 0, 0.35); }
+        /* Light mode: crisp, refined shadow with subtle border. Dark mode: visible depth without harsh outline */
+        .card-shadow {
+            background-color: #ffffff;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+        }
+        .dark .card-shadow {
+            background-color: var(--color-bg-primary, #1e293b);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 24px rgba(0, 0, 0, 0.35);
+        }
 
         /* =========================================================
            MODERN LUXURY SEASONAL DESIGN SYSTEM (Linear / Vercel style)

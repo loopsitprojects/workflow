@@ -14,9 +14,16 @@ use App\Http\Controllers\SubtaskTypeController;
 use App\Http\Controllers\Admin\MaintenanceController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\GoogleAuthController;
 
 Route::get('/invite/{token}', [RegisterController::class, 'show'])->name('register');
 Route::post('/invite/{token}', [RegisterController::class, 'store']);
+
+// Google OAuth Authentication
+Route::middleware('guest')->group(function () {
+    Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+});
 
 // Public Artwork Review (no authentication required — client-facing)
 Route::get('/artwork-review/{token}', [ArtworkReviewController::class, 'show'])->name('artwork.review.show');

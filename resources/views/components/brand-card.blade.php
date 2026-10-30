@@ -11,10 +11,10 @@
         ($user->role === 'Brand Manager' && ($brand->created_by === $user->id || $brand->members->contains('id', $user->id)));
 @endphp
 
-<div class="bg-white dark:bg-[#111827] rounded-2xl card-shadow border border-gray-100 dark:border-white/[0.06] flex flex-col relative group transition-all hover:shadow-md hover:-translate-y-0.5 overflow-hidden">
+<div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs hover:shadow-sm flex flex-col relative group transition-all hover:-translate-y-0.5 overflow-hidden">
 
-    {{-- Accent bar --}}
-    <div class="h-1 w-full" style="background: {{ ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'][($brand->id % 4)] }}"></div>
+    {{-- Accent bar - softened lower-saturation tones --}}
+    <div class="h-1 w-full" style="background: {{ ['#60A5FA', '#34D399', '#FBBF24', '#A78BFA'][($brand->id % 4)] }}"></div>
 
     <div class="p-5 flex flex-col gap-4">
 
@@ -25,13 +25,13 @@
             @else
                 <div onclick="window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'You are not assigned to this brand.', type: 'warning' } }))" class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
             @endif
-                <div class="w-11 h-11 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-100 dark:border-slate-700">
+                <div class="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200/60 dark:border-slate-700">
                     <img src="{{ $brand->logo_url }}" alt="{{ $brand->name }}"
                          class="w-8 h-8 object-contain"
                          onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ urlencode($brand->name) }}&background=E2E8F0&color=475569&bold=true';">
                 </div>
                 <div class="min-w-0">
-                    <h3 class="text-[15px] font-extrabold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate leading-tight">
+                    <h3 class="text-[15px] font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate leading-tight">
                         {{ $brand->name }}
                     </h3>
                     @if($brand->location)
