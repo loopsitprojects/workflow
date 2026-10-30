@@ -1091,6 +1091,60 @@ async function kanbanOnDrop(event, targetStatus) {
         return;
     }
 
+    // Ask confirmation before moving to a different column
+    const taskTitle = card.querySelector('#card-view-title-' + taskId)?.textContent?.trim()
+        || card.querySelector('[data-card-title]')?.textContent?.trim() 
+        || card.querySelector('h4')?.textContent?.trim() 
+        || 'this deliverable';
+
+    const displayTarget = (targetStatus === 'Done') ? 'Completed' : targetStatus;
+    const displayOld = (oldStatus === 'Done') ? 'Completed' : oldStatus;
+
+    let confirmTitle = 'Move Deliverable?';
+    let confirmMessage = `Are you sure you want to move <strong>"${escapeHtml(taskTitle)}"</strong> to <strong>${displayTarget}</strong>?`;
+    let confirmBtnText = `Yes, Move`;
+    let confirmType = 'info';
+
+    if (targetStatus === 'Done') {
+        confirmTitle = 'Complete Deliverable?';
+        confirmMessage = `Are you sure you want to move <strong>"${escapeHtml(taskTitle)}"</strong> to <strong>Completed</strong> and mark it as done?`;
+        confirmBtnText = 'Yes, Complete';
+        confirmType = 'success';
+    } else if (targetStatus === 'Approval Stage') {
+        confirmTitle = 'Submit to Approval?';
+        confirmMessage = `Are you sure you want to move <strong>"${escapeHtml(taskTitle)}"</strong> to <strong>Approval Stage</strong>?`;
+        confirmBtnText = 'Yes, Submit';
+        confirmType = 'info';
+    } else if (targetStatus === 'In Progress') {
+        confirmTitle = 'Move to In Progress?';
+        confirmMessage = `Are you sure you want to move <strong>"${escapeHtml(taskTitle)}"</strong> to <strong>In Progress</strong>?`;
+        confirmBtnText = 'Yes, Move';
+        confirmType = 'info';
+    } else if (targetStatus === 'To Do') {
+        confirmTitle = 'Move to To Do?';
+        confirmMessage = `Are you sure you want to move <strong>"${escapeHtml(taskTitle)}"</strong> back to <strong>To Do</strong>?`;
+        confirmBtnText = 'Yes, Move';
+        confirmType = 'info';
+    }
+
+    let confirmed = false;
+    if (typeof window.customConfirm === 'function') {
+        confirmed = await window.customConfirm({
+            title: confirmTitle,
+            message: confirmMessage,
+            confirmText: confirmBtnText,
+            cancelText: 'Cancel',
+            isDanger: false,
+            type: confirmType
+        });
+    } else {
+        confirmed = window.confirm(`Are you sure you want to move "${taskTitle}" from ${displayOld} to ${displayTarget}?`);
+    }
+
+    if (!confirmed) {
+        return;
+    }
+
     executeKanbanMove(taskId, targetStatus, oldStatus, card, { approver_id: currentApproverId });
 }
 
