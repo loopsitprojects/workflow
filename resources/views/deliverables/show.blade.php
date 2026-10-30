@@ -1071,7 +1071,66 @@
                             </div>
                         </div>
 
-                        <!-- 2. Final Designs Preview & Delivery Card (Placed right under Creative Content) -->
+                        <!-- 2. References & Attachments Card -->
+                        <div class="dd-card-section" id="modalReferenceGroup">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:28px; height:28px; border-radius:8px; background:rgba(14,165,233,0.1); display:flex; align-items:center; justify-content:center; color:#0ea5e9;">
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                                    </div>
+                                    <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">References & Attachments</span>
+                                </div>
+                                <button type="button" id="toggleRefEditBtn" onclick="
+                                    const el = document.getElementById('modalReferenceEditArea');
+                                    if (el) {
+                                        const isHidden = el.style.display === 'none' || !el.style.display;
+                                        el.style.display = isHidden ? 'grid' : 'none';
+                                        this.textContent = isHidden ? '✕ Close' : '+ Add / Edit References';
+                                    }
+                                " style="display:inline-flex; align-items:center; gap:6px; background:rgba(14,165,233,0.1); color:#0ea5e9; border:1px solid rgba(14,165,233,0.25); border-radius:8px; padding:5px 12px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;">+ Add / Edit References</button>
+                            </div>
+                            <div id="modalReference" class="thumbnail-gallery" style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; min-height:40px; margin-bottom:8px;"></div>
+                            
+                            <div id="modalReferenceEditArea" style="display:none; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top:16px; padding-top:16px; border-top:1px solid var(--color-border-primary);">
+                                <!-- Files & Images Section -->
+                                <div style="padding:16px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:14px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            <span style="font-size:11px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em;">📁 Images & Files</span>
+                                            <div id="modalReferenceUploadStatus" style="display:none; align-items:center; gap:6px; font-size:10px; font-weight:800;"></div>
+                                        </div>
+                                        <button type="button" onclick="addReferenceInputRow('file')" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.2); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                            Add File
+                                        </button>
+                                    </div>
+                                    <div id="modalReferenceFilesContainer" style="display:flex; flex-direction:column; gap:10px;">
+                                        <div class="ref-input-row">
+                                            <input type="file" id="modalReferenceFileInput" name="reference_files[]" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" multiple style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="autoUploadModalReference(this)">
+                                            <div id="modalReferenceMultiPreviews" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Links Section -->
+                                <div style="padding:16px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:14px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                                        <span style="font-size:11px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em;">🔗 Links & URLs</span>
+                                        <button type="button" onclick="addReferenceInputRow('link')" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:rgba(59,130,246,0.1); color:#2563eb; border:1px solid rgba(59,130,246,0.2); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                            Add Link
+                                        </button>
+                                    </div>
+                                    <div id="modalReferenceLinksContainer" style="display:flex; flex-direction:column; gap:10px;">
+                                        <div class="ref-input-row">
+                                            <input type="url" id="modalReferenceUrl" name="reference_urls[]" form="submitStageForm" placeholder="https://..." style="width:100%; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Final Designs Preview & Delivery Card -->
                         <div class="dd-card-section" id="modalFinalGroup">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--color-border-primary); padding-bottom:12px; flex-wrap:wrap; gap:10px;">
                                 <div style="display:flex; align-items:center; gap:8px;">
@@ -1137,65 +1196,6 @@
                                         </div>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
-
-                        <!-- 3. References & Attachments Card -->
-                        <div class="dd-card-section" id="modalReferenceGroup">
-                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <div style="width:28px; height:28px; border-radius:8px; background:rgba(14,165,233,0.1); display:flex; align-items:center; justify-content:center; color:#0ea5e9;">
-                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                                    </div>
-                                    <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">References & Attachments</span>
-                                </div>
-                                <button type="button" id="toggleRefEditBtn" onclick="
-                                    const el = document.getElementById('modalReferenceEditArea');
-                                    if (el) {
-                                        const isHidden = el.style.display === 'none' || !el.style.display;
-                                        el.style.display = isHidden ? 'grid' : 'none';
-                                        this.textContent = isHidden ? '✕ Close' : '+ Add / Edit References';
-                                    }
-                                " style="display:inline-flex; align-items:center; gap:6px; background:rgba(14,165,233,0.1); color:#0ea5e9; border:1px solid rgba(14,165,233,0.25); border-radius:8px; padding:5px 12px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;">+ Add / Edit References</button>
-                            </div>
-                            <div id="modalReference" class="thumbnail-gallery" style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; min-height:40px; margin-bottom:8px;"></div>
-                            
-                            <div id="modalReferenceEditArea" style="display:none; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top:16px; padding-top:16px; border-top:1px solid var(--color-border-primary);">
-                                <!-- Files & Images Section -->
-                                <div style="padding:16px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:14px;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-                                        <div style="display:flex; align-items:center; gap:8px;">
-                                            <span style="font-size:11px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em;">📁 Images & Files</span>
-                                            <div id="modalReferenceUploadStatus" style="display:none; align-items:center; gap:6px; font-size:10px; font-weight:800;"></div>
-                                        </div>
-                                        <button type="button" onclick="addReferenceInputRow('file')" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:rgba(0,85,212,0.1); color:#0055D4; border:1px solid rgba(0,85,212,0.2); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                                            Add File
-                                        </button>
-                                    </div>
-                                    <div id="modalReferenceFilesContainer" style="display:flex; flex-direction:column; gap:10px;">
-                                        <div class="ref-input-row">
-                                            <input type="file" id="modalReferenceFileInput" name="reference_files[]" form="submitStageForm" accept="image/*,video/*,application/pdf,.pdf" multiple style="width:100%; padding:8px; border:1.5px dashed var(--color-border-primary); border-radius:10px; background:var(--color-bg-primary); font-size:11px;" onchange="autoUploadModalReference(this)">
-                                            <div id="modalReferenceMultiPreviews" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;"></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Links Section -->
-                                <div style="padding:16px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); border-radius:14px;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-                                        <span style="font-size:11px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.05em;">🔗 Links & URLs</span>
-                                        <button type="button" onclick="addReferenceInputRow('link')" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:rgba(59,130,246,0.1); color:#2563eb; border:1px solid rgba(59,130,246,0.2); border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                                            Add Link
-                                        </button>
-                                    </div>
-                                    <div id="modalReferenceLinksContainer" style="display:flex; flex-direction:column; gap:10px;">
-                                        <div class="ref-input-row">
-                                            <input type="url" id="modalReferenceUrl" name="reference_urls[]" form="submitStageForm" placeholder="https://..." style="width:100%; padding:8px 10px; border:1px solid var(--color-border-primary); border-radius:10px; font-size:12px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary);">
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
