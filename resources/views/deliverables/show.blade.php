@@ -1045,6 +1045,7 @@
                                     </div>
                                     <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">Creative Content</span>
                                 </div>
+                                <div id="creativeAutoSaveStatus" style="font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:6px; min-height:20px; transition:opacity 0.25s ease;"></div>
                             </div>
 
                             <!-- Section 1: Concept / Brief -->
@@ -1472,7 +1473,7 @@
                                 <form id="submitStageForm" method="POST" enctype="multipart/form-data">
                                     @csrf
                                     <button type="submit" name="action" value="submit" class="cd-btn cd-btn-primary" id="submitStageBtn" style="display:none;">Submit to Next</button>
-                                    <button type="submit" name="action" value="save_only" class="cd-btn cd-btn-outline" id="saveContentBtn" style="display:none;">Save Content</button>
+                                    <button type="submit" name="action" value="save_only" class="cd-btn cd-btn-outline" id="saveContentBtn" style="display:none !important;">Save Content</button>
                                 </form>
                                 <button type="button" class="cd-btn cd-btn-outline" id="showRevisionBtn" style="display:none;" onclick="toggleRevisionInput(true)">Request Revisions</button>
                                 <button id="modalDeleteBtn" type="button" class="cd-btn" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1.5px solid rgba(239,68,68,0.3); display:none;" onclick="deleteTaskFromModal()">Delete</button>
