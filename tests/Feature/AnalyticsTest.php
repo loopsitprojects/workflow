@@ -322,6 +322,7 @@ class AnalyticsTest extends TestCase
         ]);
         $old->timestamps = false;
         $old->created_at = now()->subDays(60);
+        $old->updated_at = now()->subDays(60);
         $old->save();
 
         // Recent deliverable created 2 days ago

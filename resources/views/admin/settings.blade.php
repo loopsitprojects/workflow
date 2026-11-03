@@ -1,9 +1,18 @@
 <x-layout title="Admin Settings">
     <div x-data="{
-        activeTab: window.location.hash ? window.location.hash.replace('#', '') : 'general',
+        activeTab: (window.location.hash ? window.location.hash.replace('#', '') : null) || new URLSearchParams(window.location.search).get('tab') || localStorage.getItem('admin_settings_active_tab') || 'general',
         setTab(tab) {
             this.activeTab = tab;
             window.location.hash = tab;
+            try { localStorage.setItem('admin_settings_active_tab', tab); } catch(e) {}
+        },
+        init() {
+            const validTabs = ['general', 'features', 'projects', 'appearance', 'maintenance'];
+            if (!validTabs.includes(this.activeTab)) {
+                this.activeTab = 'general';
+            }
+            window.location.hash = this.activeTab;
+            try { localStorage.setItem('admin_settings_active_tab', this.activeTab); } catch(e) {}
         }
     }" class="max-w-7xl mx-auto w-full flex flex-col gap-8 pb-16">
 
@@ -38,28 +47,7 @@
             </div>
         </div>
 
-        <!-- Session Notification Alerts -->
-        @if(session('success'))
-            <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-between gap-3 text-sm font-bold card-shadow">
-                <div class="flex items-center gap-2.5">
-                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                    </svg>
-                    <span>{{ session('success') }}</span>
-                </div>
-            </div>
-        @endif
 
-        @if(session('error'))
-            <div class="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 flex items-center justify-between gap-3 text-sm font-bold card-shadow">
-                <div class="flex items-center gap-2.5">
-                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                    <span>{{ session('error') }}</span>
-                </div>
-            </div>
-        @endif
 
         <!-- Main Body: Sidebar Navigation + Tabbed Content -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -312,6 +300,7 @@
 
                                 <form action="{{ route('admin.features.toggle-client-review') }}" method="POST" id="clientReviewToggleForm" class="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
                                     @csrf
+                                    <input type="hidden" name="tab" value="features">
                                     <span class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                         {{ ($clientReviewEnabled ?? true) ? 'ON' : 'OFF' }}
                                     </span>
@@ -352,6 +341,7 @@
 
                                 <form action="{{ route('admin.features.toggle-direct-design') }}" method="POST" id="directDesignToggleForm" class="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
                                     @csrf
+                                    <input type="hidden" name="tab" value="features">
                                     <span class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                         {{ ($directDesignEnabled ?? true) ? 'ON' : 'OFF' }}
                                     </span>
@@ -392,6 +382,7 @@
 
                                 <form action="{{ route('admin.features.toggle-analytics') }}" method="POST" id="analyticsToggleForm" class="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
                                     @csrf
+                                    <input type="hidden" name="tab" value="features">
                                     <span class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                         {{ ($analyticsEnabled ?? true) ? 'ON' : 'OFF' }}
                                     </span>
@@ -435,6 +426,7 @@
 
                                 <form action="{{ route('admin.features.toggle-google-auth') }}" method="POST" id="googleAuthToggleForm" class="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
                                     @csrf
+                                    <input type="hidden" name="tab" value="features">
                                     <span class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                         {{ ($googleAuthEnabled ?? true) ? 'ON' : 'OFF' }}
                                     </span>
@@ -531,6 +523,7 @@
                                     <!-- Toggle Switch -->
                                     <form action="{{ route('admin.features.toggle-project-type') }}" method="POST" class="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
                                         @csrf
+                                        <input type="hidden" name="tab" value="projects">
                                         <input type="hidden" name="project_type" value="{{ $key }}">
                                         <span class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                             {{ $isEnabled ? 'ON' : 'OFF' }}
@@ -607,6 +600,7 @@
                             <!-- 1. Christmas Theme Card -->
                             <form action="{{ route('admin.settings.theme') }}" method="POST" class="h-full">
                                 @csrf
+                                <input type="hidden" name="tab" value="appearance">
                                 <input type="hidden" name="theme" value="christmas">
                                 <button type="submit" class="w-full h-full text-left p-5 rounded-2xl border-2 transition-all flex flex-col justify-between group cursor-pointer {{ ($activeTheme ?? 'dark') === 'christmas' ? 'border-emerald-500 bg-emerald-500/[0.04] dark:bg-emerald-950/20 shadow-md ring-2 ring-emerald-500/20' : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:border-emerald-400 dark:hover:border-emerald-500/50 hover:bg-slate-50 dark:hover:bg-slate-900/80' }}">
                                     <div>
@@ -635,6 +629,7 @@
                             <!-- 2. Halloween Theme Card -->
                             <form action="{{ route('admin.settings.theme') }}" method="POST" class="h-full">
                                 @csrf
+                                <input type="hidden" name="tab" value="appearance">
                                 <input type="hidden" name="theme" value="halloween">
                                 <button type="submit" class="w-full h-full text-left p-5 rounded-2xl border-2 transition-all flex flex-col justify-between group cursor-pointer {{ ($activeTheme ?? 'dark') === 'halloween' ? 'border-orange-500 bg-orange-500/[0.04] dark:bg-orange-950/20 shadow-md ring-2 ring-orange-500/20' : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:border-orange-400 dark:hover:border-orange-500/50 hover:bg-slate-50 dark:hover:bg-slate-900/80' }}">
                                     <div>
@@ -663,6 +658,7 @@
                             <!-- 3. Standard Dark Theme Card -->
                             <form action="{{ route('admin.settings.theme') }}" method="POST" class="h-full">
                                 @csrf
+                                <input type="hidden" name="tab" value="appearance">
                                 <input type="hidden" name="theme" value="dark">
                                 <button type="submit" class="w-full h-full text-left p-5 rounded-2xl border-2 transition-all flex flex-col justify-between group cursor-pointer {{ ($activeTheme ?? 'dark') === 'dark' ? 'border-blue-500 bg-blue-500/[0.04] dark:bg-blue-950/20 shadow-md ring-2 ring-blue-500/20' : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:border-blue-400 dark:hover:border-blue-500/50 hover:bg-slate-50 dark:hover:bg-slate-900/80' }}">
                                     <div>
@@ -691,6 +687,7 @@
                             <!-- 4. Standard Light Theme Card -->
                             <form action="{{ route('admin.settings.theme') }}" method="POST" class="h-full">
                                 @csrf
+                                <input type="hidden" name="tab" value="appearance">
                                 <input type="hidden" name="theme" value="light">
                                 <button type="submit" class="w-full h-full text-left p-5 rounded-2xl border-2 transition-all flex flex-col justify-between group cursor-pointer {{ ($activeTheme ?? 'dark') === 'light' ? 'border-amber-500 bg-amber-500/[0.04] dark:bg-amber-950/20 shadow-md ring-2 ring-amber-500/20' : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 hover:border-amber-400 dark:hover:border-amber-500/50 hover:bg-slate-50 dark:hover:bg-slate-900/80' }}">
                                     <div>
@@ -757,6 +754,7 @@
                             <!-- Maintenance Toggle Switch -->
                             <form action="{{ route('admin.maintenance.toggle') }}" method="POST" id="maintenanceToggleForm" class="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
                                 @csrf
+                                <input type="hidden" name="tab" value="maintenance">
                                 <span class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                     {{ $maintenance['enabled'] ? 'ON' : 'OFF' }}
                                 </span>

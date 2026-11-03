@@ -48,6 +48,11 @@ class MaintenanceController extends Controller
             ? 'Maintenance Mode has been ENABLED. Non-admin users will now see the maintenance screen.' 
             : 'Maintenance Mode has been DISABLED. Normal system access is restored.';
 
+        if ($request->filled('tab')) {
+            $tab = $request->input('tab');
+            return redirect()->to(route('admin.settings', ['tab' => $tab]) . '#' . $tab)->with('success', $msg);
+        }
+
         return redirect()->route('admin.settings')->with('success', $msg);
     }
 
@@ -61,6 +66,11 @@ class MaintenanceController extends Controller
         $current['message'] = $request->input('message');
 
         Storage::put(self::MAINTENANCE_FILE, json_encode($current, JSON_PRETTY_PRINT));
+
+        if ($request->filled('tab')) {
+            $tab = $request->input('tab');
+            return redirect()->to(route('admin.settings', ['tab' => $tab]) . '#' . $tab)->with('success', 'Maintenance message updated successfully.');
+        }
 
         return redirect()->route('admin.settings')->with('success', 'Maintenance message updated successfully.');
     }

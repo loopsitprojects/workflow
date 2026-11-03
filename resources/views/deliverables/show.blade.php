@@ -426,7 +426,8 @@
             align-items: center !important;
             justify-content: space-between !important;
             padding: 0 0 16px 0 !important; 
-            border-bottom: none !important; 
+            border-bottom: 1px solid var(--color-border-primary) !important; 
+            margin-bottom: 20px !important;
             height: auto !important;
             max-height: none !important;
         }
@@ -944,54 +945,52 @@
     </style>
 
     <div class="container mx-auto px-4">
-        <div class="mb-6" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; position:relative; z-index:10; margin-bottom:24px; width:100%; border-bottom:1px solid var(--color-border-primary); padding-bottom:16px;">
-            <nav style="display:flex; gap:6px; align-items:center; font-size:12px; font-weight:600; color:var(--color-text-secondary); flex-wrap:wrap;">
-                <a href="{{ route('brands.index') }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">Brands</a>
-                @if($deliverable->project && $deliverable->project->brand)
-                    <span style="opacity:0.35;">/</span>
-                    <a href="{{ route('brands.show', $deliverable->project->brand) }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">{{ $deliverable->project->brand->name }}</a>
-                @endif
-                @if($deliverable->project)
-                    <span style="opacity:0.35;">/</span>
-                    <a href="{{ route('projects.show', $deliverable->project) }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">{{ $deliverable->project->name }}</a>
-                @endif
-                <span style="opacity:0.35;">/</span>
-                <span style="color:var(--color-text-primary); font-weight:700;">{{ $deliverable->title }}</span>
-            </nav>
-            <div style="display:flex; align-items:center; gap:10px;">
-                <a href="{{ route('projects.show', $deliverable->project_id) }}" class="cd-btn" style="display:inline-flex; align-items:center; gap:8px; background:rgba(37,99,235,0.1); color:#2563eb; border:1px solid rgba(37,99,235,0.2); padding:8px 16px; font-size:12px; font-weight:800; border-radius:8px; transition:all 0.2s;" onmouseover="this.style.background='#2563eb'; this.style.color='#fff';" onmouseout="this.style.background='rgba(37,99,235,0.1)'; this.style.color='#2563eb';">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                    Back to Project
-                </a>
-            </div>
-        </div>
-
         <!-- Detail Workspace / Modal -->
     <div id="taskModalOverlay" class="cd-modal-overlay" onclick="closeTaskModal(event)">
         <div class="cd-modal">
-            <!-- Header Bar -->
-            <div class="cd-modal-header" style="padding:0; margin-bottom:18px; align-items:center; gap:16px; justify-content:space-between; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
+            <!-- Header Bar (All in One Compact Row) -->
+            <div class="cd-modal-header" style="padding:0; margin-bottom:18px; align-items:center; gap:16px; justify-content:space-between; flex-wrap:wrap; display:flex;">
+                <!-- Left: Breadcrumbs & Type Badge -->
+                <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0; flex-wrap:wrap;">
+                    <nav style="display:flex; gap:6px; align-items:center; font-size:12px; font-weight:600; color:var(--color-text-secondary); flex-wrap:wrap;">
+                        <a href="{{ route('brands.index') }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">Brands</a>
+                        @if($deliverable->project && $deliverable->project->brand)
+                            <span style="opacity:0.35;">/</span>
+                            <a href="{{ route('brands.show', $deliverable->project->brand) }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">{{ $deliverable->project->brand->name }}</a>
+                        @endif
+                        @if($deliverable->project)
+                            <span style="opacity:0.35;">/</span>
+                            <a href="{{ route('projects.show', $deliverable->project) }}" style="text-decoration:none; color:inherit; transition:color 0.15s;">{{ $deliverable->project->name }}</a>
+                        @endif
+                        <span style="opacity:0.35;">/</span>
+                        <span style="color:var(--color-text-primary); font-weight:700;">{{ $deliverable->title }}</span>
+                    </nav>
                     <div id="modalSubtaskType" class="subtask-pill" style="margin-bottom:0; flex-shrink:0;"></div>
                     <div id="modalTopDeadlines" style="display:none; align-items:center; gap:8px; flex-shrink:0;"></div>
                 </div>
-                <div style="display:flex; align-items:center; gap:12px;">
+
+                <!-- Right: Actions & Navigation -->
+                <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
                     @if(auth()->user()->canReassign())
-                    <button type="button" id="btnOpenReassignWriterModal" onclick="openReassignWriterModal()" style="display:none; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:800; background:rgba(59,130,246,0.1); color:#3b82f6; border:1px solid rgba(59,130,246,0.3); align-items:center; gap:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap;" onmouseover="this.style.background='rgba(59,130,246,0.2)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'" title="Reassign Writer / Assignee">
+                    <button type="button" id="btnOpenReassignWriterModal" onclick="openReassignWriterModal()" style="display:none; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:800; background:rgba(59,130,246,0.1); color:#3b82f6; border:1px solid rgba(59,130,246,0.3); align-items:center; gap:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap;" onmouseover="this.style.background='rgba(59,130,246,0.2)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'" title="Reassign Writer / Assignee">
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                         Reassign Writer
                     </button>
-                    <button type="button" id="btnOpenReassignDesignerModal" onclick="openReassignDesignerModal()" style="display:none; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:800; background:rgba(236,72,153,0.1); color:#ec4899; border:1px solid rgba(236,72,153,0.3); align-items:center; gap:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap;" onmouseover="this.style.background='rgba(236,72,153,0.2)'" onmouseout="this.style.background='rgba(236,72,153,0.1)'" title="Reassign Designer">
+                    <button type="button" id="btnOpenReassignDesignerModal" onclick="openReassignDesignerModal()" style="display:none; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:800; background:rgba(236,72,153,0.1); color:#ec4899; border:1px solid rgba(236,72,153,0.3); align-items:center; gap:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap;" onmouseover="this.style.background='rgba(236,72,153,0.2)'" onmouseout="this.style.background='rgba(236,72,153,0.1)'" title="Reassign Designer">
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                         Reassign Designer
                     </button>
                     @endif
-                    <a id="btnExportPpt" href="{{ route('deliverables.export.ppt', $deliverable) }}" class="cd-btn cd-btn-outline" style="padding:7px 14px; font-size:12px; font-weight:700; border-radius:8px; display:inline-flex; align-items:center; gap:6px; color:var(--color-text-secondary); border:1.5px solid var(--color-border-primary); background:var(--color-bg-primary); text-decoration:none; transition:all 0.15s;" onmouseover="this.style.color='var(--color-text-primary)'; this.style.borderColor='#2563eb';" onmouseout="this.style.color='var(--color-text-secondary)'; this.style.borderColor='var(--color-border-primary)';" title="Download PPT">
+                    <a id="btnExportPpt" href="{{ route('deliverables.export.ppt', $deliverable) }}" class="cd-btn cd-btn-outline" style="padding:6px 12px; font-size:12px; font-weight:700; border-radius:8px; display:inline-flex; align-items:center; gap:6px; color:var(--color-text-secondary); border:1.5px solid var(--color-border-primary); background:var(--color-bg-primary); text-decoration:none; transition:all 0.15s;" onmouseover="this.style.color='var(--color-text-primary)'; this.style.borderColor='#2563eb';" onmouseout="this.style.color='var(--color-text-secondary)'; this.style.borderColor='var(--color-border-primary)';" title="Download PPT">
                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                         Download PPT
                     </a>
-                    <button type="button" onclick="closeTaskModal()" class="cd-btn cd-btn-outline" style="padding:8px; border-radius:8px; color:var(--color-text-secondary); cursor:pointer;" title="Close Modal">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <a href="{{ route('projects.show', $deliverable->project_id) }}" class="cd-btn" style="display:inline-flex; align-items:center; gap:8px; background:rgba(37,99,235,0.1); color:#2563eb; border:1px solid rgba(37,99,235,0.2); padding:6px 14px; font-size:12px; font-weight:800; border-radius:8px; transition:all 0.2s; text-decoration:none;" onmouseover="this.style.background='#2563eb'; this.style.color='#fff';" onmouseout="this.style.background='rgba(37,99,235,0.1)'; this.style.color='#2563eb';" title="Back to Project">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                        Back to Project
+                    </a>
+                    <button type="button" onclick="closeTaskModal()" class="cd-btn cd-btn-outline" style="padding:6px 9px; border-radius:8px; color:var(--color-text-secondary); cursor:pointer; display:inline-flex; align-items:center; justify-content:center;" title="Close">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
             </div>
@@ -1618,6 +1617,166 @@
         }
         let quillConcept, quillCaption, quillCopy;
 
+        function getCleanHtml(quill) {
+            if (!quill || !quill.root) return '';
+            const html = quill.root.innerHTML;
+            return (html === '<p><br></p>' || html === '<p></p>') ? '' : html;
+        }
+
+        window.isPopulatingTaskModal = false;
+        window.lastSavedCreativeContent = null;
+        window.isCreativeSaving = false;
+        window.pendingCreativeSave = false;
+        let creativeAutoSaveTimer = null;
+        let autoSaveFadeTimer = null;
+
+        function updateAutoSaveStatusUI(state, message = '') {
+            const el = document.getElementById('creativeAutoSaveStatus');
+            if (!el) return;
+            clearTimeout(autoSaveFadeTimer);
+            el.style.opacity = '1';
+
+            if (state === 'typing') {
+                el.innerHTML = `
+                    <span style="display:inline-flex; align-items:center; gap:5px; color:var(--color-text-secondary); opacity:0.85;">
+                        <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#3b82f6;"></span>
+                        <span>Unsaved changes...</span>
+                    </span>`;
+            } else if (state === 'saving') {
+                el.innerHTML = `
+                    <span style="display:inline-flex; align-items:center; gap:6px; color:#3b82f6;">
+                        <svg class="auto-save-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10"/></svg>
+                        <span>Saving...</span>
+                    </span>`;
+            } else if (state === 'saved') {
+                el.innerHTML = `
+                    <span style="display:inline-flex; align-items:center; gap:5px; color:#10b981;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                        <span>Saved</span>
+                    </span>`;
+                autoSaveFadeTimer = setTimeout(() => {
+                    el.style.opacity = '0';
+                    setTimeout(() => {
+                        if (el.style.opacity === '0') el.innerHTML = '';
+                    }, 300);
+                }, 2200);
+            } else if (state === 'error') {
+                el.innerHTML = `
+                    <span style="display:inline-flex; align-items:center; gap:5px; color:#ef4444;" title="${message}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+                        <span>Failed to save</span>
+                    </span>`;
+            } else {
+                el.innerHTML = '';
+            }
+        }
+
+        function hasCreativeContentChanged() {
+            if (!window.lastSavedCreativeContent) return false;
+            const curConcept = getCleanHtml(quillConcept);
+            const curCopy = getCleanHtml(quillCopy);
+            const curCaption = getCleanHtml(quillCaption);
+            const titleEl = document.getElementById('modalTaskTitle');
+            const curTitle = titleEl ? titleEl.value.trim() : '';
+
+            return curConcept !== window.lastSavedCreativeContent.concept ||
+                   curCopy !== window.lastSavedCreativeContent.copy ||
+                   curCaption !== window.lastSavedCreativeContent.caption ||
+                   (titleEl && curTitle !== (window.lastSavedCreativeContent.title || ''));
+        }
+
+        function handleCreativeFieldChange() {
+            if (window.isPopulatingTaskModal) return;
+            if (!hasCreativeContentChanged()) {
+                updateAutoSaveStatusUI('idle');
+                return;
+            }
+            updateAutoSaveStatusUI('typing');
+            clearTimeout(creativeAutoSaveTimer);
+            creativeAutoSaveTimer = setTimeout(() => {
+                triggerAutoSaveCreativeContent();
+            }, 1000);
+        }
+
+        async function triggerAutoSaveCreativeContent() {
+            if (window.isPopulatingTaskModal) return;
+            const taskId = (typeof currentTaskData !== 'undefined' && currentTaskData ? currentTaskData.id : null) || {{ $deliverable->id ?? 'null' }};
+            if (!taskId) return;
+
+            if (!hasCreativeContentChanged()) {
+                return;
+            }
+
+            if (window.isCreativeSaving) {
+                window.pendingCreativeSave = true;
+                return;
+            }
+
+            window.isCreativeSaving = true;
+            updateAutoSaveStatusUI('saving');
+
+            const conceptVal = getCleanHtml(quillConcept);
+            const copyVal = getCleanHtml(quillCopy);
+            const captionVal = getCleanHtml(quillCaption);
+            const titleEl = document.getElementById('modalTaskTitle');
+            const titleVal = titleEl ? titleEl.value.trim() : '';
+
+            const payload = {
+                action: 'save_only',
+                concept: conceptVal,
+                notes: conceptVal,
+                post_copy: copyVal,
+                caption: captionVal
+            };
+            if (titleVal) {
+                payload.title = titleVal;
+            }
+
+            try {
+                const response = await fetch(`/deliverables/${taskId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    window.lastSavedCreativeContent = {
+                        concept: conceptVal,
+                        copy: copyVal,
+                        caption: captionVal,
+                        title: titleVal
+                    };
+                    if (typeof currentTaskData !== 'undefined' && currentTaskData && currentTaskData.id == taskId) {
+                        currentTaskData.concept = conceptVal;
+                        currentTaskData.notes = conceptVal;
+                        currentTaskData.post_copy = copyVal;
+                        currentTaskData.subtask_copy = copyVal;
+                        currentTaskData.caption = captionVal;
+                        if (titleVal) currentTaskData.title = titleVal;
+                    }
+                    updateAutoSaveStatusUI('saved');
+                } else {
+                    console.warn('Auto-save response error:', data);
+                    updateAutoSaveStatusUI('error', data.message || 'Error auto-saving');
+                }
+            } catch (err) {
+                console.error('Auto-save network error:', err);
+                updateAutoSaveStatusUI('error', 'Network error');
+            } finally {
+                window.isCreativeSaving = false;
+                if (window.pendingCreativeSave) {
+                    window.pendingCreativeSave = false;
+                    triggerAutoSaveCreativeContent();
+                }
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             const quillOptions = {
                 theme: 'snow',
@@ -1649,9 +1808,44 @@
             quillCaption = new Quill('#quillCaption', quillOptions);
             quillCopy = new Quill('#quillCopy', quillOptions);
             
-            quillConcept.on('text-change', () => { document.getElementById('modalConcept').value = quillConcept.root.innerHTML === '<p><br></p>' ? '' : quillConcept.root.innerHTML; });
-            quillCaption.on('text-change', () => { document.getElementById('modalCaption').value = quillCaption.root.innerHTML === '<p><br></p>' ? '' : quillCaption.root.innerHTML; });
-            quillCopy.on('text-change', () => { document.getElementById('modalSubtaskCopy').value = quillCopy.root.innerHTML === '<p><br></p>' ? '' : quillCopy.root.innerHTML; });
+            quillConcept.on('text-change', () => { 
+                document.getElementById('modalConcept').value = getCleanHtml(quillConcept);
+                handleCreativeFieldChange();
+            });
+            quillCaption.on('text-change', () => { 
+                document.getElementById('modalCaption').value = getCleanHtml(quillCaption);
+                handleCreativeFieldChange();
+            });
+            quillCopy.on('text-change', () => { 
+                document.getElementById('modalSubtaskCopy').value = getCleanHtml(quillCopy);
+                handleCreativeFieldChange();
+            });
+
+            [quillConcept, quillCaption, quillCopy].forEach(q => {
+                if (q) {
+                    q.on('selection-change', (range) => {
+                        if (range === null) {
+                            if (!window.isPopulatingTaskModal && hasCreativeContentChanged()) {
+                                clearTimeout(creativeAutoSaveTimer);
+                                triggerAutoSaveCreativeContent();
+                            }
+                        }
+                    });
+                }
+            });
+
+            const titleInput = document.getElementById('modalTaskTitle');
+            if (titleInput) {
+                titleInput.addEventListener('input', () => {
+                    handleCreativeFieldChange();
+                });
+                titleInput.addEventListener('blur', () => {
+                    if (!window.isPopulatingTaskModal && hasCreativeContentChanged()) {
+                        clearTimeout(creativeAutoSaveTimer);
+                        triggerAutoSaveCreativeContent();
+                    }
+                });
+            }
         });
 
         /* Work hours — auto-save on blur */
@@ -2438,6 +2632,7 @@
 
         async function openTaskModal(task) {
             try {
+                window.isPopulatingTaskModal = true;
                 if (typeof task === 'number' || typeof task === 'string' || (task && typeof task === 'object' && !task.title && !task.approval_stage && task.id)) {
                     const taskId = typeof task === 'object' ? task.id : task;
                     if (window.projectDeliverables && window.projectDeliverables[taskId]) {
@@ -3945,7 +4140,7 @@
 
                 if (canSaveContent) {
                     submitBtnForm.style.display = 'flex';
-                    saveContentBtn.style.display = 'block';
+                    if (saveContentBtn) saveContentBtn.style.display = 'none';
                 }
 
                 const isReviewStage = ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Writer Review', 'Approver Review', 'Further Approver', 'Approve', 'Manager Review'].includes(stage);
@@ -4009,6 +4204,16 @@
 
                 overlay.style.display = 'flex';
                 setTimeout(() => { overlay.style.opacity = '1'; modal.classList.add('active'); }, 10);
+                setTimeout(() => {
+                    window.lastSavedCreativeContent = {
+                        concept: getCleanHtml(quillConcept),
+                        copy: getCleanHtml(quillCopy),
+                        caption: getCleanHtml(quillCaption),
+                        title: document.getElementById('modalTaskTitle')?.value.trim() || ''
+                    };
+                    window.isPopulatingTaskModal = false;
+                    updateAutoSaveStatusUI('idle');
+                }, 350);
             } catch (e) {
                 console.error('Error in openTaskModal:', e);
                 alert('Failed to open task details. Check console for details.');
@@ -4019,6 +4224,9 @@
 
         function closeTaskModal(e) {
             if (e && e.target !== document.getElementById('taskModalOverlay')) return;
+            if (typeof hasCreativeContentChanged === 'function' && hasCreativeContentChanged()) {
+                triggerAutoSaveCreativeContent();
+            }
             const overlay = document.getElementById('taskModalOverlay');
             overlay.style.opacity = '0';
             overlay.querySelector('.cd-modal').classList.remove('active');

@@ -2451,7 +2451,7 @@ class DeliverableController extends Controller
                 $lblRef->getBorder()->setLineStyle($Border::LINE_NONE);
                 $refTitle = count($refPaths) > 1 ? 'REFERENCE IMAGES (' . count($refPaths) . ')' : 'REFERENCE IMAGE';
                 $refRun = $lblRef->createTextRun($refTitle);
-                $refRun->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF94A3B8'));
+                $refRun->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF0F172A'));
 
                 $renderGrid($imgX, $refStartY + 22, $imgW, $botH - 26, $refPaths, 'RefImage');
             } elseif ($hasArt) {
@@ -2471,7 +2471,7 @@ class DeliverableController extends Controller
                 $lblRef->getBorder()->setLineStyle($Border::LINE_NONE);
                 $refTitle = count($refPaths) > 1 ? 'REFERENCE IMAGES (' . count($refPaths) . ')' : 'REFERENCE IMAGE';
                 $refRun = $lblRef->createTextRun($refTitle);
-                $refRun->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF94A3B8'));
+                $refRun->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF0F172A'));
 
                 $renderGrid($imgX, $contentY + 24, $imgW, $contentH - 28, $refPaths, 'RefImage');
             }
@@ -2492,7 +2492,7 @@ class DeliverableController extends Controller
                 ->setHeight(18)->setWidth($textW)->setOffsetX($textX)->setOffsetY($offsetY);
             $lbl->getBorder()->setLineStyle($Border::LINE_NONE);
             $lr = $lbl->createTextRun($label);
-            $lr->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF94A3B8'));
+            $lr->getFont()->setName('Poppins')->setBold(true)->setSize(11)->setColor($color('FF0F172A'));
             $offsetY += 22;
 
             // Content card block
@@ -2564,24 +2564,141 @@ class DeliverableController extends Controller
         $addSection('CAPTION',      $task->caption);
         $addSection('COPY',         $task->post_copy ?: ($task->subtask_copy ?? null));
 
-        if (!empty($refUrls)) {
-            $addSection('REFERENCE LINK(S)', implode("\n", $refUrls));
-        }
-
-        if (!empty($artFiles)) {
-            $formattedArt = [];
-            foreach ($artFiles as $af) {
-                $formattedArt[] = str_starts_with($af, 'http') ? $af : asset(ltrim($af, '/'));
+        // Helper to detect if a file or URL is a video
+        $isVideo = function(string $url): bool {
+            if (preg_match('/\.(mp4|mov|avi|webm|mkv|m4v|wmv|flv)(\?.*)?$/i', $url)) {
+                return true;
             }
-            $addSection('FINAL ARTWORK FILE' . (count($formattedArt) > 1 ? 'S' : ''), implode("\n", $formattedArt));
+            if (preg_match('/(youtube\.com|youtu\.be|vimeo\.com|loom\.com|tiktok\.com|wistia\.com)/i', $url)) {
+                return true;
+            }
+            return false;
+        };
+
+        // Helper to detect if a file or URL is a static image
+        $isImage = function(string $url): bool {
+            return (bool) preg_match('/\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i', $url);
+        };
+
+        // Compact link renderer: small, elegant, clickable, saves vertical space
+        $addLinksSection = function(string $label, array $links) use (
+            $slide, $textX, $textW, &$offsetY, $maxBottom, $color, $Fill, $Border
+        ) {
+            $cleanLinks = array_values(array_unique(array_filter(array_map('trim', $links))));
+            if (empty($cleanLinks)) return;
+            if ($offsetY >= $maxBottom - 20) return;
+
+            // Section label (small, sleek uppercase)
+            $lbl = $slide->createRichTextShape()
+                ->setHeight(14)->setWidth($textW)->setOffsetX($textX)->setOffsetY($offsetY);
+            $lbl->getBorder()->setLineStyle($Border::LINE_NONE);
+            $lr = $lbl->createTextRun($label);
+            $lr->getFont()->setName('Poppins')->setBold(true)->setSize(9)->setColor($color('FF0F172A'));
+            $offsetY += 16;
+
+            // Calculate height for links at 8.5pt font (approx 75 chars per line)
+            $totalLines = 0;
+            foreach ($cleanLinks as $url) {
+                $totalLines += max(1, (int) ceil(mb_strlen($url) / 75));
+            }
+            $blockH = ($totalLines * 13) + (count($cleanLinks) * 2);
+            $blockH = min($blockH, $maxBottom - $offsetY);
+            if ($blockH < 12) return;
+
+            $blk = $slide->createRichTextShape()
+                ->setHeight($blockH)->setWidth($textW)->setOffsetX($textX)->setOffsetY($offsetY);
+            $blk->getFill()->setFillType($Fill::FILL_NONE);
+            $blk->getBorder()->setLineStyle($Border::LINE_NONE);
+
+            foreach ($cleanLinks as $idx => $url) {
+                if ($idx > 0) {
+                    $blk->createBreak();
+                }
+                $run = $blk->createTextRun($url);
+                $run->getFont()->setName('Poppins')->setSize(9)->setColor($color('FF0284C7'));
+                $run->getFont()->setUnderline(\PhpOffice\PhpPresentation\Style\Font::UNDERLINE_SINGLE);
+                $targetUrl = preg_match('#^https?://#i', $url) ? $url : 'https://' . $url;
+                $run->setHyperlink(new \PhpOffice\PhpPresentation\Shape\Hyperlink($targetUrl, $url));
+            }
+
+            $blk->getActiveParagraph()->getAlignment()->setMarginLeft(0)->setMarginTop(0)->setMarginRight(0);
+            $offsetY += $blockH + 8;
+        };
+
+        // 1. Collect Video Links (from artwork files, design links, and references)
+        $videoLinks = [];
+        foreach ($artFiles as $af) {
+            if ($isVideo($af)) {
+                $videoLinks[] = str_starts_with($af, 'http') ? $af : asset(ltrim($af, '/'));
+            }
+        }
+        foreach ($refFiles as $rf) {
+            if ($isVideo($rf)) {
+                $videoLinks[] = str_starts_with($rf, 'http') ? $rf : asset(ltrim($rf, '/'));
+            }
         }
 
-        if ($task->final_designs_link) {
-            $addSection('FINAL DESIGNS LINK', $task->final_designs_link);
+        // 2. Collect Final Design Links (web links and video URLs)
+        $finalDesignLinks = $task->getFinalDesignsUrlsArray();
+        $designWebLinks = [];
+        foreach ($finalDesignLinks as $fdl) {
+            $fdl = trim($fdl);
+            if (!$fdl) continue;
+            // If image and already visible on the slide, do not show link
+            if ($isImage($fdl) && $hasArt) {
+                continue;
+            }
+            if ($isVideo($fdl)) {
+                $videoLinks[] = $fdl;
+            } else {
+                $designWebLinks[] = $fdl;
+            }
         }
 
-        if ($task->final_designs_link) {
-            $addSection('FINAL DESIGNS LINK', $task->final_designs_link);
+        // Fallback for final artwork files: only if artwork is NOT visible on the slide
+        if (!$hasArt && !empty($artFiles)) {
+            $fallbackArt = [];
+            foreach ($artFiles as $af) {
+                if (!$isVideo($af)) {
+                    $fallbackArt[] = str_starts_with($af, 'http') ? $af : asset(ltrim($af, '/'));
+                }
+            }
+            if (!empty($fallbackArt)) {
+                $designWebLinks = array_merge($designWebLinks, $fallbackArt);
+            }
+        }
+
+        // 3. Collect Reference Links (web links and video URLs)
+        $refWebLinks = [];
+        foreach ($refUrls as $ru) {
+            $ru = trim($ru);
+            if (!$ru) continue;
+            if ($isImage($ru) && $hasRef) {
+                continue;
+            }
+            if ($isVideo($ru)) {
+                $videoLinks[] = $ru;
+            } else {
+                $refWebLinks[] = $ru;
+            }
+        }
+
+        // Deduplicate links across categories
+        $videoLinks = array_values(array_unique($videoLinks));
+        $designWebLinks = array_values(array_unique(array_diff($designWebLinks, $videoLinks)));
+        $refWebLinks = array_values(array_unique(array_diff($refWebLinks, $videoLinks, $designWebLinks)));
+
+        // Output sections compactly:
+        if (!empty($refWebLinks)) {
+            $addLinksSection(count($refWebLinks) > 1 ? 'REFERENCE LINKS' : 'REFERENCE LINK', $refWebLinks);
+        }
+
+        if (!empty($designWebLinks)) {
+            $addLinksSection(count($designWebLinks) > 1 ? 'FINAL DESIGNS LINKS' : 'FINAL DESIGNS LINK', $designWebLinks);
+        }
+
+        if (!empty($videoLinks)) {
+            $addLinksSection(count($videoLinks) > 1 ? 'VIDEO LINKS' : 'VIDEO LINK', $videoLinks);
         }
 
         // ── 8. Footer bar ────────────────────────────────────────
@@ -2638,7 +2755,7 @@ class DeliverableController extends Controller
             'writer_id' => 'nullable|exists:users,id',
             'approver_id' => 'nullable|exists:users,id',
             'deadline' => 'nullable|date|after_or_equal:today',
-            'priority' => 'nullable|string|in:Low,Medium,High Priority,Urgent',
+            'priority' => 'nullable|string|in:Low,Medium,High Priority,Urgent,High',
         ], [
             'deadline.after_or_equal' => 'The due date cannot be before today.',
         ]);

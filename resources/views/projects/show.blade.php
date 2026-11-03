@@ -1037,6 +1037,14 @@
         font-weight: 700 !important;
         text-align: center !important;
     }
+    @keyframes autoSaveSpin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .auto-save-spin {
+        animation: autoSaveSpin 0.75s linear infinite;
+        display: inline-block;
+    }
 </style>
 
     <div style="display: flex; flex-direction: column; gap: 20px;">
@@ -1198,10 +1206,10 @@
                             <tr>
                                 <th style="width:140px;">Deliverable</th>
                                 <th style="width:110px;">Due</th>
-                                <th style="width:85px;">Concept</th>
                                 <th style="width:115px;">Type</th>
+                                <th style="width:85px;">Concept</th>
+                                <th style="width:85px;">Copy</th>
                                 <th style="width:85px;">Caption</th>
-                                <th style="width:85px;">Post Copy</th>
                                 <th style="width:85px;">Ref</th>
                                 <th style="width:90px;">Artwork</th>
                                 <th style="width:70px;">Rev</th>
@@ -1374,13 +1382,6 @@
                                                 </div>
                                             @endif
                                         </td>
-                                        <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
-                                            @if($canEditInline)
-                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="concept" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ html_entity_decode(strip_tags($subtask->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
-                                            @else
-                                                @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ html_entity_decode(strip_tags($subtask->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
-                                            @endif
-                                        </td>
                                         <td>
                                             @php $subColors = $subtaskTypeColors[$subtask->subtask_type] ?? $subtaskTypeColors['default']; @endphp
                                             <span class="subtask-pill" style="background:{{ $subColors['bg'] }}; color:{{ $subColors['text'] }}; border-color:{{ $subColors['border'] }};">
@@ -1389,16 +1390,23 @@
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
-                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="caption" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ html_entity_decode(strip_tags($subtask->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
+                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="concept" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ html_entity_decode(strip_tags($subtask->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
                                             @else
-                                                @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ html_entity_decode(strip_tags($subtask->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                                @if($subtask->concept)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Concept',{{ json_encode($subtask->concept) }})">{{ html_entity_decode(strip_tags($subtask->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
                                             @if($canEditInline)
                                                 <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="post_copy" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ html_entity_decode(strip_tags($subtask->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
                                             @else
-                                                @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Post Copy',{{ json_encode($subtask->post_copy) }})">{{ html_entity_decode(strip_tags($subtask->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                                @if($subtask->post_copy)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Copy',{{ json_encode($subtask->post_copy) }})">{{ html_entity_decode(strip_tags($subtask->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
+                                            @endif
+                                        </td>
+                                        <td class="{{ $canEditInline ? 'rtb-editable-cell' : '' }}" onclick="event.stopPropagation()">
+                                            @if($canEditInline)
+                                                <textarea class="rtb-input batch-field" data-task-id="{{ $subtask->id }}" data-field="caption" placeholder="N/A" onclick="openCellEditor(event)" style="width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-primary); color:var(--color-text-primary); cursor:pointer;">{{ html_entity_decode(strip_tags($subtask->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
+                                            @else
+                                                @if($subtask->caption)<div class="cell-text" onclick="event.stopPropagation();openTextPreview('Caption',{{ json_encode($subtask->caption) }})">{{ html_entity_decode(strip_tags($subtask->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</div>@else<span style="color:var(--color-text-secondary);opacity:0.7;">N/A</span>@endif
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
@@ -1615,9 +1623,6 @@
                                                 </div>
                                             @endif
                                         </td>
-                                        <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="concept" placeholder="Concept..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ html_entity_decode(strip_tags($task->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
-                                        </td>
                                         <td>
                                             @if($task->subtask_type)
                                                 @php $colors = $subtaskTypeColors[$task->subtask_type] ?? $subtaskTypeColors['default']; @endphp
@@ -1629,10 +1634,13 @@
                                             @endif
                                         </td>
                                         <td onclick="event.stopPropagation()">
-                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="caption" placeholder="Caption..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ html_entity_decode(strip_tags($task->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="concept" placeholder="Concept..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ html_entity_decode(strip_tags($task->concept), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
                                         </td>
                                         <td onclick="event.stopPropagation()">
                                             <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="post_copy" placeholder="Copy..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ html_entity_decode(strip_tags($task->post_copy), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
+                                        </td>
+                                        <td onclick="event.stopPropagation()">
+                                            <textarea class="batch-field rtb-input" data-task-id="{{ $task->id }}" data-field="caption" placeholder="Caption..." onclick="openCellEditor(event)" readonly style="cursor:pointer !important; width:100%; min-height:45px; font-size:11px; padding:8px; border:1px solid var(--color-border-primary); border-radius:8px; background:var(--color-bg-secondary); color:var(--color-text-primary);">{{ html_entity_decode(strip_tags($task->caption), ENT_QUOTES | ENT_HTML5, 'UTF-8') }}</textarea>
                                         </td>
                                         <td onclick="event.stopPropagation()" style="white-space:nowrap; vertical-align:middle;">
                                             @php
@@ -2120,7 +2128,10 @@
 
                 <div class="detail-grid" id="standardDetailGrid">
                     <div class="detail-item full dd-card-section" id="modalConceptGroup" style="margin-bottom: 20px !important;">
-                        <div id="modalConceptLabel" class="detail-label dd-section-label" style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; margin-bottom:12px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Concept</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                            <div id="modalConceptLabel" class="detail-label dd-section-label" style="font-size:12px; font-weight:900; color:#fff; background:#3b82f6; padding:6px 12px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.1em; box-shadow:0 2px 10px rgba(59,130,246,0.3); position:relative; z-index:20;">Concept</div>
+                            <div id="creativeAutoSaveStatus" style="font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:6px; min-height:20px; transition:opacity 0.25s ease;"></div>
+                        </div>
                         <input type="hidden" id="modalConcept" name="concept" form="submitStageForm">
                         <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:80px; border-radius:10px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
                     </div>
@@ -2454,7 +2465,7 @@
                 <div class="cd-modal-inner" id="standardModalFooterInner" style="display:flex; align-items:center; justify-content:flex-start; gap:12px;">
                     <form id="submitStageForm" method="POST" enctype="multipart/form-data" style="display:none; align-items:center; gap:12px;">
                         @csrf
-                        <button type="submit" name="action" value="save_only" class="cd-btn cd-btn-outline" id="saveContentBtn" style="color:#0055D4; border-color:#0055D4; display:none;">Save Content</button>
+                        <button type="submit" name="action" value="save_only" class="cd-btn cd-btn-outline" id="saveContentBtn" style="color:#0055D4; border-color:#0055D4; display:none !important;">Save Content</button>
                         <button type="submit" name="action" value="submit" class="cd-btn cd-btn-primary" id="submitStageBtn" style="display:none;">Submit to Next</button>
                     </form>
                     <button type="button" class="cd-btn cd-btn-outline" id="showRevisionBtn" style="color:#ef4444; border-color:rgba(239,68,68,0.4); background:rgba(239,68,68,0.1); display:none; padding:10px 20px; font-size:12px; font-weight:700;" onclick="toggleRevisionInput(true)">Request Revisions</button>
@@ -2556,6 +2567,170 @@
         }
         let quillConcept, quillCaption, quillCopy;
 
+        function getCleanHtml(quill) {
+            if (!quill || !quill.root) return '';
+            const html = quill.root.innerHTML;
+            return (html === '<p><br></p>' || html === '<p></p>') ? '' : html;
+        }
+
+        window.isPopulatingTaskModal = false;
+        window.lastSavedCreativeContent = null;
+        window.isCreativeSaving = false;
+        window.pendingCreativeSave = false;
+        let creativeAutoSaveTimer = null;
+        let autoSaveFadeTimer = null;
+
+        function updateAutoSaveStatusUI(state, message = '') {
+            const el = document.getElementById('creativeAutoSaveStatus');
+            if (!el) return;
+            clearTimeout(autoSaveFadeTimer);
+            el.style.opacity = '1';
+
+            if (state === 'typing') {
+                el.innerHTML = `
+                    <span style="display:inline-flex; align-items:center; gap:5px; color:var(--color-text-secondary); opacity:0.85;">
+                        <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#3b82f6;"></span>
+                        <span>Unsaved changes...</span>
+                    </span>`;
+            } else if (state === 'saving') {
+                el.innerHTML = `
+                    <span style="display:inline-flex; align-items:center; gap:6px; color:#3b82f6;">
+                        <svg class="auto-save-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0110 10"/></svg>
+                        <span>Saving...</span>
+                    </span>`;
+            } else if (state === 'saved') {
+                el.innerHTML = `
+                    <span style="display:inline-flex; align-items:center; gap:5px; color:#10b981;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                        <span>Saved</span>
+                    </span>`;
+                autoSaveFadeTimer = setTimeout(() => {
+                    el.style.opacity = '0';
+                    setTimeout(() => {
+                        if (el.style.opacity === '0') el.innerHTML = '';
+                    }, 300);
+                }, 2200);
+            } else if (state === 'error') {
+                el.innerHTML = `
+                    <span style="display:inline-flex; align-items:center; gap:5px; color:#ef4444;" title="${message}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+                        <span>Failed to save</span>
+                    </span>`;
+            } else {
+                el.innerHTML = '';
+            }
+        }
+
+        function hasCreativeContentChanged() {
+            if (!window.lastSavedCreativeContent) return false;
+            const curConcept = getCleanHtml(quillConcept);
+            const curCopy = getCleanHtml(quillCopy);
+            const curCaption = getCleanHtml(quillCaption);
+            const titleEl = document.getElementById('modalTaskTitle');
+            const curTitle = titleEl ? titleEl.value.trim() : '';
+
+            return curConcept !== window.lastSavedCreativeContent.concept ||
+                   curCopy !== window.lastSavedCreativeContent.copy ||
+                   curCaption !== window.lastSavedCreativeContent.caption ||
+                   (titleEl && curTitle !== (window.lastSavedCreativeContent.title || ''));
+        }
+
+        function handleCreativeFieldChange() {
+            if (window.isPopulatingTaskModal) return;
+            if (!hasCreativeContentChanged()) {
+                updateAutoSaveStatusUI('idle');
+                return;
+            }
+            updateAutoSaveStatusUI('typing');
+            clearTimeout(creativeAutoSaveTimer);
+            creativeAutoSaveTimer = setTimeout(() => {
+                triggerAutoSaveCreativeContent();
+            }, 1000);
+        }
+
+        async function triggerAutoSaveCreativeContent() {
+            if (window.isPopulatingTaskModal) return;
+            const taskId = currentTaskData ? currentTaskData.id : null;
+            if (!taskId) return;
+
+            if (!hasCreativeContentChanged()) {
+                return;
+            }
+
+            if (window.isCreativeSaving) {
+                window.pendingCreativeSave = true;
+                return;
+            }
+
+            window.isCreativeSaving = true;
+            updateAutoSaveStatusUI('saving');
+
+            const conceptVal = getCleanHtml(quillConcept);
+            const copyVal = getCleanHtml(quillCopy);
+            const captionVal = getCleanHtml(quillCaption);
+            const titleEl = document.getElementById('modalTaskTitle');
+            const titleVal = titleEl ? titleEl.value.trim() : '';
+
+            const payload = {
+                action: 'save_only',
+                concept: conceptVal,
+                notes: conceptVal,
+                post_copy: copyVal,
+                caption: captionVal
+            };
+            if (titleVal) {
+                payload.title = titleVal;
+            }
+
+            try {
+                const response = await fetch(`/deliverables/${taskId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    window.lastSavedCreativeContent = {
+                        concept: conceptVal,
+                        copy: copyVal,
+                        caption: captionVal,
+                        title: titleVal
+                    };
+                    if (currentTaskData && currentTaskData.id == taskId) {
+                        currentTaskData.concept = conceptVal;
+                        currentTaskData.notes = conceptVal;
+                        currentTaskData.post_copy = copyVal;
+                        currentTaskData.subtask_copy = copyVal;
+                        currentTaskData.caption = captionVal;
+                        if (titleVal) {
+                            currentTaskData.title = titleVal;
+                            const cardTitle = document.querySelector(`[data-task-id="${taskId}"] .task-title, [data-deliverable-id="${taskId}"] .task-title`);
+                            if (cardTitle) cardTitle.textContent = titleVal;
+                        }
+                    }
+                    updateAutoSaveStatusUI('saved');
+                } else {
+                    console.warn('Auto-save response error:', data);
+                    updateAutoSaveStatusUI('error', data.message || 'Error auto-saving');
+                }
+            } catch (err) {
+                console.error('Auto-save network error:', err);
+                updateAutoSaveStatusUI('error', 'Network error');
+            } finally {
+                window.isCreativeSaving = false;
+                if (window.pendingCreativeSave) {
+                    window.pendingCreativeSave = false;
+                    triggerAutoSaveCreativeContent();
+                }
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             const quillOptions = {
                 theme: 'snow',
@@ -2587,9 +2762,44 @@
             quillCaption = new Quill('#quillCaption', quillOptions);
             quillCopy = new Quill('#quillCopy', quillOptions);
             
-            quillConcept.on('text-change', () => { document.getElementById('modalConcept').value = quillConcept.root.innerHTML === '<p><br></p>' ? '' : quillConcept.root.innerHTML; });
-            quillCaption.on('text-change', () => { document.getElementById('modalCaption').value = quillCaption.root.innerHTML === '<p><br></p>' ? '' : quillCaption.root.innerHTML; });
-            quillCopy.on('text-change', () => { document.getElementById('modalSubtaskCopy').value = quillCopy.root.innerHTML === '<p><br></p>' ? '' : quillCopy.root.innerHTML; });
+            quillConcept.on('text-change', () => { 
+                document.getElementById('modalConcept').value = getCleanHtml(quillConcept);
+                handleCreativeFieldChange();
+            });
+            quillCaption.on('text-change', () => { 
+                document.getElementById('modalCaption').value = getCleanHtml(quillCaption);
+                handleCreativeFieldChange();
+            });
+            quillCopy.on('text-change', () => { 
+                document.getElementById('modalSubtaskCopy').value = getCleanHtml(quillCopy);
+                handleCreativeFieldChange();
+            });
+
+            [quillConcept, quillCaption, quillCopy].forEach(q => {
+                if (q) {
+                    q.on('selection-change', (range) => {
+                        if (range === null) {
+                            if (!window.isPopulatingTaskModal && hasCreativeContentChanged()) {
+                                clearTimeout(creativeAutoSaveTimer);
+                                triggerAutoSaveCreativeContent();
+                            }
+                        }
+                    });
+                }
+            });
+
+            const titleInput = document.getElementById('modalTaskTitle');
+            if (titleInput) {
+                titleInput.addEventListener('input', () => {
+                    handleCreativeFieldChange();
+                });
+                titleInput.addEventListener('blur', () => {
+                    if (!window.isPopulatingTaskModal && hasCreativeContentChanged()) {
+                        clearTimeout(creativeAutoSaveTimer);
+                        triggerAutoSaveCreativeContent();
+                    }
+                });
+            }
         });
 
         /* Work hours — auto-save on blur */
@@ -3067,6 +3277,7 @@
 
         async function openTaskModal(task) {
             try {
+                window.isPopulatingTaskModal = true;
                 if (typeof task === 'number' || typeof task === 'string' || (task && typeof task === 'object' && !task.title && !task.approval_stage && task.id)) {
                     const taskId = typeof task === 'object' ? task.id : task;
                     if (window.projectDeliverables && window.projectDeliverables[taskId]) {
@@ -4520,7 +4731,7 @@
 
                 if (canSaveContent) {
                     submitBtnForm.style.display = 'flex';
-                    saveContentBtn.style.display = 'block';
+                    if (saveContentBtn) saveContentBtn.style.display = 'none';
                 }
 
                 const isReviewStage = ['Approver', 'Brand Manager', 'Final Approval', 'AM/BD', 'Writer Review', 'Approver Review', 'Further Approver', 'Approve', 'Manager Review'].includes(stage);
@@ -4588,6 +4799,16 @@
 
                 overlay.style.display = 'flex';
                 setTimeout(() => { overlay.style.opacity = '1'; modal.classList.add('active'); }, 10);
+                setTimeout(() => {
+                    window.lastSavedCreativeContent = {
+                        concept: getCleanHtml(quillConcept),
+                        copy: getCleanHtml(quillCopy),
+                        caption: getCleanHtml(quillCaption),
+                        title: document.getElementById('modalTaskTitle')?.value.trim() || ''
+                    };
+                    window.isPopulatingTaskModal = false;
+                    updateAutoSaveStatusUI('idle');
+                }, 350);
             } catch (e) {
                 console.error('Error in openTaskModal:', e);
                 alert('Failed to open task details. Check console for details.');
@@ -4620,6 +4841,9 @@
 
         function closeTaskModal(e) {
             if (e && e.target !== document.getElementById('taskModalOverlay')) return;
+            if (typeof hasCreativeContentChanged === 'function' && hasCreativeContentChanged()) {
+                triggerAutoSaveCreativeContent();
+            }
             const overlay = document.getElementById('taskModalOverlay');
             overlay.style.opacity = '0';
             overlay.querySelector('.cd-modal').classList.remove('active');
