@@ -3851,8 +3851,6 @@ async function submitCampaignReassignment(btn) {
     const newUserId = sel ? sel.value : '';
     const reasonEl = document.getElementById('campaignReassignReason');
     const reason = reasonEl ? reasonEl.value.trim() : '';
-    const subtasksEl = document.getElementById('campaignReassignSubtasks');
-    const reassignSubtasks = subtasksEl ? subtasksEl.checked : false;
 
     if (!newUserId) {
         alert('Please select a team member to reassign this deliverable to.');
@@ -3882,7 +3880,7 @@ async function submitCampaignReassignment(btn) {
             body: JSON.stringify({
                 writer_id: newUserId,
                 reason: reason,
-                reassign_subtasks: reassignSubtasks,
+                reassign_subtasks: false,
             })
         });
 
@@ -4127,14 +4125,6 @@ document.addEventListener('keydown', function(event) {
                     <button type="button" onclick="setCampaignReassignPreset('Creative skill alignment')" style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); color: #3b82f6; font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; cursor: pointer;">Creative skill alignment</button>
                     <button type="button" onclick="setCampaignReassignPreset('Priority deliverable shift')" style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); color: #3b82f6; font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; cursor: pointer;">Priority shift</button>
                 </div>
-            </div>
-
-            {{-- Optional Subtasks checkbox --}}
-            <div id="campaignReassignSubtasksRow" style="display: flex; align-items: center; gap: 8px; padding-top: 4px;">
-                <input type="checkbox" id="campaignReassignSubtasks" style="accent-color: #3b82f6; cursor: pointer; width: 15px; height: 15px;">
-                <label for="campaignReassignSubtasks" style="font-size: 12px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer;">
-                    Also apply reassignment to all child subtasks (if any)
-                </label>
             </div>
         </div>
 
