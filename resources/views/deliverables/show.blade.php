@@ -933,6 +933,14 @@
             font-weight: 700 !important;
             text-align: center !important;
         }
+        @keyframes autoSaveSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .auto-save-spin {
+            animation: autoSaveSpin 0.75s linear infinite;
+            display: inline-block;
+        }
     </style>
 
     <div class="container mx-auto px-4">
