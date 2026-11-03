@@ -259,7 +259,7 @@
                             <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80">
                                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Modular Features</span>
                                 <p class="text-sm font-extrabold text-slate-900 dark:text-white mt-1">
-                                    3 Modules Ready
+                                    4 Modules Ready
                                 </p>
                             </div>
                         </div>
@@ -399,6 +399,49 @@
                                         class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ ($analyticsEnabled ?? true) ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700' }}"
                                         role="switch" aria-checked="{{ ($analyticsEnabled ?? true) ? 'true' : 'false' }}">
                                         <span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ ($analyticsEnabled ?? true) ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- 4. Google Authentication (SSO) -->
+                            <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-10 h-10 {{ ($googleAuthEnabled ?? true) ? 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 opacity-50 grayscale' }} rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+                                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2.5 flex-wrap">
+                                            <h4 class="text-sm font-bold text-slate-900 dark:text-white">Google Authentication (SSO)</h4>
+                                            @if($googleAuthEnabled ?? true)
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> FEATURE ENABLED
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> FEATURE DISABLED
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <p class="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed mt-1">
+                                            Enable or disable "Sign in with Google" single sign-on on the platform login page.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <form action="{{ route('admin.features.toggle-google-auth') }}" method="POST" id="googleAuthToggleForm" class="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
+                                    @csrf
+                                    <span class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                        {{ ($googleAuthEnabled ?? true) ? 'ON' : 'OFF' }}
+                                    </span>
+                                    <button type="submit" onclick="return confirmAction(event, '{{ ($googleAuthEnabled ?? true) ? 'Disable Google Authentication?' : 'Enable Google Authentication?' }}', '{{ ($googleAuthEnabled ?? true) ? 'Hide the Google sign-in button from the login page and block OAuth authentication attempts?' : 'Enable Google Single Sign-On on the login page for team members?' }}', false, '{{ ($googleAuthEnabled ?? true) ? 'Disable SSO' : 'Enable SSO' }}');"
+                                        class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ ($googleAuthEnabled ?? true) ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700' }}"
+                                        role="switch" aria-checked="{{ ($googleAuthEnabled ?? true) ? 'true' : 'false' }}">
+                                        <span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ ($googleAuthEnabled ?? true) ? 'translate-x-5' : 'translate-x-0' }}"></span>
                                     </button>
                                 </form>
                             </div>

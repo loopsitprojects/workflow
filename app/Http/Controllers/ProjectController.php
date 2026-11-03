@@ -558,17 +558,20 @@ class ProjectController extends Controller
                 }
             })
             ->get();
-        $designers = \App\Models\User::where('role', 'Designer')
-            ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
-            ->get();
+        $designers = (auth()->user()->isAdmin())
+            ? \App\Models\User::where('role', 'Designer')->orderBy('name')->get()
+            : \App\Models\User::where('role', 'Designer')->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))->get();
+        if ($designers->isEmpty()) {
+            $designers = \App\Models\User::where('role', 'Designer')->orderBy('name')->get();
+        }
         $approvers = \App\Models\User::whereIn('role', ['Approver', 'Approver Coordinator', 'Operations Manager'])
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
             ->get();
-        $writers = \App\Models\User::whereIn('role', ['Writer', 'Assignee'])
-            ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))
-            ->get();
+        $writers = (auth()->user()->isAdmin())
+            ? \App\Models\User::whereIn('role', ['Writer', 'Assignee'])->orderBy('name')->get()
+            : \App\Models\User::whereIn('role', ['Writer', 'Assignee'])->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))->get();
         if ($writers->isEmpty()) {
-            $writers = \App\Models\User::whereIn('role', ['Writer', 'Assignee'])->get();
+            $writers = \App\Models\User::whereIn('role', ['Writer', 'Assignee'])->orderBy('name')->get();
         }
         $coordinators = \App\Models\User::whereIn('role', ['Coordinator', 'Approver Coordinator'])
             ->whereHas('brands', fn($b) => $b->where('brands.id', $brandId))

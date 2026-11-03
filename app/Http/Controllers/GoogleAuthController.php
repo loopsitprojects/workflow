@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Admin\MaintenanceController;
 use App\Models\User;
+use App\Services\FeatureManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +19,12 @@ class GoogleAuthController extends Controller
      */
     public function redirect()
     {
+        if (!FeatureManager::isGoogleAuthEnabled()) {
+            return redirect()->route('login')->withErrors([
+                'login' => 'Google sign-in is currently disabled by an administrator.',
+            ]);
+        }
+
         $driver = Socialite::driver('google');
 
         $hostedDomain = config('services.google.hosted_domain');
@@ -33,6 +40,12 @@ class GoogleAuthController extends Controller
      */
     public function callback(Request $request)
     {
+        if (!FeatureManager::isGoogleAuthEnabled()) {
+            return redirect()->route('login')->withErrors([
+                'login' => 'Google sign-in is currently disabled by an administrator.',
+            ]);
+        }
+
         if ($request->has('error')) {
             return redirect()->route('login')->withErrors([
                 'login' => 'Google sign-in was cancelled or encountered an error.',

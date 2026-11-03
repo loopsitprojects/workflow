@@ -137,8 +137,9 @@
                 </span>
             </div>
             <span id="card-view-assignee-badge-{{ $task->id }}" 
-                  style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? '#3b82f6' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;" 
-                  title="{{ $hasAssignee ? 'Assigned to ' . $assigneeFullName : 'No assignee' }}">
+                  onclick="event.stopPropagation(); openCampaignReassignModal({{ $task->id }})"
+                  style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? '#3b82f6' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; transition: all 0.15s;" 
+                  title="{{ $hasAssignee ? 'Assigned to ' . $assigneeFullName . ' (Click to reassign)' : 'Click to assign' }}">
                 <span>{{ $assigneeDisplay }}</span>
             </span>
         </div>
@@ -272,12 +273,14 @@
             <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border-primary);">
                 
                 {{-- Assignee --}}
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
                     <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
                     <select name="writer_id" 
                             id="card-input-writer-{{ $task->id }}"
+                            data-original-writer-id="{{ $task->writer_id ?: ($task->designer_id ?: '') }}"
+                            onchange="handleCardAssigneeChange({{ $task->id }})"
                             style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
                         <option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add assignee…</option>
                         @foreach($cardSelectableUsers as $u)
@@ -286,6 +289,23 @@
                             </option>
                         @endforeach
                     </select>
+                    @if($task->writer_id || $task->designer_id)
+                    <button type="button" 
+                            onclick="event.stopPropagation(); openCampaignReassignModal({{ $task->id }})" 
+                            style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); color: #3b82f6; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; white-space: nowrap;" 
+                            title="Reassign deliverable with reason">
+                        Reassign
+                    </button>
+                    @endif
+                </div>
+
+                {{-- Reassignment Reason (Shown when changing assignee inline) --}}
+                <div id="card-reassign-reason-row-{{ $task->id }}" style="display: none; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; background: rgba(59, 130, 246, 0.08); border: 1px dashed rgba(59, 130, 246, 0.35); margin-top: 2px;">
+                    <svg width="12" height="12" fill="none" stroke="#3b82f6" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <input type="text" 
+                           id="card-input-reassign-reason-{{ $task->id }}" 
+                           placeholder="Reason for reassigning (e.g. Workload, leave)…" 
+                           style="width: 100%; border: none; background: transparent; font-size: 11px; font-weight: 500; color: var(--color-text-primary); outline: none;">
                 </div>
 
                 {{-- Approver (hidden in To Do stage, shown in In Progress / Approval / Done) --}}

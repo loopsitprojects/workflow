@@ -33,6 +33,7 @@ class FeatureManager
             'client_review_enabled' => true,
             'direct_design_enabled' => true,
             'analytics_enabled' => true,
+            'google_auth_enabled' => true,
             'halloween_theme_enabled' => false,
             'christmas_theme_enabled' => false,
             'active_theme' => 'dark',
@@ -209,6 +210,37 @@ class FeatureManager
     {
         $newStatus = !self::isDirectDesignEnabled();
         self::setDirectDesignEnabled($newStatus);
+        return $newStatus;
+    }
+
+    /**
+     * Check if Google Authentication (SSO) is enabled.
+     */
+    public static function isGoogleAuthEnabled(): bool
+    {
+        $settings = self::getAll();
+        return (bool) ($settings['google_auth_enabled'] ?? true);
+    }
+
+    /**
+     * Set the Google Authentication feature status.
+     */
+    public static function setGoogleAuthEnabled(bool $enabled): void
+    {
+        $current = self::getAll();
+        $current['google_auth_enabled'] = $enabled;
+        $current['updated_at'] = now()->toDateTimeString();
+
+        Storage::disk('local')->put(self::SETTINGS_FILE, json_encode($current, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Toggle the Google Authentication feature.
+     */
+    public static function toggleGoogleAuth(): bool
+    {
+        $newStatus = !self::isGoogleAuthEnabled();
+        self::setGoogleAuthEnabled($newStatus);
         return $newStatus;
     }
 

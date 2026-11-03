@@ -34,14 +34,13 @@ class DeliverableController extends Controller
         $brand = $deliverable->project->brand()->with('members')->first();
         $users = $brand ? $brand->members : collect();
         
-        $writers = $users->whereIn('role', ['Writer', 'Assignee']);
-        if ($writers->isEmpty()) {
-            $writers = User::whereIn('role', ['Writer', 'Assignee'])->get();
-        }
+        $writers = (auth()->user()->isAdmin() || $users->whereIn('role', ['Writer', 'Assignee'])->isEmpty())
+            ? User::whereIn('role', ['Writer', 'Assignee'])->orderBy('name')->get()
+            : $users->whereIn('role', ['Writer', 'Assignee'])->values();
         $approvers = $users->whereIn('role', ['Approver', 'Approver Coordinator']);
         $brandManagers = $users->where('role', 'Brand Manager');
         $coordinators = $users->whereIn('role', ['Coordinator', 'Approver Coordinator']);
-        $designers = User::where('role', 'Designer')->get();
+        $designers = User::where('role', 'Designer')->orderBy('name')->get();
         
         $stages = $deliverable->getStages();
 
@@ -882,14 +881,15 @@ class DeliverableController extends Controller
     public function reassignDesigner(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        if (!$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Coordinator', 'Approver Coordinator'])) {
-            abort(403);
+        if (!$user || !$user->canReassign()) {
+            abort(403, 'Unauthorized. Only coordinators and managerial roles can reassign deliverable team members.');
         }
 
         $validated = $request->validate([
             'designer_id' => 'required|exists:users,id',
             'designer_deadline' => 'nullable|date',
             'reason' => 'nullable|string|max:500',
+            'reassign_subtasks' => 'nullable|boolean',
         ]);
 
         $oldDesignerId = $deliverable->designer_id;
@@ -919,6 +919,27 @@ class DeliverableController extends Controller
         }
         $deliverable->update($updatePayload);
 
+        // Batch subtasks if requested
+        if ($request->boolean('reassign_subtasks') && $deliverable->subtasks()->count() > 0) {
+            foreach ($deliverable->subtasks as $subtask) {
+                if ($subtask->designer_id != $newDesignerId) {
+                    DeliverableReassignment::create([
+                        'deliverable_id' => $subtask->id,
+                        'role' => 'designer',
+                        'from_user_id' => $subtask->designer_id,
+                        'to_user_id' => $newDesignerId,
+                        'reassigned_by_user_id' => $user->id,
+                        'reason' => ($validated['reason'] ?? '') ? ($validated['reason'] . ' (Subtask)') : 'Batch subtask reassignment',
+                    ]);
+                    $subtaskUpdate = ['designer_id' => $newDesignerId];
+                    if (array_key_exists('designer_deadline', $validated)) {
+                        $subtaskUpdate['designer_deadline'] = $validated['designer_deadline'] ?: null;
+                    }
+                    $subtask->update($subtaskUpdate);
+                }
+            }
+        }
+
         // Notify the new designer
         $newDesigner = User::find($newDesignerId);
         if ($newDesigner) {
@@ -941,6 +962,118 @@ class DeliverableController extends Controller
             'success' => true,
             'message' => "Reassigned designer from {$fromName} to {$toName}.",
             'designer_name' => $toName
+        ]);
+    }
+
+    public function reassignWriter(Request $request, Deliverable $deliverable)
+    {
+        $user = auth()->user();
+        $isCreator = $user && ((int) $user->id === (int) $deliverable->effective_creator_id);
+        $isProjectCreator = $deliverable->project && ((int) $user->id === (int) $deliverable->project->creator_id);
+        if (!$user || (!$user->canReassign() && !$isCreator && !$isProjectCreator)) {
+            abort(403, 'Unauthorized. Only coordinators and managerial roles can reassign deliverable team members.');
+        }
+
+        $validated = $request->validate([
+            'writer_id' => 'required|exists:users,id',
+            'deadline' => 'nullable|date',
+            'reason' => 'nullable|string|max:500',
+            'reassign_subtasks' => 'nullable|boolean',
+        ]);
+
+        $oldWriterId = $deliverable->writer_id;
+        $newWriterId = $validated['writer_id'];
+
+        if ($oldWriterId == $newWriterId) {
+            return response()->json(['success' => false, 'message' => 'Same writer selected.'], 422);
+        }
+
+        $newWriter = User::find($newWriterId);
+
+        // Log the reassignment
+        $reassignment = DeliverableReassignment::create([
+            'deliverable_id' => $deliverable->id,
+            'role' => 'writer',
+            'from_user_id' => $oldWriterId,
+            'to_user_id' => $newWriterId,
+            'reassigned_by_user_id' => $user->id,
+            'reason' => $validated['reason'] ?? null,
+        ]);
+
+        // Update the deliverable
+        $updatePayload = [
+            'writer_id' => $newWriterId,
+            'assignee_name' => $newWriter?->name ?? 'Unassigned',
+        ];
+        if (array_key_exists('deadline', $validated) && !empty($validated['deadline'])) {
+            $updatePayload['deadline'] = $validated['deadline'];
+        }
+        $deliverable->update($updatePayload);
+
+        // Batch subtasks if requested
+        if ($request->boolean('reassign_subtasks') && $deliverable->subtasks()->count() > 0) {
+            foreach ($deliverable->subtasks as $subtask) {
+                if ($subtask->writer_id != $newWriterId) {
+                    DeliverableReassignment::create([
+                        'deliverable_id' => $subtask->id,
+                        'role' => 'writer',
+                        'from_user_id' => $subtask->writer_id,
+                        'to_user_id' => $newWriterId,
+                        'reassigned_by_user_id' => $user->id,
+                        'reason' => ($validated['reason'] ?? '') ? ($validated['reason'] . ' (Subtask)') : 'Batch subtask reassignment',
+                    ]);
+                    $subtaskUpdate = [
+                        'writer_id' => $newWriterId,
+                        'assignee_name' => $newWriter?->name ?? 'Unassigned',
+                    ];
+                    if (!empty($validated['deadline'])) {
+                        $subtaskUpdate['deadline'] = $validated['deadline'];
+                    }
+                    $subtask->update($subtaskUpdate);
+                }
+            }
+        }
+
+        // Notify the new writer
+        if ($newWriter) {
+            try {
+                $newWriter->notify(new DeliverableUpdated(
+                    $deliverable,
+                    "reassigned the deliverable to you (Writer/Assignee)",
+                    'reassignment',
+                    $user
+                ));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to send DeliverableUpdated notification: ' . $e->getMessage());
+            }
+        }
+
+        // Dispatch real-time board update
+        try {
+            \App\Events\DeliverablesUpdated::dispatch($deliverable->project_id);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('DeliverablesUpdated broadcast error: ' . $e->getMessage());
+        }
+
+        $fromName = $oldWriterId ? User::find($oldWriterId)?->name : 'Unassigned';
+        $toName = $newWriter?->name ?? 'Unknown';
+
+        return response()->json([
+            'success' => true,
+            'message' => "Reassigned deliverable from {$fromName} to {$toName}.",
+            'writer_name' => $toName,
+            'assignee_name' => $toName,
+            'writer_id' => $newWriterId,
+            'reassignment' => [
+                'id' => $reassignment->id,
+                'role' => $reassignment->role,
+                'from_user_name' => $fromName,
+                'to_user_name' => $toName,
+                'reassigned_by_name' => $user->name,
+                'reason' => $reassignment->reason,
+                'date' => now()->format('d M, Y h:i A'),
+                'created_at' => now()->toISOString(),
+            ],
         ]);
     }
 
@@ -2606,6 +2739,8 @@ class DeliverableController extends Controller
             'priority' => 'nullable|string|in:Low,Medium,High Priority,Urgent,High',
             'concept' => 'nullable|string',
             'notes' => 'nullable|string',
+            'reason' => 'nullable|string|max:500',
+            'reassignment_reason' => 'nullable|string|max:500',
         ]);
 
         $deliverable->title = $validated['title'];
@@ -2650,6 +2785,16 @@ class DeliverableController extends Controller
                 if ($assignee && $assignee->id != $previousAssigneeId) {
                     $newAssignee = $assignee;
                     $isNewlyAssigned = true;
+                    if ($previousAssigneeId) {
+                        DeliverableReassignment::create([
+                            'deliverable_id' => $deliverable->id,
+                            'role' => 'writer',
+                            'from_user_id' => $previousAssigneeId,
+                            'to_user_id' => $assignee->id,
+                            'reassigned_by_user_id' => $user->id,
+                            'reason' => $request->input('reassignment_reason') ?: $request->input('reason') ?: null,
+                        ]);
+                    }
                 }
             } else {
                 $deliverable->writer_id = null;

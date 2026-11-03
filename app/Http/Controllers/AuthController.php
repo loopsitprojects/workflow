@@ -14,7 +14,8 @@ class AuthController extends Controller
             return redirect()->intended(route('dashboard'));
         }
         $maintenance = \App\Http\Controllers\Admin\MaintenanceController::getStatus();
-        return view('auth.login', compact('maintenance'));
+        $googleAuthEnabled = \App\Services\FeatureManager::isGoogleAuthEnabled();
+        return view('auth.login', compact('maintenance', 'googleAuthEnabled'));
     }
 
     public function login(Request $request)

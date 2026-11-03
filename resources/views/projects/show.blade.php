@@ -257,7 +257,8 @@
         #batchModalOverlay,
         #cellEditorOverlay,
         #addPostTypeOverlay,
-        #reassignDesignerModalOverlay {
+        #reassignDesignerModalOverlay,
+        #reassignWriterModalOverlay {
             display: none;
             justify-content: center !important;
             align-items: center !important;
@@ -267,7 +268,8 @@
         #batchModalOverlay .cd-modal,
         #cellEditorOverlay .cd-modal,
         #addPostTypeOverlay .cd-modal,
-        #reassignDesignerModalOverlay .cd-modal {
+        #reassignDesignerModalOverlay .cd-modal,
+        #reassignWriterModalOverlay .cd-modal {
             position: relative !important;
             inset: auto !important;
             margin: auto !important;
@@ -284,7 +286,8 @@
         #batchModalOverlay .cd-modal.active,
         #cellEditorOverlay .cd-modal.active,
         #addPostTypeOverlay .cd-modal.active,
-        #reassignDesignerModalOverlay .cd-modal.active {
+        #reassignDesignerModalOverlay .cd-modal.active,
+        #reassignWriterModalOverlay .cd-modal.active {
             transform: scale(1) !important;
         }
         #batchModalOverlay .cd-modal {
@@ -1980,7 +1983,11 @@
                         </div>
                     </div>
                     <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
-                        @if($isAdmin || in_array($userRole, ['brandmanager', 'coordinator', 'approvercoordinator']))
+                        @if(auth()->user()->canReassign())
+                        <button type="button" id="btnOpenReassignWriterModal" onclick="openReassignWriterModal()" style="display:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:800; background:rgba(59,130,246,0.1); color:#3b82f6; border:1px solid rgba(59,130,246,0.3); align-items:center; gap:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap;" onmouseover="this.style.background='rgba(59,130,246,0.2)'" onmouseout="this.style.background='rgba(59,130,246,0.1)'" title="Reassign Writer / Assignee">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                            Reassign Writer
+                        </button>
                         <button type="button" id="btnOpenReassignDesignerModal" onclick="openReassignDesignerModal()" style="display:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:800; background:rgba(236,72,153,0.1); color:#ec4899; border:1px solid rgba(236,72,153,0.3); align-items:center; gap:6px; cursor:pointer; transition:all 0.15s; white-space:nowrap;" onmouseover="this.style.background='rgba(236,72,153,0.2)'" onmouseout="this.style.background='rgba(236,72,153,0.1)'" title="Reassign Designer">
                             <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                             Reassign Designer
@@ -2678,6 +2685,8 @@
         const AUTH_USER_ID = {{ auth()->id() }};
         const AUTH_USER_NAME = @json(auth()->user()->name);
         const AUTH_USER_ROLE = "{{ auth()->user()->role }}";
+        const CAN_USER_REASSIGN = {{ (auth()->user()->isAdmin() || auth()->user()->canReassign()) ? 'true' : 'false' }};
+        window.CAN_USER_REASSIGN = CAN_USER_REASSIGN;
         const WORKFLOW_STAGES = @json($stages);
         let currentTaskData = null;
 
@@ -3230,20 +3239,22 @@
                 
                 if (document.getElementById('modalClientStatusEdit')) document.getElementById('modalClientStatusEdit').style.display = 'none';
 
-                // Reassign Designer Button and Modal Setup
-                const reassignBtn = document.getElementById('btnOpenReassignDesignerModal');
-                const reassignModalOverlay = document.getElementById('reassignDesignerModalOverlay');
-                if (reassignBtn) {
-                    if (!isOtherDeliverable && task.approval_stage === 'Designer') {
-                        reassignBtn.style.display = 'inline-flex';
-                        reassignBtn.setAttribute('data-task-id', task.id);
-                        if (reassignModalOverlay) {
-                            reassignModalOverlay.setAttribute('data-task-id', task.id);
-                            const currentDesignerName = task.designer?.name || 'Unassigned';
+                // Reassign Designer & Writer Buttons and Modal Setup
+                const canUserReassign = Boolean(window.CAN_USER_REASSIGN || isAdmin);
+
+                const reassignDesignerBtn = document.getElementById('btnOpenReassignDesignerModal');
+                const reassignDesignerModalOverlay = document.getElementById('reassignDesignerModalOverlay');
+                if (reassignDesignerBtn) {
+                    if (canUserReassign && !isOtherDeliverable) {
+                        reassignDesignerBtn.style.display = 'inline-flex';
+                        reassignDesignerBtn.setAttribute('data-task-id', task.id);
+                        if (reassignDesignerModalOverlay) {
+                            reassignDesignerModalOverlay.setAttribute('data-task-id', task.id);
+                            const currentDesignerName = task.designer?.name || task.associates?.designer || 'Unassigned';
                             const currentNameEl = document.getElementById('reassignDesignerCurrentName');
                             if (currentNameEl) currentNameEl.textContent = `Current designer: ${currentDesignerName}`;
                             const sel = document.getElementById('reassignDesignerSelect');
-                            if (sel) sel.value = '';
+                            if (sel) sel.value = task.designer_id || '';
                             const reasonEl = document.getElementById('reassignDesignerReason');
                             if (reasonEl) reasonEl.value = '';
                             const deadlineEl = document.getElementById('reassignDesignerDeadline');
@@ -3252,7 +3263,35 @@
                             }
                         }
                     } else {
-                        reassignBtn.style.display = 'none';
+                        reassignDesignerBtn.style.display = 'none';
+                    }
+                }
+
+                const reassignWriterBtn = document.getElementById('btnOpenReassignWriterModal');
+                const reassignWriterModalOverlay = document.getElementById('reassignWriterModalOverlay');
+                if (reassignWriterBtn) {
+                    if (canUserReassign) {
+                        reassignWriterBtn.style.display = 'inline-flex';
+                        reassignWriterBtn.setAttribute('data-task-id', task.id);
+                        if (reassignWriterModalOverlay) {
+                            reassignWriterModalOverlay.setAttribute('data-task-id', task.id);
+                            const currentWriterName = task.writer?.name || task.associates?.writer || task.associates?.assignee || 'Unassigned';
+                            const currentWriterNameEl = document.getElementById('reassignWriterCurrentName');
+                            const isCampaign = task.workflow_type === 'campaign' || (task.project && task.project.workflow_type === 'campaign') || '{{ $project->workflow_type ?? '' }}' === 'campaign';
+                            if (currentWriterNameEl) currentWriterNameEl.textContent = isCampaign ? `Current assignee: ${currentWriterName}` : `Current writer: ${currentWriterName}`;
+                            if (reassignWriterBtn) {
+                                reassignWriterBtn.innerHTML = `
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                    ${isCampaign ? 'Reassign Assignee' : 'Reassign Writer'}
+                                `;
+                            }
+                            const selWriter = document.getElementById('reassignWriterSelect');
+                            if (selWriter) selWriter.value = task.writer_id || '';
+                            const reasonWriterEl = document.getElementById('reassignWriterReason');
+                            if (reasonWriterEl) reasonWriterEl.value = '';
+                        }
+                    } else {
+                        reassignWriterBtn.style.display = 'none';
                     }
                 }
 
@@ -3596,8 +3635,11 @@
                         (role.key === 'brand_manager' && ['Brand Manager', 'AM/BD', 'Final Approval', 'Approve', 'Manager Review'].includes(normStage))
                     ));
 
+                    const isReassignable = canUserReassign && (role.key === 'writer' || role.key === 'assignee' || role.key === 'designer');
+                    const reassignAction = (role.key === 'writer' || role.key === 'assignee') ? 'openReassignWriterModal()' : 'openReassignDesignerModal()';
+
                     const item = document.createElement('div');
-                    item.style.cssText = `display:flex; align-items:center; gap:10px; padding:10px; background:rgba(${rCol},${isCurrentStageRole ? '0.12' : '0.05'}); border-radius:12px; border:1.5px solid rgba(${rCol},${isCurrentStageRole ? '0.6' : '0.2'}); ${isCurrentStageRole ? `box-shadow: 0 0 0 1px rgba(${rCol},0.25);` : ''}`;
+                    item.style.cssText = `display:flex; align-items:center; gap:10px; padding:10px; background:rgba(${rCol},${isCurrentStageRole ? '0.12' : '0.05'}); border-radius:12px; border:1.5px solid rgba(${rCol},${isCurrentStageRole ? '0.6' : '0.2'}); ${isCurrentStageRole ? `box-shadow: 0 0 0 1px rgba(${rCol},0.25);` : ''} position:relative;`;
                     item.innerHTML = `
                         <div style="width:30px; height:30px; border-radius:50%; background:rgba(${rCol},0.15); color:rgb(${rCol}); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; border:1.5px solid rgba(${rCol},0.3);">
                             ${name !== 'None' ? name.charAt(0) : '?'}
@@ -3605,7 +3647,15 @@
                         <div style="overflow:hidden; flex:1; min-width:0;">
                             <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; margin-bottom:1px;">
                                 <span style="font-size:9px; font-weight:800; color:rgb(${rCol}); text-transform:uppercase; letter-spacing:0.02em; opacity:0.9;">${role.label}</span>
-                                ${isCurrentStageRole ? `<span style="font-size:8px; font-weight:800; background:rgba(${rCol},0.2); color:rgb(${rCol}); border:1px solid rgba(${rCol},0.35); padding:1px 5px; border-radius:4px; text-transform:uppercase;">Active</span>` : ''}
+                                <div style="display:flex; align-items:center; gap:4px;">
+                                    ${isCurrentStageRole ? `<span style="font-size:8px; font-weight:800; background:rgba(${rCol},0.2); color:rgb(${rCol}); border:1px solid rgba(${rCol},0.35); padding:1px 5px; border-radius:4px; text-transform:uppercase;">Active</span>` : ''}
+                                    ${isReassignable ? `
+                                        <button type="button" onclick="${reassignAction}" title="Reassign ${role.label}" style="display:inline-flex; align-items:center; gap:3px; padding:1px 5px; border-radius:4px; font-size:8.5px; font-weight:800; background:rgba(${rCol},0.15); color:rgb(${rCol}); border:1px solid rgba(${rCol},0.35); cursor:pointer; transition:all 0.15s; line-height:1;" onmouseover="this.style.background='rgba(${rCol},0.3)'" onmouseout="this.style.background='rgba(${rCol},0.15)'">
+                                            <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                                            <span>Reassign</span>
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </div>
                             <div style="font-size:12px; font-weight:700; color:var(--color-text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
                         </div>
@@ -6570,7 +6620,7 @@
     </div>
 
     <!-- Reassign Designer Modal Popup -->
-    @if($isAdmin || in_array($userRole, ['brandmanager', 'coordinator', 'approvercoordinator']))
+    @if(auth()->user()->canReassign())
     <div id="reassignDesignerModalOverlay" class="cd-modal-overlay" onclick="closeReassignDesignerModal(event)" style="z-index: 10001; justify-content: center; align-items: center;">
         <div class="cd-modal" style="max-width: 480px; width: 92%; position: relative !important; inset: auto !important; margin: auto !important; height: auto !important; max-height: 90vh !important; border-radius: 20px !important; overflow: hidden !important; border: 1px solid rgba(236,72,153,0.3) !important; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.5) !important;" onclick="event.stopPropagation()">
             <div class="cd-modal-header" style="padding: 18px 24px; background: var(--color-bg-secondary); align-items: center; border-bottom: 1px solid var(--color-border-primary); display:flex; justify-content:space-between;">
@@ -6605,10 +6655,57 @@
                     <label class="detail-label" style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">Reason (Optional)</label>
                     <input type="text" id="reassignDesignerReason" placeholder="e.g. Designer unavailable" style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid rgba(236,72,153,0.25); font-size:13px; font-weight:500; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none; box-sizing:border-box;">
                 </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+                    <input type="checkbox" id="reassignDesignerSubtasks" style="accent-color:#ec4899; cursor:pointer; width:15px; height:15px;">
+                    <label for="reassignDesignerSubtasks" style="font-size:12px; font-weight:600; color:var(--color-text-secondary); cursor:pointer;">Also apply to all subtasks (if any)</label>
+                </div>
             </div>
             <div class="cd-modal-footer" style="padding: 16px 24px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display:flex; justify-content:flex-end; gap:10px;">
                 <button type="button" onclick="closeReassignDesignerModal()" class="cd-btn cd-btn-outline" style="padding: 8px 18px; font-size: 12px; font-weight: 700;">Cancel</button>
                 <button type="button" onclick="reassignDesigner(this)" class="cd-btn" style="padding: 8px 20px; background:#ec4899; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(236,72,153,0.35);">Reassign</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reassign Writer Modal Popup -->
+    <div id="reassignWriterModalOverlay" class="cd-modal-overlay" onclick="closeReassignWriterModal(event)" style="z-index: 10001; justify-content: center; align-items: center;">
+        <div class="cd-modal" style="max-width: 480px; width: 92%; position: relative !important; inset: auto !important; margin: auto !important; height: auto !important; max-height: 90vh !important; border-radius: 20px !important; overflow: hidden !important; border: 1px solid rgba(59,130,246,0.3) !important; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.5) !important;" onclick="event.stopPropagation()">
+            <div class="cd-modal-header" style="padding: 18px 24px; background: var(--color-bg-secondary); align-items: center; border-bottom: 1px solid var(--color-border-primary); display:flex; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:32px; height:32px; border-radius:8px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); display:flex; align-items:center; justify-content:center;">
+                        <svg width="18" height="18" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    </div>
+                    <div>
+                        <h2 style="font-size: 15px; font-weight: 900; color: #3b82f6; margin: 0; text-transform:uppercase; letter-spacing:0.04em;">Reassign Writer</h2>
+                        <div id="reassignWriterCurrentName" style="font-size: 11px; color: var(--color-text-secondary); font-weight: 600; margin-top:2px;">Current writer: -</div>
+                    </div>
+                </div>
+                <button type="button" onclick="closeReassignWriterModal()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer; padding:4px;" title="Close">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="cd-modal-body" style="padding: 24px; display:flex; flex-direction:column; gap:16px;">
+                <div>
+                    <label class="detail-label" style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">New Writer / Assignee</label>
+                    <select id="reassignWriterSelect" required style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid rgba(59,130,246,0.25); font-size:13px; font-weight:600; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none;">
+                        <option value="" style="background:var(--color-bg-primary); color:var(--color-text-primary);">Select Writer...</option>
+                        @foreach($writers as $writer)
+                            <option value="{{ $writer->id }}" style="background:var(--color-bg-primary); color:var(--color-text-primary);">{{ $writer->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="detail-label" style="font-size:10px; font-weight:800; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">Reason (Optional)</label>
+                    <input type="text" id="reassignWriterReason" placeholder="e.g. Workload rebalancing" style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid rgba(59,130,246,0.25); font-size:13px; font-weight:500; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-secondary); outline:none; box-sizing:border-box;">
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+                    <input type="checkbox" id="reassignWriterSubtasks" style="accent-color:#3b82f6; cursor:pointer; width:15px; height:15px;">
+                    <label for="reassignWriterSubtasks" style="font-size:12px; font-weight:600; color:var(--color-text-secondary); cursor:pointer;">Also apply to all subtasks (if any)</label>
+                </div>
+            </div>
+            <div class="cd-modal-footer" style="padding: 16px 24px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" onclick="closeReassignWriterModal()" class="cd-btn cd-btn-outline" style="padding: 8px 18px; font-size: 12px; font-weight: 700;">Cancel</button>
+                <button type="button" onclick="reassignWriter(this)" class="cd-btn" style="padding: 8px 20px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer; box-shadow:0 4px 12px rgba(59,130,246,0.35);">Reassign</button>
             </div>
         </div>
     </div>
@@ -6676,6 +6773,18 @@
     function openReassignDesignerModal() {
         const overlay = document.getElementById('reassignDesignerModalOverlay');
         if (!overlay) return;
+        if (currentTaskData) {
+            overlay.setAttribute('data-task-id', currentTaskData.id);
+            const currentDesignerName = currentTaskData.designer?.name || currentTaskData.associates?.designer || 'Unassigned';
+            const currentNameEl = document.getElementById('reassignDesignerCurrentName');
+            if (currentNameEl) currentNameEl.textContent = `Current designer: ${currentDesignerName}`;
+            const sel = document.getElementById('reassignDesignerSelect');
+            if (sel) sel.value = currentTaskData.designer_id || '';
+            const deadlineEl = document.getElementById('reassignDesignerDeadline');
+            if (deadlineEl) {
+                deadlineEl.value = currentTaskData.designer_deadline ? currentTaskData.designer_deadline.split('T')[0] : '';
+            }
+        }
         overlay.style.display = 'flex';
         setTimeout(() => {
             overlay.style.opacity = '1';
@@ -6687,6 +6796,37 @@
     function closeReassignDesignerModal(e) {
         if (e && e.target !== document.getElementById('reassignDesignerModalOverlay')) return;
         const overlay = document.getElementById('reassignDesignerModalOverlay');
+        if (!overlay) return;
+        overlay.style.opacity = '0';
+        const modal = overlay.querySelector('.cd-modal');
+        if (modal) modal.classList.remove('active');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 200);
+    }
+
+    function openReassignWriterModal() {
+        const overlay = document.getElementById('reassignWriterModalOverlay');
+        if (!overlay) return;
+        if (currentTaskData) {
+            overlay.setAttribute('data-task-id', currentTaskData.id);
+            const currentWriterName = currentTaskData.writer?.name || currentTaskData.associates?.writer || currentTaskData.associates?.assignee || 'Unassigned';
+            const currentNameEl = document.getElementById('reassignWriterCurrentName');
+            if (currentNameEl) currentNameEl.textContent = `Current writer: ${currentWriterName}`;
+            const sel = document.getElementById('reassignWriterSelect');
+            if (sel) sel.value = currentTaskData.writer_id || '';
+        }
+        overlay.style.display = 'flex';
+        setTimeout(() => {
+            overlay.style.opacity = '1';
+            const modal = overlay.querySelector('.cd-modal');
+            if (modal) modal.classList.add('active');
+        }, 10);
+    }
+
+    function closeReassignWriterModal(e) {
+        if (e && e.target !== document.getElementById('reassignWriterModalOverlay')) return;
+        const overlay = document.getElementById('reassignWriterModalOverlay');
         if (!overlay) return;
         overlay.style.opacity = '0';
         const modal = overlay.querySelector('.cd-modal');
@@ -7410,17 +7550,26 @@ async function updatePriorityInlineModal(selectEl, taskId) {
 
 async function reassignDesigner(btn) {
     const overlay = document.getElementById('reassignDesignerModalOverlay');
-    const taskId = overlay?.getAttribute('data-task-id') || document.getElementById('btnOpenReassignDesignerModal')?.getAttribute('data-task-id');
+    const taskId = overlay?.getAttribute('data-task-id') || document.getElementById('btnOpenReassignDesignerModal')?.getAttribute('data-task-id') || (currentTaskData ? currentTaskData.id : null);
     const designerId = document.getElementById('reassignDesignerSelect').value;
     const designerDeadline = document.getElementById('reassignDesignerDeadline')?.value || null;
-    const reason = document.getElementById('reassignDesignerReason').value;
+    const reason = document.getElementById('reassignDesignerReason')?.value || '';
+    const reassignSubtasks = document.getElementById('reassignDesignerSubtasks')?.checked || false;
 
     if (!designerId) {
-        alert('Please select a designer.');
+        if (typeof window.customAlert === 'function') {
+            window.customAlert({ title: 'Validation Error', message: 'Please select a designer.', type: 'danger' });
+        } else {
+            alert('Please select a designer.');
+        }
         return;
     }
 
-    if (!confirm('Are you sure you want to reassign this deliverable to a different designer?')) return;
+    const confirmed = typeof window.customConfirm === 'function'
+        ? await window.customConfirm({ title: 'Reassign Designer', message: 'Are you sure you want to reassign this deliverable to a different designer?', isDanger: false })
+        : confirm('Are you sure you want to reassign this deliverable to a different designer?');
+
+    if (!confirmed) return;
 
     if (btn) {
         btn.disabled = true;
@@ -7438,17 +7587,34 @@ async function reassignDesigner(btn) {
             body: JSON.stringify({ 
                 designer_id: designerId, 
                 designer_deadline: designerDeadline,
-                reason: reason 
+                reason: reason,
+                reassign_subtasks: reassignSubtasks
             })
         });
 
         const result = await response.json();
         if (response.ok && result.success) {
-            alert(result.message || 'Designer reassigned successfully.');
             closeReassignDesignerModal();
+            if (typeof window.customAlert === 'function') {
+                await window.customAlert({
+                    title: 'Designer Reassigned',
+                    message: result.message || 'Designer reassigned successfully.',
+                    type: 'success'
+                });
+            } else {
+                alert(result.message || 'Designer reassigned successfully.');
+            }
             window.location.reload();
         } else {
-            alert(result.message || 'Error reassigning designer.');
+            if (typeof window.customAlert === 'function') {
+                await window.customAlert({
+                    title: 'Notice',
+                    message: result.message || 'Error reassigning designer.',
+                    type: 'danger'
+                });
+            } else {
+                alert(result.message || 'Error reassigning designer.');
+            }
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = 'Reassign';
@@ -7456,7 +7622,100 @@ async function reassignDesigner(btn) {
         }
     } catch (e) {
         console.error(e);
-        alert('Network error.');
+        if (typeof window.customAlert === 'function') {
+            await window.customAlert({ title: 'Notice', message: 'Network error.', type: 'danger' });
+        } else {
+            alert('Network error.');
+        }
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = 'Reassign';
+        }
+    }
+}
+
+async function reassignWriter(btn) {
+    const overlay = document.getElementById('reassignWriterModalOverlay');
+    const taskId = overlay?.getAttribute('data-task-id') || document.getElementById('btnOpenReassignWriterModal')?.getAttribute('data-task-id') || (currentTaskData ? currentTaskData.id : null);
+    const writerId = document.getElementById('reassignWriterSelect').value;
+    const reason = document.getElementById('reassignWriterReason')?.value || '';
+    const reassignSubtasks = document.getElementById('reassignWriterSubtasks')?.checked || false;
+
+    if (!writerId) {
+        if (typeof window.customAlert === 'function') {
+            window.customAlert({ title: 'Validation Error', message: 'Please select a writer.', type: 'danger' });
+        } else {
+            alert('Please select a writer.');
+        }
+        return;
+    }
+
+    const confirmed = typeof window.customConfirm === 'function'
+        ? await window.customConfirm({ title: 'Reassign Writer', message: 'Are you sure you want to reassign this deliverable to a different writer?', isDanger: false })
+        : confirm('Are you sure you want to reassign this deliverable to a different writer?');
+
+    if (!confirmed) return;
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = 'Reassigning...';
+    }
+
+    try {
+        const response = await fetch(`/deliverables/${taskId}/reassign-writer`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ 
+                writer_id: writerId, 
+                reason: reason,
+                reassign_subtasks: reassignSubtasks
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+            closeReassignWriterModal();
+            if (typeof window.customAlert === 'function') {
+                await window.customAlert({
+                    title: 'Writer Reassigned',
+                    message: result.message || 'Writer reassigned successfully.',
+                    type: 'success'
+                });
+            } else {
+                alert(result.message || 'Writer reassigned successfully.');
+            }
+            window.location.reload();
+        } else {
+            if (typeof window.customAlert === 'function') {
+                await window.customAlert({
+                    title: 'Notice',
+                    message: result.message || 'Error reassigning writer.',
+                    type: 'danger'
+                });
+            } else {
+                alert(result.message || 'Error reassigning writer.');
+            }
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'Reassign';
+            }
+        }
+    } catch (e) {
+        console.error(e);
+        if (typeof window.customAlert === 'function') {
+            await window.customAlert({ title: 'Notice', message: 'Network error.', type: 'danger' });
+        } else {
+            alert('Network error.');
+        }
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = 'Reassign';
+        }
+    }
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = 'Reassign';

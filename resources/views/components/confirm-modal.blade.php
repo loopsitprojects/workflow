@@ -64,6 +64,12 @@ window.customConfirm = function(options = {}) {
         okBtn.textContent = confirmText;
         cancelBtn.textContent = cancelText;
 
+        if (options.hideCancel) {
+            cancelBtn.style.display = 'none';
+        } else {
+            cancelBtn.style.display = 'block';
+        }
+
         if (type === 'success' || options.isSuccess) {
             iconBg.style.background = 'rgba(16, 185, 129, 0.15)';
             dangerIcon.style.display = 'none';
@@ -93,11 +99,21 @@ window.customConfirm = function(options = {}) {
             box.style.transform = 'scale(1)';
         });
 
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                document.removeEventListener('keydown', handleKeyDown);
+                close(false);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+
         const close = (result) => {
+            document.removeEventListener('keydown', handleKeyDown);
             overlay.style.opacity = '0';
             box.style.transform = 'scale(0.95)';
             setTimeout(() => {
                 overlay.style.display = 'none';
+                cancelBtn.style.display = 'block';
                 resolve(result);
             }, 180);
         };
@@ -107,6 +123,22 @@ window.customConfirm = function(options = {}) {
         overlay.onclick = (e) => {
             if (e.target === overlay) close(false);
         };
+    });
+};
+
+window.customAlert = function(options = {}) {
+    if (typeof options === 'string') {
+        options = { message: options, title: 'Notice', type: 'info' };
+    }
+    const type = options.type || (options.isError || options.isDanger ? 'danger' : (options.isSuccess ? 'success' : 'info'));
+    return window.customConfirm({
+        title: options.title || (type === 'success' ? 'Success' : (type === 'danger' ? 'Notice' : 'Notice')),
+        message: options.message || options.text || '',
+        confirmText: options.confirmText || 'OK',
+        hideCancel: true,
+        type: type,
+        isDanger: type === 'danger',
+        isSuccess: type === 'success'
     });
 };
 

@@ -143,10 +143,11 @@ class UserController extends Controller
         $clientReviewEnabled = \App\Services\FeatureManager::isClientReviewEnabled();
         $directDesignEnabled = \App\Services\FeatureManager::isDirectDesignEnabled();
         $analyticsEnabled = \App\Services\FeatureManager::isAnalyticsEnabled();
+        $googleAuthEnabled = \App\Services\FeatureManager::isGoogleAuthEnabled();
         $halloweenThemeEnabled = \App\Services\FeatureManager::isHalloweenThemeEnabled();
         $activeTheme = \App\Services\FeatureManager::getActiveTheme();
         $projectTypesStatus = \App\Services\FeatureManager::getProjectTypesStatus();
-        return view('admin.settings', compact('maintenance', 'clientReviewEnabled', 'directDesignEnabled', 'analyticsEnabled', 'halloweenThemeEnabled', 'activeTheme', 'projectTypesStatus'));
+        return view('admin.settings', compact('maintenance', 'clientReviewEnabled', 'directDesignEnabled', 'analyticsEnabled', 'googleAuthEnabled', 'halloweenThemeEnabled', 'activeTheme', 'projectTypesStatus'));
     }
 
     public function toggleAnalytics(Request $request)
@@ -156,6 +157,17 @@ class UserController extends Controller
         $msg = $newStatus
             ? 'Analytics & Reports tab has been ENABLED. Team members can now view the analytics reports.'
             : 'Analytics & Reports tab has been DISABLED. The analytics tab is now hidden.';
+
+        return redirect()->to(url()->previous(route('admin.settings')))->with('success', $msg);
+    }
+
+    public function toggleGoogleAuth(Request $request)
+    {
+        $newStatus = \App\Services\FeatureManager::toggleGoogleAuth();
+
+        $msg = $newStatus
+            ? 'Google Authentication (SSO) has been ENABLED. Users can now sign in using Google SSO.'
+            : 'Google Authentication (SSO) has been DISABLED. Google sign-in is now hidden and blocked.';
 
         return redirect()->to(url()->previous(route('admin.settings')))->with('success', $msg);
     }

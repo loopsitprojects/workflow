@@ -73,6 +73,19 @@ class User extends Authenticatable
         return in_array($this->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager']);
     }
 
+    /**
+     * Determine if the user can reassign deliverable team members.
+     * Coordinator and managerial roles are authorized.
+     */
+    public function canReassign(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+        $role = strtolower(trim((string) $this->role));
+        return in_array($role, ['admin', 'owner', 'operations manager', 'brand manager', 'coordinator', 'approver coordinator']);
+    }
+
     public function getAvatarUrlAttribute()
     {
         if (!empty($this->avatar)) {

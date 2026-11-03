@@ -417,7 +417,7 @@
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: #0055D4;
+            background: #2563eb;
         }
         .deliverable-type-tag {
             font-size: 10px;
@@ -471,9 +471,9 @@
             margin-top: 10px;
         }
         .add-deliverable-btn:hover {
-            border-color: #0055D4;
-            background: rgba(0,85,212,0.06);
-            color: #0055D4;
+            border-color: #2563eb;
+            background: rgba(37, 99, 235, 0.06);
+            color: #2563eb;
         }
 
         /* Footer */
@@ -805,7 +805,7 @@
             font-size: 12px;
             font-weight: 600;
             background: var(--color-bg-secondary);
-            border: 1.5px solid #0055D4;
+            border: 1.5px solid #2563eb;
             border-radius: 7px;
             color: var(--color-text-primary);
             outline: none;
@@ -896,10 +896,6 @@
                 <span class="create-bc-sep">/</span>
                 <a href="{{ route('projects.show', $project->id) }}" class="create-bc-link">{{ $project->name }}</a>
             @endif
-            @if(isset($parentTask) && $parentTask)
-                <span class="create-bc-sep">/</span>
-                <a href="{{ route('deliverables.show', $parentTask->id) }}" class="create-bc-link">{{ $parentTask->title }}</a>
-            @endif
             <span class="create-bc-sep">/</span>
             <span class="create-bc-current">{{ isset($parentId) ? 'Add Subtasks' : 'New Deliverable' }}</span>
         </nav>
@@ -977,34 +973,103 @@
             {{-- OPTION 1: SINGLE DELIVERABLE                                              --}}
             {{-- ========================================================================= --}}
             <div x-show="mode === 'single'" x-cloak>
-                <div class="section-card">
-                    <div class="section-header-bar">
-                        <div>
-                            <h3 class="section-title">
-                                <svg width="16" height="16" fill="none" stroke="#0055D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                                Deliverable Details
-                            </h3>
-                            <p class="section-subtitle">Create a single standalone deliverable</p>
-                        </div>
-                        <span class="section-badge">Single Deliverable</span>
-                    </div>
+                <div class="single-deliverable-grid">
+                    {{-- LEFT COLUMN: Main Creative Content --}}
+                    <div class="single-main-col">
+                        <div class="section-card">
+                            <div class="section-header-bar">
+                                <div>
+                                    <h3 class="section-title">
+                                        <svg width="16" height="16" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                        Deliverable Details
+                                    </h3>
+                                    <p class="section-subtitle">Define the deliverable title, type, and creative brief</p>
+                                </div>
+                                <span class="section-badge">Single Deliverable</span>
+                            </div>
 
-                    <div class="form-section-body">
-                        {{-- Deliverable Title --}}
-                        <div class="form-field-group">
-                            <label class="field-label blue">Deliverable Title <span style="color:#ef4444;">*</span></label>
-                            <input type="text" name="title" :disabled="mode !== 'single'" :required="mode === 'single'" placeholder="e.g. Ramadan Special Promo Post / Product Video..." class="massive-input"
-                                value="{{ old('title', $parentTask->title ?? '') }}">
-                            @error('title') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:5px;">{{ $message }}</p> @enderror
-                        </div>
+                            <div class="form-section-body">
+                                {{-- Deliverable Title --}}
+                                <div class="form-field-group">
+                                    <label class="field-label">Deliverable Title <span class="field-required">*</span></label>
+                                    <input type="text" name="title" :disabled="mode !== 'single'" :required="mode === 'single'" placeholder="e.g. Ramadan Special Promo Post / Product Video..." class="styled-input"
+                                        value="{{ old('title', $parentTask->title ?? '') }}">
+                                    @error('title') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:5px;">{{ $message }}</p> @enderror
+                                </div>
 
-                        {{-- Details Grid --}}
-                        <div class="form-grid-3 form-field-group">
+                                {{-- Format / Post Type --}}
+                                <div class="form-field-group">
+                                    <label class="field-label">Deliverable Type <span class="field-required">*</span></label>
+                                    <select name="post_type" x-model="singlePostType" class="styled-input" :disabled="mode !== 'single'" :required="mode === 'single'">
+                                        <option value="">Select Type...</option>
+                                        <template x-for="t in currentSubtaskTypes" :key="t">
+                                            <option :value="t" x-text="t"></option>
+                                        </template>
+                                    </select>
+                                </div>
+
+
+
+                        {{-- Dynamic Fields based on Outlines vs Brief --}}
+                        <div x-show="isOutlinesType(singlePostType)" class="form-field-group">
+                            <div class="form-field-group">
+                                <label class="field-label">Concept</label>
+                                <div x-data="{ conceptVal: {{ json_encode(old('concept', $parentTask->concept ?? '')) }} }"
+                                     x-init="initQuill($refs.singleConcept, conceptVal, (v) => conceptVal = v, 'Visual concept, storyline, or angle...')">
+                                    <div x-ref="singleConcept"></div>
+                                    <input type="hidden" name="concept" :value="conceptVal" :disabled="mode !== 'single'">
+                                </div>
+                            </div>
+                            <div class="form-field-group">
+                                <label class="field-label">Caption</label>
+                                <div x-data="{ captionVal: {{ json_encode(old('caption', $parentTask->caption ?? '')) }} }"
+                                     x-init="initQuill($refs.singleCaption, captionVal, (v) => captionVal = v, 'Caption or social headline text...')">
+                                    <div x-ref="singleCaption"></div>
+                                    <input type="hidden" name="caption" :value="captionVal" :disabled="mode !== 'single'">
+                                </div>
+                            </div>
                             <div>
-                                <label class="field-label blue">Assigned Person <span style="color:#ef4444;">*</span></label>
+                                <label class="field-label">Post Copy</label>
+                                <div x-data="{ copyVal: {{ json_encode(old('post_copy', $parentTask->post_copy ?? '')) }} }"
+                                     x-init="initQuill($refs.singleCopy, copyVal, (v) => copyVal = v, 'Complete post copy or script lines...')">
+                                    <div x-ref="singleCopy"></div>
+                                    <input type="hidden" name="post_copy" :value="copyVal" :disabled="mode !== 'single'">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div x-show="!isOutlinesType(singlePostType)" class="form-field-group">
+                            <div>
+                                <label class="field-label">Creative Brief / Description</label>
+                                <div x-data="{ notesVal: {{ json_encode(old('notes', $parentTask->notes ?? '')) }} }"
+                                     x-init="initQuill($refs.singleNotes, notesVal, (v) => notesVal = v, 'Enter details, requirements, or instructions for this deliverable...')">
+                                    <div x-ref="singleNotes"></div>
+                                    <input type="hidden" name="notes" :value="notesVal" :disabled="mode !== 'single'">
+                                </div>
+                            </div>
+                        </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                {{-- RIGHT COLUMN: Metadata & Attachments Sidebar --}}
+                <div class="single-side-col">
+                    {{-- Assignment & Schedule Card --}}
+                    <div class="section-card">
+                        <div class="section-header-bar">
+                            <h3 class="section-title">
+                                <svg width="15" height="15" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                Assignment & Schedule
+                            </h3>
+                        </div>
+                        <div class="form-section-body">
+                            {{-- Assigned Person --}}
+                            <div class="form-field-group">
+                                <label class="field-label">Assigned Person <span class="field-required">*</span></label>
                                 @if(auth()->user()->role === 'Writer')
                                     <input type="hidden" name="writer_id" value="{{ auth()->id() }}" :disabled="mode !== 'single'">
-                                    <div class="styled-input" style="cursor:default;opacity:0.8;">{{ auth()->user()->name }}</div>
+                                    <div class="styled-input" style="cursor:default;opacity:0.8;display:flex;align-items:center;">{{ auth()->user()->name }}</div>
                                 @else
                                     <div x-data="searchableUserSelect({
                                         getUsers: () => availableUsers,
@@ -1114,7 +1179,7 @@
                                                             <span class="user-role-badge" :class="'role-' + (user.role || '').toLowerCase().replace(/\s+/g, '-')" x-text="user.role" x-show="user.role"></span>
                                                         </div>
                                                         <template x-if="String(user.id) === String(selectedId)">
-                                                            <svg width="15" height="15" fill="none" stroke="#0055D4" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                                            <svg width="15" height="15" fill="none" stroke="#2563eb" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                                                             </svg>
                                                         </template>
@@ -1136,14 +1201,16 @@
                                 @endif
                             </div>
 
-                            <div>
+                            {{-- Due Date --}}
+                            <div class="form-field-group">
                                 <label class="field-label">Due Date</label>
                                 <input type="date" name="deadline" class="styled-input" :disabled="mode !== 'single'"
                                     min="{{ date('Y-m-d') }}"
                                     value="{{ old('deadline', isset($parentTask->deadline) ? \Carbon\Carbon::parse($parentTask->deadline)->format('Y-m-d') : '') }}">
                             </div>
 
-                            <div>
+                            {{-- Priority --}}
+                            <div class="form-field-group">
                                 <label class="field-label">Priority</label>
                                 <select name="priority" class="styled-input" :disabled="mode !== 'single'">
                                     <option value="High Priority" {{ old('priority', $parentTask->priority ?? '') == 'High Priority' ? 'selected' : '' }}>High Priority</option>
@@ -1152,72 +1219,51 @@
                                 </select>
                             </div>
                         </div>
+                    </div>
 
-                        {{-- Format / Post Type --}}
-                        <div class="form-field-group">
-                            <label class="field-label blue">Deliverable Type <span style="color:#ef4444;">*</span></label>
-                            <select name="post_type" x-model="singlePostType" class="styled-input" :disabled="mode !== 'single'" :required="mode === 'single'">
-                                <option value="">Select Type...</option>
-                                <template x-for="t in currentSubtaskTypes" :key="t">
-                                    <option :value="t" x-text="t"></option>
-                                </template>
-                            </select>
+                    {{-- References & Attachments Card --}}
+                    <div class="section-card">
+                        <div class="section-header-bar">
+                            <h3 class="section-title">
+                                <svg width="15" height="15" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                References & Attachments
+                            </h3>
                         </div>
-
-                        {{-- Dynamic Fields based on Outlines vs Brief --}}
-                        <div x-show="isOutlinesType(singlePostType)" class="form-field-group">
+                        <div class="form-section-body">
+                            {{-- Reference URL --}}
                             <div class="form-field-group">
-                                <label class="field-label">Concept</label>
-                                <div x-data="{ conceptVal: {{ json_encode(old('concept', $parentTask->concept ?? '')) }} }"
-                                     x-init="initQuill($refs.singleConcept, conceptVal, (v) => conceptVal = v, 'Visual concept, storyline, or angle...')">
-                                    <div x-ref="singleConcept"></div>
-                                    <input type="hidden" name="concept" :value="conceptVal" :disabled="mode !== 'single'">
-                                </div>
-                            </div>
-                            <div class="form-field-group">
-                                <label class="field-label">Caption</label>
-                                <div x-data="{ captionVal: {{ json_encode(old('caption', $parentTask->caption ?? '')) }} }"
-                                     x-init="initQuill($refs.singleCaption, captionVal, (v) => captionVal = v, 'Caption or social headline text...')">
-                                    <div x-ref="singleCaption"></div>
-                                    <input type="hidden" name="caption" :value="captionVal" :disabled="mode !== 'single'">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="field-label">Post Copy</label>
-                                <div x-data="{ copyVal: {{ json_encode(old('post_copy', $parentTask->post_copy ?? '')) }} }"
-                                     x-init="initQuill($refs.singleCopy, copyVal, (v) => copyVal = v, 'Complete post copy or script lines...')">
-                                    <div x-ref="singleCopy"></div>
-                                    <input type="hidden" name="post_copy" :value="copyVal" :disabled="mode !== 'single'">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div x-show="!isOutlinesType(singlePostType)" class="form-field-group">
-                            <div>
-                                <label class="field-label">Creative Brief / Description</label>
-                                <div x-data="{ notesVal: {{ json_encode(old('notes', $parentTask->notes ?? '')) }} }"
-                                     x-init="initQuill($refs.singleNotes, notesVal, (v) => notesVal = v, 'Enter details, requirements, or instructions for this deliverable...')">
-                                    <div x-ref="singleNotes"></div>
-                                    <input type="hidden" name="notes" :value="notesVal" :disabled="mode !== 'single'">
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- References --}}
-                        <div class="form-grid-2 form-field-group">
-                            <div>
                                 <label class="field-label">Reference URL (Drive, Figma, Links...)</label>
                                 <input type="url" name="reference" class="styled-input" :disabled="mode !== 'single'" placeholder="https://..." value="{{ old('reference', $parentTask->reference ?? '') }}">
                             </div>
-                            <div x-data="{
+
+                            {{-- Drag and Drop File Upload --}}
+                            <div class="form-field-group" x-data="{
+                                isDragging: false,
                                 selectedFiles: [],
                                 onFileChange(e) {
                                     this.selectedFiles = Array.from(e.target.files);
+                                },
+                                handleDrop(e) {
+                                    this.isDragging = false;
+                                    if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+                                        this.selectedFiles = Array.from(e.dataTransfer.files);
+                                        if ($refs.singleRefFileInput) {
+                                            $refs.singleRefFileInput.files = e.dataTransfer.files;
+                                        }
+                                    }
                                 },
                                 clearFiles() {
                                     this.selectedFiles = [];
                                     if ($refs.singleRefFileInput) {
                                         $refs.singleRefFileInput.value = '';
+                                    }
+                                },
+                                removeFile(idx) {
+                                    this.selectedFiles.splice(idx, 1);
+                                    const dt = new DataTransfer();
+                                    this.selectedFiles.forEach(f => dt.items.add(f));
+                                    if ($refs.singleRefFileInput) {
+                                        $refs.singleRefFileInput.files = dt.files;
                                     }
                                 },
                                 formatSize(bytes) {
@@ -1228,36 +1274,59 @@
                                     return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
                                 }
                             }">
-                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; min-height:16px;">
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
                                     <label class="field-label" style="margin-bottom:0;">Attach Reference Files</label>
                                     <template x-if="selectedFiles.length > 0">
-                                        <button type="button" @click="clearFiles()" style="background:transparent; border:none; color:#ef4444; font-size:11px; font-weight:700; cursor:pointer; padding:0 4px; display:inline-flex; align-items:center; gap:2px;">
+                                        <button type="button" @click="clearFiles()" style="background:transparent; border:none; color:#ef4444; font-size:11px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:3px;">
                                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                                             Clear (<span x-text="selectedFiles.length"></span>)
                                         </button>
                                     </template>
                                 </div>
+
                                 <input type="file" 
                                        name="reference_files[]" 
                                        x-ref="singleRefFileInput"
                                        @change="onFileChange($event)"
                                        multiple 
                                        accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.ppt,.pptx,.txt,.zip"
-                                       class="styled-input" 
+                                       style="display:none;" 
                                        :disabled="mode !== 'single'">
-                                
+
+                                <div class="file-dropzone"
+                                     :class="{ 'is-dragging': isDragging }"
+                                     @click="$refs.singleRefFileInput.click()"
+                                     @dragover.prevent="isDragging = true"
+                                     @dragleave.prevent="isDragging = false"
+                                     @drop.prevent="handleDrop($event)">
+                                    <div class="dropzone-icon">
+                                        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                        </svg>
+                                    </div>
+                                    <div class="dropzone-text">
+                                        <span class="dropzone-main">Drop reference files here or <span class="dropzone-browse">browse</span></span>
+                                        <span class="dropzone-sub">Images, videos, PDFs, docs up to 50MB</span>
+                                    </div>
+                                </div>
+
                                 {{-- Preview Selected Files --}}
                                 <template x-if="selectedFiles.length > 0">
-                                    <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; padding:8px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); border-radius:8px;">
+                                    <div class="selected-files-list">
                                         <template x-for="(file, fIdx) in selectedFiles" :key="fIdx">
-                                            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 10px; border-radius:6px; background:var(--color-bg-secondary); font-size:11.5px;">
-                                                <div style="display:inline-flex; align-items:center; gap:6px; overflow:hidden;">
-                                                    <svg width="13" height="13" fill="none" stroke="#0055D4" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                            <div class="file-preview-pill">
+                                                <div style="display:inline-flex; align-items:center; gap:7px; overflow:hidden; min-width:0;">
+                                                    <svg width="13" height="13" fill="none" stroke="#3b82f6" viewBox="0 0 24 24" style="flex-shrink:0;">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
                                                     </svg>
-                                                    <span x-text="file.name" style="font-weight:600; color:var(--color-text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;"></span>
+                                                    <span x-text="file.name" class="file-name-text"></span>
                                                 </div>
-                                                <span x-text="formatSize(file.size)" style="font-size:10.5px; font-weight:700; color:var(--color-text-secondary); flex-shrink:0;"></span>
+                                                <div style="display:inline-flex; align-items:center; gap:8px; flex-shrink:0;">
+                                                    <span x-text="formatSize(file.size)" class="file-size-text"></span>
+                                                    <button type="button" @click.stop="removeFile(fIdx)" class="file-remove-btn" title="Remove file">
+                                                        &times;
+                                                    </button>
+                                                </div>
                                             </div>
                                         </template>
                                     </div>
@@ -1266,31 +1335,32 @@
                         </div>
                     </div>
                 </div>
-
-                {{-- Single Deliverable Action Footer --}}
-                <div class="form-footer-card">
-                    <a href="{{ $selectedProjectId ? route('projects.show', $selectedProjectId) : url()->previous() }}" class="btn btn-cancel" :style="isSubmitting ? 'pointer-events:none;opacity:0.6;' : ''">Cancel</a>
-                    <button type="submit" class="btn btn-primary-blue" :disabled="isSubmitting" :style="isSubmitting ? 'pointer-events:none;opacity:0.85;' : ''">
-                        <template x-if="!isSubmitting">
-                            <span style="display:inline-flex;align-items:center;gap:6px;">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Create Deliverable
-                            </span>
-                        </template>
-                        <template x-if="isSubmitting">
-                            <span style="display:inline-flex;align-items:center;gap:8px;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:loopSpin 0.75s linear infinite;">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Creating Deliverable…
-                            </span>
-                        </template>
-                    </button>
-                </div>
             </div>
+
+            {{-- Single Deliverable Action Footer --}}
+            <div class="form-footer-card">
+                <a href="{{ $selectedProjectId ? route('projects.show', $selectedProjectId) : url()->previous() }}" class="btn btn-cancel" :style="isSubmitting ? 'pointer-events:none;opacity:0.6;' : ''">Cancel</a>
+                <button type="submit" class="btn btn-primary-blue" :disabled="isSubmitting" :style="isSubmitting ? 'pointer-events:none;opacity:0.85;' : ''">
+                    <template x-if="!isSubmitting">
+                        <span style="display:inline-flex;align-items:center;gap:6px;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Create Deliverable
+                        </span>
+                    </template>
+                    <template x-if="isSubmitting">
+                        <span style="display:inline-flex;align-items:center;gap:8px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:loopSpin 0.75s linear infinite;">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Creating Deliverable…
+                        </span>
+                    </template>
+                </button>
+            </div>
+        </div>
 
             {{-- ========================================================================= --}}
             {{-- OPTION 2: BATCH OF DELIVERABLES (SINGLE PAGE, BATCH = NAME, DATE, PRIORITY) --}}
@@ -1302,7 +1372,7 @@
                     <div class="section-header-bar">
                         <div>
                             <h3 class="section-title">
-                                <svg width="16" height="16" fill="none" stroke="#0055D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                                <svg width="16" height="16" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
                                 Batch Details
                             </h3>
                             <p class="section-subtitle">Define the batch campaign title, default due date, and priority</p>
@@ -1313,8 +1383,8 @@
                     <div class="form-section-body">
                         {{-- Batch Name --}}
                         <div class="form-field-group">
-                            <label class="field-label blue">Batch Name / Campaign Title <span style="color:#ef4444;">*</span></label>
-                            <input type="text" name="title" :disabled="mode !== 'batch'" :required="mode === 'batch'" placeholder="e.g. Ramadan Campaign Posts / Q4 Social Set..." class="massive-input"
+                            <label class="field-label">Batch Name / Campaign Title <span class="field-required">*</span></label>
+                            <input type="text" name="title" :disabled="mode !== 'batch'" :required="mode === 'batch'" placeholder="e.g. Ramadan Campaign Posts / Q4 Social Set..." class="styled-input"
                                 value="{{ old('title', $parentTask->title ?? '') }}" {{ isset($parentId) ? 'readonly' : '' }}>
                             @error('title') <p style="color:#ef4444;font-size:11px;font-weight:600;margin-top:5px;">{{ $message }}</p> @enderror
                         </div>
@@ -1345,7 +1415,7 @@
                     <div class="section-header-bar">
                         <div>
                             <h3 class="section-title">
-                                <svg width="16" height="16" fill="none" stroke="#0055D4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                                <svg width="16" height="16" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                                 Deliverables in this Batch
                             </h3>
                             <p class="section-subtitle">Add each deliverable item. Each has its own title, format, assignee, deadline, and specs.</p>
@@ -1383,11 +1453,11 @@
                                         {{-- Row 1: Title and Format --}}
                                         <div class="form-grid-2" style="margin-bottom:12px;">
                                             <div>
-                                                <label class="field-label blue">Deliverable Name / Title <span style="color:#ef4444;">*</span></label>
+                                                <label class="field-label">Deliverable Name / Title <span class="field-required">*</span></label>
                                                 <input type="text" :name="`subtasks[${index}][title]`" x-model="subtask.title" placeholder="e.g. Carousel Post 1 / Reel / Radio Script" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
                                             </div>
                                             <div>
-                                                <label class="field-label">Deliverable Type <span style="color:#ef4444;">*</span></label>
+                                                <label class="field-label">Deliverable Type <span class="field-required">*</span></label>
                                                 <select :name="`subtasks[${index}][post_type]`" x-model="subtask.post_type" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
                                                     <option value="">Select Type...</option>
                                                     <template x-for="t in currentSubtaskTypes" :key="t">
@@ -1400,7 +1470,7 @@
                                         {{-- Row 2: Assigned Person & Custom Due Date --}}
                                         <div class="form-grid-2" style="margin-bottom:12px;">
                                             <div>
-                                                <label class="field-label blue">Assigned Person <span style="color:#ef4444;">*</span></label>
+                                                <label class="field-label">Assigned Person <span class="field-required">*</span></label>
                                                 <div x-data="searchableUserSelect({
                                                     getUsers: () => availableUsers,
                                                     selectedId: subtask.writer_id,
@@ -1508,7 +1578,7 @@
                                                                         <span class="user-role-badge" :class="'role-' + (user.role || '').toLowerCase().replace(/\s+/g, '-')" x-text="user.role" x-show="user.role"></span>
                                                                     </div>
                                                                     <template x-if="String(user.id) === String(selectedId)">
-                                                                        <svg width="15" height="15" fill="none" stroke="#0055D4" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;">
+                                                                        <svg width="15" height="15" fill="none" stroke="#2563eb" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;">
                                                                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                                                                         </svg>
                                                                     </template>
@@ -1904,7 +1974,7 @@
                     if (!query || !query.trim()) return safeText;
                     const q = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                     const regex = new RegExp(`(${q})`, 'gi');
-                    return safeText.replace(regex, '<span style="color:#0055D4;font-weight:800;text-decoration:underline;">$1</span>');
+                    return safeText.replace(regex, '<span style="color:#2563eb;font-weight:700;text-decoration:underline;">$1</span>');
                 }
             };
         }
@@ -1916,8 +1986,6 @@
                 placeholder: placeholder,
                 modules: {
                     toolbar: [
-                        [{ 'header': [1, 2, 3, false] }],
-                        [{ 'size': ['small', false, 'large', 'huge'] }],
                         ['bold', 'italic', 'underline', 'strike'],
                         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                         ['clean']

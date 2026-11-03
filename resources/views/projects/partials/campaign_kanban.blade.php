@@ -336,6 +336,19 @@ const campaignDeliverablesData = {};
             'created_at' => $a->created_at?->toISOString(),
         ];
     })->values();
+
+    $tReassignmentsList = $t->reassignments->map(function($re) {
+        return [
+            'id' => $re->id,
+            'role' => $re->role,
+            'from_user_name' => $re->fromUser?->name ?? 'Unassigned',
+            'to_user_name' => $re->toUser?->name ?? 'Unknown',
+            'reassigned_by_name' => $re->reassignedBy?->name ?? 'Manager',
+            'reason' => $re->reason,
+            'date' => $re->created_at ? $re->created_at->format('d M, Y h:i A') : '',
+            'created_at' => $re->created_at?->toISOString(),
+        ];
+    })->values();
 @endphp
 campaignDeliverablesData[{{ $t->id }}] = {
     id: {{ $t->id }},
@@ -359,7 +372,8 @@ campaignDeliverablesData[{{ $t->id }}] = {
     revision_instructions: @json($t->revision_instructions ?? ''),
     revision_deadline: @json($t->revision_deadline ? \Carbon\Carbon::parse($t->revision_deadline)->format('d M, Y') : null),
     revisions_history: @json($tRevsList),
-    approvals_history: @json($tApprovalsList)
+    approvals_history: @json($tApprovalsList),
+    reassignments_history: @json($tReassignmentsList)
 };
 @endforeach
 
@@ -474,6 +488,20 @@ function toggleCardEditor(taskId, open) {
     }
 }
 
+function handleCardAssigneeChange(taskId) {
+    const sel = document.getElementById('card-input-writer-' + taskId);
+    const reasonRow = document.getElementById('card-reassign-reason-row-' + taskId);
+    if (!sel || !reasonRow) return;
+    const orig = sel.getAttribute('data-original-writer-id');
+    if (orig && sel.value && String(sel.value) !== String(orig)) {
+        reasonRow.style.display = 'flex';
+        const reasonInput = document.getElementById('card-input-reassign-reason-' + taskId);
+        if (reasonInput) reasonInput.focus();
+    } else {
+        reasonRow.style.display = 'none';
+    }
+}
+
 async function submitInlineCardEdit(event, taskId) {
     event.preventDefault();
     const card = document.getElementById('kanban-card-' + taskId);
@@ -495,6 +523,14 @@ async function submitInlineCardEdit(event, taskId) {
 
     const postType = postTypeSelect ? postTypeSelect.value : '';
     const writerId = writerSelect && writerSelect.value ? writerSelect.value : '';
+    const origWriterId = writerSelect ? writerSelect.getAttribute('data-original-writer-id') : '';
+    const reasonInput = document.getElementById('card-input-reassign-reason-' + taskId);
+    let reassignReason = reasonInput ? reasonInput.value.trim() : '';
+
+    if (origWriterId && writerId && String(writerId) !== String(origWriterId) && !reassignReason) {
+        reassignReason = prompt('Please enter a reason for reassigning this deliverable:') || '';
+    }
+
     const approverSelect = document.getElementById('card-input-approver-' + taskId);
     const approverId = approverSelect && approverSelect.value ? approverSelect.value : '';
     const deadline = deadlineInput && deadlineInput.value ? deadlineInput.value : '';
@@ -532,12 +568,37 @@ async function submitInlineCardEdit(event, taskId) {
                 approver_id: approverId,
                 deadline: deadline,
                 priority: priority,
+                reassignment_reason: reassignReason,
             })
         });
 
         const result = await response.json();
         if (response.ok && result.success && result.deliverable) {
             const d = result.deliverable;
+            if (writerSelect) {
+                writerSelect.setAttribute('data-original-writer-id', d.writer_id || '');
+            }
+            if (reasonRow) reasonRow.style.display = 'none';
+            if (reasonInput) reasonInput.value = '';
+            if (campaignDeliverablesData[taskId]) {
+                campaignDeliverablesData[taskId].assignee_name = d.assignee_name || d.writer?.name || 'Unassigned';
+                campaignDeliverablesData[taskId].writer_id = d.writer_id;
+                if (reassignReason) {
+                    if (!Array.isArray(campaignDeliverablesData[taskId].reassignments_history)) {
+                        campaignDeliverablesData[taskId].reassignments_history = [];
+                    }
+                    campaignDeliverablesData[taskId].reassignments_history.unshift({
+                        id: Date.now(),
+                        role: 'writer',
+                        from_user_name: 'Previous',
+                        to_user_name: d.assignee_name || 'Assigned',
+                        reassigned_by_name: 'You',
+                        reason: reassignReason,
+                        date: 'Just now',
+                        created_at: new Date().toISOString()
+                    });
+                }
+            }
             updateCardViewElements(taskId, d);
             toggleCardEditor(taskId, false);
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: result.message || 'Deliverable updated', type: 'success' } }));
@@ -1954,8 +2015,9 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         </span>
                     </div>
                     <span id="card-view-assignee-badge-${d.id}" 
-                          style="font-size: 10px; font-weight: 600; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;"
-                          title="${hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) : 'No assignee'}">
+                          onclick="event.stopPropagation(); openCampaignReassignModal(${d.id})"
+                          style="font-size: 10px; font-weight: 600; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; transition: all 0.15s;"
+                          title="${hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) + ' (Click to reassign)' : 'Click to assign'}">
                         <span>${escapeHtml(assigneeDisplay)}</span>
                     </span>
                 </div>
@@ -2059,15 +2121,34 @@ function insertCreatedCardIntoColumn(colKey, d) {
 
                     <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border-primary);">
                         {{-- Assignee --}}
-                        <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
                             <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                             </svg>
                             <select name="writer_id" 
                                     id="card-input-writer-${d.id}"
+                                    data-original-writer-id="${d.writer_id || d.designer_id || ''}"
+                                    onchange="handleCardAssigneeChange(${d.id})"
                                     style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
                                 ${assigneeOptions}
                             </select>
+                            ${(d.writer_id || d.designer_id) ? `
+                            <button type="button" 
+                                    onclick="event.stopPropagation(); openCampaignReassignModal(${d.id})" 
+                                    style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); color: #3b82f6; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; white-space: nowrap;" 
+                                    title="Reassign deliverable with reason">
+                                Reassign
+                            </button>
+                            ` : ''}
+                        </div>
+
+                        {{-- Reassignment Reason (Shown when changing assignee inline) --}}
+                        <div id="card-reassign-reason-row-${d.id}" style="display: none; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; background: rgba(59, 130, 246, 0.08); border: 1px dashed rgba(59, 130, 246, 0.35); margin-top: 2px;">
+                            <svg width="12" height="12" fill="none" stroke="#3b82f6" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <input type="text" 
+                                   id="card-input-reassign-reason-${d.id}" 
+                                   placeholder="Reason for reassigning (e.g. Workload, leave)…" 
+                                   style="width: 100%; border: none; background: transparent; font-size: 11px; font-weight: 500; color: var(--color-text-primary); outline: none;">
                         </div>
 
                         {{-- Approver (hidden in To Do stage, shown in In Progress / Approval / Done) --}}
@@ -2339,6 +2420,24 @@ function extractApprovalsHistory(data, existingTask) {
     return existingTask?.approvals_history || [];
 }
 
+function extractReassignmentsHistory(data, existingTask) {
+    if (!data) return existingTask?.reassignments_history || [];
+    const list = data.reassignments_history || data.reassignmentsHistory;
+    if (Array.isArray(list) && list.length > 0) {
+        return list.map(re => ({
+            id: re.id,
+            role: re.role || 'writer',
+            from_user_name: re.from_user?.name || re.fromUser?.name || re.from_user_name || 'Unassigned',
+            to_user_name: re.to_user?.name || re.toUser?.name || re.to_user_name || 'Unknown',
+            reassigned_by_name: re.reassigned_by?.name || re.reassignedBy?.name || re.reassigned_by_name || 'Manager',
+            reason: re.reason || '',
+            date: re.date || (re.created_at ? formatDateTimeDisplay(re.created_at) : ''),
+            created_at: re.created_at
+        }));
+    }
+    return existingTask?.reassignments_history || [];
+}
+
 function extractReferenceFiles(data) {
     if (!data) return [];
     if (data.reference_files_list && Array.isArray(data.reference_files_list)) {
@@ -2437,7 +2536,8 @@ async function openCampaignDetailsModal(taskId) {
                 revision_instructions: freshData.revision_instructions || task?.revision_instructions || '',
                 revision_deadline: freshData.revision_deadline ? formatDateDisplay(freshData.revision_deadline) : (task?.revision_deadline || null),
                 revisions_history: extractRevisionsHistory(freshData, task),
-                approvals_history: extractApprovalsHistory(freshData, task)
+                approvals_history: extractApprovalsHistory(freshData, task),
+                reassignments_history: extractReassignmentsHistory(freshData, task)
             };
             if (modal.style.display !== 'none' && modal.dataset.currentTaskId == taskId) {
                 renderCampaignDetailsModalContent(campaignDeliverablesData[taskId]);
@@ -2979,9 +3079,12 @@ function renderCampaignDetailsModalContent(task) {
         });
     }
     const approvals = Array.isArray(task.approvals_history) ? [...task.approvals_history] : [];
+    const reassignments = Array.isArray(task.reassignments_history) ? [...task.reassignments_history] : [];
     let activeHistoryTab = window.currentCampaignHistoryTab || 'approvals';
     if (approvals.length === 0 && revs.length > 0 && !window.currentCampaignHistoryTab) {
         activeHistoryTab = 'revisions';
+    } else if (approvals.length === 0 && revs.length === 0 && reassignments.length > 0 && !window.currentCampaignHistoryTab) {
+        activeHistoryTab = 'reassignments';
     }
 
     let historyCardHtml = `
@@ -3014,6 +3117,15 @@ function renderCampaignDetailsModalContent(task) {
                         <span>Revisions</span>
                         <span style="font-size: 10px; padding: 1px 6px; border-radius: 9999px; background: ${activeHistoryTab === 'revisions' ? 'rgba(239, 68, 68, 0.15)' : 'transparent'}; color: ${activeHistoryTab === 'revisions' ? '#ef4444' : 'inherit'}; font-weight: 800;">
                             ${revs.length}
+                        </span>
+                    </button>
+                    <button type="button" 
+                            id="campaignHistoryTabBtn-reassignments"
+                            onclick="switchCampaignHistoryTab('reassignments')" 
+                            class="cd-history-tab-btn ${activeHistoryTab === 'reassignments' ? 'active' : ''}">
+                        <span>Reassignments</span>
+                        <span style="font-size: 10px; padding: 1px 6px; border-radius: 9999px; background: ${activeHistoryTab === 'reassignments' ? 'rgba(59, 130, 246, 0.15)' : 'transparent'}; color: ${activeHistoryTab === 'reassignments' ? '#2563eb' : 'inherit'}; font-weight: 800;">
+                            ${reassignments.length}
                         </span>
                     </button>
                 </div>
@@ -3161,6 +3273,55 @@ function renderCampaignDetailsModalContent(task) {
 
     historyCardHtml += `
             </div>
+
+            <!-- Panel 3: Reassignments History -->
+            <div id="campaignHistoryPanel-reassignments" style="display: ${activeHistoryTab === 'reassignments' ? 'block' : 'none'};">
+    `;
+
+    if (reassignments.length === 0) {
+        historyCardHtml += `
+            <div style="padding: 14px 16px; background: var(--subcard-bg); border: 1px solid var(--card-border); border-radius: 10px; display: flex; align-items: center; gap: 10px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" style="color: var(--color-text-secondary); flex-shrink: 0;"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                <div style="font-size: 12px; color: var(--color-text-secondary);">
+                    No reassignments recorded. The original assigned team member is responsible for this deliverable.
+                </div>
+            </div>
+        `;
+    } else {
+        historyCardHtml += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
+        reassignments.forEach((re) => {
+            const dateStr = re.date || (re.created_at ? formatDateTimeDisplay(re.created_at) : '');
+            historyCardHtml += `
+                <div class="cd-detail-subcard" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.25); padding: 2px 8px; border-radius: 6px;">
+                                ${escapeHtml(re.from_user_name || 'Unassigned')} → ${escapeHtml(re.to_user_name || 'Unknown')}
+                            </span>
+                            <span style="font-size: 12px; font-weight: 600; color: var(--color-text-secondary);">
+                                Reassigned by <strong style="color: var(--color-text-primary);">${escapeHtml(re.reassigned_by_name || 'Manager')}</strong>
+                            </span>
+                        </div>
+                        ${dateStr ? `
+                            <span style="font-size: 11px; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 4px;">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                ${escapeHtml(dateStr)}
+                            </span>
+                        ` : ''}
+                    </div>
+                    ${re.reason ? `
+                        <div style="padding: 8px 12px; background: rgba(59, 130, 246, 0.05); border-left: 3px solid #3b82f6; border-radius: 6px; font-size: 12px; line-height: 1.45; color: var(--color-text-primary);">
+                            <strong style="color: #2563eb; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;">Reason:</strong> ${escapeHtml(re.reason)}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        historyCardHtml += `</div>`;
+    }
+
+    historyCardHtml += `
+            </div>
         </div>
     `;
 
@@ -3226,6 +3387,10 @@ function renderCampaignDetailsModalContent(task) {
     }
 
     quickActionsHtml += `
+        <button type="button" class="cd-btn-outline" style="width: 100%; color: #3b82f6; border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'" onmouseout="this.style.background='rgba(59,130,246,0.06)'" onclick="openCampaignReassignModal(${task.id})">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+            <span>Reassign Deliverable</span>
+        </button>
         <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="closeCampaignDetailsModal(); setTimeout(() => { toggleCardEditor(${task.id}, true); const el = document.getElementById('kanban-card-${task.id}'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150);">
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
             <span>Edit in Kanban Card</span>
@@ -3281,12 +3446,22 @@ function renderCampaignDetailsModalContent(task) {
 
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px dashed var(--card-border);">
                     <span style="color: var(--color-text-secondary); font-weight: 500;">Assignee</span>
-                    <span style="font-weight: 700; color: var(--color-text-primary); display: inline-flex; align-items: center; gap: 6px;">
-                        <span style="width: 20px; height: 20px; border-radius: 50%; background: rgba(59, 130, 246, 0.15); color: #2563eb; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900;">
-                            ${escapeHtml((task.assignee_name || 'U').charAt(0).toUpperCase())}
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-weight: 700; color: var(--color-text-primary); display: inline-flex; align-items: center; gap: 6px;">
+                            <span style="width: 20px; height: 20px; border-radius: 50%; background: rgba(59, 130, 246, 0.15); color: #2563eb; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900;">
+                                ${escapeHtml((task.assignee_name || 'U').charAt(0).toUpperCase())}
+                            </span>
+                            <span>${escapeHtml(task.assignee_name || 'Unassigned')}</span>
                         </span>
-                        <span>${escapeHtml(task.assignee_name || 'Unassigned')}</span>
-                    </span>
+                        <button type="button" 
+                                onclick="openCampaignReassignModal(${task.id})" 
+                                style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); color: #2563eb; padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 700; cursor: pointer; transition: all 0.15s;" 
+                                onmouseover="this.style.background='rgba(59,130,246,0.18)'" 
+                                onmouseout="this.style.background='rgba(59,130,246,0.08)'" 
+                                title="Reassign deliverable assignee">
+                            Reassign
+                        </button>
+                    </div>
                 </div>
 
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
@@ -3505,24 +3680,18 @@ async function uploadCampaignReferencesInline(taskId) {
 // Activity & History Tab Switcher
 function switchCampaignHistoryTab(tab) {
     window.currentCampaignHistoryTab = tab;
-    const btnApprovals = document.getElementById('campaignHistoryTabBtn-approvals');
-    const btnRevisions = document.getElementById('campaignHistoryTabBtn-revisions');
-    const panelApprovals = document.getElementById('campaignHistoryPanel-approvals');
-    const panelRevisions = document.getElementById('campaignHistoryPanel-revisions');
-
-    if (btnApprovals && btnRevisions && panelApprovals && panelRevisions) {
-        if (tab === 'revisions') {
-            btnApprovals.classList.remove('active');
-            btnRevisions.classList.add('active');
-            panelApprovals.style.display = 'none';
-            panelRevisions.style.display = 'block';
-        } else {
-            btnRevisions.classList.remove('active');
-            btnApprovals.classList.add('active');
-            panelRevisions.style.display = 'none';
-            panelApprovals.style.display = 'block';
+    const tabs = ['approvals', 'revisions', 'reassignments'];
+    tabs.forEach(t => {
+        const btn = document.getElementById('campaignHistoryTabBtn-' + t);
+        const panel = document.getElementById('campaignHistoryPanel-' + t);
+        if (btn) {
+            if (t === tab) btn.classList.add('active');
+            else btn.classList.remove('active');
         }
-    }
+        if (panel) {
+            panel.style.display = (t === tab) ? 'block' : 'none';
+        }
+    });
 }
 
 // Status Transition from Detail Modal
@@ -3625,6 +3794,154 @@ document.addEventListener('click', function(event) {
     });
 });
 
+let currentReassignTaskId = null;
+
+function setCampaignReassignPreset(preset) {
+    const el = document.getElementById('campaignReassignReason');
+    if (el) {
+        el.value = preset;
+        el.focus();
+    }
+}
+
+function openCampaignReassignModal(taskId) {
+    currentReassignTaskId = taskId;
+    const overlay = document.getElementById('campaignReassignModalOverlay');
+    if (!overlay) return;
+
+    const task = campaignDeliverablesData[taskId] || null;
+    const card = document.getElementById('kanban-card-' + taskId);
+    const title = (card ? card.querySelector('#card-view-title-' + taskId)?.textContent : null) || task?.title || 'Deliverable';
+    const currentName = task?.assignee_name || (card ? card.querySelector('#card-view-assignee-badge-' + taskId)?.textContent?.trim() : null) || 'Unassigned';
+
+    const titleEl = document.getElementById('campaignReassignTaskTitle');
+    if (titleEl) titleEl.textContent = title;
+
+    const currentNameEl = document.getElementById('campaignReassignCurrentName');
+    if (currentNameEl) currentNameEl.textContent = currentName;
+
+    const reasonEl = document.getElementById('campaignReassignReason');
+    if (reasonEl) reasonEl.value = '';
+
+    const sel = document.getElementById('campaignReassignSelect');
+    if (sel) {
+        sel.innerHTML = '<option value="">Select team member…</option>';
+        if (Array.isArray(kanbanSelectableUsers)) {
+            kanbanSelectableUsers.forEach(u => {
+                sel.innerHTML += `<option value="${u.id}">${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
+            });
+        }
+        sel.value = '';
+    }
+
+    overlay.style.display = 'flex';
+}
+
+function closeCampaignReassignModal() {
+    const overlay = document.getElementById('campaignReassignModalOverlay');
+    if (overlay) overlay.style.display = 'none';
+    currentReassignTaskId = null;
+}
+
+async function submitCampaignReassignment(btn) {
+    if (!currentReassignTaskId) return;
+    const taskId = currentReassignTaskId;
+
+    const sel = document.getElementById('campaignReassignSelect');
+    const newUserId = sel ? sel.value : '';
+    const reasonEl = document.getElementById('campaignReassignReason');
+    const reason = reasonEl ? reasonEl.value.trim() : '';
+    const subtasksEl = document.getElementById('campaignReassignSubtasks');
+    const reassignSubtasks = subtasksEl ? subtasksEl.checked : false;
+
+    if (!newUserId) {
+        alert('Please select a team member to reassign this deliverable to.');
+        if (sel) sel.focus();
+        return;
+    }
+
+    if (!reason) {
+        alert('Please enter a reason for this reassignment.');
+        if (reasonEl) reasonEl.focus();
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Reassigning…</span>';
+    }
+
+    try {
+        const response = await fetch(`/deliverables/${taskId}/reassign-writer`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            },
+            body: JSON.stringify({
+                writer_id: newUserId,
+                reason: reason,
+                reassign_subtasks: reassignSubtasks,
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+            closeCampaignReassignModal();
+
+            const newName = result.writer_name || result.assignee_name || 'Assigned';
+
+            // 1. Update campaignDeliverablesData cache
+            if (campaignDeliverablesData[taskId]) {
+                campaignDeliverablesData[taskId].assignee_name = newName;
+                campaignDeliverablesData[taskId].writer_id = newUserId;
+                if (!Array.isArray(campaignDeliverablesData[taskId].reassignments_history)) {
+                    campaignDeliverablesData[taskId].reassignments_history = [];
+                }
+                if (result.reassignment) {
+                    campaignDeliverablesData[taskId].reassignments_history.unshift(result.reassignment);
+                }
+            }
+
+            // 2. Update card view elements
+            updateCardViewElements(taskId, {
+                assignee_name: newName,
+                writer_id: newUserId
+            });
+
+            // 3. Update card editor elements
+            const cardWriterSel = document.getElementById('card-input-writer-' + taskId);
+            if (cardWriterSel) {
+                cardWriterSel.value = newUserId;
+                cardWriterSel.setAttribute('data-original-writer-id', newUserId);
+            }
+            const reasonRow = document.getElementById('card-reassign-reason-row-' + taskId);
+            if (reasonRow) reasonRow.style.display = 'none';
+
+            // 4. If detail modal is open, re-render it
+            const detailModal = document.getElementById('campaignDetailsModalOverlay');
+            if (detailModal && detailModal.style.display !== 'none' && detailModal.dataset.currentTaskId == taskId) {
+                renderCampaignDetailsModalContent(campaignDeliverablesData[taskId]);
+            }
+
+            window.dispatchEvent(new CustomEvent('toast', {
+                detail: { message: result.message || `Reassigned deliverable to ${newName}.`, type: 'success' }
+            }));
+        } else {
+            alert(result.message || 'Failed to reassign deliverable.');
+        }
+    } catch (err) {
+        console.error('Error reassigning deliverable:', err);
+        alert('Network error while reassigning deliverable.');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>Confirm Reassignment</span>';
+        }
+    }
+}
+
 // Escape key collapses card editor and closes inline creator / modals
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
@@ -3634,6 +3951,7 @@ document.addEventListener('keydown', function(event) {
             return;
         }
         closeCampaignDetailsModal();
+        closeCampaignReassignModal();
         closeUploadDeliverableModal();
         closeAssignApproverModal();
         closeRevisionPromptModal();
@@ -3741,6 +4059,92 @@ document.addEventListener('keydown', function(event) {
             <button type="button" onclick="confirmAssignApprover()" style="background: #f59e0b; border: none; padding: 7px 16px; font-size: 12px; font-weight: 700; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);">
                 <span>Submit to Approver</span>
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+{{-- Modal: Reassign Deliverable Assignee in Campaign Flow with Reason --}}
+<div id="campaignReassignModalOverlay" 
+     style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); padding: 16px;" 
+     onclick="if(event.target === this) closeCampaignReassignModal()">
+    <div style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 16px; width: 100%; max-width: 480px; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column;">
+        {{-- Header --}}
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--color-border-primary); background: var(--color-bg-secondary); display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(59, 130, 246, 0.12); color: #3b82f6; display: flex; align-items: center; justify-content: center;">
+                    <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 14.5px; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.04em;">Reassign Deliverable</h3>
+                    <div id="campaignReassignTaskTitle" style="font-size: 11.5px; color: var(--color-text-secondary); margin-top: 1px; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Deliverable</div>
+                </div>
+            </div>
+            <button type="button" onclick="closeCampaignReassignModal()" style="background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 4px; border-radius: 6px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        {{-- Body --}}
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+            {{-- Current Assignee Info --}}
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 10px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Current Assignee</span>
+                <span id="campaignReassignCurrentName" style="font-size: 12.5px; font-weight: 700; color: var(--color-text-primary);">Unassigned</span>
+            </div>
+
+            {{-- New Assignee Picker --}}
+            <div>
+                <label style="display: block; font-size: 11px; font-weight: 800; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
+                    New Assignee <span style="color: #ef4444;">*</span>
+                </label>
+                <select id="campaignReassignSelect" 
+                        style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid rgba(59,130,246,0.3); font-size: 13px; font-weight: 600; color: var(--color-text-primary); background: var(--color-bg-secondary); outline: none;">
+                    <option value="">Select team member…</option>
+                </select>
+            </div>
+
+            {{-- Reason Input with Presets --}}
+            <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <label style="font-size: 11px; font-weight: 800; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em;">
+                        Reason for Reassignment <span style="color: #ef4444;">*</span>
+                    </label>
+                    <span style="font-size: 10px; color: var(--color-text-secondary);">Recorded in audit log</span>
+                </div>
+                <textarea id="campaignReassignReason" 
+                          rows="3" 
+                          placeholder="Provide the reason for reassigning this deliverable (e.g. Workload rebalancing, team member on leave, skill alignment)…" 
+                          style="width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 12.5px; line-height: 1.45; background: var(--color-bg-secondary); color: var(--color-text-primary); border: 1.5px solid rgba(59,130,246,0.3); border-radius: 10px; outline: none; resize: vertical; font-family: inherit;"></textarea>
+
+                {{-- Quick Presets --}}
+                <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                    <span style="font-size: 10px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase;">Presets:</span>
+                    <button type="button" onclick="setCampaignReassignPreset('Workload rebalancing')" style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); color: #3b82f6; font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; cursor: pointer;">Workload rebalancing</button>
+                    <button type="button" onclick="setCampaignReassignPreset('Team member on leave')" style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); color: #3b82f6; font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; cursor: pointer;">Team member on leave</button>
+                    <button type="button" onclick="setCampaignReassignPreset('Creative skill alignment')" style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); color: #3b82f6; font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; cursor: pointer;">Creative skill alignment</button>
+                    <button type="button" onclick="setCampaignReassignPreset('Priority deliverable shift')" style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); color: #3b82f6; font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; cursor: pointer;">Priority shift</button>
+                </div>
+            </div>
+
+            {{-- Optional Subtasks checkbox --}}
+            <div id="campaignReassignSubtasksRow" style="display: flex; align-items: center; gap: 8px; padding-top: 4px;">
+                <input type="checkbox" id="campaignReassignSubtasks" style="accent-color: #3b82f6; cursor: pointer; width: 15px; height: 15px;">
+                <label for="campaignReassignSubtasks" style="font-size: 12px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer;">
+                    Also apply reassignment to all child subtasks (if any)
+                </label>
+            </div>
+        </div>
+
+        {{-- Footer --}}
+        <div style="padding: 14px 20px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" onclick="closeCampaignReassignModal()" style="background: transparent; border: 1px solid var(--color-border-primary); padding: 8px 16px; font-size: 12px; font-weight: 700; border-radius: 8px; color: var(--color-text-primary); cursor: pointer;">
+                Cancel
+            </button>
+            <button type="button" id="campaignReassignSubmitBtn" onclick="submitCampaignReassignment(this)" style="background: #2563eb; border: none; padding: 8px 20px; font-size: 12px; font-weight: 800; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(37,99,235,0.35);">
+                <span>Confirm Reassignment</span>
             </button>
         </div>
     </div>

@@ -63,6 +63,7 @@ Route::middleware('auth')->group(function () {
     Route::post('deliverables/{deliverable}/priority', [DeliverableController::class, 'updatePriority'])->name('deliverables.update-priority');
     Route::post('deliverables/{deliverable}/client-status', [DeliverableController::class, 'updateClientStatus'])->name('deliverables.update-client-status');
     Route::post('deliverables/{deliverable}/reassign-designer', [DeliverableController::class, 'reassignDesigner'])->name('deliverables.reassign-designer');
+    Route::post('deliverables/{deliverable}/reassign-writer', [DeliverableController::class, 'reassignWriter'])->name('deliverables.reassign-writer');
     Route::post('deliverables/{deliverable}/designer-deadline', [DeliverableController::class, 'updateDesignerDeadline'])->name('deliverables.update-designer-deadline');
     Route::patch('deliverables/{deliverable}/designer-deadline', [DeliverableController::class, 'updateDesignerDeadline']);
     Route::post('deliverables/{deliverable}/revision-deadline', [DeliverableController::class, 'updateRevisionDeadline'])->name('deliverables.update-revision-deadline');
@@ -105,6 +106,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/toggle-client-review', [UserController::class, 'toggleClientReview'])->name('admin.features.toggle-client-review');
         Route::post('/settings/toggle-direct-design', [UserController::class, 'toggleDirectDesign'])->name('admin.features.toggle-direct-design');
         Route::post('/settings/toggle-analytics', [UserController::class, 'toggleAnalytics'])->name('admin.features.toggle-analytics');
+        Route::post('/settings/toggle-google-auth', [UserController::class, 'toggleGoogleAuth'])->name('admin.features.toggle-google-auth');
         Route::post('/settings/toggle-halloween-theme', [UserController::class, 'toggleHalloweenTheme'])->name('admin.features.toggle-halloween-theme');
         Route::post('/settings/toggle-christmas-theme', [UserController::class, 'toggleChristmasTheme'])->name('admin.features.toggle-christmas-theme');
         Route::post('/settings/theme', [UserController::class, 'updateActiveTheme'])->name('admin.settings.theme');
