@@ -2091,7 +2091,7 @@
                     <div class="detail-item" id="modalDeliverableDeadlineBox" style="flex:1; min-width:180px; display:flex; flex-direction:column; gap:6px;">
                         <label class="detail-label" style="color:#3b82f6; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; margin:0;">Deliverable Deadline</label>
                         <div style="display:flex; gap:8px; width:100%;">
-                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm" min="{{ date('Y-m-d') }}"
+                            <input type="date" id="modalDeliverableDeadlineInput" name="deadline" form="submitStageForm"
                                 style="flex:1; width:100%; padding:9px 12px; border:1.5px solid rgba(59,130,246,0.25); border-radius:8px; font-size:13px; font-family:inherit; color:var(--color-text-primary); background:var(--color-bg-primary); outline:none; transition:border-color 0.15s; box-sizing:border-box;"
                                 onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(59,130,246,0.25)'">
                             <button type="button" id="saveDeadlineBtn" style="display:none; padding:8px 16px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;" onclick="saveDeliverableDeadline(this)">Save</button>

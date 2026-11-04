@@ -525,7 +525,7 @@ textarea.f-input{resize:vertical;min-height:90px;line-height:1.6;}
             <div class="f-grid" style="margin-top:16px;">
                 <div>
                     <label class="f-label">Deadline</label>
-                    <input type="date" name="deadline" class="f-input" min="{{ date('Y-m-d') }}"
+                    <input type="date" name="deadline" class="f-input"
                            value="{{ old('deadline', $deliverable->deadline ? \Carbon\Carbon::parse($deliverable->deadline)->format('Y-m-d') : '') }}">
                 </div>
                 <div>

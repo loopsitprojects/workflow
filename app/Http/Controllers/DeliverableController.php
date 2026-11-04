@@ -2754,10 +2754,8 @@ class DeliverableController extends Controller
             'post_type' => 'nullable|string|max:100',
             'writer_id' => 'nullable|exists:users,id',
             'approver_id' => 'nullable|exists:users,id',
-            'deadline' => 'nullable|date|after_or_equal:today',
+            'deadline' => 'nullable|date',
             'priority' => 'nullable|string|in:Low,Medium,High Priority,Urgent,High',
-        ], [
-            'deadline.after_or_equal' => 'The due date cannot be before today.',
         ]);
 
         $status = $validated['status'] ?? 'To Do';
@@ -2876,14 +2874,6 @@ class DeliverableController extends Controller
         }
         if (array_key_exists('deadline', $validated)) {
             if (!empty($validated['deadline'])) {
-                $newDeadline = \Carbon\Carbon::parse($validated['deadline'])->startOfDay();
-                $currentDeadline = $deliverable->deadline ? \Carbon\Carbon::parse($deliverable->deadline)->startOfDay() : null;
-                if ((!$currentDeadline || !$newDeadline->equalTo($currentDeadline)) && $newDeadline->isBefore(today())) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'The due date cannot be before today.',
-                    ], 422);
-                }
                 $deliverable->deadline = $validated['deadline'];
             } else {
                 $deliverable->deadline = null;
