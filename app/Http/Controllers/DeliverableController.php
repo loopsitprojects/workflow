@@ -3100,13 +3100,13 @@ class DeliverableController extends Controller
 
             $approverIdToSet = !empty($validated['approver_id']) 
                 ? (int)$validated['approver_id'] 
-                : ($deliverable->approver_id ?: ($project->approver_id ?: null));
+                : ($deliverable->approver_id ?: null);
 
             if (!$approverIdToSet) {
                 return response()->json([
                     'success' => false,
                     'require_approver' => true,
-                    'message' => 'Please assign an approver for this deliverable before submitting to the Approval Stage.',
+                    'message' => 'Deliverables cannot move to the Approval Stage without an assigned approver. Please assign an approver.',
                 ], 422);
             }
 

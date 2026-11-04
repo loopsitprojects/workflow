@@ -1220,15 +1220,16 @@ async function kanbanOnDrop(event, targetStatus) {
 
     // Check if target is Approval Stage
     const isTargetApproval = ['Approval Stage', 'Approval', 'Review'].includes(targetStatus);
-    const currentApproverId = card.getAttribute('data-approver-id');
-    const hasFile = card.getAttribute('data-has-file') === 'true';
+    const currentApproverId = card ? card.getAttribute('data-approver-id') : null;
+    const hasApprover = Boolean(currentApproverId && currentApproverId !== 'null' && currentApproverId !== '0' && currentApproverId.trim() !== '');
+    const hasFile = card ? (card.getAttribute('data-has-file') === 'true') : false;
 
-    if (isTargetApproval && !kanbanIsAdmin) {
-        if (!hasFile) {
+    if (isTargetApproval) {
+        if (!hasFile && !kanbanIsAdmin) {
             openUploadDeliverableModal(taskId, targetStatus, oldStatus, card);
             return;
         }
-        if (!currentApproverId) {
+        if (!hasApprover) {
             openAssignApproverModal(taskId, targetStatus, oldStatus, card);
             return;
         }
@@ -1376,6 +1377,9 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
             card.setAttribute('data-status', oldStatus);
             updateCardStatusUI(card, oldStatus);
             recalculateKanbanCounts();
+            if (result.require_approver) {
+                openAssignApproverModal(taskId, targetStatus, oldStatus, card);
+            }
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: result.message || 'Failed to update status.', type: 'error' } }));
         } else {
             // Update stage badge and permission on card
@@ -1400,6 +1404,15 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
                     approverNameEl.textContent = result.approver_name;
                     approverNameEl.style.color = 'var(--color-text-primary)';
                 }
+                const approverSelect = document.getElementById('card-input-approver-' + taskId);
+                if (approverSelect && result.approver_id) {
+                    approverSelect.value = result.approver_id;
+                }
+            }
+            if (campaignDeliverablesData[taskId]) {
+                if (result.approver_id) campaignDeliverablesData[taskId].approver_id = result.approver_id;
+                if (result.approver_name) campaignDeliverablesData[taskId].approver_name = result.approver_name;
+                campaignDeliverablesData[taskId].status = targetStatus;
             }
             if (typeof result.has_file !== 'undefined') {
                 card.setAttribute('data-has-file', result.has_file ? 'true' : 'false');
@@ -1506,13 +1519,14 @@ function openUploadDeliverableModal(taskId, targetStatus, oldStatus, card) {
     const fileLabel = document.getElementById('uploadDeliverableModalFileLabel');
     if (fileLabel) fileLabel.textContent = 'Choose file(s)…';
 
-    const currentApproverId = card.getAttribute('data-approver-id');
+    const currentApproverId = card ? card.getAttribute('data-approver-id') : null;
+    const hasCardApprover = Boolean(currentApproverId && currentApproverId !== 'null' && currentApproverId !== '0' && currentApproverId.trim() !== '');
     const approverGroup = document.getElementById('uploadDeliverableApproverGroup');
     const select = document.getElementById('uploadDeliverableApproverSelect');
 
-    if (!currentApproverId) {
+    if (!hasCardApprover) {
         if (approverGroup) approverGroup.style.display = 'block';
-        if (select && select.options.length <= 1) {
+        if (select) {
             select.innerHTML = '<option value="">Choose an Approver…</option>';
             kanbanSelectableApprovers.forEach(u => {
                 const opt = document.createElement('option');
@@ -1520,9 +1534,7 @@ function openUploadDeliverableModal(taskId, targetStatus, oldStatus, card) {
                 opt.textContent = `${u.name} (${u.role})`;
                 select.appendChild(opt);
             });
-        }
-        if (select && kanbanProjectApproverId && !select.value) {
-            select.value = kanbanProjectApproverId;
+            select.value = '';
         }
     } else {
         if (approverGroup) approverGroup.style.display = 'none';
@@ -1547,8 +1559,8 @@ async function confirmUploadDeliverable() {
         return;
     }
 
-    let approverId = card.getAttribute('data-approver-id');
-    if (!approverId) {
+    let approverId = card ? card.getAttribute('data-approver-id') : null;
+    if (!approverId || approverId === 'null' || approverId === '0' || approverId.trim() === '') {
         const select = document.getElementById('uploadDeliverableApproverSelect');
         approverId = select ? select.value : '';
         if (!approverId) {
@@ -1648,14 +1660,17 @@ async function confirmUploadDeliverable() {
 }
 
 function openAssignApproverModal(taskId, targetStatus, oldStatus, card) {
+    if (!card) card = document.getElementById('kanban-card-' + taskId);
     pendingApproverAction = { taskId, targetStatus, oldStatus, card };
     const modal = document.getElementById('assignApproverModal');
     const titleEl = document.getElementById('assignApproverModalTaskTitle');
-    const cardTitle = card.querySelector('#card-view-title-' + taskId)?.textContent || 'Deliverable';
+    const cardTitle = (card && card.querySelector('#card-view-title-' + taskId)?.textContent) 
+        || (campaignDeliverablesData[taskId]?.title) 
+        || 'Deliverable';
     if (titleEl) titleEl.textContent = cardTitle.trim();
 
     const select = document.getElementById('assignApproverModalSelect');
-    if (select && select.options.length <= 1) {
+    if (select) {
         select.innerHTML = '<option value="">Choose an Approver…</option>';
         kanbanSelectableApprovers.forEach(u => {
             const opt = document.createElement('option');
@@ -1663,9 +1678,7 @@ function openAssignApproverModal(taskId, targetStatus, oldStatus, card) {
             opt.textContent = `${u.name} (${u.role})`;
             select.appendChild(opt);
         });
-    }
-    if (select && kanbanProjectApproverId && !select.value) {
-        select.value = kanbanProjectApproverId;
+        select.value = '';
     }
     if (modal) modal.style.display = 'flex';
 }
@@ -4077,14 +4090,17 @@ async function transitionDeliverableStatus(taskId, targetStatus) {
 
     const isTargetApproval = ['Approval Stage', 'Approval', 'Review'].includes(targetStatus);
     const currentApproverId = card ? card.getAttribute('data-approver-id') : null;
+    const hasApprover = Boolean(currentApproverId && currentApproverId !== 'null' && currentApproverId !== '0' && currentApproverId.trim() !== '');
     const hasFile = card ? (card.getAttribute('data-has-file') === 'true') : false;
 
-    if (isTargetApproval && !kanbanIsAdmin) {
-        if (!hasFile) {
+    if (isTargetApproval) {
+        if (!hasFile && !kanbanIsAdmin) {
+            closeCampaignDetailsModal();
             openUploadDeliverableModal(taskId, targetStatus, oldStatus, card);
             return;
         }
-        if (!currentApproverId) {
+        if (!hasApprover) {
+            closeCampaignDetailsModal();
             openAssignApproverModal(taskId, targetStatus, oldStatus, card);
             return;
         }
