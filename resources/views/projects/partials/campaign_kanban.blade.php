@@ -972,30 +972,18 @@ function updateCardArtworkUI(taskId, d) {
         }
     }
 
-    let uploadBox = document.getElementById('card-upload-box-' + taskId);
     const editor = document.getElementById('kanban-card-editor-' + taskId);
-    if (!uploadBox && editor) {
-        uploadBox = document.createElement('div');
-        uploadBox.id = 'card-upload-box-' + taskId;
-        uploadBox.style.cssText = 'margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);';
-        uploadBox.onclick = (e) => e.stopPropagation();
+    const editorUploadBox = document.getElementById('card-upload-box-' + taskId);
+    const viewUploadBox = document.getElementById('card-view-upload-box-' + taskId);
 
-        const formOrDiv = editor.querySelector('form') || editor.firstElementChild;
-        const footer = (formOrDiv || editor).querySelector('div[style*="justify-content: space-between"]:last-child');
-        if (footer && footer.parentNode) {
-            footer.parentNode.insertBefore(uploadBox, footer);
-        } else {
-            (formOrDiv || editor).appendChild(uploadBox);
-        }
-    } else if (uploadBox && editor && !editor.contains(uploadBox)) {
-        const formOrDiv = editor.querySelector('form') || editor.firstElementChild;
-        const footer = (formOrDiv || editor).querySelector('div[style*="justify-content: space-between"]:last-child');
-        if (footer && footer.parentNode) {
-            footer.parentNode.insertBefore(uploadBox, footer);
-        } else {
-            (formOrDiv || editor).appendChild(uploadBox);
-        }
+    // If both exist in a read-only container (no form), clean up any rogue duplicate
+    if (editor && !editor.querySelector('form') && editorUploadBox && viewUploadBox) {
+        editorUploadBox.remove();
     }
+
+    const uploadBox = (editor && !editor.querySelector('form')) 
+        ? (viewUploadBox || editorUploadBox)
+        : (editorUploadBox || viewUploadBox);
 
     if (!uploadBox) return;
 
@@ -1085,10 +1073,13 @@ function updateCardArtworkUI(taskId, d) {
         }
     }
 
-    const viewUploadBox = document.getElementById('card-view-upload-box-' + taskId);
-    if (viewUploadBox) {
+    if (viewUploadBox && viewUploadBox !== uploadBox) {
         viewUploadBox.innerHTML = uploadBox.innerHTML;
         viewUploadBox.style.display = uploadBox.style.display;
+    }
+    if (editorUploadBox && editorUploadBox !== uploadBox) {
+        editorUploadBox.innerHTML = uploadBox.innerHTML;
+        editorUploadBox.style.display = uploadBox.style.display;
     }
 }
 
