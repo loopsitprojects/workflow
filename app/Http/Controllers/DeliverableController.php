@@ -2850,11 +2850,19 @@ class DeliverableController extends Controller
         $user = auth()->user();
         $isSuperAdmin = $user && $user->isAdmin();
         $isCreator = $user && ((int) $user->id === (int) $deliverable->effective_creator_id);
+        $canManage = $user && (
+            $isSuperAdmin ||
+            $isCreator ||
+            in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
+            $project->lead_id == $user->id ||
+            $project->brand_manager_id == $user->id ||
+            $project->approver_id == $user->id
+        );
 
-        if (!$isSuperAdmin && !$isCreator) {
+        if (!$canManage) {
             return response()->json([
                 'success' => false, 
-                'message' => 'Only the person who created this deliverable or a Super Admin can make changes to it.'
+                'message' => 'You do not have permission to modify this deliverable.'
             ], 403);
         }
 

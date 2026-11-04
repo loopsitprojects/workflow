@@ -491,7 +491,33 @@ function toggleCardEditor(taskId, open) {
 function handleCardAssigneeChange(taskId) {
     const sel = document.getElementById('card-input-writer-' + taskId);
     const reasonRow = document.getElementById('card-reassign-reason-row-' + taskId);
-    if (!sel || !reasonRow) return;
+    if (!sel) return;
+
+    // Synchronize editor header badge immediately with selected assignee
+    const editorBadge = document.getElementById('card-editor-assignee-badge-' + taskId);
+    if (editorBadge) {
+        const selectedOption = sel.options[sel.selectedIndex];
+        const hasAssignee = Boolean(sel.value);
+        let name = 'Unassigned';
+        if (hasAssignee && selectedOption) {
+            name = selectedOption.text.split('(')[0].trim();
+        }
+        const span = editorBadge.querySelector('span') || editorBadge;
+        span.textContent = name;
+        if (hasAssignee) {
+            editorBadge.style.color = '#3b82f6';
+            editorBadge.style.background = 'rgba(59,130,246,0.1)';
+            editorBadge.style.border = '1px solid rgba(59,130,246,0.2)';
+            editorBadge.title = 'Assigned to ' + name;
+        } else {
+            editorBadge.style.color = 'var(--text-card-sub)';
+            editorBadge.style.background = 'var(--bg-column)';
+            editorBadge.style.border = '1px solid var(--border-card)';
+            editorBadge.title = 'No assignee';
+        }
+    }
+
+    if (!reasonRow) return;
     const orig = sel.getAttribute('data-original-writer-id');
     if (orig && sel.value && String(sel.value) !== String(orig)) {
         reasonRow.style.display = 'flex';
@@ -524,6 +550,7 @@ async function submitInlineCardEdit(event, taskId) {
     const postType = postTypeSelect ? postTypeSelect.value : '';
     const writerId = writerSelect && writerSelect.value ? writerSelect.value : '';
     const origWriterId = writerSelect ? writerSelect.getAttribute('data-original-writer-id') : '';
+    const reasonRow = document.getElementById('card-reassign-reason-row-' + taskId);
     const reasonInput = document.getElementById('card-input-reassign-reason-' + taskId);
     let reassignReason = reasonInput ? reasonInput.value.trim() : '';
 
@@ -535,17 +562,6 @@ async function submitInlineCardEdit(event, taskId) {
     const approverId = approverSelect && approverSelect.value ? approverSelect.value : '';
     const deadline = deadlineInput && deadlineInput.value ? deadlineInput.value : '';
     const priority = prioritySelect ? prioritySelect.value : 'Medium';
-
-    if (deadline && deadlineInput && deadline !== deadlineInput.defaultValue) {
-        const selDate = new Date(deadline + 'T00:00:00');
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (selDate < today) {
-            alert('Due date cannot be before today.');
-            if (deadlineInput) deadlineInput.focus();
-            return;
-        }
-    }
 
     const saveBtn = document.getElementById('card-btn-save-' + taskId);
     if (saveBtn) {
@@ -668,23 +684,31 @@ function updateCardViewElements(taskId, d) {
         prioFlag.title = d.priority || 'Medium';
     }
 
-    const assigneeBadge = document.getElementById('card-view-assignee-badge-' + taskId);
-    if (assigneeBadge) {
-        const hasAssignee = d.assignee_name && d.assignee_name !== 'Unassigned';
-        const name = hasAssignee ? d.assignee_name : 'Unassigned';
-        const span = assigneeBadge.querySelector('span') || assigneeBadge;
-        span.textContent = name;
-        if (hasAssignee) {
-            assigneeBadge.style.color = '#3b82f6';
-            assigneeBadge.style.background = 'rgba(59,130,246,0.1)';
-            assigneeBadge.style.border = '1px solid rgba(59,130,246,0.2)';
-            assigneeBadge.title = 'Assigned to ' + name;
-        } else {
-            assigneeBadge.style.color = 'var(--color-text-secondary)';
-            assigneeBadge.style.background = 'var(--color-bg-secondary)';
-            assigneeBadge.style.border = '1px solid var(--color-border-primary)';
-            assigneeBadge.title = 'No assignee';
+    const hasAssignee = d.assignee_name && d.assignee_name !== 'Unassigned';
+    const name = hasAssignee ? d.assignee_name : 'Unassigned';
+
+    ['card-view-assignee-badge-', 'card-editor-assignee-badge-', 'card-readonly-assignee-badge-'].forEach(prefix => {
+        const badge = document.getElementById(prefix + taskId);
+        if (badge) {
+            const span = badge.querySelector('span') || badge;
+            span.textContent = name;
+            if (hasAssignee) {
+                badge.style.color = '#3b82f6';
+                badge.style.background = 'rgba(59,130,246,0.1)';
+                badge.style.border = '1px solid rgba(59,130,246,0.2)';
+                badge.title = 'Assigned to ' + name;
+            } else {
+                badge.style.color = 'var(--color-text-secondary)';
+                badge.style.background = 'var(--color-bg-secondary)';
+                badge.style.border = '1px solid var(--color-border-primary)';
+                badge.title = 'No assignee';
+            }
         }
+    });
+
+    const readonlyAssigneeName = document.getElementById('card-readonly-assignee-name-' + taskId);
+    if (readonlyAssigneeName) {
+        readonlyAssigneeName.textContent = name;
     }
 
     const stageBadge = document.getElementById('card-view-stage-' + taskId);

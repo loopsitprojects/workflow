@@ -236,7 +236,7 @@
                         <span>REV: <span id="card-editor-revision-num-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span></span>
                     </span>
                 </div>
-                <span style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? '#3b82f6' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <span id="card-editor-assignee-badge-{{ $task->id }}" style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? '#3b82f6' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     {{ $assigneeDisplay }}
                 </span>
             </div>
@@ -515,7 +515,7 @@
                         <span>Rev: <span id="card-readonly-revision-num-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span></span>
                     </span>
                 </div>
-                <span style="font-size: 10px; font-weight: 700; color: {{ $hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--color-bg-secondary)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--color-border-primary)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <span id="card-readonly-assignee-badge-{{ $task->id }}" style="font-size: 10px; font-weight: 700; color: {{ $hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--color-bg-secondary)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--color-border-primary)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     {{ $assigneeDisplay }}
                 </span>
             </div>
@@ -557,7 +557,7 @@
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                         <span>Assignee</span>
                     </span>
-                    <span style="font-weight: 600; color: var(--color-text-primary);">
+                    <span id="card-readonly-assignee-name-{{ $task->id }}" style="font-weight: 600; color: var(--color-text-primary);">
                         {{ $assigneeDisplay }}
                     </span>
                 </div>
