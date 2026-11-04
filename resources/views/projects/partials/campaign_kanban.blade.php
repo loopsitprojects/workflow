@@ -780,12 +780,18 @@ async function quickUploadCardFile(event, taskId) {
 
     const files = Array.from(input.files);
     const card = document.getElementById('kanban-card-' + taskId);
-    const label = document.getElementById('card-upload-label-' + taskId);
-    const origLabel = label ? label.innerHTML : 'Upload Work (Image or File)';
+    
+    // Find all upload labels on this card (view badge, read-only badge, or "Add" button)
+    const labels = [
+        document.getElementById('card-upload-label-' + taskId),
+        document.getElementById('card-view-upload-label-' + taskId),
+        ...(card ? Array.from(card.querySelectorAll('.card-add-file-label-' + taskId)) : [])
+    ].filter(Boolean);
 
-    if (label) {
-        label.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25;"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity:0.75;"></path></svg> Uploading...</span>`;
-    }
+    const origLabels = labels.map(l => ({ el: l, html: l.innerHTML }));
+    labels.forEach(l => {
+        l.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#2563eb;"><svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25;"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity:0.75;"></path></svg> Uploading…</span>`;
+    });
 
     const fd = new FormData();
     fd.append('action', 'save_only');
@@ -793,35 +799,80 @@ async function quickUploadCardFile(event, taskId) {
     if (files.length === 1) fd.append('final_designs_file', files[0]);
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    const fileNames = files.map(f => f.name).join(', ');
+
+    if (window.showHighlightedUpload) {
+        window.showHighlightedUpload({
+            title: 'Uploading Deliverable Work…',
+            filename: fileNames,
+            type: 'artwork',
+            percent: 15,
+            status: 'Uploading file to server…'
+        });
+    }
+
+    const restoreLabels = () => {
+        origLabels.forEach(item => { item.el.innerHTML = item.html; });
+    };
 
     try {
-        const res = await fetch(`/deliverables/${taskId}/submit`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken || '',
-                'Accept': 'application/json'
-            },
-            body: fd
+        const data = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/deliverables/${taskId}/submit`);
+            xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken || '');
+            xhr.setRequestHeader('Accept', 'application/json');
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable && window.updateHighlightedUpload) {
+                    const pct = Math.round((e.loaded / e.total) * 92);
+                    window.updateHighlightedUpload(pct, `Uploading ${files.length > 1 ? files.length + ' files' : ''} (${pct}%)…`);
+                }
+            };
+
+            xhr.onload = function() {
+                try {
+                    const res = JSON.parse(xhr.responseText || '{}');
+                    if (xhr.status >= 200 && xhr.status < 300 && res.success) {
+                        if (window.updateHighlightedUpload) {
+                            window.updateHighlightedUpload(100, 'Processing upload…');
+                        }
+                        setTimeout(() => {
+                            if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                            resolve(res);
+                        }, 250);
+                    } else {
+                        if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                        reject(new Error(res.message || 'Upload failed with status ' + xhr.status));
+                    }
+                } catch(e) {
+                    if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                    reject(e);
+                }
+            };
+
+            xhr.onerror = function() {
+                if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                reject(new Error('Network error uploading file.'));
+            };
+
+            xhr.send(fd);
         });
 
-        const data = await res.json();
-        if (data.success && data.deliverable) {
-            if (card) {
-                card.setAttribute('data-has-file', 'true');
-            }
-            if (window.projectDeliverables && window.projectDeliverables[taskId]) {
-                window.projectDeliverables[taskId] = data.deliverable || window.projectDeliverables[taskId];
-            }
-            window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Deliverable file(s) uploaded successfully!', type: 'success' } }));
-            updateCardArtworkUI(taskId, data.deliverable);
-        } else {
-            if (label) label.innerHTML = origLabel;
-            window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message || 'Failed to upload file.', type: 'error' } }));
+        if (card) {
+            card.setAttribute('data-has-file', 'true');
         }
+        if (window.projectDeliverables && window.projectDeliverables[taskId]) {
+            window.projectDeliverables[taskId] = data.deliverable || window.projectDeliverables[taskId];
+        }
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Deliverable file(s) uploaded successfully!', type: 'success' } }));
+        updateCardArtworkUI(taskId, data.deliverable);
     } catch (err) {
         console.error('Quick file upload error:', err);
-        if (label) label.innerHTML = origLabel;
-        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Network error uploading file.', type: 'error' } }));
+        restoreLabels();
+        if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+        window.dispatchEvent(new CustomEvent('toast', { detail: { message: err.message || 'Failed to upload file.', type: 'error' } }));
+    } finally {
+        input.value = '';
     }
 }
 
@@ -1509,7 +1560,12 @@ async function confirmUploadDeliverable() {
     const submitBtn = document.getElementById('uploadDeliverableModalSubmitBtn');
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = 'Uploading file & submitting…';
+        submitBtn.innerHTML = `
+            <span style="display:inline-flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25;"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity:0.75;"></path></svg>
+                <span>Uploading file & submitting…</span>
+            </span>
+        `;
     }
 
     const fd = new FormData();
@@ -1519,26 +1575,60 @@ async function confirmUploadDeliverable() {
     if (files.length === 1) fd.append('final_designs_file', files[0]);
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    const fileNames = files.map(f => f.name).join(', ');
+
+    if (window.showHighlightedUpload) {
+        window.showHighlightedUpload({
+            title: 'Uploading Deliverable Artwork…',
+            filename: fileNames,
+            type: 'artwork',
+            percent: 15,
+            status: 'Uploading file to server…'
+        });
+    }
 
     try {
-        const res = await fetch(`/deliverables/${taskId}/submit`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken || '',
-                'Accept': 'application/json'
-            },
-            body: fd
-        });
+        const data = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/deliverables/${taskId}/submit`);
+            xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken || '');
+            xhr.setRequestHeader('Accept', 'application/json');
 
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-            alert(data.message || 'Failed to upload deliverable file.');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Upload & Submit to Approval';
-            }
-            return;
-        }
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable && window.updateHighlightedUpload) {
+                    const pct = Math.round((e.loaded / e.total) * 92);
+                    window.updateHighlightedUpload(pct, `Uploading ${files.length > 1 ? files.length + ' files' : ''} (${pct}%)…`);
+                }
+            };
+
+            xhr.onload = function() {
+                try {
+                    const res = JSON.parse(xhr.responseText || '{}');
+                    if (xhr.status >= 200 && xhr.status < 300 && res.success) {
+                        if (window.updateHighlightedUpload) {
+                            window.updateHighlightedUpload(100, 'Finishing up…');
+                        }
+                        setTimeout(() => {
+                            if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                            resolve(res);
+                        }, 250);
+                    } else {
+                        if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                        reject(new Error(res.message || 'Upload failed with status ' + xhr.status));
+                    }
+                } catch(e) {
+                    if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                    reject(e);
+                }
+            };
+
+            xhr.onerror = function() {
+                if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                reject(new Error('Network error uploading file.'));
+            };
+
+            xhr.send(fd);
+        });
 
         // File uploaded! Mark card
         card.setAttribute('data-has-file', 'true');
@@ -1548,7 +1638,8 @@ async function confirmUploadDeliverable() {
         executeKanbanMove(taskId, targetStatus, oldStatus, card, { approver_id: approverId });
     } catch (err) {
         console.error('Error submitting file and moving to approval:', err);
-        alert('Network error while uploading file.');
+        if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+        alert(err.message || 'Network error while uploading file.');
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Upload & Submit to Approval';
@@ -3858,25 +3949,60 @@ async function uploadCampaignReferencesInline(taskId) {
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
-    try {
-        const res = await fetch(`/deliverables/${taskId}/submit`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken || '',
-                'Accept': 'application/json'
-            },
-            body: fd
+    if (hasFiles && window.showHighlightedUpload) {
+        window.showHighlightedUpload({
+            title: 'Uploading Reference Files…',
+            filename: Array.from(fileInput.files).map(f => f.name).join(', '),
+            type: 'reference',
+            percent: 15,
+            status: 'Uploading references to server…'
         });
+    }
 
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-            alert(data.message || 'Failed to attach references.');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<span>Upload & Attach</span>';
+    try {
+        const data = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/deliverables/${taskId}/submit`);
+            xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken || '');
+            xhr.setRequestHeader('Accept', 'application/json');
+
+            if (hasFiles) {
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable && window.updateHighlightedUpload) {
+                        const pct = Math.round((e.loaded / e.total) * 92);
+                        window.updateHighlightedUpload(pct, `Uploading references (${pct}%)…`);
+                    }
+                };
             }
-            return;
-        }
+
+            xhr.onload = function() {
+                try {
+                    const res = JSON.parse(xhr.responseText || '{}');
+                    if (xhr.status >= 200 && xhr.status < 300 && res.success) {
+                        if (hasFiles && window.updateHighlightedUpload) {
+                            window.updateHighlightedUpload(100, 'Finishing up…');
+                        }
+                        setTimeout(() => {
+                            if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                            resolve(res);
+                        }, 250);
+                    } else {
+                        if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                        reject(new Error(res.message || 'Failed to attach references.'));
+                    }
+                } catch(e) {
+                    if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                    reject(e);
+                }
+            };
+
+            xhr.onerror = function() {
+                if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+                reject(new Error('Network error while uploading references.'));
+            };
+
+            xhr.send(fd);
+        });
 
         // Refresh task from server to get parsed reference URLs & S3 files
         const freshRes = await fetch(`/deliverables/${taskId}`, {
@@ -3894,7 +4020,8 @@ async function uploadCampaignReferencesInline(taskId) {
         window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'References attached successfully', type: 'success' } }));
     } catch (err) {
         console.error('Error attaching references:', err);
-        alert('Network error while uploading references.');
+        if (window.hideHighlightedUpload) window.hideHighlightedUpload();
+        alert(err.message || 'Network error while uploading references.');
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<span>Upload & Attach</span>';
