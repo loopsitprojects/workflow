@@ -290,14 +290,15 @@
         .btn-view-quick:hover { background: #0ea5e9; color: white; }
         /* History accordion */
         .hist-box { padding-top:0 !important; }
-        .hist-toggle { width:100%; display:flex; justify-content:space-between; align-items:center; padding:12px 0; background:none; border:none; cursor:pointer; text-align:left; gap:8px; }
-        .hist-chevron { color:var(--color-text-secondary); transition:transform 0.2s; flex-shrink:0; }
+        .hist-toggle { width:100%; display:flex; justify-content:space-between; align-items:center; padding:12px 0; background:none; border:none; cursor:pointer; text-align:left; gap:12px; line-height:1; }
+        .hist-chevron { color:var(--color-text-secondary); transition:transform 0.25s ease; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; }
         .hist-toggle:hover .hist-chevron { color:var(--color-text-primary); }
         .hist-toggle.open .hist-chevron { transform:rotate(180deg); }
-        .hist-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:20px; font-size:10px; font-weight:700; }
-        .hist-count-green { background:rgba(16,185,129,0.1); color:#10b981; }
-        .hist-count-red   { background:rgba(239,68,68,0.1);   color:#ef4444; }
+        .hist-count { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:9999px; font-size:10px; font-weight:800; line-height:1; text-align:center; box-sizing:border-box; }
+        .hist-count-green { background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); }
+        .hist-count-red   { background:rgba(239,68,68,0.15);   color:#ef4444; border:1px solid rgba(239,68,68,0.3); }
         .hist-body { padding-bottom:8px; }
+        .revision-history-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; align-items:stretch; width:100%; box-sizing:border-box; margin-top:14px; }
 
         /* Compact read-only text cell — click to expand */
         .cell-text {
@@ -1224,15 +1225,15 @@
                         </div>
 
                         <div class="detail-item full hist-box dd-card-section" id="modalHistoryBox" style="display:none;">
-                            <button class="hist-toggle" onclick="toggleHistory('modalRevisionHistory', this)">
-                                <span style="display:flex; align-items:center; gap:8px; flex:1;">
+                            <button class="hist-toggle" onclick="toggleHistory('modalRevisionHistory', this)" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:12px 0;">
+                                <span style="display:inline-flex; align-items:center; gap:8px;">
                                     <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>
-                                    <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#ef4444;">Revision History</span>
+                                    <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;line-height:1;">Revision History</span>
                                     <span id="modalRevisionsCount" class="hist-count hist-count-red"></span>
                                 </span>
-                                <svg class="hist-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                                <svg class="hist-chevron" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                             </button>
-                            <div id="modalRevisionHistory" class="hist-body" style="display:none; flex-wrap:wrap; flex-direction:row; gap:12px; align-items:stretch;"></div>
+                            <div id="modalRevisionHistory" class="hist-body revision-history-grid" style="display:none;"></div>
                         </div>
 
                         <div class="detail-item full hist-box dd-card-section" id="modalReassignmentHistoryBox" style="display:none;">
@@ -1903,7 +1904,11 @@
         function toggleHistory(contentId, btn) {
             const content = document.getElementById(contentId);
             const isOpen = content.style.display !== 'none';
-            content.style.display = isOpen ? 'none' : 'flex';
+            if (content.classList.contains('revision-history-grid')) {
+                content.style.display = isOpen ? 'none' : 'grid';
+            } else {
+                content.style.display = isOpen ? 'none' : 'flex';
+            }
             btn.classList.toggle('open', !isOpen);
         }
 
@@ -3438,7 +3443,8 @@
                     task.revisions_history.forEach((rev, rIdx) => {
                         const dateStr = new Date(rev.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
                         const row = document.createElement('div');
-                        row.style.cssText = 'display:flex; flex-direction:column; gap:8px; background:rgba(239, 68, 68, 0.05); padding:12px; border-radius:12px; border:1px solid rgba(239, 68, 68, 0.1); flex: 1 1 calc(25% - 12px); min-width: 240px; box-sizing: border-box;';
+                        row.className = 'revision-card';
+                        row.style.cssText = 'display:flex; flex-direction:column; justify-content:space-between; background:rgba(239, 68, 68, 0.04); padding:16px; border-radius:14px; border:1px solid rgba(239, 68, 68, 0.18); min-width:0; box-sizing:border-box; transition:all 0.2s ease;';
                         const revLabel = `R${task.revisions_history.length - rIdx}`;
                         
                         let fixedBadge = '';
@@ -3456,10 +3462,10 @@
                             let noteHtml = '';
                             if (matchingApproval && matchingApproval.notes) {
                                 noteHtml = `
-                                    <div style="margin-top: 8px; padding: 10px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 8px; font-size: 12px; color: var(--color-text-primary); line-height: 1.4;">
-                                        <div style="font-weight: 800; font-size: 9px; color: #10b981; text-transform: uppercase; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
-                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                            What was changed:
+                                    <div style="margin-top:8px; padding:10px 12px; background:rgba(6, 78, 59, 0.35); border:1px solid rgba(16, 185, 129, 0.3); border-radius:8px; font-size:11.5px; color:#ECFDF5; line-height:1.45; word-break:break-word;">
+                                        <div style="font-weight:800; font-size:9.5px; color:#34D399; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px; display:flex; align-items:center; gap:4px;">
+                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            WHAT WAS CHANGED:
                                         </div>
                                         <div>${matchingApproval.notes.replace(/\n/g, '<br>')}</div>
                                     </div>
@@ -3506,13 +3512,13 @@
                             const targetLabel = targetRole === 'designer' ? 'Designer' : (targetRole === 'assignee' ? 'Assignee' : 'Writer');
 
                             fixedBadge = `
-                                <div style="display:flex; flex-direction:column; margin-top:4px; padding-top:8px; border-top:1px dashed rgba(239, 68, 68, 0.2);">
-                                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                                        <div style="display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:800; color:#10b981; text-transform:uppercase; background:rgba(16, 185, 129, 0.1); padding:4px 8px; border-radius:6px;">
-                                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            Fixed by ${fixedByName || 'Unknown'} (${targetLabel})
+                                <div style="margin-top:12px; padding-top:10px; border-top:1px dashed rgba(239, 68, 68, 0.25); display:flex; flex-direction:column; gap:6px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                                        <div style="display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:800; color:#34D399; text-transform:uppercase; background:rgba(6, 78, 59, 0.5); padding:4px 10px; border-radius:6px; border:1px solid rgba(16, 185, 129, 0.4); letter-spacing:0.03em;">
+                                            <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                            FIXED BY ${fixedByName || 'UNKNOWN'} (${targetLabel.toUpperCase()})
                                         </div>
-                                        <div style="font-size:10px; color:#10b981; opacity:0.8; font-weight:600;">${fixedDate}</div>
+                                        <div style="font-size:10px; color:#6EE7B7; font-weight:600; white-space:nowrap;">${fixedDate}</div>
                                     </div>
                                     ${noteHtml}
                                 </div>`;
@@ -3532,41 +3538,46 @@
                             const targetLabel = targetRole === 'designer' ? 'Designer' : (targetRole === 'assignee' ? 'Assignee' : 'Writer');
 
                             fixedBadge = `
-                                <div style="margin-top:4px; padding-top:8px; border-top:1px dashed rgba(239, 68, 68, 0.2);">
-                                    <div style="display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:800; color:#ef4444; text-transform:uppercase; background:rgba(239, 68, 68, 0.1); padding:4px 8px; border-radius:6px;">
-                                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        Pending Fix (${targetLabel})
+                                <div style="margin-top:12px; padding-top:10px; border-top:1px dashed rgba(239, 68, 68, 0.25);">
+                                    <div style="display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:800; color:#F87171; text-transform:uppercase; background:rgba(127, 29, 29, 0.45); padding:4px 10px; border-radius:6px; border:1px solid rgba(239, 68, 68, 0.4); letter-spacing:0.03em;">
+                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        PENDING FIX (${targetLabel.toUpperCase()})
                                     </div>
                                 </div>`;
                         }
 
-                        let contentHtml = `
-                            <div style="font-size:13px; font-weight:500; color:var(--color-text-primary); line-height:1.5; padding:12px; background:var(--color-bg-primary); border-radius:10px; border:1px solid rgba(239,68,68,0.1); margin-top:8px;">
-                                ${(rev.instructions || '').replace(/\n/g, '<br>')}
-                        `;
+                        let imageHtml = '';
                         if (rev.image_path) {
-                            contentHtml += `
-                                <div style="margin-top:12px;">
-                                    <div onclick="openImagePreview('${rev.image_path}')" style="display:inline-flex; align-items:center; gap:12px; padding:6px; background:var(--color-bg-secondary); border:1px solid rgba(239,68,68,0.15); border-radius:8px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.05)'" onmouseout="this.style.background='var(--color-bg-secondary)'" title="Click to enlarge">
-                                        <img src="${rev.image_path}" alt="Revision reference" style="height:48px; width:48px; object-fit:cover; border-radius:4px; border:1px solid rgba(0,0,0,0.05);">
-                                        <div style="padding-right:8px;">
-                                            <div style="font-size:11px; font-weight:700; color:#ef4444; margin-bottom:2px;">Attached Image</div>
-                                            <div style="font-size:10px; font-weight:500; color:var(--color-text-secondary);">Click to enlarge</div>
+                            imageHtml = `
+                                <div style="margin-top:10px;">
+                                    <div onclick="openImagePreview('${rev.image_path}')" style="display:inline-flex; align-items:center; gap:10px; padding:6px 10px; background:var(--color-bg-secondary); border:1px solid rgba(239,68,68,0.2); border-radius:8px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='var(--color-bg-secondary)'" title="Click to enlarge">
+                                        <img src="${rev.image_path}" alt="Revision reference" style="height:44px; width:44px; object-fit:cover; border-radius:6px; border:1px solid rgba(0,0,0,0.1);">
+                                        <div>
+                                            <div style="font-size:10.5px; font-weight:800; color:#ef4444; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.03em;">Attached Image</div>
+                                            <div style="font-size:9.5px; font-weight:600; color:var(--color-text-secondary);">Click to enlarge</div>
                                         </div>
                                     </div>
                                 </div>
                             `;
                         }
-                        contentHtml += `</div>`;
+
+                        let contentHtml = `
+                            <div style="flex:1; min-height:60px; font-size:12.5px; font-weight:500; color:#F8FAFC; line-height:1.55; padding:12px 14px; background:var(--color-bg-primary); border-radius:10px; border:1px solid rgba(239,68,68,0.16); word-break:break-word; overflow-wrap:anywhere; box-sizing:border-box;">
+                                ${(rev.instructions || '').replace(/\n/g, '<br>')}
+                                ${imageHtml}
+                            </div>
+                        `;
 
                         let revDeadHtml = '';
                         if (rev.revision_deadline) {
                             const revDeadDate = new Date(rev.revision_deadline);
                             const revDeadStr = isNaN(revDeadDate.getTime()) ? rev.revision_deadline : revDeadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                             revDeadHtml = `
-                                <div style="display:inline-flex; align-items:center; gap:5px; margin-top:6px; font-size:10px; font-weight:700; color:#ef4444; background:rgba(239, 68, 68, 0.08); padding:3px 8px; border-radius:6px; border:1px solid rgba(239, 68, 68, 0.2);">
-                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    Revision Deadline: ${revDeadStr}
+                                <div style="margin-top:10px; margin-bottom:2px;">
+                                    <div style="display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:800; color:#FCA5A5; background:rgba(153, 27, 27, 0.35); padding:4px 10px; border-radius:6px; border:1px solid rgba(239, 68, 68, 0.35); letter-spacing:0.02em;">
+                                        <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Revision Deadline: ${revDeadStr}
+                                    </div>
                                 </div>`;
                         }
 
@@ -3585,22 +3596,33 @@
                         const targetLabel = targetRole === 'designer' ? 'Designer' : (targetRole === 'assignee' ? 'Assignee' : 'Writer');
 
                         row.innerHTML = `
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                                <div style="font-size:11px; font-weight:800; color:#ef4444; text-transform:uppercase; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                                    <span style="display:inline-flex; align-items:center; justify-content:center; background:#ef4444; color:#fff; padding:1px 6px; border-radius:4px; font-size:9.5px; font-weight:900;">${revLabel}</span>
-                                    <span>Requested by ${rev.user ? rev.user.name : 'Unknown'}</span>
-                                    <span style="color:#ef4444; opacity:0.5;">•</span>
-                                    <span>${rev.stage_at_revision || 'Unknown Stage'}</span>
-                                    <span style="color:#ef4444; opacity:0.5;">•</span>
-                                    <span style="display:inline-flex; align-items:center; gap:3px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25); padding:1px 6px; border-radius:4px; font-size:9.5px; font-weight:800; letter-spacing:0.04em;">
-                                        FOR ${targetLabel.toUpperCase()}
-                                    </span>
+                            <div>
+                                <!-- Header Block -->
+                                <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+                                        <div style="display:inline-flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap;">
+                                            <span style="display:inline-flex; align-items:center; justify-content:center; background:#ef4444; color:#ffffff; padding:2px 8px; border-radius:6px; font-size:10px; font-weight:900; letter-spacing:0.04em; flex-shrink:0;">${revLabel}</span>
+                                            <span style="font-size:11px; font-weight:800; color:#ef4444; text-transform:uppercase; letter-spacing:0.04em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">REQUESTED BY ${rev.user ? rev.user.name : 'UNKNOWN'}</span>
+                                        </div>
+                                        <div style="font-size:10px; font-weight:600; color:var(--color-text-secondary); opacity:0.85; white-space:nowrap; flex-shrink:0; text-align:right;">${dateStr}</div>
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                        <span style="display:inline-flex; align-items:center; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#ef4444; background:rgba(239, 68, 68, 0.12); border:1px solid rgba(239, 68, 68, 0.28); padding:3px 8px; border-radius:6px;">
+                                            ${(rev.stage_at_revision || 'REVIEW STAGE').toUpperCase()}
+                                        </span>
+                                        <span style="display:inline-flex; align-items:center; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#ef4444; background:rgba(239, 68, 68, 0.16); border:1px solid rgba(239, 68, 68, 0.32); padding:3px 8px; border-radius:6px;">
+                                            FOR ${targetLabel.toUpperCase()}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div style="font-size:10px; color:#ef4444; opacity:0.8; font-weight:600; white-space:nowrap;">${dateStr}</div>
+                                <!-- Content Box -->
+                                ${contentHtml}
                             </div>
-                            ${contentHtml}
-                            ${revDeadHtml}
-                            ${fixedBadge}
+                            <!-- Footer Indicators -->
+                            <div>
+                                ${revDeadHtml}
+                                ${fixedBadge}
+                            </div>
                         `;
                         revHistory.appendChild(row);
                     });
