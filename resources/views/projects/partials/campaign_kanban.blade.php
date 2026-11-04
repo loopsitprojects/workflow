@@ -1129,6 +1129,29 @@ async function kanbanOnDrop(event, targetStatus) {
     const oldStatus = card.getAttribute('data-status');
     if (oldStatus === targetStatus) return;
 
+    const normOld = (oldStatus || '').toLowerCase().trim();
+    const normTarget = (targetStatus || '').toLowerCase().trim();
+    const isFromToDo = ['to do', 'todo'].includes(normOld);
+    const isToProgress = ['in progress', 'progress'].includes(normTarget);
+    const isTargetToDo = ['to do', 'todo'].includes(normTarget);
+    const isFromProgress = ['in progress', 'progress'].includes(normOld);
+
+    // Flow Rule 1: Deliverables in To Do can ONLY move to In Progress
+    if (isFromToDo && !isToProgress) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Deliverables in To Do can only be moved to In Progress.', type: 'error' } 
+        }));
+        return;
+    }
+
+    // Flow Rule 2: Deliverables can ONLY be moved to To Do from In Progress
+    if (isTargetToDo && !isFromProgress) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Deliverables can only be moved to To Do from In Progress.', type: 'error' } 
+        }));
+        return;
+    }
+
     // Check if target is Approval Stage
     const isTargetApproval = ['Approval Stage', 'Approval', 'Review'].includes(targetStatus);
     const currentApproverId = card.getAttribute('data-approver-id');
@@ -3344,7 +3367,169 @@ function renderCampaignDetailsModalContent(task) {
         </div>
     `;
 
-    // 4. Quick Actions Card Construction (Sidebar)
+    // 4. Workflow Stages Card Construction (Sidebar)
+    const stagesDef = [
+        {
+            key: 'todo',
+            name: 'To Do',
+            desc: 'Task Backlog & Briefing',
+            color: '#64748b',
+            accent: '#94a3b8',
+            bg: 'rgba(148, 163, 184, 0.1)',
+            border: 'rgba(148, 163, 184, 0.25)',
+        },
+        {
+            key: 'inprogress',
+            name: 'In Progress',
+            desc: 'Production & Creative Work',
+            color: '#2563eb',
+            accent: '#3b82f6',
+            bg: 'rgba(59, 130, 246, 0.1)',
+            border: 'rgba(59, 130, 246, 0.25)',
+        },
+        {
+            key: 'approval',
+            name: 'Approval Stage',
+            desc: 'Internal Review & Sign-off',
+            color: '#d97706',
+            accent: '#f59e0b',
+            bg: 'rgba(245, 158, 11, 0.1)',
+            border: 'rgba(245, 158, 11, 0.25)',
+        },
+        {
+            key: 'complete',
+            name: 'Complete',
+            desc: 'Approved & Finalized',
+            color: '#059669',
+            accent: '#10b981',
+            bg: 'rgba(16, 185, 129, 0.1)',
+            border: 'rgba(16, 185, 129, 0.25)',
+        }
+    ];
+
+    let currentStageIndex = 0;
+    if (['in progress', 'progress', 'on hold'].includes(stLower)) {
+        currentStageIndex = 1;
+    } else if (['approval stage', 'approval', 'review', 'under review'].includes(stLower)) {
+        currentStageIndex = 2;
+    } else if (['done', 'completed', 'complete'].includes(stLower)) {
+        currentStageIndex = 3;
+    } else {
+        currentStageIndex = 0;
+    }
+
+    const currentStageObj = stagesDef[currentStageIndex];
+
+    let stageStepsHtml = '';
+    stagesDef.forEach((stg, idx) => {
+        const isPast = idx < currentStageIndex;
+        const isCurrent = idx === currentStageIndex;
+        const isFuture = idx > currentStageIndex;
+
+        let stageContext = stg.desc;
+        if (isCurrent) {
+            if (stg.key === 'todo') {
+                stageContext = task.assignee_name && task.assignee_name !== 'Unassigned' 
+                    ? `Assigned to ${escapeHtml(task.assignee_name)}` 
+                    : 'Awaiting task start';
+            } else if (stg.key === 'inprogress') {
+                const revCount = Number(task.revisions) || 0;
+                stageContext = revCount > 0 
+                    ? `Under revision • Round ${revCount}` 
+                    : (task.assignee_name && task.assignee_name !== 'Unassigned' ? `Working: ${escapeHtml(task.assignee_name)}` : 'In active production');
+            } else if (stg.key === 'approval') {
+                stageContext = task.approver_name 
+                    ? `Reviewing: ${escapeHtml(task.approver_name)}` 
+                    : 'Submitted for approval';
+            } else if (stg.key === 'complete') {
+                stageContext = 'Deliverable approved & completed';
+            }
+        }
+
+        let dotHtml = '';
+        if (isPast) {
+            dotHtml = `
+                <div style="width: 24px; height: 24px; border-radius: 50%; background: #10b981; color: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 1px 3px rgba(16,185,129,0.3);">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </div>
+            `;
+        } else if (isCurrent) {
+            dotHtml = `
+                <div style="width: 24px; height: 24px; border-radius: 50%; background: ${stg.accent}; color: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; font-weight: 900; box-shadow: 0 0 0 3.5px ${stg.bg}, 0 2px 6px ${stg.bg};">
+                    ${idx + 1}
+                </div>
+            `;
+        } else {
+            dotHtml = `
+                <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--subcard-bg); border: 1.5px solid var(--card-border); color: var(--color-text-secondary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; font-weight: 700; opacity: 0.7;">
+                    ${idx + 1}
+                </div>
+            `;
+        }
+
+        const isLast = idx === stagesDef.length - 1;
+        const lineStyle = isPast 
+            ? 'background: #10b981;' 
+            : (isCurrent ? `background: linear-gradient(to bottom, ${stg.accent}, var(--card-border));` : 'background: var(--card-border);');
+
+        stageStepsHtml += `
+            <div style="display: flex; gap: 12px; position: relative;">
+                <!-- Left: Dot + Connector line -->
+                <div style="display: flex; flex-direction: column; align-items: center; width: 24px; flex-shrink: 0;">
+                    ${dotHtml}
+                    ${!isLast ? `<div style="width: 2px; flex: 1; min-height: 24px; margin: 4px 0; ${lineStyle} transition: background 0.2s;"></div>` : ''}
+                </div>
+
+                <!-- Right: Stage info & badge -->
+                <div style="flex: 1; min-width: 0; padding-bottom: ${isLast ? '0' : '14px'};">
+                    <div style="${isCurrent ? `background: ${stg.bg}; border: 1px solid ${stg.border}; padding: 7px 10px; border-radius: 8px;` : 'padding: 2px 0;'} transition: all 0.15s;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                            <span style="font-size: 12px; font-weight: ${isCurrent ? '800' : (isPast ? '700' : '600')}; color: ${isCurrent ? 'var(--color-text-primary)' : (isPast ? 'var(--color-text-primary)' : 'var(--color-text-secondary)')}; display: inline-flex; align-items: center; gap: 5px;">
+                                <span>${stg.name}</span>
+                            </span>
+                            ${isCurrent ? `
+                                <span style="font-size: 9px; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; color: ${stg.accent}; background: ${stg.bg}; border: 1px solid ${stg.border}; padding: 2px 6px; border-radius: 4px; flex-shrink: 0;">
+                                    ACTIVE
+                                </span>
+                            ` : (isPast ? `
+                                <span style="font-size: 9px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0;">
+                                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    <span>Done</span>
+                                </span>
+                            ` : '')}
+                        </div>
+                        <div style="font-size: 11px; color: ${isCurrent ? stg.accent : 'var(--color-text-secondary)'}; font-weight: ${isCurrent ? '600' : '500'}; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(stageContext)}">
+                            ${escapeHtml(stageContext)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    let stagesCardHtml = `
+        <div class="cd-detail-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--card-border);">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 24px; height: 24px; border-radius: 6px; background: rgba(59, 130, 246, 0.12); color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    </div>
+                    <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary);">
+                        Stages & Progress
+                    </span>
+                </div>
+                <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: ${currentStageObj.accent}; background: ${currentStageObj.bg}; border: 1px solid ${currentStageObj.border}; padding: 2px 7px; border-radius: 9999px;">
+                    Stage ${currentStageIndex + 1} of 4 • ${currentStageObj.name}
+                </span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; padding: 4px 2px 0 2px;">
+                ${stageStepsHtml}
+            </div>
+        </div>
+    `;
+
+    // 5. Quick Actions Card Construction (Sidebar)
     const isToDo = ['to do', 'todo'].includes(stLower);
     const isInProgress = ['in progress', 'progress'].includes(stLower);
     const isApproval = ['approval stage', 'approval', 'review', 'under review'].includes(stLower);
@@ -3357,17 +3542,22 @@ function renderCampaignDetailsModalContent(task) {
                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span>Start Task</span>
             </button>
-            <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Approval Stage')">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span>Submit for Approval</span>
-            </button>
         `;
     } else if (isInProgress) {
+        const revCount = Number(task.revisions) || 0;
+        const hasRevs = revCount > 0 || Boolean(task.revision_instructions);
+
         quickActionsHtml = `
             <button type="button" class="cd-btn-primary" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Approval Stage')">
                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span>Submit for Approval</span>
             </button>
+            ${!hasRevs ? `
+                <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'To Do')">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    <span>Move Back to To Do</span>
+                </button>
+            ` : ''}
             <button type="button" class="cd-btn-success" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Done')">
                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                 <span>Mark Complete</span>
@@ -3427,7 +3617,7 @@ function renderCampaignDetailsModalContent(task) {
         </div>
     `;
 
-    // 5. Task Details Card Construction (Sidebar)
+    // 6. Task Details Card Construction (Sidebar)
     let detailsCardHtml = `
         <div class="cd-detail-card">
             <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); padding-bottom: 10px; border-bottom: 1px solid var(--card-border);">
@@ -3527,6 +3717,7 @@ function renderCampaignDetailsModalContent(task) {
 
             <!-- Right Column: Metadata & Quick Actions Sidebar (~30%) -->
             <div style="display: flex; flex-direction: column; gap: 20px; position: sticky; top: 12px;">
+                ${stagesCardHtml}
                 ${actionsCardHtml}
                 ${detailsCardHtml}
             </div>
@@ -3718,6 +3909,29 @@ async function transitionDeliverableStatus(taskId, targetStatus) {
     const card = document.getElementById('kanban-card-' + taskId);
     const oldStatus = (card ? card.getAttribute('data-status') : null) || campaignDeliverablesData[taskId]?.status || 'To Do';
     if (oldStatus === targetStatus) return;
+
+    const normOld = (oldStatus || '').toLowerCase().trim();
+    const normTarget = (targetStatus || '').toLowerCase().trim();
+    const isFromToDo = ['to do', 'todo'].includes(normOld);
+    const isToProgress = ['in progress', 'progress'].includes(normTarget);
+    const isTargetToDo = ['to do', 'todo'].includes(normTarget);
+    const isFromProgress = ['in progress', 'progress'].includes(normOld);
+
+    // Flow Rule 1: Deliverables in To Do can ONLY move to In Progress
+    if (isFromToDo && !isToProgress) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Deliverables in To Do can only be moved to In Progress.', type: 'error' } 
+        }));
+        return;
+    }
+
+    // Flow Rule 2: Deliverables can ONLY be moved to To Do from In Progress
+    if (isTargetToDo && !isFromProgress) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Deliverables can only be moved to To Do from In Progress.', type: 'error' } 
+        }));
+        return;
+    }
 
     const isTargetApproval = ['Approval Stage', 'Approval', 'Review'].includes(targetStatus);
     const currentApproverId = card ? card.getAttribute('data-approver-id') : null;

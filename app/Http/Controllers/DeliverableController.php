@@ -2994,6 +2994,25 @@ class DeliverableController extends Controller
             ]);
         }
 
+        $oldStatusLower = strtolower(trim($oldStatus));
+        $newStatusLower = strtolower(trim($newStatus));
+
+        // Workflow Rule 1: Deliverables in To Do can ONLY move to In Progress
+        if (in_array($oldStatusLower, ['to do', 'todo']) && !in_array($newStatusLower, ['in progress', 'progress'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Deliverables in To Do can only be moved to In Progress.',
+            ], 422);
+        }
+
+        // Workflow Rule 2: Deliverables can ONLY be moved to To Do from In Progress
+        if (in_array($newStatusLower, ['to do', 'todo']) && !in_array($oldStatusLower, ['in progress', 'progress'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Deliverables can only be moved to To Do from In Progress.',
+            ], 422);
+        }
+
         $user = auth()->user();
         $isAdminOrManager = $user && ($user->isAdmin() || in_array($user->role, ['Admin', 'Owner', 'Operations Manager']));
 
