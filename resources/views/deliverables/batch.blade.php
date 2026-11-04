@@ -468,7 +468,7 @@
                         <input type="radio" name="revision_target" id="batchModalReviseDesigner" value="designer" checked style="accent-color:#ef4444;"> Designer
                     </label>
                     <label class="bv-target-opt">
-                        <input type="radio" name="revision_target" id="batchModalReviseWriter" value="writer" style="accent-color:#ef4444;"> Writer
+                        <input type="radio" name="revision_target" id="batchModalReviseWriter" value="writer" style="accent-color:#ef4444;"> Writer Review
                     </label>
                 </div>
                 <label class="pc-label" style="color:#ef4444;display:block;margin-bottom:8px;">Revision Instructions <span style="color:#ef4444;">*</span></label>

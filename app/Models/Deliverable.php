@@ -610,16 +610,7 @@ class Deliverable extends Model
         if ($user->isAdmin()) {
             return true;
         }
-        if ($this->artwork_uploaded_by && (int)$user->id === (int)$this->artwork_uploaded_by) {
-            return true;
-        }
-        // Assigned writer/assignee or designer
-        if (($this->writer_id && (int)$user->id === (int)$this->writer_id) || ($this->designer_id && (int)$user->id === (int)$this->designer_id)) {
-            return true;
-        }
-        // Deliverable creator
-        $creator = $this->effective_creator_id;
-        if ($creator && (int)$user->id === (int)$creator) {
+        if (in_array($user->role, ['Brand Manager', 'Operations Manager'])) {
             return true;
         }
         // Brand manager or project creator
@@ -630,6 +621,29 @@ class Deliverable extends Model
         if ($this->project && (int)$user->id === (int)$this->project->brand_manager_id) {
             return true;
         }
+
+        // Deliverable creator (if not a designer)
+        $creator = $this->effective_creator_id;
+        if ($creator && (int)$user->id === (int)$creator && $user->role !== 'Designer') {
+            return true;
+        }
+
+        // Designers: can ONLY remove artwork if the deliverable is currently in the Designer stage
+        $isDesignerUser = ($user->role === 'Designer') || ($this->designer_id && (int)$user->id === (int)$this->designer_id) || ($this->artwork_uploaded_by && (int)$user->id === (int)$this->artwork_uploaded_by && $user->role === 'Designer');
+        if ($isDesignerUser) {
+            return $this->approval_stage === 'Designer';
+        }
+
+        // If the user uploaded this artwork and is not a designer
+        if ($this->artwork_uploaded_by && (int)$user->id === (int)$this->artwork_uploaded_by) {
+            return true;
+        }
+
+        // Assigned writer/assignee
+        if ($this->writer_id && (int)$user->id === (int)$this->writer_id) {
+            return true;
+        }
+
         return false;
     }
 

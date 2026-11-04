@@ -1543,6 +1543,19 @@ class DeliverableController extends Controller
                 }
             }
             
+            // Enforce: Designers can only upload or modify artwork during the 'Designer' stage
+            $hasArtworkUpload = $request->has('final_designs_link') ||
+                                $request->has('final_designs_urls') ||
+                                $request->hasFile('final_designs_files') ||
+                                $request->hasFile('final_designs_file') ||
+                                ($request->has('final_designs_file') && is_string($request->final_designs_file) && !empty($request->final_designs_file));
+            $isDesignerUser = ($user->role === 'Designer') || ($deliverable->designer_id && (int)$user->id === (int)$deliverable->designer_id);
+            if ($hasArtworkUpload && $isDesignerUser && !$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Operations Manager'])) {
+                if ($deliverable->approval_stage !== 'Designer') {
+                    abort(403, 'Designers can only upload artwork during the In Design stage.');
+                }
+            }
+
             // Artwork URLs combining & index removal
             if ($request->has('delete_final_designs_url_indices')) {
                 if (!$deliverable->canUserRemoveArtwork()) {

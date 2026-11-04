@@ -608,6 +608,122 @@
         .hist-count-red   { background:rgba(239,68,68,0.15);   color:#ef4444; border:1px solid rgba(239,68,68,0.3); }
         .hist-body { padding-bottom:8px; }
         .revision-history-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; align-items:stretch; width:100%; box-sizing:border-box; margin-top:14px; }
+        .rev-comment-box {
+            flex: 1;
+            min-height: 60px;
+            font-size: 12.5px;
+            font-weight: 500;
+            line-height: 1.55;
+            padding: 12px 14px;
+            background: var(--color-bg-primary);
+            border-radius: 10px;
+            border: 1px solid rgba(239, 68, 68, 0.16);
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            box-sizing: border-box;
+            color: var(--color-text-primary);
+        }
+        .rev-badge-fixed {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: #d1fae5;
+            color: #047857;
+            border: 1px solid #6ee7b7;
+        }
+        .dark .rev-badge-fixed,
+        [data-theme="dark"] .rev-badge-fixed {
+            background: rgba(6, 78, 59, 0.6);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+        .rev-fixed-date {
+            font-size: 10px;
+            font-weight: 700;
+            white-space: nowrap;
+            color: #047857;
+        }
+        .dark .rev-fixed-date,
+        [data-theme="dark"] .rev-fixed-date {
+            color: #6ee7b7;
+        }
+        .rev-note-box {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 11.5px;
+            line-height: 1.45;
+            word-break: break-word;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+        .dark .rev-note-box,
+        [data-theme="dark"] .rev-note-box {
+            background: rgba(6, 78, 59, 0.35);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #ecfdf5;
+        }
+        .rev-note-title {
+            font-weight: 800;
+            font-size: 9.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #047857;
+        }
+        .dark .rev-note-title,
+        [data-theme="dark"] .rev-note-title {
+            color: #34d399;
+        }
+        .rev-badge-pending {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+        .dark .rev-badge-pending,
+        [data-theme="dark"] .rev-badge-pending {
+            background: rgba(127, 29, 29, 0.5);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        .rev-badge-deadline {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: #fff1f2;
+            color: #be123c;
+            border: 1px solid #fecdd3;
+        }
+        .dark .rev-badge-deadline,
+        [data-theme="dark"] .rev-badge-deadline {
+            background: rgba(153, 27, 27, 0.35);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
 
         /* Compact read-only text cell — click to expand */
         .cell-text {
@@ -2428,8 +2544,8 @@
                                     Designer
                                 </label>
                                 <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-primary);">
-                                    <input type="radio" name="modal_revision_target_radio" value="writer" id="modalReviseTargetWriter" style="accent-color:#ef4444;" onchange="document.getElementById('modalRevisionTarget').value=this.value; document.getElementById('modalRevisionTargetNote').textContent='The task will be sent back to the Writer.'">
-                                    Writer
+                                    <input type="radio" name="modal_revision_target_radio" value="writer" id="modalReviseTargetWriter" style="accent-color:#ef4444;" onchange="document.getElementById('modalRevisionTarget').value=this.value; document.getElementById('modalRevisionTargetNote').textContent='The task will be sent to the Writer Review stage.'">
+                                    Writer Review
                                 </label>
                             </div>
                         </div>
@@ -4055,8 +4171,8 @@
                             let noteHtml = '';
                             if (matchingApproval && matchingApproval.notes) {
                                 noteHtml = `
-                                    <div style="margin-top:8px; padding:10px 12px; background:rgba(6, 78, 59, 0.35); border:1px solid rgba(16, 185, 129, 0.3); border-radius:8px; font-size:11.5px; color:#ECFDF5; line-height:1.45; word-break:break-word;">
-                                        <div style="font-weight:800; font-size:9.5px; color:#34D399; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px; display:flex; align-items:center; gap:4px;">
+                                    <div class="rev-note-box">
+                                        <div class="rev-note-title">
                                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                             WHAT WAS CHANGED:
                                         </div>
@@ -4107,11 +4223,11 @@
                             fixedBadge = `
                                 <div style="margin-top:12px; padding-top:10px; border-top:1px dashed rgba(239, 68, 68, 0.25); display:flex; flex-direction:column; gap:6px;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-                                        <div style="display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:800; color:#34D399; text-transform:uppercase; background:rgba(6, 78, 59, 0.5); padding:4px 10px; border-radius:6px; border:1px solid rgba(16, 185, 129, 0.4); letter-spacing:0.03em;">
+                                        <div class="rev-badge-fixed">
                                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                             FIXED BY ${fixedByName || 'UNKNOWN'} (${targetLabel.toUpperCase()})
                                         </div>
-                                        <div style="font-size:10px; color:#6EE7B7; font-weight:600; white-space:nowrap;">${fixedDate}</div>
+                                        <div class="rev-fixed-date">${fixedDate}</div>
                                     </div>
                                     ${noteHtml}
                                 </div>`;
@@ -4132,7 +4248,7 @@
 
                             fixedBadge = `
                                 <div style="margin-top:12px; padding-top:10px; border-top:1px dashed rgba(239, 68, 68, 0.25);">
-                                    <div style="display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:800; color:#F87171; text-transform:uppercase; background:rgba(127, 29, 29, 0.45); padding:4px 10px; border-radius:6px; border:1px solid rgba(239, 68, 68, 0.4); letter-spacing:0.03em;">
+                                    <div class="rev-badge-pending">
                                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                         PENDING FIX (${targetLabel.toUpperCase()})
                                     </div>
@@ -4155,7 +4271,7 @@
                         }
 
                         let contentHtml = `
-                            <div style="flex:1; min-height:60px; font-size:12.5px; font-weight:500; color:#F8FAFC; line-height:1.55; padding:12px 14px; background:var(--color-bg-primary); border-radius:10px; border:1px solid rgba(239,68,68,0.16); word-break:break-word; overflow-wrap:anywhere; box-sizing:border-box;">
+                            <div class="rev-comment-box">
                                 ${(rev.instructions || '').replace(/\n/g, '<br>')}
                                 ${imageHtml}
                             </div>
@@ -4167,7 +4283,7 @@
                             const revDeadStr = isNaN(revDeadDate.getTime()) ? rev.revision_deadline : revDeadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                             revDeadHtml = `
                                 <div style="margin-top:10px; margin-bottom:2px;">
-                                    <div style="display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:800; color:#FCA5A5; background:rgba(153, 27, 27, 0.35); padding:4px 10px; border-radius:6px; border:1px solid rgba(239, 68, 68, 0.35); letter-spacing:0.02em;">
+                                    <div class="rev-badge-deadline">
                                         <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                         Revision Deadline: ${revDeadStr}
                                     </div>
@@ -5293,7 +5409,7 @@
                             </label>
                             <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--color-text-primary);">
                                 <input type="radio" name="revision_target_radio" value="writer" id="reviseTargetWriter" style="accent-color:#ef4444;">
-                                Writer
+                                Writer Review
                             </label>
                         </div>
                     </div>
@@ -6835,11 +6951,11 @@
             <img id="imagePreviewSrc" src="" style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 12px; border: 4px solid var(--color-bg-primary); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
             <video id="videoPreviewSrc" src="" controls style="display:none; max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 12px; border: 4px solid var(--color-bg-primary); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);"></video>
             <div style="margin-top: 12px; display: flex; gap: 12px; justify-content: center; align-items: center;">
-                <a id="imagePreviewDownload" href="" download target="_blank" class="cd-btn cd-btn-primary" style="padding: 10px 24px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; box-shadow: 0 10px 20px rgba(0, 85, 212, 0.2);" onclick="downloadMedia(event, this.href)">
+                <a id="imagePreviewDownload" href="" download target="_blank" class="cd-btn cd-btn-primary" style="padding: 10px 24px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; justify-content: center; height: 40px; box-sizing: border-box; text-decoration: none; border-radius: 8px; box-shadow: 0 10px 20px rgba(0, 85, 212, 0.25); transition: all 0.2s;" onclick="downloadMedia(event, this.href)" onmouseover="this.style.background='#0044aa'; this.style.transform='translateY(-1px)';" onmouseout="this.style.background='#0055D4'; this.style.transform='none';">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                     Download Original
                 </a>
-                <button type="button" id="imagePreviewRemoveBtn" class="cd-btn cd-btn-outline" style="color:#ef4444; border-color:#fee2e2; padding: 10px 24px; font-size: 13px; font-weight: 700; display: none; align-items: center; gap: 8px; justify-content: center; background: rgba(239, 68, 68, 0.1); backdrop-filter: blur(4px);">
+                <button type="button" id="imagePreviewRemoveBtn" class="cd-btn" style="padding: 10px 24px; font-size: 13px; font-weight: 700; display: none; align-items: center; gap: 8px; justify-content: center; height: 40px; box-sizing: border-box; background: #ef4444; color: #ffffff; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 10px 20px rgba(239, 68, 68, 0.25); transition: all 0.2s;" onmouseover="this.style.background='#dc2626'; this.style.transform='translateY(-1px)';" onmouseout="this.style.background='#ef4444'; this.style.transform='none';">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     Remove Artwork
                 </button>
