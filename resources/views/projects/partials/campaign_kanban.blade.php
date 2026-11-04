@@ -1890,18 +1890,11 @@ function insertCreatedCardIntoColumn(colKey, d) {
 
         referencesHtml = `
             <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <div style="display: flex; align-items: center; margin-bottom: 6px;">
                     <span style="font-size: 10.5px; font-weight: 700; color: #0284c7; display: inline-flex; align-items: center; gap: 4px;">
                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                         <span>References (${totalRefs})</span>
                     </span>
-                    <button type="button" 
-                            onclick="event.stopPropagation(); toggleCardEditor(${d.id}, false); openCampaignDetailsModal(${d.id})" 
-                            style="font-size: 10px; font-weight: 700; color: #0284c7; background: rgba(2, 132, 199, 0.1); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 4px; padding: 2px 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;"
-                            title="Open full references gallery">
-                        <span>View All (${totalRefs})</span>
-                        <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                    </button>
                 </div>
                 <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin;">
                     ${refItemsHtml}
