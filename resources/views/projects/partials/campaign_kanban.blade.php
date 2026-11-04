@@ -1022,8 +1022,8 @@ function updateCardArtworkUI(taskId, d) {
                     <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                     <span>Uploaded Work (${files.length})</span>
                 </span>
-                ${canUpload ? `
-                <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
+                ${(canUpload && !isToDo) ? `
+                <label class="card-add-file-label card-add-file-label-${taskId}" style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                     <span>Add</span>
                     <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
@@ -1034,25 +1034,37 @@ function updateCardArtworkUI(taskId, d) {
                 ${itemsHtml}
             </div>
         `;
+        uploadBox.style.display = 'block';
     } else {
-        if (canUpload) {
-            uploadBox.innerHTML = `
-                <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
-                       onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
-                       onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
-                       onclick="event.stopPropagation()">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                    <span id="card-upload-label-${taskId}">Upload Work (Image or File)</span>
-                    <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
-                </label>
-            `;
+        if (isToDo) {
+            uploadBox.style.display = 'none';
         } else {
-            uploadBox.innerHTML = `
-                <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
-                    Waiting for assignee to upload deliverable work
-                </div>
-            `;
+            uploadBox.style.display = 'block';
+            if (canUpload) {
+                uploadBox.innerHTML = `
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
+                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                           onclick="event.stopPropagation()">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span id="card-upload-label-${taskId}">Upload Work (Image or File)</span>
+                        <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
+                    </label>
+                `;
+            } else {
+                uploadBox.innerHTML = `
+                    <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
+                        Waiting for assignee to upload deliverable work
+                    </div>
+                `;
+            }
         }
+    }
+
+    const viewUploadBox = document.getElementById('card-view-upload-box-' + taskId);
+    if (viewUploadBox) {
+        viewUploadBox.innerHTML = uploadBox.innerHTML;
+        viewUploadBox.style.display = uploadBox.style.display;
     }
 }
 
@@ -1235,6 +1247,21 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
     if (approverEditorRow) {
         approverEditorRow.style.display = isNowToDo ? 'none' : 'flex';
     }
+
+    // Toggle upload work visibility: hidden in To Do stage, visible once moved to In Progress or later
+    const hasFiles = card.getAttribute('data-has-file') === 'true';
+    const uploadBoxes = card.querySelectorAll('.card-upload-box-' + taskId + ', #card-upload-box-' + taskId + ', #card-view-upload-box-' + taskId);
+    uploadBoxes.forEach(ub => {
+        if (isNowToDo && !hasFiles) {
+            ub.style.display = 'none';
+        } else {
+            ub.style.display = 'block';
+        }
+    });
+    const addFileLabels = card.querySelectorAll('.card-add-file-label-' + taskId);
+    addFileLabels.forEach(lbl => {
+        lbl.style.display = isNowToDo ? 'none' : 'inline-flex';
+    });
 
     // Update status border accent
     updateCardStatusUI(card, targetStatus);
@@ -1931,14 +1958,14 @@ function insertCreatedCardIntoColumn(colKey, d) {
             });
 
             uploadedWorkHtml = `
-                <div id="card-upload-box-${d.id}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                <div id="card-upload-box-${d.id}" class="card-upload-box card-upload-box-${d.id}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
                         <span style="font-size: 10.5px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 4px;">
                             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             <span>Uploaded Work (${cardFiles.length})</span>
                         </span>
-                        ${canUploadArtwork ? `
-                        <label style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
+                        ${(canUploadArtwork && !isColToDo) ? `
+                        <label class="card-add-file-label card-add-file-label-${d.id}" style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                             <span>Add</span>
                             <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${d.id})">
@@ -1952,7 +1979,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
             `;
         } else if (canUploadArtwork) {
             uploadedWorkHtml = `
-                <div id="card-upload-box-${d.id}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                <div id="card-upload-box-${d.id}" class="card-upload-box card-upload-box-${d.id}" style="display: ${isColToDo ? 'none' : 'block'}; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
                     <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
                            onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
                            onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
@@ -1965,7 +1992,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
             `;
         } else if (!isColToDo) {
             uploadedWorkHtml = `
-                <div id="card-upload-box-${d.id}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
+                <div id="card-upload-box-${d.id}" class="card-upload-box card-upload-box-${d.id}" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
                     <div style="font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); text-align: center;">
                         Waiting for assignee to upload deliverable work
                     </div>

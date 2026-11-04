@@ -1550,7 +1550,7 @@ class DeliverableController extends Controller
                                 $request->hasFile('final_designs_file') ||
                                 ($request->has('final_designs_file') && is_string($request->final_designs_file) && !empty($request->final_designs_file));
             $isDesignerUser = ($user->role === 'Designer') || ($deliverable->designer_id && (int)$user->id === (int)$deliverable->designer_id);
-            if ($hasArtworkUpload && $isDesignerUser && !$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Operations Manager'])) {
+            if ($deliverable->workflow_type === 'retainer' && $hasArtworkUpload && $isDesignerUser && !$user->isAdmin() && !in_array($user->role, ['Brand Manager', 'Operations Manager'])) {
                 if ($deliverable->approval_stage !== 'Designer') {
                     abort(403, 'Designers can only upload artwork during the In Design stage.');
                 }

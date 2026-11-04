@@ -4201,10 +4201,11 @@
                             if (sel) sel.disabled = false;
                         }
                     }
+                    const isTaskInProgress = (task.status === 'In Progress');
                     const canShowArtworkUpload = (isDirectDesign || task.is_direct_design)
                         ? (stage === 'Designer')
                         : (isOtherDeliverable
-                            ? (isOtherAssignStage && isOtherAssignedPerson)
+                            ? (isTaskInProgress && isOtherAssignStage && isOtherAssignedPerson)
                             : (stage === 'Designer'));
                     if (canShowArtworkUpload && delArea) {
                         delArea.style.display = 'block';
