@@ -228,14 +228,23 @@ test('Scenario 5: In Approval Stage, assignee cannot self-approve or request rev
     expect((int)$fresh->revisions)->toBe(1);
     expect($fresh->revision_instructions)->toBe('Tone needs to be more punchy in paragraph 2');
 
-    // Check revision history record created
+    // Check revision history record created and initially awaiting updates (fixed_at is null)
     $revRecord = DeliverableRevision::where('deliverable_id', $deliverable->id)->first();
     expect($revRecord)->not->toBeNull();
     expect($revRecord->instructions)->toBe('Tone needs to be more punchy in paragraph 2');
+    expect($revRecord->fixed_at)->toBeNull();
 
-    // 5e. Move back to Approval Stage
-    Deliverable::where('id', $deliverable->id)->update(['status' => 'Approval Stage']);
-    $deliverable = $deliverable->fresh();
+    // 5e. Writer completes revision and submits back to Approval Stage
+    $resWriterResubmit = $this->actingAs($this->writer)->json('POST', route('deliverables.update-kanban-status', $deliverable), [
+        'status' => 'Approval Stage',
+    ]);
+    expect($resWriterResubmit->status())->toBe(200);
+    expect($deliverable->fresh()->status)->toBe('Approval Stage');
+    
+    // Verify revision record is now marked as resolved/submitted with timestamp and submitter
+    $revRecordFresh = $revRecord->fresh();
+    expect($revRecordFresh->fixed_at)->not->toBeNull();
+    expect($revRecordFresh->fixed_by_user_id)->toBe($this->writer->id);
 
     // 5f. Designated Approver approves -> Moves to Done
     $resApproverApprove = $this->actingAs($this->approver)->json('POST', route('deliverables.update-kanban-status', $deliverable), [

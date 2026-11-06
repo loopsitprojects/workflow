@@ -330,6 +330,35 @@ const campaignDeliverablesData = {};
         }
     }
     $tRevsList = $t->revisionsHistory->map(function($r, $idx) use ($t) {
+        $fixedAtFormatted = null;
+        $fixedByName = $r->fixedByUser?->name ?? null;
+        if (!empty($r->fixed_at)) {
+            try {
+                $fixedAtFormatted = \Carbon\Carbon::parse($r->fixed_at)->format('d M, Y h:i A');
+            } catch (\Throwable $e) {
+                $fixedAtFormatted = (string)$r->fixed_at;
+            }
+        } else {
+            // Check if there is an approval submission recorded after this revision was created
+            $matchingApproval = $t->approvalsHistory
+                ->filter(function($a) use ($r) {
+                    return $r->created_at && $a->created_at && $a->created_at >= $r->created_at;
+                })
+                ->sortBy('created_at')
+                ->first();
+            if ($matchingApproval) {
+                $fixedAtFormatted = $matchingApproval->created_at ? $matchingApproval->created_at->format('d M, Y h:i A') : null;
+                if (!$fixedByName) {
+                    $fixedByName = $matchingApproval->user?->name;
+                }
+            } elseif (in_array(strtolower($t->status ?? ''), ['approval stage', 'approval', 'review', 'done', 'completed', 'complete'])) {
+                $fixedAtFormatted = $t->updated_at ? $t->updated_at->format('d M, Y h:i A') : null;
+                if (!$fixedByName) {
+                    $fixedByName = $t->writer?->name ?? $t->assignee_name;
+                }
+            }
+        }
+
         return [
             'round' => (int)($r->round ?? ($t->revisionsHistory->count() - $idx)),
             'user_name' => $r->user?->name ?? 'Approver',
@@ -339,8 +368,8 @@ const campaignDeliverablesData = {};
             'revision_deadline' => $r->revision_deadline ? \Carbon\Carbon::parse($r->revision_deadline)->format('d M, Y') : null,
             'date' => $r->created_at ? $r->created_at->format('d M, Y h:i A') : '',
             'created_at' => $r->created_at?->toISOString(),
-            'fixed_at' => $r->fixed_at ? \Carbon\Carbon::parse($r->fixed_at)->format('d M, Y h:i A') : null,
-            'fixed_by_user_name' => $r->fixedByUser?->name ?? null,
+            'fixed_at' => $fixedAtFormatted,
+            'fixed_by_user_name' => $fixedByName,
         ];
     })->values();
 
@@ -3858,12 +3887,38 @@ function renderCampaignDetailsModalContent(task) {
             const roundNum = r.round !== undefined ? r.round : (revs.length - idx);
             const dateStr = r.date || (r.created_at ? formatDateTimeDisplay(r.created_at) : '');
             const hasImage = Boolean(r.image_path);
-            const isResolved = Boolean(r.fixed_at);
+            
+            let isResolved = Boolean(r.fixed_at);
+            let submittedDateStr = r.fixed_at ? (typeof formatDateTimeDisplay === 'function' ? formatDateTimeDisplay(r.fixed_at) : r.fixed_at) : '';
+            let fixedByName = r.fixed_by_user_name || (r.fixed_by_user ? r.fixed_by_user.name : (r.fixedByUser ? r.fixedByUser.name : ''));
+
+            // Fallback for historical records where fixed_at wasn't saved yet:
+            if (!isResolved) {
+                const isPastRound = (idx > 0);
+                const isDeliverableInApprovalOrDone = ['approval stage', 'approval', 'review', 'done', 'completed', 'complete'].includes(stLower);
+                let matchingApproval = null;
+                if (Array.isArray(approvals) && approvals.length > 0) {
+                    const rTime = r.created_at ? new Date(r.created_at).getTime() : 0;
+                    matchingApproval = approvals.find(app => {
+                        const appTime = app.created_at ? new Date(app.created_at).getTime() : 0;
+                        return appTime >= (rTime - 1000);
+                    });
+                }
+                if (isPastRound || isDeliverableInApprovalOrDone || matchingApproval) {
+                    isResolved = true;
+                    if (matchingApproval) {
+                        submittedDateStr = matchingApproval.date || (matchingApproval.created_at ? formatDateTimeDisplay(matchingApproval.created_at) : '');
+                        if (!fixedByName) fixedByName = matchingApproval.user_name;
+                    } else if (task.updated_at) {
+                        submittedDateStr = formatDateTimeDisplay(task.updated_at);
+                    }
+                }
+            }
 
             historyCardHtml += `
                 <div class="cd-detail-subcard" style="display: flex; flex-direction: column; gap: 10px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                             <span style="font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 8px; border-radius: 6px;">
                                 Round ${roundNum}
                             </span>
@@ -3873,24 +3928,31 @@ function renderCampaignDetailsModalContent(task) {
                             <span style="font-size: 11px; color: var(--color-text-secondary);">
                                 • from ${escapeHtml(r.stage || 'Approval Stage')}
                             </span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            ${isResolved ? `
-                                <span style="font-size: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 5px; display: inline-flex; align-items: center; gap: 4px;">
-                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    Resolved
+                            ${dateStr ? `
+                                <span style="font-size: 11px; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 4px;" title="Revision requested on ${escapeHtml(dateStr)}">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Requested: ${escapeHtml(dateStr)}
                                 </span>
+                            ` : ''}
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            ${isResolved ? `
+                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(16, 185, 129, 0.14); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    Submitted to Approval
+                                </span>
+                                ${submittedDateStr ? `
+                                    <span style="font-size: 11px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 4px;" title="Revision completed & submitted to approval on ${escapeHtml(submittedDateStr)}${fixedByName ? ' by ' + escapeHtml(fixedByName) : ''}">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Submitted: ${escapeHtml(submittedDateStr)}${fixedByName ? ` (${escapeHtml(fixedByName)})` : ''}
+                                    </span>
+                                ` : ''}
                             ` : `
-                                <span style="font-size: 10px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 7px; border-radius: 5px;">
+                                <span style="font-size: 10.5px; font-weight: 700; background: rgba(245, 158, 11, 0.14); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     Awaiting Updates
                                 </span>
                             `}
-                            ${dateStr ? `
-                                <span style="font-size: 11px; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 4px;">
-                                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    ${escapeHtml(dateStr)}
-                                </span>
-                            ` : ''}
                         </div>
                     </div>
 

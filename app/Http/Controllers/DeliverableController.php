@@ -3175,6 +3175,12 @@ class DeliverableController extends Controller
             $deliverable->progress_percent = 60;
             $deliverable->save();
 
+            // Mark any pending revisions as fixed/submitted to approval
+            $deliverable->revisionsHistory()->whereNull('fixed_at')->update([
+                'fixed_by_user_id' => $user->id,
+                'fixed_at' => now(),
+            ]);
+
             // Record audit log
             $deliverable->approvalsHistory()->create([
                 'user_id' => $user->id,
@@ -3201,6 +3207,12 @@ class DeliverableController extends Controller
             $deliverable->approval_stage = 'Closed';
             $deliverable->progress_percent = 100;
             $deliverable->save();
+
+            // Mark any pending revisions as fixed/submitted
+            $deliverable->revisionsHistory()->whereNull('fixed_at')->update([
+                'fixed_by_user_id' => $user->id,
+                'fixed_at' => now(),
+            ]);
 
             // Record audit log
             $deliverable->approvalsHistory()->create([
@@ -3304,7 +3316,7 @@ class DeliverableController extends Controller
             $canUserMoveNow = $updatedAssignedId ? $updatedIsAssignee : false;
         }
 
-        $deliverable->load(['writer', 'designer', 'brandManager', 'approver', 'coordinator', 'revisionsHistory.user']);
+        $deliverable->load(['writer', 'designer', 'brandManager', 'approver', 'coordinator', 'revisionsHistory.user', 'revisionsHistory.fixedByUser']);
         $deliverable->append(['revisions_history', 'approvals_history']);
 
         return response()->json([
