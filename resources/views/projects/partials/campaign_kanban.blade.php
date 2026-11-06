@@ -1243,6 +1243,7 @@ async function kanbanOnDrop(event, targetStatus) {
     const isToProgress = ['in progress', 'progress'].includes(normTarget);
     const isTargetToDo = ['to do', 'todo'].includes(normTarget);
     const isFromProgress = ['in progress', 'progress'].includes(normOld);
+    const isOldApproval = ['approval stage', 'approval', 'review', 'under review'].includes(normOld);
 
     // Flow Rule 1: Deliverables in To Do can ONLY move to In Progress
     if (isFromToDo && !isToProgress) {
@@ -1262,7 +1263,6 @@ async function kanbanOnDrop(event, targetStatus) {
 
     // Flow Rule 3: Deliverables can ONLY move to Complete / Done from Approval Stage
     const isTargetDone = ['done', 'completed', 'complete'].includes(normTarget);
-    const isOldApproval = ['approval stage', 'approval', 'review', 'under review'].includes(normOld);
     if (isTargetDone && !isOldApproval) {
         window.dispatchEvent(new CustomEvent('toast', { 
             detail: { message: 'Deliverables in In Progress cannot be marked as complete directly. They must go through the Approval Stage first.', type: 'error' } 
@@ -4132,68 +4132,91 @@ function renderCampaignDetailsModalContent(task) {
     const isApproval = ['approval stage', 'approval', 'review', 'under review'].includes(stLower);
     const isDone = ['done', 'completed', 'complete'].includes(stLower);
 
+    const currentUserId = Number(kanbanCurrentUserId);
+    const userRole = (kanbanCurrentUserRole || '').toLowerCase().trim();
+    const isAdmin = Boolean(kanbanIsAdmin || ['admin', 'owner', 'operations manager'].includes(userRole));
+    const isBrandManager = Boolean(userRole === 'brand manager' || (kanbanProjectBrandManagerId && Number(kanbanProjectBrandManagerId) === currentUserId));
+
+    // Assigned users: assignee (writer/designer) or designated approver
+    const isAssignee = Boolean(currentUserId && (
+        (task.writer_id && Number(task.writer_id) === currentUserId) || 
+        (task.designer_id && Number(task.designer_id) === currentUserId)
+    ));
+    const isDesignatedApprover = Boolean(currentUserId && (
+        (task.approver_id && Number(task.approver_id) === currentUserId) ||
+        (kanbanProjectExplicitApproverId && Number(kanbanProjectExplicitApproverId) === currentUserId) ||
+        ['approver', 'approver coordinator'].includes(userRole)
+    ));
+    const isAssignedUser = Boolean(isAssignee || isDesignatedApprover);
+
+    // Permission check for Quick Actions: only assigned users, brand manager, and admin
+    const canAccessQuickActions = Boolean(isAdmin || isBrandManager || isAssignedUser);
+
     let quickActionsHtml = '';
-    if (isToDo) {
-        quickActionsHtml = `
-            <button type="button" class="cd-btn-primary" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'In Progress')">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span>Start Task</span>
-            </button>
-        `;
-    } else if (isInProgress) {
-        const revCount = Number(task.revisions) || 0;
-        const hasRevs = revCount > 0 || Boolean(task.revision_instructions);
+    if (canAccessQuickActions) {
+        if (isToDo && (isAssignee || isBrandManager || isAdmin)) {
+            quickActionsHtml += `
+                <button type="button" class="cd-btn-primary" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'In Progress')">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Start Task</span>
+                </button>
+            `;
+        } else if (isInProgress && (isAssignee || isBrandManager || isAdmin)) {
+            quickActionsHtml += `
+                <button type="button" class="cd-btn-primary" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Approval Stage')">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Submit for Approval</span>
+                </button>
+            `;
+        } else if (isApproval && (isDesignatedApprover || isBrandManager || isAdmin)) {
+            quickActionsHtml += `
+                <button type="button" class="cd-btn-success" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Done')">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    <span>Approve & Mark Complete</span>
+                </button>
+                <button type="button" class="cd-btn-danger" style="width: 100%;" onclick="openRevisionPromptModal(${task.id}, 'In Progress', '${escapeHtml(task.status || 'Approval Stage')}', document.getElementById('kanban-card-${task.id}'))">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span>Request Revisions</span>
+                </button>
+                <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'In Progress')">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    <span>Return to In Progress</span>
+                </button>
+            `;
+        } else if (isDone && (isDesignatedApprover || isBrandManager || isAdmin)) {
+            quickActionsHtml += `
+                <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'In Progress')">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span>Reopen Task (In Progress)</span>
+                </button>
+                <button type="button" class="cd-btn-danger" style="width: 100%;" onclick="openRevisionPromptModal(${task.id}, 'In Progress', '${escapeHtml(task.status || 'Done')}', document.getElementById('kanban-card-${task.id}'))">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span>Request Revisions</span>
+                </button>
+            `;
+        }
 
-        quickActionsHtml = `
-            <button type="button" class="cd-btn-primary" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Approval Stage')">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span>Submit for Approval</span>
-            </button>
-        `;
-    } else if (isApproval) {
-        quickActionsHtml = `
-            <button type="button" class="cd-btn-success" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Done')">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                <span>Approve & Mark Complete</span>
-            </button>
-            <button type="button" class="cd-btn-danger" style="width: 100%;" onclick="openRevisionPromptModal(${task.id}, 'In Progress', '${escapeHtml(task.status || 'Approval Stage')}', document.getElementById('kanban-card-${task.id}'))">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                <span>Request Revisions</span>
-            </button>
-            <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'In Progress')">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                <span>Return to In Progress</span>
-            </button>
-        `;
-    } else if (isDone) {
-        quickActionsHtml = `
-            <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'In Progress')">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                <span>Reopen Task (In Progress)</span>
-            </button>
-            <button type="button" class="cd-btn-danger" style="width: 100%;" onclick="openRevisionPromptModal(${task.id}, 'In Progress', '${escapeHtml(task.status || 'Done')}', document.getElementById('kanban-card-${task.id}'))">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                <span>Request Revisions</span>
-            </button>
-        `;
+        if (canUserReassignDeliverable(task)) {
+            quickActionsHtml += `
+                <button type="button" class="cd-btn-outline" style="width: 100%; color: #3b82f6; border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'" onmouseout="this.style.background='rgba(59,130,246,0.06)'" onclick="openCampaignReassignModal(${task.id})">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    <span>Reassign Deliverable</span>
+                </button>
+            `;
+        }
+
+        const canEditCard = Boolean(isAdmin || isBrandManager || isAssignee || (task.created_by && Number(task.created_by) === currentUserId));
+        if (canEditCard) {
+            quickActionsHtml += `
+                <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="closeCampaignDetailsModal(); setTimeout(() => { toggleCardEditor(${task.id}, true); const el = document.getElementById('kanban-card-${task.id}'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150);">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    <span>Edit in Kanban Card</span>
+                </button>
+            `;
+        }
     }
 
-    if (canUserReassignDeliverable(task)) {
-        quickActionsHtml += `
-            <button type="button" class="cd-btn-outline" style="width: 100%; color: #3b82f6; border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'" onmouseout="this.style.background='rgba(59,130,246,0.06)'" onclick="openCampaignReassignModal(${task.id})">
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                <span>Reassign Deliverable</span>
-            </button>
-        `;
-    }
-    quickActionsHtml += `
-        <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="closeCampaignDetailsModal(); setTimeout(() => { toggleCardEditor(${task.id}, true); const el = document.getElementById('kanban-card-${task.id}'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150);">
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-            <span>Edit in Kanban Card</span>
-        </button>
-    `;
-
-    let actionsCardHtml = `
+    let actionsCardHtml = (canAccessQuickActions && quickActionsHtml.trim()) ? `
         <div class="cd-detail-card">
             <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); padding-bottom: 10px; border-bottom: 1px solid var(--card-border);">
                 Quick Actions
@@ -4202,7 +4225,7 @@ function renderCampaignDetailsModalContent(task) {
                 ${quickActionsHtml}
             </div>
         </div>
-    `;
+    ` : '';
 
     // 6. Task Details Card Construction (Sidebar)
     let detailsCardHtml = `
@@ -4537,12 +4560,50 @@ async function transitionDeliverableStatus(taskId, targetStatus) {
     const oldStatus = (card ? card.getAttribute('data-status') : null) || campaignDeliverablesData[taskId]?.status || 'To Do';
     if (oldStatus === targetStatus) return;
 
+    const task = campaignDeliverablesData[taskId] || null;
+    const currentUserId = Number(kanbanCurrentUserId);
+    const userRole = (kanbanCurrentUserRole || '').toLowerCase().trim();
+    const isAdmin = Boolean(kanbanIsAdmin || ['admin', 'owner', 'operations manager'].includes(userRole));
+    const isBrandManager = Boolean(userRole === 'brand manager' || (kanbanProjectBrandManagerId && Number(kanbanProjectBrandManagerId) === currentUserId));
+    const isAssignee = Boolean(currentUserId && task && (
+        (task.writer_id && Number(task.writer_id) === currentUserId) || 
+        (task.designer_id && Number(task.designer_id) === currentUserId)
+    ));
+    const isDesignatedApprover = Boolean(currentUserId && (
+        (task && task.approver_id && Number(task.approver_id) === currentUserId) ||
+        (kanbanProjectExplicitApproverId && Number(kanbanProjectExplicitApproverId) === currentUserId) ||
+        ['approver', 'approver coordinator'].includes(userRole)
+    ));
+    const canAccessQuickActions = Boolean(isAdmin || isBrandManager || isAssignee || isDesignatedApprover);
+
+    if (!canAccessQuickActions) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Only assigned users, brand managers, and administrators have access to quick actions.', type: 'error' } 
+        }));
+        return;
+    }
+
     const normOld = (oldStatus || '').toLowerCase().trim();
     const normTarget = (targetStatus || '').toLowerCase().trim();
     const isFromToDo = ['to do', 'todo'].includes(normOld);
     const isToProgress = ['in progress', 'progress'].includes(normTarget);
     const isTargetToDo = ['to do', 'todo'].includes(normTarget);
     const isFromProgress = ['in progress', 'progress'].includes(normOld);
+    const isOldApproval = ['approval stage', 'approval', 'review', 'under review'].includes(normOld);
+
+    if (isOldApproval && !(isDesignatedApprover || isBrandManager || isAdmin)) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Only an approver, brand manager, or administrator can approve or return deliverables in the approval stage.', type: 'error' } 
+        }));
+        return;
+    }
+
+    if ((isFromToDo || isFromProgress) && !(isAssignee || isBrandManager || isAdmin)) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Only the assigned user, brand manager, or administrator can move this deliverable.', type: 'error' } 
+        }));
+        return;
+    }
 
     // Flow Rule 1: Deliverables in To Do can ONLY move to In Progress
     if (isFromToDo && !isToProgress) {
@@ -4562,7 +4623,6 @@ async function transitionDeliverableStatus(taskId, targetStatus) {
 
     // Flow Rule 3: Deliverables can ONLY move to Complete / Done from Approval Stage
     const isTargetDone = ['done', 'completed', 'complete'].includes(normTarget);
-    const isOldApproval = ['approval stage', 'approval', 'review', 'under review'].includes(normOld);
     if (isTargetDone && !isOldApproval) {
         window.dispatchEvent(new CustomEvent('toast', { 
             detail: { message: 'Deliverables in In Progress cannot be marked as complete directly. They must go through the Approval Stage first.', type: 'error' } 
