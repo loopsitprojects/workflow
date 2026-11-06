@@ -133,7 +133,7 @@
                 <span id="card-view-post-type-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-card-sub); background: var(--bg-column); border: 1px solid var(--border-card); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                     {{ $postTypeLabel }}
                 </span>
-                <span id="card-view-stage-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ $isAssignStage ? 'none' : 'inline-flex' }}; align-items: center;">
+                <span id="card-view-stage-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--badge-blue-text, #93c5fd); background: var(--badge-blue-bg, rgba(59,130,246,0.18)); border: 1px solid var(--badge-blue-border, rgba(147,197,253,0.35)); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ $isAssignStage ? 'none' : 'inline-flex' }}; align-items: center;">
                     {{ $stage }}
                 </span>
                 {{-- Revision Alert Badge --}}
@@ -145,12 +145,13 @@
                 </span>
             </div>
             <span id="card-view-assignee-badge-{{ $task->id }}" 
+                  class="card-assignee-badge {{ $hasAssignee ? 'is-assigned' : 'is-unassigned' }}"
                   @if($canReassignDeliverable)
                   onclick="event.stopPropagation(); openCampaignReassignModal({{ $task->id }})"
                   @else
                   onclick="event.stopPropagation();"
                   @endif
-                  style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? '#3b82f6' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; cursor: {{ $canReassignDeliverable ? 'pointer' : 'default' }}; transition: all 0.15s;" 
+                  style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? 'var(--badge-blue-text, #93c5fd)' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'var(--badge-blue-bg, rgba(59,130,246,0.18))' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'var(--badge-blue-border, rgba(147,197,253,0.35))' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; cursor: {{ $canReassignDeliverable ? 'pointer' : 'default' }}; transition: all 0.15s;" 
                   title="{{ $canReassignDeliverable ? ($hasAssignee ? 'Assigned to ' . $assigneeFullName . ' (Click to reassign)' : 'Click to assign') : ($hasAssignee ? 'Assigned to ' . $assigneeFullName : 'Unassigned') }}">
                 <span>{{ $assigneeDisplay }}</span>
             </span>
@@ -236,7 +237,7 @@
                         {{ $postTypeLabel }}
                     </span>
                     @if(!$isAssignStage)
-                    <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                    <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--badge-blue-text, #93c5fd); background: var(--badge-blue-bg, rgba(59,130,246,0.18)); border: 1px solid var(--badge-blue-border, rgba(147,197,253,0.35)); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                         {{ $stage }}
                     </span>
                     @endif
@@ -248,7 +249,9 @@
                         <span>REV: <span id="card-editor-revision-num-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span></span>
                     </span>
                 </div>
-                <span id="card-editor-assignee-badge-{{ $task->id }}" style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? '#3b82f6' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <span id="card-editor-assignee-badge-{{ $task->id }}" 
+                      class="card-assignee-badge {{ $hasAssignee ? 'is-assigned' : 'is-unassigned' }}"
+                      style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? 'var(--badge-blue-text, #93c5fd)' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'var(--badge-blue-bg, rgba(59,130,246,0.18))' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'var(--badge-blue-border, rgba(147,197,253,0.35))' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     {{ $assigneeDisplay }}
                 </span>
             </div>
@@ -522,7 +525,7 @@
                         {{ $postTypeLabel }}
                     </span>
                     @if(!$isAssignStage)
-                    <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                    <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--badge-blue-text, #93c5fd); background: var(--badge-blue-bg, rgba(59,130,246,0.18)); border: 1px solid var(--badge-blue-border, rgba(147,197,253,0.35)); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                         {{ $stage }}
                     </span>
                     @endif
@@ -534,7 +537,9 @@
                         <span>Rev: <span id="card-readonly-revision-num-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span></span>
                     </span>
                 </div>
-                <span id="card-readonly-assignee-badge-{{ $task->id }}" style="font-size: 10px; font-weight: 700; color: {{ $hasAssignee ? '#3b82f6' : 'var(--color-text-secondary)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--color-bg-secondary)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--color-border-primary)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <span id="card-readonly-assignee-badge-{{ $task->id }}" 
+                      class="card-assignee-badge {{ $hasAssignee ? 'is-assigned' : 'is-unassigned' }}"
+                      style="font-size: 10px; font-weight: 700; color: {{ $hasAssignee ? 'var(--badge-blue-text, #93c5fd)' : 'var(--color-text-secondary)' }}; background: {{ $hasAssignee ? 'var(--badge-blue-bg, rgba(59,130,246,0.18))' : 'var(--color-bg-secondary)' }}; border: 1px solid {{ $hasAssignee ? 'var(--badge-blue-border, rgba(147,197,253,0.35))' : 'var(--color-border-primary)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     {{ $assigneeDisplay }}
                 </span>
             </div>

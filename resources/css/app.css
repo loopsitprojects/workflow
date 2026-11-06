@@ -32,6 +32,11 @@ html:not(.dark) {
     --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
     --text-card-title: #0f172a;
     --text-card-sub: #64748b;
+
+    /* Badges */
+    --badge-blue-text: #2563eb;
+    --badge-blue-bg: rgba(37, 99, 235, 0.08);
+    --badge-blue-border: rgba(37, 99, 235, 0.25);
 }
 
 .dark,
@@ -61,6 +66,11 @@ html.dark {
     --shadow-card: 0 4px 16px rgba(0,0,0,0.4);
     --text-card-title: #F9FAFB;
     --text-card-sub: #9CA3AF;
+
+    /* Badges */
+    --badge-blue-text: #93c5fd;
+    --badge-blue-bg: rgba(59, 130, 246, 0.18);
+    --badge-blue-border: rgba(147, 197, 253, 0.35);
 }
 
 .dark.halloween,
@@ -744,5 +754,49 @@ html:not(.dark) .badge-due-normal,
 .btn-new-deliverable:hover {
     background: #1d4ed8 !important;
     box-shadow: 0 2px 6px 0 rgba(37, 99, 235, 0.35) !important;
+}
+
+/* =========================================================
+   ASSIGNEE & STAGE BADGE CONTRAST (DARK / LIGHT MODE)
+   ========================================================= */
+.card-assignee-badge.is-assigned,
+[id^="card-view-assignee-badge-"].is-assigned,
+[id^="card-editor-assignee-badge-"].is-assigned,
+[id^="card-readonly-assignee-badge-"].is-assigned {
+    color: var(--badge-blue-text, #2563eb);
+    background: var(--badge-blue-bg, rgba(37, 99, 235, 0.08));
+    border-color: var(--badge-blue-border, rgba(37, 99, 235, 0.25));
+}
+
+html.dark .card-assignee-badge.is-assigned,
+.dark .card-assignee-badge.is-assigned,
+html.dark [id^="card-view-assignee-badge-"].is-assigned,
+.dark [id^="card-view-assignee-badge-"].is-assigned,
+html.dark [id^="card-editor-assignee-badge-"].is-assigned,
+.dark [id^="card-editor-assignee-badge-"].is-assigned,
+html.dark [id^="card-readonly-assignee-badge-"].is-assigned,
+.dark [id^="card-readonly-assignee-badge-"].is-assigned {
+    color: #93c5fd !important;
+    background: rgba(59, 130, 246, 0.18) !important;
+    border-color: rgba(147, 197, 253, 0.35) !important;
+}
+
+/* Ensure any badge with blue tint in dark mode stays crisp and readable */
+html.dark [id*="assignee-badge"][style*="3b82f6"],
+.dark [id*="assignee-badge"][style*="3b82f6"],
+html.dark [id*="assignee-badge"][style*="2563eb"],
+.dark [id*="assignee-badge"][style*="2563eb"],
+html.dark [id*="assignee-badge"][style*="rgb(59, 130, 246)"],
+.dark [id*="assignee-badge"][style*="rgb(59, 130, 246)"] {
+    color: #93c5fd !important;
+    background: rgba(59, 130, 246, 0.18) !important;
+    border-color: rgba(147, 197, 253, 0.35) !important;
+}
+
+html.dark [id^="card-view-stage-"],
+.dark [id^="card-view-stage-"] {
+    color: #93c5fd !important;
+    background: rgba(59, 130, 246, 0.18) !important;
+    border-color: rgba(147, 197, 253, 0.35) !important;
 }
 

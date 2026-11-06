@@ -529,11 +529,15 @@ function handleCardAssigneeChange(taskId) {
         const span = editorBadge.querySelector('span') || editorBadge;
         span.textContent = name;
         if (hasAssignee) {
-            editorBadge.style.color = '#3b82f6';
-            editorBadge.style.background = 'rgba(59,130,246,0.1)';
-            editorBadge.style.border = '1px solid rgba(59,130,246,0.2)';
+            editorBadge.classList.add('is-assigned');
+            editorBadge.classList.remove('is-unassigned');
+            editorBadge.style.color = 'var(--badge-blue-text, #93c5fd)';
+            editorBadge.style.background = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
+            editorBadge.style.border = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
             editorBadge.title = 'Assigned to ' + name;
         } else {
+            editorBadge.classList.remove('is-assigned');
+            editorBadge.classList.add('is-unassigned');
             editorBadge.style.color = 'var(--text-card-sub)';
             editorBadge.style.background = 'var(--bg-column)';
             editorBadge.style.border = '1px solid var(--border-card)';
@@ -717,11 +721,15 @@ function updateCardViewElements(taskId, d) {
             const span = badge.querySelector('span') || badge;
             span.textContent = name;
             if (hasAssignee) {
-                badge.style.color = '#3b82f6';
-                badge.style.background = 'rgba(59,130,246,0.1)';
-                badge.style.border = '1px solid rgba(59,130,246,0.2)';
+                badge.classList.add('is-assigned');
+                badge.classList.remove('is-unassigned');
+                badge.style.color = 'var(--badge-blue-text, #93c5fd)';
+                badge.style.background = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
+                badge.style.border = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
                 badge.title = 'Assigned to ' + name;
             } else {
+                badge.classList.remove('is-assigned');
+                badge.classList.add('is-unassigned');
                 badge.style.color = 'var(--color-text-secondary)';
                 badge.style.background = 'var(--color-bg-secondary)';
                 badge.style.border = '1px solid var(--color-border-primary)';
@@ -2125,9 +2133,9 @@ function insertCreatedCardIntoColumn(colKey, d) {
 
     const hasAssignee = d.assignee_name && d.assignee_name !== 'Unassigned';
     const assigneeDisplay = hasAssignee ? d.assignee_name : 'Unassigned';
-    const badgeColor = hasAssignee ? '#3b82f6' : 'var(--text-card-sub)';
-    const badgeBg = hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)';
-    const badgeBorder = hasAssignee ? '1px solid rgba(59,130,246,0.2)' : '1px solid var(--border-card)';
+    const badgeColor = hasAssignee ? 'var(--badge-blue-text, #93c5fd)' : 'var(--text-card-sub)';
+    const badgeBg = hasAssignee ? 'var(--badge-blue-bg, rgba(59,130,246,0.18))' : 'var(--bg-column)';
+    const badgeBorder = hasAssignee ? 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))' : '1px solid var(--border-card)';
     const stageDisplay = d.approval_stage || d.stage || '';
     const isAssign = isAssignStageName(stageDisplay);
 
@@ -2308,7 +2316,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         <span id="card-view-post-type-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-card-sub); background: var(--bg-column); border: 1px solid var(--border-card); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                             ${escapeHtml(d.post_type || 'Outlines')}
                         </span>
-                        <span id="card-view-stage-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${isAssign ? 'none' : 'inline-flex'}; align-items: center;">
+                        <span id="card-view-stage-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--badge-blue-text, #93c5fd); background: var(--badge-blue-bg, rgba(59,130,246,0.18)); border: 1px solid var(--badge-blue-border, rgba(147,197,253,0.35)); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${isAssign ? 'none' : 'inline-flex'}; align-items: center;">
                             ${escapeHtml(stageDisplay)}
                         </span>
                         {{-- Revision Alert Badge --}}
@@ -2320,6 +2328,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         </span>
                     </div>
                     <span id="card-view-assignee-badge-${d.id}" 
+                          class="card-assignee-badge ${hasAssignee ? 'is-assigned' : 'is-unassigned'}"
                           ${canReassignThis ? `onclick="event.stopPropagation(); openCampaignReassignModal(${d.id})"` : `onclick="event.stopPropagation();"`}
                           style="font-size: 10px; font-weight: 600; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; cursor: ${canReassignThis ? 'pointer' : 'default'}; transition: all 0.15s;"
                           title="${canReassignThis ? (hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) + ' (Click to reassign)' : 'Click to assign') : (hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) : 'Unassigned')}">
@@ -2379,7 +2388,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                 ${escapeHtml(d.post_type || 'Outlines')}
                             </span>
                             ${!isAssign ? `
-                            <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                            <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--badge-blue-text, #93c5fd); background: var(--badge-blue-bg, rgba(59,130,246,0.18)); border: 1px solid var(--badge-blue-border, rgba(147,197,253,0.35)); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                                 ${escapeHtml(stageDisplay)}
                             </span>
                             ` : ''}
@@ -2391,7 +2400,9 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                 <span>REV: <span id="card-editor-revision-num-${d.id}">${revCount || 1}</span></span>
                             </span>
                         </div>
-                        <span style="font-size: 10px; font-weight: 600; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <span id="card-editor-assignee-badge-${d.id}" 
+                              class="card-assignee-badge ${hasAssignee ? 'is-assigned' : 'is-unassigned'}"
+                              style="font-size: 10px; font-weight: 600; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${escapeHtml(assigneeDisplay)}
                         </span>
                     </div>
@@ -2542,7 +2553,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                 ${escapeHtml(d.post_type || 'Outlines')}
                             </span>
                             ${!isAssign ? `
-                            <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
+                            <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--badge-blue-text, #93c5fd); background: var(--badge-blue-bg, rgba(59,130,246,0.18)); border: 1px solid var(--badge-blue-border, rgba(147,197,253,0.35)); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                                 ${escapeHtml(stageDisplay)}
                             </span>
                             ` : ''}
@@ -2554,7 +2565,9 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                 <span>Rev: <span id="card-readonly-revision-num-${d.id}">${revCount || 1}</span></span>
                             </span>
                         </div>
-                        <span style="font-size: 10px; font-weight: 700; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <span id="card-readonly-assignee-badge-${d.id}" 
+                              class="card-assignee-badge ${hasAssignee ? 'is-assigned' : 'is-unassigned'}"
+                              style="font-size: 10px; font-weight: 700; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             ${escapeHtml(assigneeDisplay)}
                         </span>
                     </div>
@@ -4258,7 +4271,7 @@ function renderCampaignDetailsModalContent(task) {
 
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                     <span style="color: var(--color-text-secondary); font-weight: 500;">Deliverable Type</span>
-                    <span style="font-weight: 700; color: #3b82f6; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); padding: 1px 7px; border-radius: 5px; font-size: 11px;">
+                    <span style="font-weight: 700; color: var(--badge-blue-text, #93c5fd); background: var(--badge-blue-bg, rgba(59, 130, 246, 0.18)); border: 1px solid var(--badge-blue-border, rgba(147, 197, 253, 0.35)); padding: 1px 7px; border-radius: 5px; font-size: 11px;">
                         ${escapeHtml(task.post_type || 'Outlines')}
                     </span>
                 </div>
@@ -4267,7 +4280,7 @@ function renderCampaignDetailsModalContent(task) {
                     <span style="color: var(--color-text-secondary); font-weight: 500;">Assignee</span>
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span style="font-weight: 700; color: var(--color-text-primary); display: inline-flex; align-items: center; gap: 6px;">
-                            <span style="width: 20px; height: 20px; border-radius: 50%; background: rgba(59, 130, 246, 0.15); color: #2563eb; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900;">
+                            <span style="width: 20px; height: 20px; border-radius: 50%; background: var(--badge-blue-bg, rgba(59, 130, 246, 0.18)); color: var(--badge-blue-text, #93c5fd); display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900;">
                                 ${escapeHtml((task.assignee_name || 'U').charAt(0).toUpperCase())}
                             </span>
                             <span>${escapeHtml(task.assignee_name || 'Unassigned')}</span>
@@ -4275,9 +4288,9 @@ function renderCampaignDetailsModalContent(task) {
                         ${canUserReassignDeliverable(task) ? `
                         <button type="button" 
                                 onclick="openCampaignReassignModal(${task.id})" 
-                                style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); color: #2563eb; padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 700; cursor: pointer; transition: all 0.15s;" 
-                                onmouseover="this.style.background='rgba(59,130,246,0.18)'" 
-                                onmouseout="this.style.background='rgba(59,130,246,0.08)'" 
+                                style="background: var(--badge-blue-bg, rgba(59,130,246,0.15)); border: 1px solid var(--badge-blue-border, rgba(147,197,253,0.35)); color: var(--badge-blue-text, #93c5fd); padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 700; cursor: pointer; transition: all 0.15s;" 
+                                onmouseover="this.style.background='rgba(59,130,246,0.25)'" 
+                                onmouseout="this.style.background='var(--badge-blue-bg, rgba(59,130,246,0.15))'" 
                                 title="Reassign deliverable assignee">
                             Reassign
                         </button>
