@@ -3059,11 +3059,11 @@ class DeliverableController extends Controller
             ], 422);
         }
 
-        // Workflow Rule 2: Deliverables can ONLY be moved to To Do from In Progress
-        if (in_array($newStatusLower, ['to do', 'todo']) && !in_array($oldStatusLower, ['in progress', 'progress'])) {
+        // Workflow Rule 2: Deliverables cannot be moved back to To Do
+        if (in_array($newStatusLower, ['to do', 'todo'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Deliverables can only be moved to To Do from In Progress.',
+                'message' => 'Deliverables cannot be moved back to To Do.',
             ], 422);
         }
 

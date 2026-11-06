@@ -1252,10 +1252,10 @@ async function kanbanOnDrop(event, targetStatus) {
         return;
     }
 
-    // Flow Rule 2: Deliverables can ONLY be moved to To Do from In Progress
-    if (isTargetToDo && !isFromProgress) {
+    // Flow Rule 2: Deliverables cannot be moved back to To Do
+    if (isTargetToDo) {
         window.dispatchEvent(new CustomEvent('toast', { 
-            detail: { message: 'Deliverables can only be moved to To Do from In Progress.', type: 'error' } 
+            detail: { message: 'Deliverables cannot be moved back to To Do.', type: 'error' } 
         }));
         return;
     }
@@ -4149,12 +4149,6 @@ function renderCampaignDetailsModalContent(task) {
                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span>Submit for Approval</span>
             </button>
-            ${!hasRevs ? `
-                <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'To Do')">
-                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                    <span>Move Back to To Do</span>
-                </button>
-            ` : ''}
         `;
     } else if (isApproval) {
         quickActionsHtml = `
@@ -4558,10 +4552,10 @@ async function transitionDeliverableStatus(taskId, targetStatus) {
         return;
     }
 
-    // Flow Rule 2: Deliverables can ONLY be moved to To Do from In Progress
-    if (isTargetToDo && !isFromProgress) {
+    // Flow Rule 2: Deliverables cannot be moved back to To Do
+    if (isTargetToDo) {
         window.dispatchEvent(new CustomEvent('toast', { 
-            detail: { message: 'Deliverables can only be moved to To Do from In Progress.', type: 'error' } 
+            detail: { message: 'Deliverables cannot be moved back to To Do.', type: 'error' } 
         }));
         return;
     }
