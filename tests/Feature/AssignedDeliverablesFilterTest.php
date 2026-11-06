@@ -152,9 +152,19 @@ class AssignedDeliverablesFilterTest extends TestCase
             'brand_manager_id' => $this->approver->id,
         ]);
 
+        $outlineTask = Deliverable::create([
+            'project_id' => $campaignProject->id,
+            'title' => 'Campaign Outline',
+            'post_type' => 'Outline',
+            'approval_stage' => 'Assignee',
+            'writer_id' => $this->writer->id,
+            'status' => 'To Do',
+        ]);
+
         $task1 = Deliverable::create([
             'project_id' => $campaignProject->id,
             'title' => 'Campaign Task 1',
+            'post_type' => 'KV',
             'approval_stage' => 'Assignee',
             'writer_id' => $this->writer->id,
             'status' => 'To Do',
@@ -163,6 +173,7 @@ class AssignedDeliverablesFilterTest extends TestCase
         $task2 = Deliverable::create([
             'project_id' => $campaignProject->id,
             'title' => 'Campaign Task 2',
+            'post_type' => 'KV',
             'approval_stage' => 'Assignee',
             'writer_id' => $this->otherUser->id,
             'status' => 'To Do',
@@ -177,5 +188,65 @@ class AssignedDeliverablesFilterTest extends TestCase
         // Check Kanban cards have data-assigned attribute
         $this->assertStringContainsString('id="kanban-card-' . $task1->id . '"' . "\n" . '     data-id="' . $task1->id . '"' . "\n" . '     data-assigned="1"', $content);
         $this->assertStringContainsString('id="kanban-card-' . $task2->id . '"' . "\n" . '     data-id="' . $task2->id . '"' . "\n" . '     data-assigned="0"', $content);
+        $response->assertSee('id="outline-assigned-empty-state"', false);
+        $response->assertSee('id="other-assigned-empty-state"', false);
+    }
+
+    public function test_batch_and_subtasks_rendering_with_mixed_assignments(): void
+    {
+        // Batch 1: has one subtask assigned to coordinator, one not
+        $batch1 = Deliverable::create([
+            'project_id' => $this->project->id,
+            'title' => 'Batch 1 With Assigned Subtask',
+            'approval_stage' => 'Writer',
+        ]);
+
+        $subtask1A = Deliverable::create([
+            'project_id' => $this->project->id,
+            'parent_deliverable_id' => $batch1->id,
+            'title' => 'Subtask 1A Assigned',
+            'approval_stage' => 'Coordinator',
+            'coordinator_id' => $this->coordinator->id,
+        ]);
+
+        $subtask1B = Deliverable::create([
+            'project_id' => $this->project->id,
+            'parent_deliverable_id' => $batch1->id,
+            'title' => 'Subtask 1B Not Assigned',
+            'approval_stage' => 'Coordinator',
+            'coordinator_id' => $this->otherUser->id,
+        ]);
+
+        // Batch 2: has no subtasks assigned to coordinator
+        $batch2 = Deliverable::create([
+            'project_id' => $this->project->id,
+            'title' => 'Batch 2 Unassigned',
+            'approval_stage' => 'Writer',
+        ]);
+
+        $subtask2A = Deliverable::create([
+            'project_id' => $this->project->id,
+            'parent_deliverable_id' => $batch2->id,
+            'title' => 'Subtask 2A Other',
+            'approval_stage' => 'Coordinator',
+            'coordinator_id' => $this->otherUser->id,
+        ]);
+
+        $response = $this->actingAs($this->coordinator)->get(route('projects.show', $this->project));
+        $response->assertStatus(200);
+
+        $content = $response->getContent();
+
+        // Batch 1 has an assigned subtask, so batch 1 row has data-assigned="1"
+        $this->assertStringContainsString('id="deliverable-row-' . $batch1->id . '" data-deliverable-id="' . $batch1->id . '" data-assigned="1"', $content);
+        // Subtask 1A is assigned to coordinator
+        $this->assertStringContainsString('id="deliverable-row-' . $subtask1A->id . '" data-deliverable-id="' . $subtask1A->id . '" data-parent-id="' . $batch1->id . '" data-assigned="1"', $content);
+        // Subtask 1B is not assigned
+        $this->assertStringContainsString('id="deliverable-row-' . $subtask1B->id . '" data-deliverable-id="' . $subtask1B->id . '" data-parent-id="' . $batch1->id . '" data-assigned="0"', $content);
+
+        // Batch 2 has NO subtasks assigned to coordinator, so batch 2 row has data-assigned="0"
+        $this->assertStringContainsString('id="deliverable-row-' . $batch2->id . '" data-deliverable-id="' . $batch2->id . '" data-assigned="0"', $content);
+        // Subtask 2A is not assigned
+        $this->assertStringContainsString('id="deliverable-row-' . $subtask2A->id . '" data-deliverable-id="' . $subtask2A->id . '" data-parent-id="' . $batch2->id . '" data-assigned="0"', $content);
     }
 }
