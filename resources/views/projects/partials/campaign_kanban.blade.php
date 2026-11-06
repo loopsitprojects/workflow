@@ -1246,7 +1246,6 @@ async function kanbanOnDrop(event, targetStatus) {
     }
 
     // Check if moving out of Approval Stage back for revisions: Always route to In Progress!
-    const isOldApproval = ['Approval Stage', 'Approval', 'Review', 'Under Review'].includes(oldStatus);
     if (isOldApproval) {
         if (targetStatus === 'To Do' || targetStatus === 'In Progress') {
             openRevisionPromptModal(taskId, 'In Progress', oldStatus, card);
