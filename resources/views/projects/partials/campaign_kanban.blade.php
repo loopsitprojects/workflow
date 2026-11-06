@@ -365,6 +365,12 @@ campaignDeliverablesData[{{ $t->id }}] = {
     description: @json($t->description ?? ''),
     reference_files_list: @json($t->getReferenceFilesArray()),
     reference_urls_list: @json($t->getReferenceUrlsArray()),
+    final_designs_list: @json($t->getFinalDesignsArray()),
+    final_designs_urls_list: @json($t->getFinalDesignsUrlsArray()),
+    has_artwork: {{ $t->hasArtwork() ? 'true' : 'false' }},
+    writer_id: {{ $t->writer_id ?? 'null' }},
+    designer_id: {{ $t->designer_id ?? 'null' }},
+    created_by: {{ $t->created_by ?? ($t->effective_creator_id ?? 'null') }},
     assignee_name: @json($t->writer?->name ?? ($t->designer?->name ?? 'Unassigned')),
     approver_name: @json($t->approver?->name ?? null),
     created_at_formatted: @json($createdFmt),
@@ -864,6 +870,15 @@ async function quickUploadCardFile(event, taskId) {
         if (window.projectDeliverables && window.projectDeliverables[taskId]) {
             window.projectDeliverables[taskId] = data.deliverable || window.projectDeliverables[taskId];
         }
+        if (campaignDeliverablesData[taskId] && data.deliverable) {
+            campaignDeliverablesData[taskId].final_designs_list = data.deliverable.final_designs_list || [];
+            campaignDeliverablesData[taskId].final_designs_urls_list = data.deliverable.final_designs_urls_list || [];
+            campaignDeliverablesData[taskId].has_artwork = true;
+            const modal = document.getElementById('campaignDetailsModalOverlay');
+            if (modal && modal.style.display !== 'none' && String(modal.dataset.currentTaskId) === String(taskId)) {
+                renderCampaignDetailsModalContent(campaignDeliverablesData[taskId]);
+            }
+        }
         window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Deliverable file(s) uploaded successfully!', type: 'success' } }));
         updateCardArtworkUI(taskId, data.deliverable);
     } catch (err) {
@@ -896,6 +911,15 @@ async function quickRemoveDeliverableFile(taskId, fileIndex) {
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'File removed successfully', type: 'success' } }));
             if (window.projectDeliverables && window.projectDeliverables[taskId]) {
                 window.projectDeliverables[taskId] = data.deliverable;
+            }
+            if (campaignDeliverablesData[taskId]) {
+                campaignDeliverablesData[taskId].final_designs_list = data.deliverable.final_designs_list || [];
+                campaignDeliverablesData[taskId].final_designs_urls_list = data.deliverable.final_designs_urls_list || [];
+                campaignDeliverablesData[taskId].has_artwork = Boolean(data.deliverable.has_artwork || (data.deliverable.final_designs_list && data.deliverable.final_designs_list.length > 0));
+                const modal = document.getElementById('campaignDetailsModalOverlay');
+                if (modal && modal.style.display !== 'none' && String(modal.dataset.currentTaskId) === String(taskId)) {
+                    renderCampaignDetailsModalContent(campaignDeliverablesData[taskId]);
+                }
             }
             updateCardArtworkUI(taskId, data.deliverable);
         } else {
@@ -1700,6 +1724,11 @@ async function confirmUploadDeliverable() {
 
         // File uploaded! Mark card
         card.setAttribute('data-has-file', 'true');
+        if (result && result.deliverable && campaignDeliverablesData[taskId]) {
+            campaignDeliverablesData[taskId].final_designs_list = result.deliverable.final_designs_list || [];
+            campaignDeliverablesData[taskId].final_designs_urls_list = result.deliverable.final_designs_urls_list || [];
+            campaignDeliverablesData[taskId].has_artwork = true;
+        }
         closeUploadDeliverableModal();
 
         // Now execute the kanban move to Approval Stage
@@ -1998,6 +2027,12 @@ function insertCreatedCardIntoColumn(colKey, d) {
             description: d.description || '',
             reference_files_list: extractReferenceFiles(d),
             reference_urls_list: extractReferenceUrls(d),
+            final_designs_list: extractArtworkFiles(d),
+            final_designs_urls_list: extractArtworkUrls(d),
+            has_artwork: Boolean(d.has_artwork || (d.final_designs_list && d.final_designs_list.length > 0)),
+            writer_id: d.writer_id || null,
+            designer_id: d.designer_id || null,
+            created_by: d.created_by || null,
             assignee_name: d.assignee_name || 'Unassigned',
             approver_name: d.approver_name || null,
             created_at_formatted: d.created_at ? formatDateDisplay(d.created_at) : null
@@ -2736,6 +2771,40 @@ function extractReferenceUrls(data) {
     return [];
 }
 
+function extractArtworkFiles(data) {
+    if (!data) return [];
+    if (data.final_designs_list && Array.isArray(data.final_designs_list)) {
+        return data.final_designs_list;
+    }
+    if (data.final_designs) {
+        if (typeof data.final_designs === 'string' && data.final_designs.startsWith('[')) {
+            try { return JSON.parse(data.final_designs); } catch(e) { return [data.final_designs]; }
+        } else if (Array.isArray(data.final_designs)) {
+            return data.final_designs;
+        } else if (typeof data.final_designs === 'string' && data.final_designs.trim()) {
+            return [data.final_designs.trim()];
+        }
+    }
+    return [];
+}
+
+function extractArtworkUrls(data) {
+    if (!data) return [];
+    if (data.final_designs_urls_list && Array.isArray(data.final_designs_urls_list)) {
+        return data.final_designs_urls_list;
+    }
+    if (data.final_designs_link) {
+        if (typeof data.final_designs_link === 'string' && data.final_designs_link.startsWith('[')) {
+            try { return JSON.parse(data.final_designs_link); } catch(e) { return [data.final_designs_link]; }
+        } else if (Array.isArray(data.final_designs_link)) {
+            return data.final_designs_link;
+        } else if (typeof data.final_designs_link === 'string' && data.final_designs_link.trim()) {
+            return data.final_designs_link.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+        }
+    }
+    return [];
+}
+
 function copyReferenceUrlToClipboard(url, btn) {
     if (!navigator.clipboard) {
         prompt('Copy reference URL:', url);
@@ -2794,6 +2863,12 @@ async function openCampaignDetailsModal(taskId) {
                 description: freshData.description || task?.description || '',
                 reference_files_list: extractReferenceFiles(freshData),
                 reference_urls_list: extractReferenceUrls(freshData),
+                final_designs_list: extractArtworkFiles(freshData),
+                final_designs_urls_list: extractArtworkUrls(freshData),
+                has_artwork: Boolean(freshData.has_artwork || freshData.final_designs || (freshData.final_designs_list && freshData.final_designs_list.length > 0)),
+                writer_id: freshData.writer_id || task?.writer_id || null,
+                designer_id: freshData.designer_id || task?.designer_id || null,
+                created_by: freshData.created_by || freshData.effective_creator_id || task?.created_by || null,
                 assignee_name: freshData.writer?.name || freshData.designer?.name || task?.assignee_name || 'Unassigned',
                 approver_name: freshData.approver?.name || task?.approver_name || null,
                 created_at_formatted: freshData.created_at ? formatDateDisplay(freshData.created_at) : (task?.created_at_formatted || null),
@@ -3176,6 +3251,202 @@ function renderCampaignDetailsModalContent(task) {
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    `;
+
+    // 1.5. Deliverable Work & Uploaded Artwork Card Construction
+    const artFiles = Array.isArray(task.final_designs_list) ? task.final_designs_list : (task.final_designs ? extractArtworkFiles(task) : []);
+    const artUrls = Array.isArray(task.final_designs_urls_list) ? task.final_designs_urls_list : (task.final_designs_link ? extractArtworkUrls(task) : []);
+    const totalArtwork = artFiles.length + artUrls.length;
+    const assignedId = task.writer_id || task.designer_id || null;
+    const canUploadArtwork = Boolean(kanbanIsAdmin || (assignedId && kanbanCurrentUserId == assignedId) || kanbanCanManageDeliverables || (task.created_by && kanbanCurrentUserId == task.created_by));
+
+    let artworkCardHtml = `
+        <div class="cd-detail-card" id="campaignArtworkCard-${task.id}">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--card-border);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 13.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-primary);">
+                            Uploaded Artwork & Deliverable Work
+                        </span>
+                        ${totalArtwork > 0 ? `
+                            <span style="font-size: 10.5px; font-weight: 800; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); padding: 1px 7px; border-radius: 9999px;">
+                                ${totalArtwork}
+                            </span>
+                        ` : ''}
+                    </div>
+                </div>
+                ${canUploadArtwork ? `
+                    <label style="cursor: pointer; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.35); color: #10b981; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 7px; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s;"
+                           onmouseover="this.style.background='rgba(16, 185, 129, 0.2)'; this.style.borderColor='#10b981';"
+                           onmouseout="this.style.background='rgba(16, 185, 129, 0.1)'; this.style.borderColor='rgba(16, 185, 129, 0.35)';"
+                           onclick="event.stopPropagation()">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                        <span>+ Upload Work</span>
+                        <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${task.id})">
+                    </label>
+                ` : ''}
+            </div>
+
+            <!-- Artwork List or Actionable Empty State -->
+            <div id="campaignArtworkView-${task.id}" style="margin-top: 14px;">
+    `;
+
+    if (totalArtwork === 0) {
+        artworkCardHtml += `
+            <div style="padding: 24px 20px; background: var(--subcard-bg); border: 1.5px dashed var(--card-border); border-radius: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(16, 185, 129, 0.08); color: #10b981; display: flex; align-items: center; justify-content: center;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+                <div style="font-size: 13px; font-weight: 600; color: var(--color-text-primary);">
+                    No artwork or deliverable files uploaded yet
+                </div>
+                <div style="font-size: 12px; font-weight: 500; color: var(--color-text-secondary); max-width: 380px;">
+                    Upload the completed creative designs, presentations, or documents so the team and approver can review.
+                </div>
+                ${canUploadArtwork ? `
+                    <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); border: 1.5px dashed rgba(16, 185, 129, 0.5); color: #10b981; font-size: 12px; font-weight: 700; transition: all 0.15s ease; margin-top: 4px;"
+                           onmouseover="this.style.background='rgba(16, 185, 129, 0.2)'; this.style.borderColor='#10b981';"
+                           onmouseout="this.style.background='rgba(16, 185, 129, 0.12)'; this.style.borderColor='rgba(16, 185, 129, 0.5)';"
+                           onclick="event.stopPropagation()">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.3"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span>Upload Work (Image or File)</span>
+                        <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${task.id})">
+                    </label>
+                ` : ''}
+            </div>
+        `;
+    } else {
+        artworkCardHtml += `<div style="display: flex; flex-direction: column; gap: 16px;">`;
+
+        if (artFiles.length > 0) {
+            artworkCardHtml += `
+                <div>
+                    <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 8px;">
+                        Deliverable Files (${artFiles.length})
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">
+            `;
+
+            artFiles.forEach((fileUrl, idx) => {
+                const fname = getFilenameFromUrl(fileUrl);
+                const ext = getFileExt(fname);
+                const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+                const downloadUrl = `/deliverables/${task.id}/download-artwork/${idx}`;
+
+                artworkCardHtml += `
+                    <div class="cd-detail-subcard" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--card-border);">
+                `;
+
+                if (isImg) {
+                    artworkCardHtml += `
+                        <div style="height: 120px; width: 100%; background: #000; overflow: hidden; position: relative; cursor: pointer;"
+                             onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(downloadUrl)}')">
+                            <img src="${escapeHtml(fileUrl)}" alt="${escapeHtml(fname)}" style="width: 100%; height: 100%; object-fit: cover;">
+                            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.35); opacity: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; gap: 4px; transition: opacity 0.15s;"
+                                 onmouseover="this.style.opacity='1'"
+                                 onmouseout="this.style.opacity='0'">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                <span>Preview Artwork</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    artworkCardHtml += `
+                        <div style="height: 80px; width: 100%; background: rgba(16, 185, 129, 0.08); display: flex; align-items: center; justify-content: center; gap: 8px; color: #10b981; cursor: pointer;"
+                             onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(downloadUrl)}')">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em;">${escapeHtml(ext.toUpperCase() || 'FILE')}</span>
+                        </div>
+                    `;
+                }
+
+                artworkCardHtml += `
+                        <div style="padding: 10px; display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                            <div style="font-size: 11.5px; font-weight: 700; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(fname)}">
+                                ${escapeHtml(fname)}
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--card-border);">
+                                <div style="display: inline-flex; align-items: center; gap: 4px;">
+                                    <button type="button" 
+                                            onclick="previewDeliverableArtwork('${escapeHtml(fileUrl)}', '${escapeHtml(fname)}', '${escapeHtml(downloadUrl)}')" 
+                                            style="background: transparent; border: 1px solid var(--card-border); color: #3b82f6; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;">
+                                        <span>Preview</span>
+                                    </button>
+                                    <a href="${escapeHtml(downloadUrl)}" download="${escapeHtml(fname)}" 
+                                       style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px;"
+                                       title="Download file">
+                                        <span>Download</span>
+                                    </a>
+                                </div>
+                                ${canUploadArtwork ? `
+                                    <button type="button" 
+                                            onclick="quickRemoveDeliverableFile(${task.id}, ${idx})" 
+                                            style="background: transparent; border: none; cursor: pointer; color: #ef4444; font-size: 12px; font-weight: 800; padding: 2px 4px; border-radius: 3px; line-height: 1;" 
+                                            title="Remove this artwork file">✕</button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            artworkCardHtml += `
+                    </div>
+                </div>
+            `;
+        }
+
+        if (artUrls.length > 0) {
+            artworkCardHtml += `
+                <div>
+                    <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 8px;">
+                        Artwork Links (${artUrls.length})
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+            `;
+
+            artUrls.forEach(url => {
+                artworkCardHtml += `
+                    <div class="cd-detail-subcard" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+                            <svg width="14" height="14" fill="none" stroke="#10b981" viewBox="0 0 24 24" stroke-width="2.2" style="flex-shrink: 0;"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" 
+                               style="font-size: 12px; font-weight: 600; color: #10b981; text-decoration: underline; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                               title="${escapeHtml(url)}">
+                                ${escapeHtml(url)}
+                            </a>
+                        </div>
+                        <div style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                            <button type="button" 
+                                    onclick="copyReferenceUrlToClipboard('${escapeHtml(url)}', this)" 
+                                    style="background: transparent; border: 1px solid var(--card-border); color: var(--color-text-secondary); font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; cursor: pointer;"
+                                    title="Copy link to clipboard">
+                                Copy
+                            </button>
+                            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" 
+                               style="background: #10b981; color: #ffffff; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 5px; text-decoration: none; display: inline-flex; align-items: center; gap: 2px;">
+                                <span>Open ↗</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+
+            artworkCardHtml += `
+                    </div>
+                </div>
+            `;
+        }
+
+        artworkCardHtml += `</div>`;
+    }
+
+    artworkCardHtml += `
             </div>
         </div>
     `;
@@ -4003,6 +4274,7 @@ function renderCampaignDetailsModalContent(task) {
             <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
                 ${revisionBannerHtml}
                 ${briefCardHtml}
+                ${artworkCardHtml}
                 ${refCardHtml}
                 ${historyCardHtml}
             </div>
