@@ -190,18 +190,32 @@ class DeliverableController extends Controller
             $project = Project::find($taskData['project_id']);
             if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
                 $pType = strtolower(trim($taskData['post_type'] ?? ''));
-                $taskData['approval_stage'] = ($pType === 'outlines' || $pType === 'outline')
-                    ? 'Assignee'
-                    : Deliverable::OTHER_DELIVERABLE_STAGES[0];
+                $isOutline = ($pType === 'outlines' || $pType === 'outline');
+                if ($isOutline) {
+                    $taskData['approval_stage'] = 'Coordinator';
+                    $coordId = !empty($sub['writer_id']) ? $sub['writer_id'] : ($taskData['writer_id'] ?? $project->coordinator_id);
+                    $taskData['coordinator_id'] = $coordId;
+                    $taskData['writer_id'] = null;
+                    if ($coordId) {
+                        $u = \App\Models\User::find($coordId);
+                        if ($u) $taskData['assignee_name'] = $u->name;
+                    }
+                } else {
+                    $taskData['approval_stage'] = Deliverable::OTHER_DELIVERABLE_STAGES[0];
+                    if (!empty($sub['writer_id'])) {
+                        $taskData['writer_id'] = $sub['writer_id'];
+                        $u = \App\Models\User::find($sub['writer_id']);
+                        if ($u) $taskData['assignee_name'] = $u->name;
+                    }
+                }
             } else {
                 $taskData['approval_stage'] = Deliverable::STAGES[0];
+                if (!empty($sub['writer_id'])) {
+                    $taskData['writer_id'] = $sub['writer_id'];
+                    $u = \App\Models\User::find($sub['writer_id']);
+                    if ($u) $taskData['assignee_name'] = $u->name;
+                }
             } 
-            
-            if (!empty($sub['writer_id'])) {
-                $taskData['writer_id'] = $sub['writer_id'];
-                $u = \App\Models\User::find($sub['writer_id']);
-                if ($u) $taskData['assignee_name'] = $u->name;
-            }
 
             // Reference file(s) upload handling (from main form or subtask 0)
             $singleUploadedFiles = array_merge(
@@ -219,16 +233,29 @@ class DeliverableController extends Controller
             }
 
             $singleTask = Deliverable::create(array_merge($taskData, ['created_by' => auth()->id()]));
-            if ($project && in_array($project->workflow_type, ['campaign', 'pitch']) && $singleTask->writer) {
-                try {
-                    $singleTask->writer->notify(new \App\Notifications\DeliverableUpdated(
-                        $singleTask,
-                        "assigned you to deliverable **{$singleTask->title}**",
-                        'assignment',
-                        auth()->user()
-                    ));
-                } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning('Campaign deliverable store assignment notification error: ' . $e->getMessage());
+            if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
+                if ($singleTask->isOutline() && $singleTask->coordinator) {
+                    try {
+                        $singleTask->coordinator->notify(new \App\Notifications\DeliverableUpdated(
+                            $singleTask,
+                            "assigned you as coordinator for outline **{$singleTask->title}**",
+                            'assignment',
+                            auth()->user()
+                        ));
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('Campaign deliverable store assignment notification error: ' . $e->getMessage());
+                    }
+                } elseif ($singleTask->writer) {
+                    try {
+                        $singleTask->writer->notify(new \App\Notifications\DeliverableUpdated(
+                            $singleTask,
+                            "assigned you to deliverable **{$singleTask->title}**",
+                            'assignment',
+                            auth()->user()
+                        ));
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('Campaign deliverable store assignment notification error: ' . $e->getMessage());
+                    }
                 }
             }
             return redirect()->route('projects.show', $singleTask->project_id)->with('success', 'Deliverable created.');
@@ -244,10 +271,20 @@ class DeliverableController extends Controller
         }
         if ($project && in_array($project->workflow_type, ['campaign', 'pitch'])) {
             $pType = strtolower(trim($parentData['post_type'] ?? ''));
+            $isOutline = ($pType === 'outlines' || $pType === 'outline');
             if (empty($parentData['approval_stage']) || in_array($parentData['approval_stage'], ['Writer', 'Assign', 'Assignee'])) {
-                $parentData['approval_stage'] = ($pType === 'outlines' || $pType === 'outline')
-                    ? 'Assignee'
+                $parentData['approval_stage'] = $isOutline
+                    ? 'Coordinator'
                     : Deliverable::OTHER_DELIVERABLE_STAGES[0];
+            }
+            if ($isOutline) {
+                $coordId = $parentData['writer_id'] ?? $project->coordinator_id;
+                $parentData['coordinator_id'] = $coordId;
+                $parentData['writer_id'] = null;
+                if ($coordId) {
+                    $u = \App\Models\User::find($coordId);
+                    if ($u) $parentData['assignee_name'] = $u->name;
+                }
             }
         } else {
             if (empty($parentData['approval_stage'])) {
@@ -271,16 +308,29 @@ class DeliverableController extends Controller
             $parentTask = Deliverable::findOrFail($parentId);
         } else {
             $parentTask = Deliverable::create(array_merge($parentData, ['created_by' => auth()->id()]));
-            if ($project && in_array($project->workflow_type, ['campaign', 'pitch']) && empty($subtasks) && $parentTask->writer) {
-                try {
-                    $parentTask->writer->notify(new \App\Notifications\DeliverableUpdated(
-                        $parentTask,
-                        "assigned you to deliverable **{$parentTask->title}**",
-                        'assignment',
-                        auth()->user()
-                    ));
-                } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning('Campaign deliverable store assignment notification error: ' . $e->getMessage());
+            if ($project && in_array($project->workflow_type, ['campaign', 'pitch']) && empty($subtasks)) {
+                if ($parentTask->isOutline() && $parentTask->coordinator) {
+                    try {
+                        $parentTask->coordinator->notify(new \App\Notifications\DeliverableUpdated(
+                            $parentTask,
+                            "assigned you as coordinator for outline **{$parentTask->title}**",
+                            'assignment',
+                            auth()->user()
+                        ));
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('Campaign deliverable store assignment notification error: ' . $e->getMessage());
+                    }
+                } elseif ($parentTask->writer) {
+                    try {
+                        $parentTask->writer->notify(new \App\Notifications\DeliverableUpdated(
+                            $parentTask,
+                            "assigned you to deliverable **{$parentTask->title}**",
+                            'assignment',
+                            auth()->user()
+                        ));
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('Campaign deliverable store assignment notification error: ' . $e->getMessage());
+                    }
                 }
             }
         }
@@ -314,6 +364,10 @@ class DeliverableController extends Controller
                     $refUploadedBy = auth()->id();
                 }
 
+                $isSubOutline = ($parentTask->project && in_array($parentTask->project->workflow_type, ['campaign', 'pitch']) && (strtolower(trim($sub['post_type'] ?? ($parentTask->post_type ?? ''))) === 'outlines' || strtolower(trim($sub['post_type'] ?? ($parentTask->post_type ?? ''))) === 'outline'));
+                $subCoordId = $isSubOutline ? ($writerId ?: $parentTask->project->coordinator_id) : null;
+                $subCoordName = $subCoordId ? (\App\Models\User::find($subCoordId)?->name ?? 'Coordinator') : null;
+
                 $subDeliverable = Deliverable::create([
                     'parent_deliverable_id' => $parentTask->id,
                     'project_id' => $parentTask->project_id,
@@ -333,23 +387,35 @@ class DeliverableController extends Controller
                     'deadline' => $sub['deadline'] ?? $parentTask->deadline,
                     'priority' => $sub['priority'] ?? ($parentTask->priority ?? 'Medium'),
                     'approval_stage' => ($parentTask->project && in_array($parentTask->project->workflow_type, ['campaign', 'pitch']))
-                        ? ((strtolower(trim($sub['post_type'] ?? ($parentTask->post_type ?? ''))) === 'outlines' || strtolower(trim($sub['post_type'] ?? ($parentTask->post_type ?? ''))) === 'outline') ? 'Assignee' : Deliverable::OTHER_DELIVERABLE_STAGES[0])
+                        ? ($isSubOutline ? 'Coordinator' : Deliverable::OTHER_DELIVERABLE_STAGES[0])
                         : Deliverable::STAGES[0],
-                    'writer_id' => $writerId,
-                    'assignee_name' => $writerName,
+                    'coordinator_id' => $subCoordId,
+                    'writer_id' => $isSubOutline ? null : $writerId,
+                    'assignee_name' => $isSubOutline ? ($subCoordName ?: 'Coordinator') : $writerName,
                     'brand_manager_id' => $parentTask->brand_manager_id,
                     'revisions' => 0,
                 ]);
 
-                if ($parentTask->project && in_array($parentTask->project->workflow_type, ['campaign', 'pitch']) && $subDeliverable->writer) {
-                    try {
-                        $subDeliverable->writer->notify(new \App\Notifications\DeliverableUpdated(
-                            $subDeliverable,
-                            "assigned you to deliverable **{$subDeliverable->title}**",
-                            'assignment',
-                            auth()->user()
-                        ));
-                    } catch (\Throwable $e) {}
+                if ($parentTask->project && in_array($parentTask->project->workflow_type, ['campaign', 'pitch'])) {
+                    if ($isSubOutline && $subDeliverable->coordinator) {
+                        try {
+                            $subDeliverable->coordinator->notify(new \App\Notifications\DeliverableUpdated(
+                                $subDeliverable,
+                                "assigned you as coordinator for outline **{$subDeliverable->title}**",
+                                'assignment',
+                                auth()->user()
+                            ));
+                        } catch (\Throwable $e) {}
+                    } elseif ($subDeliverable->writer) {
+                        try {
+                            $subDeliverable->writer->notify(new \App\Notifications\DeliverableUpdated(
+                                $subDeliverable,
+                                "assigned you to deliverable **{$subDeliverable->title}**",
+                                'assignment',
+                                auth()->user()
+                            ));
+                        } catch (\Throwable $e) {}
+                    }
                 }
             }
         }

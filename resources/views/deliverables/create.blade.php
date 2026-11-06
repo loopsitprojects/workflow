@@ -1001,7 +1001,7 @@
                                 {{-- Format / Post Type --}}
                                 <div class="form-field-group">
                                     <label class="field-label">Deliverable Type <span class="field-required">*</span></label>
-                                    <select name="post_type" x-model="singlePostType" class="styled-input" :disabled="mode !== 'single'" :required="mode === 'single'">
+                                    <select name="post_type" x-model="singlePostType" class="styled-input" :disabled="mode !== 'single'" :required="mode === 'single'" @change="onPostTypeChange($event.target.value)">
                                         <option value="">Select Type...</option>
                                         <template x-for="t in currentSubtaskTypes" :key="t">
                                             <option :value="t" x-text="t"></option>
@@ -1070,23 +1070,32 @@
                             </h3>
                         </div>
                         <div class="form-section-body">
-                            {{-- Assigned Person --}}
+                            {{-- Assigned Person / Coordinator --}}
                             <div class="form-field-group">
-                                <label class="field-label">Assigned Person <span class="field-required">*</span></label>
+                                <label class="field-label">
+                                    <span x-text="((workflowType === 'campaign' || workflowType === 'pitch') && isOutlinesType(singlePostType)) ? 'Coordinator' : 'Assigned Person'"></span>
+                                    <span class="field-required">*</span>
+                                </label>
                                 @if(auth()->user()->role === 'Writer')
-                                    <input type="hidden" name="writer_id" value="{{ auth()->id() }}" :disabled="mode !== 'single'">
-                                    <div class="styled-input" style="cursor:default;opacity:0.8;display:flex;align-items:center;">{{ auth()->user()->name }}</div>
-                                @else
+                                    <div x-show="!((workflowType === 'campaign' || workflowType === 'pitch') && isOutlinesType(singlePostType))">
+                                        <input type="hidden" name="writer_id" value="{{ auth()->id() }}" :disabled="mode !== 'single' || ((workflowType === 'campaign' || workflowType === 'pitch') && isOutlinesType(singlePostType))">
+                                        <div class="styled-input" style="cursor:default;opacity:0.8;display:flex;align-items:center;">{{ auth()->user()->name }}</div>
+                                    </div>
+                                @endif
+                                <div x-show="{{ auth()->user()->role === 'Writer' ? '((workflowType === \'campaign\' || workflowType === \'pitch\') && isOutlinesType(singlePostType))' : 'true' }}">
                                     <div x-data="searchableUserSelect({
                                         getUsers: () => availableUsers,
+                                        getAllUsers: () => allUsers,
                                         selectedId: singleWriterId,
+                                        getSelectedId: () => singleWriterId,
+                                        getPlaceholder: () => ((workflowType === 'campaign' || workflowType === 'pitch') && isOutlinesType(singlePostType)) ? 'Select Coordinator...' : 'Select Assignee / Writer...',
                                         onSelect: (val) => { singleWriterId = val }
                                     })" 
                                          class="searchable-user-wrapper" 
                                          @click.outside="open = false"
                                          @single-writer-missing.window="showError = true; open = true; $nextTick(() => { if ($refs.searchInput) $refs.searchInput.focus(); })">
                                         
-                                        <input type="hidden" name="writer_id" :value="selectedId" :disabled="mode !== 'single'">
+                                        <input type="hidden" name="writer_id" :value="selectedId" :disabled="mode !== 'single' || {{ auth()->user()->role === 'Writer' ? '!((workflowType === \'campaign\' || workflowType === \'pitch\') && isOutlinesType(singlePostType))' : 'false' }}">
 
                                         {{-- Trigger Box --}}
                                         <div class="searchable-select-trigger"
@@ -1107,7 +1116,7 @@
                                                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                                         </svg>
-                                                        <span>Select Assignee / Writer...</span>
+                                                        <span x-text="currentPlaceholder"></span>
                                                     </div>
                                                 </template>
                                             </div>
@@ -1204,7 +1213,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                @endif
+                                </div>
                             </div>
 
                             {{-- Due Date --}}
@@ -1355,7 +1364,7 @@
                                             </div>
                                             <div>
                                                 <label class="field-label">Deliverable Type <span class="field-required">*</span></label>
-                                                <select :name="`subtasks[${index}][post_type]`" x-model="subtask.post_type" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'">
+                                                <select :name="`subtasks[${index}][post_type]`" x-model="subtask.post_type" class="styled-input" :disabled="mode !== 'batch'" :required="mode === 'batch'" @change="onSubtaskPostTypeChange(subtask)">
                                                     <option value="">Select Type...</option>
                                                     <template x-for="t in currentSubtaskTypes" :key="t">
                                                         <option :value="t" x-text="t"></option>
@@ -1367,10 +1376,16 @@
                                         {{-- Row 2: Assigned Person & Custom Due Date --}}
                                         <div class="form-grid-2" style="margin-bottom:12px;">
                                             <div>
-                                                <label class="field-label">Assigned Person <span class="field-required">*</span></label>
+                                                <label class="field-label">
+                                                    <span x-text="((workflowType === 'campaign' || workflowType === 'pitch') && isOutlinesType(subtask.post_type)) ? 'Coordinator' : 'Assigned Person'"></span>
+                                                    <span class="field-required">*</span>
+                                                </label>
                                                 <div x-data="searchableUserSelect({
-                                                    getUsers: () => availableUsers,
+                                                    getUsers: () => getAvailableUsersForSubtask(subtask.post_type),
+                                                    getAllUsers: () => allUsers,
                                                     selectedId: subtask.writer_id,
+                                                    getSelectedId: () => subtask.writer_id,
+                                                    getPlaceholder: () => ((workflowType === 'campaign' || workflowType === 'pitch') && isOutlinesType(subtask.post_type)) ? 'Select Coordinator...' : 'Select Assignee / Writer...',
                                                     onSelect: (val) => { subtask.writer_id = val; subtask.hasWriterError = false; }
                                                 })" 
                                                      class="searchable-user-wrapper" 
@@ -1397,7 +1412,7 @@
                                                                     <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                                                     </svg>
-                                                                    <span>Select Assignee / Writer...</span>
+                                                                    <span x-text="currentPlaceholder"></span>
                                                                 </div>
                                                             </template>
                                                         </div>
@@ -1606,15 +1621,35 @@
             return {
                 mode: '{{ isset($parentId) ? 'batch' : 'single' }}',
                 workflowType: '{{ $workflowType ?? 'retainer' }}',
+                projectCoordinatorId: '{{ $project->coordinator_id ?? '' }}',
+                projectWorkflows: @json($projects->pluck('workflow_type', 'id')),
+                projectCoordinators: @json($projects->pluck('coordinator_id', 'id')),
                 retainerTypes: @json($subtaskTypes->where('workflow_type', 'retainer')->pluck('name')->values()),
                 campaignTypes: @json($subtaskTypes->where('workflow_type', 'campaign')->pluck('name')->values()),
-                singlePostType: '',
+                singlePostType: '{{ old('post_type', $parentTask->post_type ?? '') }}',
                 singleWriterId: '{{ auth()->user()->role === 'Writer' ? auth()->id() : old('writer_id', $parentTask->writer_id ?? '') }}',
                 allUsers: @json(($allUsers ?? $users)->map(fn($u) => ['id' => (string)$u->id, 'name' => $u->name, 'role' => $u->role ?? ''])->values()),
                 retainerUsers: @json(($allUsers ?? $users)->filter(fn($u) => strtolower($u->role ?? '') === 'writer')->map(fn($u) => ['id' => (string)$u->id, 'name' => $u->name, 'role' => $u->role ?? ''])->values()),
                 subtasks: [],
                 subtaskCounter: 0,
                 isSubmitting: false,
+
+                onPostTypeChange(val) {
+                    if ((this.workflowType === 'campaign' || this.workflowType === 'pitch') && this.isOutlinesType(val)) {
+                        if (this.projectCoordinatorId) {
+                            this.singleWriterId = String(this.projectCoordinatorId);
+                        }
+                    }
+                },
+
+                onSubtaskPostTypeChange(subtask) {
+                    if ((this.workflowType === 'campaign' || this.workflowType === 'pitch') && this.isOutlinesType(subtask.post_type)) {
+                        if (this.projectCoordinatorId) {
+                            subtask.writer_id = String(this.projectCoordinatorId);
+                        }
+                    }
+                },
+
                 handleSubmit(e) {
                     if (this.isSubmitting) {
                         e.preventDefault();
@@ -1623,8 +1658,12 @@
                     if (this.mode === 'single') {
                         if (!this.singleWriterId) {
                             e.preventDefault();
+                            const isOutline = (this.workflowType === 'campaign' || this.workflowType === 'pitch') && this.isOutlinesType(this.singlePostType);
+                            const msg = isOutline
+                                ? 'Please select a Coordinator for this deliverable.'
+                                : 'Please select an Assigned Person for this deliverable.';
                             window.dispatchEvent(new CustomEvent('toast', { 
-                                detail: { message: 'Please select an Assigned Person for this deliverable.', type: 'error' } 
+                                detail: { message: msg, type: 'error' } 
                             }));
                             window.dispatchEvent(new CustomEvent('single-writer-missing'));
                             return;
@@ -1634,8 +1673,12 @@
                             if (!this.subtasks[i].writer_id) {
                                 e.preventDefault();
                                 this.subtasks[i].hasWriterError = true;
+                                const isOutline = (this.workflowType === 'campaign' || this.workflowType === 'pitch') && this.isOutlinesType(this.subtasks[i].post_type);
+                                const msg = isOutline
+                                    ? `Please select a Coordinator for Deliverable #${i + 1}.`
+                                    : `Please select an Assigned Person for Deliverable #${i + 1}.`;
                                 window.dispatchEvent(new CustomEvent('toast', { 
-                                    detail: { message: `Please select an Assigned Person for Deliverable #${i + 1}.`, type: 'error' } 
+                                    detail: { message: msg, type: 'error' } 
                                 }));
                                 const cards = document.querySelectorAll('.deliverable-item-card');
                                 if (cards && cards[i]) {
@@ -1651,29 +1694,58 @@
                         overlay.style.display = 'flex';
                     }
                 },
+
                 get availableUsers() {
                     const isCampaignOrPitch = (this.workflowType === 'campaign' || this.workflowType === 'pitch');
+                    if (isCampaignOrPitch && this.isOutlinesType(this.singlePostType)) {
+                        const coords = this.allUsers.filter(u => {
+                            const r = (u.role || '').toLowerCase();
+                            return r.includes('coordinator') || r.includes('operations') || r === 'admin' || r === 'owner';
+                        });
+                        return coords.length > 0 ? coords : this.allUsers;
+                    }
                     return isCampaignOrPitch ? this.allUsers : this.retainerUsers;
                 },
+
+                getAvailableUsersForSubtask(postType) {
+                    const isCampaignOrPitch = (this.workflowType === 'campaign' || this.workflowType === 'pitch');
+                    if (isCampaignOrPitch && this.isOutlinesType(postType)) {
+                        const coords = this.allUsers.filter(u => {
+                            const r = (u.role || '').toLowerCase();
+                            return r.includes('coordinator') || r.includes('operations') || r === 'admin' || r === 'owner';
+                        });
+                        return coords.length > 0 ? coords : this.allUsers;
+                    }
+                    return isCampaignOrPitch ? this.allUsers : this.retainerUsers;
+                },
+
                 get currentSubtaskTypes() {
                     const types = (this.workflowType === 'campaign' || this.workflowType === 'pitch') 
                         ? this.campaignTypes 
                         : this.retainerTypes;
                     return types.length ? types : ['Static Post', 'Carousel', 'Reel', 'Story', 'Outlines', 'Graphic'];
                 },
+
                 init() {
-                    this.singlePostType = '';
                     if (this.workflowType === 'campaign' || this.workflowType === 'pitch') {
                         this.mode = 'single';
                     }
+                    if ((this.workflowType === 'campaign' || this.workflowType === 'pitch') && this.isOutlinesType(this.singlePostType)) {
+                        if (!this.singleWriterId && this.projectCoordinatorId) {
+                            this.singleWriterId = String(this.projectCoordinatorId);
+                        }
+                    }
+                    this.$watch('singlePostType', (val) => this.onPostTypeChange(val));
                     this.addSubtask();
                 },
+
                 isOutlinesType(type) {
                     if (this.workflowType === 'retainer') return true;
                     if (!type) return false;
                     const t = type.toString().trim().toLowerCase();
                     return t === 'outlines' || t === 'outline';
                 },
+
                 setMode(newMode) {
                     if (this.workflowType === 'campaign' || this.workflowType === 'pitch') {
                         this.mode = 'single';
@@ -1684,6 +1756,7 @@
                         this.addSubtask();
                     }
                 },
+
                 addSubtask() {
                     this.subtaskCounter++;
                     this.subtasks.push({
@@ -1700,15 +1773,17 @@
                         reference: ''
                     });
                 },
+
                 removeSubtask(index) {
                     if (this.subtasks.length > 1) {
                         this.subtasks.splice(index, 1);
                     }
                 },
+
                 updateProjectWorkflow(projectId) {
-                    const projectWorkflows = @json($projects->pluck('workflow_type', 'id'));
-                    if (projectId && projectWorkflows[projectId]) {
-                        this.workflowType = projectWorkflows[projectId];
+                    if (projectId && this.projectWorkflows[projectId]) {
+                        this.workflowType = this.projectWorkflows[projectId];
+                        this.projectCoordinatorId = this.projectCoordinators[projectId] || '';
                         this.singlePostType = '';
                         if (this.workflowType === 'campaign' || this.workflowType === 'pitch') {
                             this.setMode('single');
@@ -1723,9 +1798,12 @@
                 open: false,
                 search: '',
                 getUsers: config.getUsers || null,
+                getAllUsers: config.getAllUsers || null,
                 _users: config.users || [],
                 selectedId: config.selectedId ? String(config.selectedId) : '',
+                getSelectedId: config.getSelectedId || null,
                 onSelect: config.onSelect || null,
+                getPlaceholder: config.getPlaceholder || null,
                 showError: false,
                 highlightedIndex: 0,
                 placeholder: config.placeholder || 'Select Assignee / Writer...',
@@ -1734,6 +1812,18 @@
                     if (this.selectedId && this.onSelect) {
                         this.onSelect(this.selectedId);
                     }
+                    if (typeof this.getSelectedId === 'function') {
+                        this.$watch(() => this.getSelectedId(), (val) => {
+                            this.selectedId = val ? String(val) : '';
+                        });
+                    }
+                },
+
+                get currentPlaceholder() {
+                    if (typeof this.getPlaceholder === 'function') {
+                        return this.getPlaceholder() || this.placeholder;
+                    }
+                    return this.placeholder;
                 },
 
                 get users() {
@@ -1743,9 +1833,17 @@
                     return this._users || [];
                 },
 
+                get allUsersList() {
+                    if (typeof this.getAllUsers === 'function') {
+                        return this.getAllUsers() || [];
+                    }
+                    return this.users;
+                },
+
                 get selectedUser() {
                     if (!this.selectedId) return null;
-                    return this.users.find(u => String(u.id) === String(this.selectedId)) || null;
+                    return this.users.find(u => String(u.id) === String(this.selectedId)) || 
+                           this.allUsersList.find(u => String(u.id) === String(this.selectedId)) || null;
                 },
 
                 get filteredUsers() {

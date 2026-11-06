@@ -277,3 +277,72 @@ test('advancing outline from Designer stage skips Writer Review straight to Appr
     $deliverable->refresh();
     expect($deliverable->approval_stage)->toBe('Approver Review');
 });
+
+test('creating outline deliverable via deliverables.store sets Coordinator stage and coordinator_id', function () {
+    Notification::fake();
+
+    $response = $this->actingAs($this->brandManager)->post(route('deliverables.store'), [
+        'project_id' => $this->campaignProject->id,
+        'title' => 'Single Master Outline',
+        'post_type' => 'Outlines',
+        'writer_id' => $this->coordinator->id,
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 0,
+        'deadline' => now()->addDays(7)->toDateString(),
+        'priority' => 'Medium',
+    ]);
+
+    $response->assertRedirect(route('projects.show', $this->campaignProject->id));
+
+    $deliverable = Deliverable::where('title', 'Single Master Outline')->first();
+    expect($deliverable)->not->toBeNull();
+    expect($deliverable->coordinator_id)->toBe($this->coordinator->id);
+    expect($deliverable->writer_id)->toBeNull();
+    expect($deliverable->approval_stage)->toBe('Coordinator');
+    expect($deliverable->assignee_name)->toBe($this->coordinator->name);
+    expect($deliverable->isOutline())->toBeTrue();
+});
+
+test('creating outline batch deliverable via deliverables.store sets Coordinator stage and coordinator_id for subtasks', function () {
+    Notification::fake();
+
+    $response = $this->actingAs($this->brandManager)->post(route('deliverables.store'), [
+        'project_id' => $this->campaignProject->id,
+        'title' => 'Campaign Outlines Batch',
+        'post_type' => 'Outlines',
+        'writer_id' => $this->coordinator->id,
+        'status' => 'To Do',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 0,
+        'deadline' => now()->addDays(10)->toDateString(),
+        'priority' => 'Medium',
+        'subtasks' => [
+            [
+                'title' => 'Sub Outline 1',
+                'post_type' => 'Outlines',
+                'writer_id' => $this->coordinator->id,
+                'deadline' => now()->addDays(7)->toDateString(),
+            ],
+            [
+                'title' => 'Sub Standard Post',
+                'post_type' => 'KV',
+                'writer_id' => $this->writer->id,
+                'deadline' => now()->addDays(8)->toDateString(),
+            ],
+        ],
+    ]);
+
+    $response->assertRedirect(route('projects.show', $this->campaignProject->id));
+
+    $sub1 = Deliverable::where('title', 'Sub Outline 1')->first();
+    expect($sub1)->not->toBeNull();
+    expect($sub1->coordinator_id)->toBe($this->coordinator->id);
+    expect($sub1->writer_id)->toBeNull();
+    expect($sub1->approval_stage)->toBe('Coordinator');
+
+    $sub2 = Deliverable::where('title', 'Sub Standard Post')->first();
+    expect($sub2)->not->toBeNull();
+    expect($sub2->writer_id)->toBe($this->writer->id);
+    expect($sub2->approval_stage)->toBe('Assign');
+});
