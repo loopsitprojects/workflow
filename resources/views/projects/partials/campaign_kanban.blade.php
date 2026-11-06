@@ -289,6 +289,7 @@ const kanbanCanManageDeliverables = {{ $canManageDeliverables ? 'true' : 'false'
 const kanbanProjectApproverId = {{ $project->approver_id ?? ($project->brand_manager_id ?? ($project->lead_id ?? 'null')) }};
 const kanbanProjectExplicitApproverId = {{ $project->approver_id ?? 'null' }};
 const kanbanProjectBrandManagerId = {{ $project->brand_manager_id ?? 'null' }};
+const kanbanProjectCoordinatorId = {{ $project->coordinator_id ?? 'null' }};
 const kanbanProjectName = @json($project->name ?? 'Campaign Project');
 
 function canUserReassignDeliverable(taskOrId) {
@@ -303,6 +304,15 @@ function canUserReassignDeliverable(taskOrId) {
     if (task && task.approver_id && Number(task.approver_id) === currentUserId) return true;
     if (kanbanProjectExplicitApproverId && Number(kanbanProjectExplicitApproverId) === currentUserId) return true;
     if (kanbanProjectBrandManagerId && Number(kanbanProjectBrandManagerId) === currentUserId) return true;
+
+    // Check if task is outline and current user is coordinator
+    const postType = (task?.post_type || '').toLowerCase().trim();
+    const isOutline = (postType === 'outlines' || postType === 'outline');
+    if (isOutline && task) {
+        if (task.coordinator_id && Number(task.coordinator_id) === currentUserId) return true;
+        if (kanbanProjectCoordinatorId && Number(kanbanProjectCoordinatorId) === currentUserId) return true;
+        if (role === 'coordinator') return true;
+    }
     return false;
 }
 
@@ -416,9 +426,11 @@ campaignDeliverablesData[{{ $t->id }}] = {
     has_artwork: {{ $t->hasArtwork() ? 'true' : 'false' }},
     writer_id: {{ $t->writer_id ?? 'null' }},
     designer_id: {{ $t->designer_id ?? 'null' }},
+    coordinator_id: {{ $t->coordinator_id ?? 'null' }},
+    approval_stage: @json($t->approval_stage ?? ''),
     approver_id: {{ $t->approver_id ?? ($project->approver_id ?? 'null') }},
     created_by: {{ $t->created_by ?? ($t->effective_creator_id ?? 'null') }},
-    assignee_name: @json($t->writer?->name ?? ($t->designer?->name ?? 'Unassigned')),
+    assignee_name: @json($t->assignee_name ?: ($t->writer?->name ?? ($t->designer?->name ?? ($t->coordinator?->name ?? 'Unassigned')))),
     approver_name: @json($t->approver?->name ?? null),
     created_at_formatted: @json($createdFmt),
     revisions: {{ (int)($t->revisions ?? 0) }},
@@ -4273,10 +4285,12 @@ function renderCampaignDetailsModalContent(task) {
         }
 
         if (canUserReassignDeliverable(task)) {
+            const isOutlineCard = ['outlines', 'outline'].includes((task.post_type || '').toLowerCase().trim());
+            const isAssigningDesigner = isOutlineCard && (!task.designer_id || task.approval_stage === 'Coordinator');
             quickActionsHtml += `
                 <button type="button" class="cd-btn-outline" style="width: 100%; color: #3b82f6; border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'" onmouseout="this.style.background='rgba(59,130,246,0.06)'" onclick="openCampaignReassignModal(${task.id})">
                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                    <span>Reassign Deliverable</span>
+                    <span>${isAssigningDesigner ? 'Assign Designer' : 'Reassign Deliverable'}</span>
                 </button>
             `;
         }
@@ -4354,8 +4368,8 @@ function renderCampaignDetailsModalContent(task) {
                                 style="background: var(--badge-blue-bg, rgba(59,130,246,0.15)); border: 1px solid var(--badge-blue-border, rgba(147,197,253,0.35)); color: var(--badge-blue-text, #93c5fd); padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 700; cursor: pointer; transition: all 0.15s;" 
                                 onmouseover="this.style.background='rgba(59,130,246,0.25)'" 
                                 onmouseout="this.style.background='var(--badge-blue-bg, rgba(59,130,246,0.15))'" 
-                                title="Reassign deliverable assignee">
-                            Reassign
+                                title="${(['outlines', 'outline'].includes((task.post_type || '').toLowerCase().trim()) && (!task.designer_id || task.approval_stage === 'Coordinator')) ? 'Assign designer' : 'Reassign deliverable assignee'}">
+                            ${(['outlines', 'outline'].includes((task.post_type || '').toLowerCase().trim()) && (!task.designer_id || task.approval_stage === 'Coordinator')) ? 'Assign Designer' : 'Reassign'}
                         </button>
                         ` : ''}
                     </div>
@@ -4817,7 +4831,7 @@ function openCampaignReassignModal(taskId) {
     const task = campaignDeliverablesData[taskId] || null;
     if (!canUserReassignDeliverable(task)) {
         window.dispatchEvent(new CustomEvent('toast', {
-            detail: { message: 'Only an Approver, Brand Manager, or Administrator can reassign deliverables.', type: 'warning' }
+            detail: { message: 'Only an Approver, Brand Manager, Coordinator, or Administrator can reassign deliverables.', type: 'warning' }
         }));
         return;
     }
@@ -4829,6 +4843,15 @@ function openCampaignReassignModal(taskId) {
     const title = (card ? card.querySelector('#card-view-title-' + taskId)?.textContent : null) || task?.title || 'Deliverable';
     const currentName = task?.assignee_name || (card ? card.querySelector('#card-view-assignee-badge-' + taskId)?.textContent?.trim() : null) || 'Unassigned';
 
+    const pType = (task?.post_type || '').toLowerCase().trim();
+    const isOutline = (pType === 'outlines' || pType === 'outline');
+    const isAssigningDesigner = isOutline && (!task?.designer_id || task?.approval_stage === 'Coordinator');
+
+    const headerTitleEl = document.getElementById('campaignReassignHeaderTitle');
+    if (headerTitleEl) {
+        headerTitleEl.textContent = isAssigningDesigner ? 'Assign Designer' : 'Reassign Deliverable';
+    }
+
     const titleEl = document.getElementById('campaignReassignTaskTitle');
     if (titleEl) titleEl.textContent = title;
 
@@ -4836,13 +4859,23 @@ function openCampaignReassignModal(taskId) {
     if (currentNameEl) currentNameEl.textContent = currentName;
 
     const reasonEl = document.getElementById('campaignReassignReason');
-    if (reasonEl) reasonEl.value = '';
+    if (reasonEl) {
+        reasonEl.value = isAssigningDesigner ? 'Assigned to designer for artwork production' : '';
+    }
 
     const sel = document.getElementById('campaignReassignSelect');
     if (sel) {
-        sel.innerHTML = '<option value="">Select team member…</option>';
+        sel.innerHTML = `<option value="">Select ${isAssigningDesigner ? 'designer' : 'team member'}…</option>`;
         if (Array.isArray(kanbanSelectableUsers)) {
-            kanbanSelectableUsers.forEach(u => {
+            const sortedUsers = isAssigningDesigner
+                ? [...kanbanSelectableUsers].sort((a, b) => {
+                    const aDes = (a.role || '').toLowerCase() === 'designer';
+                    const bDes = (b.role || '').toLowerCase() === 'designer';
+                    return bDes - aDes;
+                })
+                : kanbanSelectableUsers;
+
+            sortedUsers.forEach(u => {
                 sel.innerHTML += `<option value="${u.id}">${escapeHtml(u.name)} (${escapeHtml(u.role)})</option>`;
             });
         }
@@ -4908,6 +4941,9 @@ async function submitCampaignReassignment(btn) {
             // 1. Update campaignDeliverablesData cache
             if (campaignDeliverablesData[taskId]) {
                 campaignDeliverablesData[taskId].assignee_name = newName;
+                if (result.designer_id) campaignDeliverablesData[taskId].designer_id = result.designer_id;
+                if (result.approval_stage) campaignDeliverablesData[taskId].approval_stage = result.approval_stage;
+                if (result.status) campaignDeliverablesData[taskId].status = result.status;
                 campaignDeliverablesData[taskId].writer_id = newUserId;
                 if (!Array.isArray(campaignDeliverablesData[taskId].reassignments_history)) {
                     campaignDeliverablesData[taskId].reassignments_history = [];
@@ -4920,7 +4956,10 @@ async function submitCampaignReassignment(btn) {
             // 2. Update card view elements
             updateCardViewElements(taskId, {
                 assignee_name: newName,
-                writer_id: newUserId
+                writer_id: newUserId,
+                designer_id: result.designer_id,
+                approval_stage: result.approval_stage,
+                status: result.status
             });
 
             // 3. Update card editor elements
@@ -5091,7 +5130,7 @@ document.addEventListener('keydown', function(event) {
                     </svg>
                 </div>
                 <div>
-                    <h3 style="margin: 0; font-size: 14.5px; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.04em;">Reassign Deliverable</h3>
+                    <h3 id="campaignReassignHeaderTitle" style="margin: 0; font-size: 14.5px; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.04em;">Reassign Deliverable</h3>
                     <div id="campaignReassignTaskTitle" style="font-size: 11.5px; color: var(--color-text-secondary); margin-top: 1px; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Deliverable</div>
                 </div>
             </div>

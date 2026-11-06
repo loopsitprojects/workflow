@@ -252,24 +252,40 @@ class ProjectController extends Controller
                                 ? $itemDates[$i]
                                 : ($typeDeadline ?: $batchDeadline);
 
-                            $assignedUserId = !empty($itemAssignees[$i])
-                                ? (int)$itemAssignees[$i]
-                                : ($project->writer_id ?? null);
-
-                            $assignedUser = $assignedUserId ? ($assignedUsersMap[$assignedUserId] ?? null) : null;
-                            $assignedName = $assignedUser?->name ?? ($project->writer?->name ?? 'Unassigned');
-
-                            $itemData = [
-                                'title'         => $typeName . ' ' . $i,
-                                'post_type'     => $isOutline ? 'Outlines' : $typeName,
-                                'deadline'      => $deliverableDeadline,
-                                'writer_id'     => $assignedUserId,
-                                'assignee_name' => $assignedName,
-                            ];
-
                             if ($isOutline) {
+                                $assignedUserId = !empty($itemAssignees[$i])
+                                    ? (int)$itemAssignees[$i]
+                                    : ($project->coordinator_id ?? null);
+
+                                $assignedUser = $assignedUserId ? ($assignedUsersMap[$assignedUserId] ?? null) : null;
+                                $assignedName = $assignedUser?->name ?? ($project->coordinator?->name ?? 'Unassigned');
+
+                                $itemData = [
+                                    'title'          => $typeName . ' ' . $i,
+                                    'post_type'      => 'Outlines',
+                                    'deadline'       => $deliverableDeadline,
+                                    'coordinator_id' => $assignedUserId,
+                                    'writer_id'      => null,
+                                    'assignee_name'  => $assignedName,
+                                    'approval_stage' => 'Coordinator',
+                                ];
                                 $outlineItems[] = $itemData;
                             } else {
+                                $assignedUserId = !empty($itemAssignees[$i])
+                                    ? (int)$itemAssignees[$i]
+                                    : ($project->writer_id ?? null);
+
+                                $assignedUser = $assignedUserId ? ($assignedUsersMap[$assignedUserId] ?? null) : null;
+                                $assignedName = $assignedUser?->name ?? ($project->writer?->name ?? 'Unassigned');
+
+                                $itemData = [
+                                    'title'          => $typeName . ' ' . $i,
+                                    'post_type'      => $typeName,
+                                    'deadline'       => $deliverableDeadline,
+                                    'writer_id'      => $assignedUserId,
+                                    'assignee_name'  => $assignedName,
+                                    'approval_stage' => \App\Models\Deliverable::OTHER_DELIVERABLE_STAGES[0],
+                                ];
                                 $otherItems[] = $itemData;
                             }
                         }
@@ -296,15 +312,16 @@ class ProjectController extends Controller
 
                     // 1. Create Outline parent and children if outline items exist
                     if (!empty($outlineItems)) {
-                        $parentAssigneeId = $outlineItems[0]['writer_id'] ?? $project->writer_id;
-                        $parentAssigneeName = $outlineItems[0]['assignee_name'] ?? $writerName;
+                        $parentAssigneeId = $outlineItems[0]['coordinator_id'] ?? $project->coordinator_id;
+                        $parentAssigneeName = $outlineItems[0]['assignee_name'] ?? ($project->coordinator?->name ?? 'Unassigned');
 
                         $outlineParent = \App\Models\Deliverable::create(array_merge($baseRow, [
                             'title'          => $batchName,
                             'post_type'      => 'Outlines',
                             'deadline'       => $batchDeadline,
-                            'approval_stage' => \App\Models\Deliverable::CAMPAIGN_STAGES[0],
-                            'writer_id'      => $parentAssigneeId,
+                            'approval_stage' => 'Coordinator',
+                            'coordinator_id' => $parentAssigneeId,
+                            'writer_id'      => null,
                             'assignee_name'  => $parentAssigneeName,
                         ]));
 
@@ -315,8 +332,9 @@ class ProjectController extends Controller
                                 'title'                 => $item['title'],
                                 'post_type'             => $item['post_type'],
                                 'deadline'              => $item['deadline'],
-                                'approval_stage'        => \App\Models\Deliverable::CAMPAIGN_STAGES[0],
-                                'writer_id'             => $item['writer_id'],
+                                'approval_stage'        => 'Coordinator',
+                                'coordinator_id'        => $item['coordinator_id'],
+                                'writer_id'             => null,
                                 'assignee_name'         => $item['assignee_name'],
                             ]);
                         }
@@ -438,14 +456,23 @@ class ProjectController extends Controller
                     $normTypeName = strtolower(trim($typeName));
                     $isOutline = ($normTypeName === 'outlines' || $normTypeName === 'outline');
                     $stage = $isCampaignOrPitch
-                        ? ($isOutline ? \App\Models\Deliverable::CAMPAIGN_STAGES[0] : \App\Models\Deliverable::OTHER_DELIVERABLE_STAGES[0])
+                        ? ($isOutline ? 'Coordinator' : \App\Models\Deliverable::OTHER_DELIVERABLE_STAGES[0])
                         : \App\Models\Deliverable::STAGES[0];
+
+                    $coordId = ($isCampaignOrPitch && $isOutline) ? ($project->coordinator_id ?? null) : null;
+                    $writerId = ($isCampaignOrPitch && $isOutline) ? null : ($project->writer_id ?? null);
+                    $assigneeName = ($isCampaignOrPitch && $isOutline)
+                        ? ($project->coordinator?->name ?? 'Unassigned')
+                        : ($project->writer?->name ?? 'Unassigned');
 
                     $parent = \App\Models\Deliverable::create(array_merge($baseRow, [
                         'title'          => $typeName,
                         'post_type'      => $typeName,
                         'deadline'       => $itemDeadline,
                         'approval_stage' => $stage,
+                        'coordinator_id' => $coordId,
+                        'writer_id'      => $writerId,
+                        'assignee_name'  => $assigneeName,
                     ]));
 
                     $children = [];
@@ -456,6 +483,9 @@ class ProjectController extends Controller
                             'post_type'             => $typeName,
                             'deadline'              => $itemDeadline,
                             'approval_stage'        => $stage,
+                            'coordinator_id'        => $coordId,
+                            'writer_id'             => $writerId,
+                            'assignee_name'         => $assigneeName,
                         ]);
                     }
                     \App\Models\Deliverable::insert($children);

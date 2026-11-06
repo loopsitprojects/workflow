@@ -89,6 +89,11 @@ class CampaignWorkflowService implements WorkflowInterface
 
         $nextStage = $stages[$currentIndex + 1];
 
+        // Outline flow: If advancing from Designer and no writer was assigned, skip Writer Review and go straight to Approver Review
+        if ($stage === 'Designer' && empty($deliverable->writer_id) && empty($data['writer_id'])) {
+            $nextStage = 'Approver Review';
+        }
+
         // Route Approver → Further Approver stage when a further approver is selected.
         $routingToFurtherApprover = ($stage === 'Approver' && !empty($data['further_approver_id']));
         if ($routingToFurtherApprover) {
@@ -378,6 +383,13 @@ class CampaignWorkflowService implements WorkflowInterface
         $deliverable->revision_deadline = null;
         $deliverable->revision_target = null;
         $deliverable->status = ($nextStage === 'Closed' || $nextStage === 'closed') ? 'Done' : 'To Do';
+        if ($nextStage === 'Designer' && $deliverable->designer_id) {
+            $des = $deliverable->designer ?? User::find($deliverable->designer_id);
+            if ($des) {
+                $deliverable->assignee_name = $des->name;
+            }
+            $deliverable->status = 'In Progress';
+        }
         $deliverable->is_ready = false;
         if ($hoursSpent) {
             $deliverable->work_hours = ($deliverable->work_hours ?? 0) + $hoursSpent;
@@ -425,15 +437,23 @@ class CampaignWorkflowService implements WorkflowInterface
         } elseif (in_array($oldStage, ['Final Approval', 'AM/BD', 'Approver Review'])) {
             $target = $validatedData['revision_target'] ?? 'designer';
             if ($target === 'writer') {
-                // Route back to Writer Review so the Writer can adjust copy/caption
-                // without resetting the entire pre-designer workflow back to Stage 1.
-                $deliverable->approval_stage = 'Writer Review';
+                if (empty($deliverable->writer_id)) {
+                    $deliverable->approval_stage = 'Designer';
+                    $target = 'designer';
+                } else {
+                    $deliverable->approval_stage = 'Writer Review';
+                }
             } else {
                 $deliverable->approval_stage = 'Designer';
             }
         } else {
-            $target = 'writer';
-            $deliverable->approval_stage = $firstStage;
+            if (empty($deliverable->writer_id) && $deliverable->coordinator_id) {
+                $target = 'coordinator';
+                $deliverable->approval_stage = 'Coordinator';
+            } else {
+                $target = 'writer';
+                $deliverable->approval_stage = $firstStage;
+            }
         }
 
         $deliverable->status = 'In Progress';

@@ -298,14 +298,19 @@ class Deliverable extends Model
         return ($this->flow_type ?? null) === 'direct_design' || ($this->parent?->flow_type ?? null) === 'direct_design';
     }
 
+    public function isOutline(): bool
+    {
+        $postType = $this->post_type ?? $this->parent?->post_type;
+        $normType = strtolower(trim($postType ?? ''));
+        return in_array($normType, ['outlines', 'outline']);
+    }
+
     public function isOtherDeliverable(): bool
     {
         if ($this->isDirectDesign()) return false;
         $projectType = $this->project?->workflow_type ?? 'retainer';
         if ($projectType === 'retainer') return false;
-        $postType = $this->post_type ?? $this->parent?->post_type;
-        $normType = strtolower(trim($postType ?? ''));
-        return !in_array($normType, ['outlines', 'outline']);
+        return !$this->isOutline();
     }
 
     public function getWorkflow(): \App\Services\Workflows\WorkflowInterface
@@ -475,8 +480,14 @@ class Deliverable extends Model
             }
         }
 
-        $assignedName = $this->assignee_name
-            ?: ($this->writer?->name ?: ($this->project?->writer?->name ?: ($historyNames['writer'] ?? 'None')));
+        if ($this->approval_stage === 'Coordinator' || (!$this->writer_id && !$this->designer_id && $this->coordinator_id)) {
+            $assignedName = $this->assignee_name ?: ($this->coordinator?->name ?: ($this->project?->coordinator?->name ?: 'Unassigned'));
+        } elseif ($this->approval_stage === 'Designer' || (!$this->writer_id && $this->designer_id)) {
+            $assignedName = $this->assignee_name ?: ($this->designer?->name ?: ($this->project?->designer?->name ?: 'Unassigned'));
+        } else {
+            $assignedName = $this->assignee_name
+                ?: ($this->writer?->name ?: ($this->project?->writer?->name ?: ($this->designer?->name ?: ($this->coordinator?->name ?: ($historyNames['writer'] ?? 'None')))));
+        }
 
         return [
             'writer'        => $this->writer?->name        ?: ($this->project?->writer?->name        ?: ($historyNames['writer']        ?? 'None')),
@@ -691,10 +702,16 @@ class Deliverable extends Model
             return true;
         }
 
-        // Designers: can ONLY remove artwork if the deliverable is currently in the Designer stage
+        // Designers: can ONLY remove artwork if the deliverable is currently in the Designer stage and they uploaded it (or are assigned)
         $isDesignerUser = ($user->role === 'Designer') || ($this->designer_id && (int)$user->id === (int)$this->designer_id) || ($this->artwork_uploaded_by && (int)$user->id === (int)$this->artwork_uploaded_by && $user->role === 'Designer');
         if ($isDesignerUser) {
-            return $this->approval_stage === 'Designer';
+            if ($this->approval_stage !== 'Designer') {
+                return false;
+            }
+            if ($this->artwork_uploaded_by) {
+                return (int)$user->id === (int)$this->artwork_uploaded_by;
+            }
+            return true;
         }
 
         // If the user uploaded this artwork and is not a designer

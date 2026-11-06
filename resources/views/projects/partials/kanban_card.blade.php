@@ -1,5 +1,5 @@
 @php
-    $assigneeFullName = $task->assignee_name ?: ($task->writer?->name ?? ($task->designer?->name ?? 'Unassigned'));
+    $assigneeFullName = $task->assignee_name ?: ($task->writer?->name ?? ($task->designer?->name ?? ($task->coordinator?->name ?? 'Unassigned')));
     $hasAssignee = !empty($assigneeFullName) && strtolower($assigneeFullName) !== 'unassigned';
     $assigneeDisplay = $hasAssignee ? $assigneeFullName : 'Unassigned';
     $assigneeInitial = $hasAssignee
@@ -45,7 +45,13 @@
     $isSuperAdmin = $currentUser && $currentUser->isAdmin();
     $isAdminOrManager = $currentUser && ($currentUser->isAdmin() || in_array($currentUser->role, ['Admin', 'Owner', 'Operations Manager']));
 
-    $assignedUserId = $task->writer_id ?: ($task->designer_id ?: null);
+    if ($task->approval_stage === 'Coordinator' || (!$task->writer_id && !$task->designer_id && $task->coordinator_id)) {
+        $assignedUserId = $task->coordinator_id;
+    } elseif ($task->approval_stage === 'Designer' || (!$task->writer_id && $task->designer_id)) {
+        $assignedUserId = $task->designer_id;
+    } else {
+        $assignedUserId = $task->writer_id ?: ($task->designer_id ?: ($task->coordinator_id ?: null));
+    }
     $isAssignee = $assignedUserId && $currentUserId == $assignedUserId;
     $isUnassigned = !$assignedUserId;
 
@@ -60,13 +66,15 @@
     // Deliverable editor permission: Super Admin, Creator, or users with manage permissions (Brand Managers, Managers, Approvers)
     $canEditCard = $isSuperAdmin || $isCreator || ($canManageDeliverables ?? false);
 
-    // Reassignment permission: Only Approver, Brand Manager, or Admin
+    // Reassignment permission: Only Approver, Brand Manager, Coordinator (for outline), or Admin
     $userRole = strtolower(trim((string)($currentUser?->role ?? '')));
     $isProjectBrandManager = ($task->project?->brand_manager_id && (int)$currentUserId === (int)$task->project->brand_manager_id);
+    $isCoordinator = ($task->coordinator_id && (int)$currentUserId === (int)$task->coordinator_id) || ($task->project?->coordinator_id && (int)$currentUserId === (int)$task->project->coordinator_id);
     $canReassignDeliverable = $isSuperAdmin 
         || in_array($userRole, ['admin', 'owner', 'operations manager', 'brand manager', 'approver', 'approver coordinator']) 
         || $isApprover 
-        || $isProjectBrandManager;
+        || $isProjectBrandManager
+        || ($task->isOutline() && $isCoordinator);
 
     $artworkFiles = $task->getFinalDesignsArray();
     $hasArtwork = !empty($artworkFiles);
@@ -296,29 +304,29 @@
                     @if($canReassignDeliverable || !$hasAssignee)
                     <select name="writer_id" 
                             id="card-input-writer-{{ $task->id }}"
-                            data-original-writer-id="{{ $task->writer_id ?: ($task->designer_id ?: '') }}"
+                            data-original-writer-id="{{ $task->writer_id ?: ($task->designer_id ?: ($task->coordinator_id ?: '')) }}"
                             onchange="handleCardAssigneeChange({{ $task->id }})"
                             style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
                         <option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add assignee…</option>
                         @foreach($cardSelectableUsers as $u)
-                            <option value="{{ $u->id }}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ ($task->writer_id == $u->id || (!$task->writer_id && $task->designer_id == $u->id)) ? 'selected' : '' }}>
+                            <option value="{{ $u->id }}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ ($task->writer_id == $u->id || (!$task->writer_id && $task->designer_id == $u->id) || (!$task->writer_id && !$task->designer_id && $task->coordinator_id == $u->id)) ? 'selected' : '' }}>
                                 {{ $u->name }} ({{ $u->role }})
                             </option>
                         @endforeach
                     </select>
-                    @if($task->writer_id || $task->designer_id)
+                    @if($task->writer_id || $task->designer_id || $task->coordinator_id)
                     <button type="button" 
                             onclick="event.stopPropagation(); openCampaignReassignModal({{ $task->id }})" 
                             style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); color: #3b82f6; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; white-space: nowrap;" 
-                            title="Reassign deliverable with reason">
-                        Reassign
+                            title="{{ ($task->isOutline() && !$task->designer_id) ? 'Assign designer' : 'Reassign deliverable' }}">
+                        {{ ($task->isOutline() && !$task->designer_id) ? 'Assign Designer' : 'Reassign' }}
                     </button>
                     @endif
                     @else
                     <span style="font-size: 11.5px; font-weight: 600; color: var(--color-text-primary); padding: 2px 0; width: 100%;">
                         {{ $assigneeDisplay }}
                     </span>
-                    <input type="hidden" name="writer_id" id="card-input-writer-{{ $task->id }}" value="{{ $task->writer_id ?: ($task->designer_id ?: '') }}">
+                    <input type="hidden" name="writer_id" id="card-input-writer-{{ $task->id }}" value="{{ $task->writer_id ?: ($task->designer_id ?: ($task->coordinator_id ?: '')) }}">
                     @endif
                 </div>
 

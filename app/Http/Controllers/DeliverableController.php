@@ -977,15 +977,19 @@ class DeliverableController extends Controller
                 || ($deliverable->project && (int) $deliverable->project->approver_id === (int) $user?->id);
             $isBrandManager = ($role === 'brand manager')
                 || ($deliverable->project && (int) $deliverable->project->brand_manager_id === (int) $user?->id);
+            $isCoordinator = in_array($role, ['coordinator', 'approver coordinator'])
+                || ((int) $deliverable->coordinator_id === (int) $user?->id)
+                || ($deliverable->project && (int) $deliverable->project->coordinator_id === (int) $user?->id);
             $canReassignCampaign = $user && (
                 $user->isAdmin()
-                || in_array($role, ['admin', 'owner', 'operations manager'])
+                || in_array($role, ['admin', 'owner', 'operations manager', 'brand manager', 'coordinator', 'approver coordinator'])
                 || $isBrandManager
                 || $isApprover
+                || $isCoordinator
             );
 
             if (!$canReassignCampaign) {
-                abort(403, 'Unauthorized. Reassigning deliverables can only be done by an Approver, Brand Manager, or Administrator.');
+                abort(403, 'Unauthorized. Reassigning deliverables can only be done by an Approver, Brand Manager, Coordinator, or Administrator.');
             }
         } else {
             // Retainer workflow authorization
@@ -1005,28 +1009,49 @@ class DeliverableController extends Controller
 
         $oldWriterId = $deliverable->writer_id;
         $newWriterId = $validated['writer_id'];
-
-        if ($oldWriterId == $newWriterId) {
-            return response()->json(['success' => false, 'message' => 'Same writer selected.'], 422);
-        }
-
         $newWriter = User::find($newWriterId);
+
+        $isOutlineAssignDesigner = $isCampaignOrPitch && $deliverable->isOutline() && (
+            $deliverable->approval_stage === 'Coordinator' || 
+            strtolower($newWriter?->role ?? '') === 'designer' ||
+            empty($deliverable->designer_id)
+        );
+
+        if ($isOutlineAssignDesigner) {
+            $fromUserId = $deliverable->designer_id ?: $deliverable->coordinator_id;
+            $reassignmentRole = 'designer';
+            $updatePayload = [
+                'designer_id'    => $newWriterId,
+                'assignee_name'  => $newWriter?->name ?? 'Unassigned',
+                'approval_stage' => 'Designer',
+            ];
+            if (in_array(strtolower(trim($deliverable->status ?? '')), ['to do', 'todo', 'to commence', ''])) {
+                $updatePayload['status'] = 'In Progress';
+                $updatePayload['progress_percent'] = 25;
+            }
+        } else {
+            if ($oldWriterId == $newWriterId) {
+                return response()->json(['success' => false, 'message' => 'Same writer selected.'], 422);
+            }
+            $fromUserId = $oldWriterId;
+            $reassignmentRole = 'writer';
+            $updatePayload = [
+                'writer_id'     => $newWriterId,
+                'assignee_name' => $newWriter?->name ?? 'Unassigned',
+            ];
+        }
 
         // Log the reassignment
         $reassignment = DeliverableReassignment::create([
             'deliverable_id' => $deliverable->id,
-            'role' => 'writer',
-            'from_user_id' => $oldWriterId,
+            'role' => $reassignmentRole,
+            'from_user_id' => $fromUserId,
             'to_user_id' => $newWriterId,
             'reassigned_by_user_id' => $user->id,
             'reason' => $validated['reason'] ?? null,
         ]);
 
         // Update the deliverable
-        $updatePayload = [
-            'writer_id' => $newWriterId,
-            'assignee_name' => $newWriter?->name ?? 'Unassigned',
-        ];
         if (array_key_exists('deadline', $validated) && !empty($validated['deadline'])) {
             $updatePayload['deadline'] = $validated['deadline'];
         }
@@ -1035,19 +1060,27 @@ class DeliverableController extends Controller
         // Batch subtasks if requested
         if ($request->boolean('reassign_subtasks') && $deliverable->subtasks()->count() > 0) {
             foreach ($deliverable->subtasks as $subtask) {
-                if ($subtask->writer_id != $newWriterId) {
+                $subFromId = $isOutlineAssignDesigner ? ($subtask->designer_id ?: $subtask->coordinator_id) : $subtask->writer_id;
+                if ($subFromId != $newWriterId) {
                     DeliverableReassignment::create([
                         'deliverable_id' => $subtask->id,
-                        'role' => 'writer',
-                        'from_user_id' => $subtask->writer_id,
+                        'role' => $reassignmentRole,
+                        'from_user_id' => $subFromId,
                         'to_user_id' => $newWriterId,
                         'reassigned_by_user_id' => $user->id,
                         'reason' => ($validated['reason'] ?? '') ? ($validated['reason'] . ' (Subtask)') : 'Batch subtask reassignment',
                     ]);
                     $subtaskUpdate = [
-                        'writer_id' => $newWriterId,
+                        $isOutlineAssignDesigner ? 'designer_id' : 'writer_id' => $newWriterId,
                         'assignee_name' => $newWriter?->name ?? 'Unassigned',
                     ];
+                    if ($isOutlineAssignDesigner) {
+                        $subtaskUpdate['approval_stage'] = 'Designer';
+                        if (in_array(strtolower(trim($subtask->status ?? '')), ['to do', 'todo', 'to commence', ''])) {
+                            $subtaskUpdate['status'] = 'In Progress';
+                            $subtaskUpdate['progress_percent'] = 25;
+                        }
+                    }
                     if (!empty($validated['deadline'])) {
                         $subtaskUpdate['deadline'] = $validated['deadline'];
                     }
@@ -1056,12 +1089,13 @@ class DeliverableController extends Controller
             }
         }
 
-        // Notify the new writer
+        // Notify the new writer / designer
         if ($newWriter) {
             try {
+                $roleNotifyTitle = $isOutlineAssignDesigner ? 'Designer' : 'Writer/Assignee';
                 $newWriter->notify(new DeliverableUpdated(
                     $deliverable,
-                    "reassigned the deliverable to you (Writer/Assignee)",
+                    "reassigned the deliverable to you ({$roleNotifyTitle})",
                     'reassignment',
                     $user
                 ));
@@ -1077,15 +1111,20 @@ class DeliverableController extends Controller
             \Illuminate\Support\Facades\Log::warning('DeliverablesUpdated broadcast error: ' . $e->getMessage());
         }
 
-        $fromName = $oldWriterId ? User::find($oldWriterId)?->name : 'Unassigned';
+        $fromName = $fromUserId ? User::find($fromUserId)?->name : 'Unassigned';
         $toName = $newWriter?->name ?? 'Unknown';
 
         return response()->json([
             'success' => true,
-            'message' => "Reassigned deliverable from {$fromName} to {$toName}.",
+            'message' => $isOutlineAssignDesigner 
+                ? "Assigned designer {$toName}." 
+                : "Reassigned deliverable from {$fromName} to {$toName}.",
             'writer_name' => $toName,
             'assignee_name' => $toName,
             'writer_id' => $newWriterId,
+            'designer_id' => $isOutlineAssignDesigner ? $newWriterId : $deliverable->designer_id,
+            'approval_stage' => $deliverable->approval_stage,
+            'status' => $deliverable->status,
             'reassignment' => [
                 'id' => $reassignment->id,
                 'role' => $reassignment->role,
@@ -2800,9 +2839,24 @@ class DeliverableController extends Controller
 
         $postType = $validated['post_type'] ?? 'Outlines';
         $normType = strtolower(trim($postType));
-        $stage = in_array($normType, ['outlines', 'outline']) ? 'Assignee' : 'Assign';
+        $isOutline = in_array($normType, ['outlines', 'outline']);
+        $stage = $isOutline ? 'Coordinator' : 'Assign';
 
         $assignee = !empty($validated['writer_id']) ? User::find($validated['writer_id']) : null;
+        $coordId = null;
+        $writerId = null;
+
+        if ($isOutline) {
+            $coordId = !empty($validated['coordinator_id']) 
+                ? (int) $validated['coordinator_id'] 
+                : ($assignee?->id ?? $project->coordinator_id);
+            if ($coordId && !$assignee) {
+                $assignee = User::find($coordId);
+            }
+        } else {
+            $writerId = $assignee?->id;
+        }
+
         $assigneeName = $assignee?->name ?? 'Unassigned';
 
         $bmId = $project->brand_manager_id;
@@ -2821,7 +2875,8 @@ class DeliverableController extends Controller
             'status' => $status,
             'priority' => $validated['priority'] ?? 'Medium',
             'post_type' => $postType,
-            'writer_id' => $assignee?->id,
+            'coordinator_id' => $coordId,
+            'writer_id' => $writerId,
             'approver_id' => $approverId,
             'assignee_name' => $assigneeName,
             'deadline' => $validated['deadline'] ?? $project->deadline,
@@ -2831,13 +2886,14 @@ class DeliverableController extends Controller
             'brand_manager_id' => $bmId,
         ]);
 
-        $deliverable->load(['writer', 'brandManager', 'approver', 'designer']);
+        $deliverable->load(['writer', 'brandManager', 'approver', 'designer', 'coordinator']);
 
         if ($assignee) {
             try {
+                $roleLabel = $isOutline ? 'coordinator' : 'assignee';
                 $assignee->notify(new \App\Notifications\DeliverableUpdated(
                     $deliverable,
-                    "assigned you to deliverable **{$deliverable->title}**",
+                    "assigned you as {$roleLabel} to deliverable **{$deliverable->title}**",
                     'assignment',
                     auth()->user()
                 ));
@@ -2872,9 +2928,15 @@ class DeliverableController extends Controller
         $user = auth()->user();
         $isSuperAdmin = $user && $user->isAdmin();
         $isCreator = $user && ((int) $user->id === (int) $deliverable->effective_creator_id);
+        $isOutlineCoordinator = $deliverable->isOutline() && (
+            (int) $deliverable->coordinator_id === (int) $user->id ||
+            ($project && (int) $project->coordinator_id === (int) $user->id) ||
+            $user->role === 'Coordinator'
+        );
         $canManage = $user && (
             $isSuperAdmin ||
             $isCreator ||
+            $isOutlineCoordinator ||
             in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
             $project->lead_id == $user->id ||
             $project->brand_manager_id == $user->id ||
@@ -2929,47 +2991,83 @@ class DeliverableController extends Controller
             || ($project && (int) $project->approver_id === (int) $user?->id);
         $isBrandManagerRole = ($role === 'brand manager')
             || ($project && (int) $project->brand_manager_id === (int) $user?->id);
+        $isCoordinatorRole = in_array($role, ['coordinator'])
+            || ((int) $deliverable->coordinator_id === (int) $user?->id)
+            || ($project && (int) $project->coordinator_id === (int) $user?->id);
+
+        $isOutline = $deliverable->isOutline();
+
         $canReassignThis = $isSuperAdmin 
             || in_array($role, ['admin', 'owner', 'operations manager'])
             || $isBrandManagerRole
-            || $isApproverRole;
+            || $isApproverRole
+            || ($isOutline && $isCoordinatorRole);
 
-        $previousAssigneeId = $deliverable->writer_id;
+        $previousAssigneeId = $deliverable->writer_id ?: ($deliverable->designer_id ?: $deliverable->coordinator_id);
         $newAssignee = null;
         $isNewlyAssigned = false;
 
         if (array_key_exists('writer_id', $validated)) {
-            // Reassigning an already assigned deliverable requires Approver, Brand Manager, or Admin
+            // Reassigning an already assigned deliverable requires Approver, Brand Manager, Coordinator (for outline), or Admin
             if ($previousAssigneeId && !$canReassignThis) {
                 $requestedWriterId = !empty($validated['writer_id']) && is_numeric($validated['writer_id']) ? (int) $validated['writer_id'] : null;
                 if ($requestedWriterId !== (int) $previousAssigneeId) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Unauthorized. Reassigning deliverables can only be done by an Approver, Brand Manager, or Administrator.'
+                        'message' => 'Unauthorized. Reassigning deliverables can only be done by an Approver, Brand Manager, Coordinator, or Administrator.'
                     ], 403);
                 }
             }
 
             if (!empty($validated['writer_id']) && is_numeric($validated['writer_id'])) {
                 $assignee = User::find($validated['writer_id']);
-                $deliverable->writer_id = $assignee?->id;
-                $deliverable->assignee_name = $assignee?->name ?? 'Unassigned';
-                if ($assignee && $assignee->id != $previousAssigneeId) {
-                    $newAssignee = $assignee;
-                    $isNewlyAssigned = true;
-                    if ($previousAssigneeId) {
+                $isAssigningDesigner = $isOutline && (
+                    $deliverable->approval_stage === 'Coordinator' ||
+                    empty($deliverable->designer_id) ||
+                    strtolower($assignee?->role ?? '') === 'designer'
+                );
+
+                if ($isAssigningDesigner) {
+                    $deliverable->designer_id = $assignee?->id;
+                    $deliverable->assignee_name = $assignee?->name ?? 'Unassigned';
+                    $deliverable->approval_stage = 'Designer';
+                    if (in_array(strtolower(trim($deliverable->status ?? '')), ['to do', 'todo', 'to commence', ''])) {
+                        $deliverable->status = 'In Progress';
+                        $deliverable->progress_percent = 25;
+                    }
+                    if ($assignee && $assignee->id != $previousAssigneeId) {
+                        $newAssignee = $assignee;
+                        $isNewlyAssigned = true;
                         DeliverableReassignment::create([
                             'deliverable_id' => $deliverable->id,
-                            'role' => 'writer',
+                            'role' => 'designer',
                             'from_user_id' => $previousAssigneeId,
                             'to_user_id' => $assignee->id,
                             'reassigned_by_user_id' => $user->id,
                             'reason' => $request->input('reassignment_reason') ?: $request->input('reason') ?: null,
                         ]);
                     }
+                } else {
+                    $deliverable->writer_id = $assignee?->id;
+                    $deliverable->assignee_name = $assignee?->name ?? 'Unassigned';
+                    if ($assignee && $assignee->id != $previousAssigneeId) {
+                        $newAssignee = $assignee;
+                        $isNewlyAssigned = true;
+                        if ($previousAssigneeId) {
+                            DeliverableReassignment::create([
+                                'deliverable_id' => $deliverable->id,
+                                'role' => 'writer',
+                                'from_user_id' => $previousAssigneeId,
+                                'to_user_id' => $assignee->id,
+                                'reassigned_by_user_id' => $user->id,
+                                'reason' => $request->input('reassignment_reason') ?: $request->input('reason') ?: null,
+                            ]);
+                        }
+                    }
                 }
             } else {
                 $deliverable->writer_id = null;
+                $deliverable->designer_id = null;
                 $deliverable->assignee_name = 'Unassigned';
             }
         }
@@ -2982,14 +3080,15 @@ class DeliverableController extends Controller
         }
 
         $deliverable->save();
-        $deliverable->load(['writer', 'brandManager', 'approver', 'designer']);
+        $deliverable->load(['writer', 'brandManager', 'approver', 'designer', 'coordinator']);
 
         $message = 'Deliverable updated successfully.';
         if ($isNewlyAssigned && $newAssignee) {
             try {
+                $roleLabel = ($isOutline && $deliverable->approval_stage === 'Designer') ? 'designer' : 'assignee';
                 $newAssignee->notify(new \App\Notifications\DeliverableUpdated(
                     $deliverable,
-                    "assigned you to deliverable **{$deliverable->title}**",
+                    "assigned you as {$roleLabel} to deliverable **{$deliverable->title}**",
                     'assignment',
                     auth()->user()
                 ));
@@ -3084,7 +3183,7 @@ class DeliverableController extends Controller
         );
 
         // Assigned person check
-        $assignedUserId = $deliverable->writer_id ?: ($deliverable->designer_id ?: null);
+        $assignedUserId = $deliverable->writer_id ?: ($deliverable->designer_id ?: ($deliverable->coordinator_id ?: null));
         $isAssigned = $assignedUserId && $user && $user->id == $assignedUserId;
         $isUnassigned = !$assignedUserId;
 
@@ -3127,7 +3226,7 @@ class DeliverableController extends Controller
 
                 // 2. ONLY the assigned person can move it from To Do / In Progress!
                 if (!$isAssigned) {
-                    $assigneeName = $deliverable->assignee_name ?: ($deliverable->writer?->name ?? 'the assigned person');
+                    $assigneeName = $deliverable->assignee_name ?: ($deliverable->writer?->name ?? ($deliverable->designer?->name ?? ($deliverable->coordinator?->name ?? 'the assigned person')));
                     return response()->json([
                         'success' => false,
                         'message' => "Only the assigned person ({$assigneeName}) can move this deliverable.",
