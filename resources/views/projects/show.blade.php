@@ -1386,10 +1386,15 @@
                 fastTrackCount: {{ $fastTrackTasks->count() }},
                 toggleAssignedFilter() {
                     this.onlyAssigned = !this.onlyAssigned;
-                    applyAssignedFilter(this.onlyAssigned);
+                    if (typeof applyAssignedFilter === 'function') {
+                        applyAssignedFilter(this.onlyAssigned);
+                    }
                 }
              }" 
-             x-init="if (onlyAssigned) { $nextTick(() => applyAssignedFilter(true)); }"
+             x-init="
+                $watch('onlyAssigned', val => { if (typeof applyAssignedFilter === 'function') applyAssignedFilter(val); });
+                if (onlyAssigned) { $nextTick(() => { if (typeof applyAssignedFilter === 'function') applyAssignedFilter(true); }); }
+             "
              style="margin-bottom: 24px;">
 
             @if($totalDeliverablesCount > 0)
@@ -8272,11 +8277,6 @@ async function reassignWriter(btn) {
             btn.innerHTML = 'Reassign';
         }
     }
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = 'Reassign';
-        }
-    }
 }
 
 function applyAssignedFilter(isOnlyAssigned) {
@@ -8359,6 +8359,8 @@ function applyAssignedFilter(isOnlyAssigned) {
     }
 }
 
+window.applyAssignedFilter = applyAssignedFilter;
+
 window.toggleOnlyAssigned = function(forceVal) {
     const root = document.querySelector('[x-data*="onlyAssigned"]');
     if (root && root._x_dataStack && root._x_dataStack[0]) {
@@ -8399,7 +8401,8 @@ function searchDeliverables(query) {
             currentHeading = row;
             anySubtaskMatches = false;
         } else if (row.classList.contains('subtask-row')) {
-            if (row.dataset.matches === 'true' || (currentHeading && currentHeading.dataset.matches === 'true')) {
+            const isAssignedFilteredOut = row.classList.contains('assigned-filtered-out');
+            if (!isAssignedFilteredOut && (row.dataset.matches === 'true' || (currentHeading && currentHeading.dataset.matches === 'true'))) {
                 row.style.display = '';
                 anySubtaskMatches = true;
             }
