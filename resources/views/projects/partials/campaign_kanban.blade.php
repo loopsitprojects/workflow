@@ -1313,6 +1313,10 @@ async function kanbanOnDrop(event, targetStatus) {
 }
 
 async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraData = {}) {
+    if (!card) {
+        card = document.getElementById('kanban-card-' + taskId);
+    }
+
     // Target container
     let containerId = 'cards-container-todo';
     if (targetStatus === 'In Progress') containerId = 'cards-container-inprogress';
@@ -1320,42 +1324,44 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
     else if (targetStatus === 'Done') containerId = 'cards-container-complete';
 
     const targetContainer = document.getElementById(containerId);
-    if (!targetContainer) return;
+    if (!targetContainer && !card) return;
 
-    // Optimistically move card in DOM
-    const oldContainer = card.parentElement;
-    targetContainer.appendChild(card);
-    card.setAttribute('data-status', targetStatus);
+    // Optimistically move card in DOM if present
+    const oldContainer = card ? card.parentElement : null;
+    if (card && targetContainer) {
+        targetContainer.appendChild(card);
+        card.setAttribute('data-status', targetStatus);
 
-    // Toggle approver visibility: hidden in To Do stage, shown in next stages
-    const isNowToDo = (targetStatus === 'To Do');
-    const approverRow = document.getElementById('card-view-approver-row-' + taskId);
-    if (approverRow) {
-        approverRow.style.display = isNowToDo ? 'none' : 'flex';
-    }
-    const approverEditorRow = document.getElementById('card-editor-approver-row-' + taskId);
-    if (approverEditorRow) {
-        approverEditorRow.style.display = isNowToDo ? 'none' : 'flex';
-    }
-
-    // Toggle upload work visibility: hidden in To Do stage, visible once moved to In Progress or later
-    const hasFiles = card.getAttribute('data-has-file') === 'true';
-    const uploadBoxes = card.querySelectorAll('.card-upload-box-' + taskId + ', #card-upload-box-' + taskId + ', #card-view-upload-box-' + taskId);
-    uploadBoxes.forEach(ub => {
-        if (isNowToDo && !hasFiles) {
-            ub.style.display = 'none';
-        } else {
-            ub.style.display = 'block';
+        // Toggle approver visibility: hidden in To Do stage, shown in next stages
+        const isNowToDo = (targetStatus === 'To Do');
+        const approverRow = document.getElementById('card-view-approver-row-' + taskId);
+        if (approverRow) {
+            approverRow.style.display = isNowToDo ? 'none' : 'flex';
         }
-    });
-    const addFileLabels = card.querySelectorAll('.card-add-file-label-' + taskId);
-    addFileLabels.forEach(lbl => {
-        lbl.style.display = isNowToDo ? 'none' : 'inline-flex';
-    });
+        const approverEditorRow = document.getElementById('card-editor-approver-row-' + taskId);
+        if (approverEditorRow) {
+            approverEditorRow.style.display = isNowToDo ? 'none' : 'flex';
+        }
 
-    // Update status border accent
-    updateCardStatusUI(card, targetStatus);
-    recalculateKanbanCounts();
+        // Toggle upload work visibility: hidden in To Do stage, visible once moved to In Progress or later
+        const hasFiles = card.getAttribute('data-has-file') === 'true';
+        const uploadBoxes = card.querySelectorAll('.card-upload-box-' + taskId + ', #card-upload-box-' + taskId + ', #card-view-upload-box-' + taskId);
+        uploadBoxes.forEach(ub => {
+            if (isNowToDo && !hasFiles) {
+                ub.style.display = 'none';
+            } else {
+                ub.style.display = 'block';
+            }
+        });
+        const addFileLabels = card.querySelectorAll('.card-add-file-label-' + taskId);
+        addFileLabels.forEach(lbl => {
+            lbl.style.display = isNowToDo ? 'none' : 'inline-flex';
+        });
+
+        // Update status border accent
+        updateCardStatusUI(card, targetStatus);
+        recalculateKanbanCounts();
+    }
 
     // Call API to persist
     try {
@@ -1373,49 +1379,57 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
         const result = await response.json();
         if (!response.ok || !result.success) {
             // Revert on failure
-            oldContainer.appendChild(card);
-            card.setAttribute('data-status', oldStatus);
-            updateCardStatusUI(card, oldStatus);
-            recalculateKanbanCounts();
+            if (card && oldContainer) {
+                oldContainer.appendChild(card);
+                card.setAttribute('data-status', oldStatus);
+                updateCardStatusUI(card, oldStatus);
+                recalculateKanbanCounts();
+            }
             if (result.require_approver) {
                 openAssignApproverModal(taskId, targetStatus, oldStatus, card);
             }
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: result.message || 'Failed to update status.', type: 'error' } }));
+            return result;
         } else {
             // Update stage badge and permission on card
-            if (result.approval_stage !== undefined) {
-                const stageBadge = document.getElementById('card-view-stage-' + taskId);
-                if (stageBadge) {
-                    if (isAssignStageName(result.approval_stage)) {
-                        stageBadge.style.display = 'none';
-                    } else {
-                        stageBadge.textContent = result.approval_stage;
-                        stageBadge.style.display = 'inline-flex';
+            if (card) {
+                if (result.approval_stage !== undefined) {
+                    const stageBadge = document.getElementById('card-view-stage-' + taskId);
+                    if (stageBadge) {
+                        if (isAssignStageName(result.approval_stage)) {
+                            stageBadge.style.display = 'none';
+                        } else {
+                            stageBadge.textContent = result.approval_stage;
+                            stageBadge.style.display = 'inline-flex';
+                        }
                     }
                 }
-            }
-            if (result.approver_id) {
-                card.setAttribute('data-approver-id', result.approver_id);
-            }
-            if (result.approver_name) {
-                card.setAttribute('data-approver-name', result.approver_name);
-                const approverNameEl = document.getElementById('card-view-approver-name-' + taskId);
-                if (approverNameEl) {
-                    approverNameEl.textContent = result.approver_name;
-                    approverNameEl.style.color = 'var(--color-text-primary)';
+                if (result.approver_id) {
+                    card.setAttribute('data-approver-id', result.approver_id);
                 }
-                const approverSelect = document.getElementById('card-input-approver-' + taskId);
-                if (approverSelect && result.approver_id) {
-                    approverSelect.value = result.approver_id;
+                if (result.approver_name) {
+                    card.setAttribute('data-approver-name', result.approver_name);
+                    const approverNameEl = document.getElementById('card-view-approver-name-' + taskId);
+                    if (approverNameEl) {
+                        approverNameEl.textContent = result.approver_name;
+                        approverNameEl.style.color = 'var(--color-text-primary)';
+                    }
+                    const approverSelect = document.getElementById('card-input-approver-' + taskId);
+                    if (approverSelect && result.approver_id) {
+                        approverSelect.value = result.approver_id;
+                    }
+                }
+                if (typeof result.has_file !== 'undefined') {
+                    card.setAttribute('data-has-file', result.has_file ? 'true' : 'false');
                 }
             }
+
+            // Sync campaignDeliverablesData cache
             if (campaignDeliverablesData[taskId]) {
                 if (result.approver_id) campaignDeliverablesData[taskId].approver_id = result.approver_id;
                 if (result.approver_name) campaignDeliverablesData[taskId].approver_name = result.approver_name;
                 campaignDeliverablesData[taskId].status = targetStatus;
-            }
-            if (typeof result.has_file !== 'undefined') {
-                card.setAttribute('data-has-file', result.has_file ? 'true' : 'false');
+                if (result.approval_stage) campaignDeliverablesData[taskId].approval_stage = result.approval_stage;
             }
 
             // Update revision badges & revision message callouts
@@ -1475,9 +1489,38 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
                 }
             }
 
+            // Sync campaignDeliverablesData cache
+            if (campaignDeliverablesData[taskId]) {
+                campaignDeliverablesData[taskId].status = targetStatus;
+                if (result.approval_stage) campaignDeliverablesData[taskId].approval_stage = result.approval_stage;
+                if (result.approver_id) campaignDeliverablesData[taskId].approver_id = result.approver_id;
+                if (result.approver_name) campaignDeliverablesData[taskId].approver_name = result.approver_name;
+                campaignDeliverablesData[taskId].revisions = revCount;
+                campaignDeliverablesData[taskId].revision_instructions = revMsg;
+                if (result.deliverable) {
+                    if (typeof extractRevisionsHistory === 'function') {
+                        campaignDeliverablesData[taskId].revisions_history = extractRevisionsHistory(result.deliverable, campaignDeliverablesData[taskId]);
+                    }
+                    if (typeof extractApprovalsHistory === 'function') {
+                        campaignDeliverablesData[taskId].approvals_history = extractApprovalsHistory(result.deliverable, campaignDeliverablesData[taskId]);
+                    }
+                    if (typeof extractReassignmentsHistory === 'function') {
+                        campaignDeliverablesData[taskId].reassignments_history = extractReassignmentsHistory(result.deliverable, campaignDeliverablesData[taskId]);
+                    }
+                }
+            }
+
+            // If the Deliverable Details modal is currently open for this task, re-render it immediately!
+            const detailsModal = document.getElementById('campaignDetailsModalOverlay');
+            if (detailsModal && detailsModal.style.display !== 'none' && detailsModal.dataset.currentTaskId == taskId) {
+                if (typeof renderCampaignDetailsModalContent === 'function' && campaignDeliverablesData[taskId]) {
+                    renderCampaignDetailsModalContent(campaignDeliverablesData[taskId]);
+                }
+            }
+
             const currentData = (window.projectDeliverables && window.projectDeliverables[taskId]) || result.deliverable || {};
             updateCardArtworkUI(taskId, currentData);
-            if (typeof result.can_move !== 'undefined') {
+            if (card && typeof result.can_move !== 'undefined') {
                 card.setAttribute('data-can-move', result.can_move ? 'true' : 'false');
                 card.setAttribute('draggable', result.can_move ? 'true' : 'false');
                 card.style.cursor = result.can_move ? 'grab' : 'pointer';
@@ -1494,14 +1537,18 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
                 }
             }
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: result.message || 'Status updated', type: 'success' } }));
+            return result;
         }
     } catch (err) {
         console.error('Kanban move error:', err);
-        oldContainer.appendChild(card);
-        card.setAttribute('data-status', oldStatus);
-        updateCardStatusUI(card, oldStatus);
-        recalculateKanbanCounts();
+        if (card && oldContainer) {
+            oldContainer.appendChild(card);
+            card.setAttribute('data-status', oldStatus);
+            updateCardStatusUI(card, oldStatus);
+            recalculateKanbanCounts();
+        }
         alert('Network error while updating deliverable status.');
+        throw err;
     }
 }
 
@@ -1727,14 +1774,46 @@ function closeRevisionPromptModal() {
     pendingRevisionAction = null;
 }
 
-function confirmRevisionPrompt() {
+async function confirmRevisionPrompt() {
     if (!pendingRevisionAction) return;
     const { taskId, targetStatus, oldStatus, card } = pendingRevisionAction;
     const textarea = document.getElementById('revisionPromptInstructions');
     const instructions = textarea ? textarea.value.trim() : '';
 
-    closeRevisionPromptModal();
-    executeKanbanMove(taskId, targetStatus, oldStatus, card, { revision_instructions: instructions });
+    const submitBtn = document.getElementById('revisionPromptSubmitBtn');
+    const cancelBtn = document.getElementById('revisionPromptCancelBtn');
+    const closeXBtn = document.getElementById('revisionPromptCloseXBtn');
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.85';
+        submitBtn.style.cursor = 'not-allowed';
+        submitBtn.innerHTML = `
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25;"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style="opacity:0.75;"></path></svg>
+            <span>Submitting Revision…</span>
+        `;
+    }
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (closeXBtn) closeXBtn.disabled = true;
+
+    try {
+        await executeKanbanMove(taskId, 'In Progress', oldStatus, card, { revision_instructions: instructions });
+        closeRevisionPromptModal();
+    } catch (err) {
+        console.error('Failed to submit revision request:', err);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+            submitBtn.innerHTML = `
+                <span>Request Revision</span>
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+            `;
+        }
+        if (cancelBtn) cancelBtn.disabled = false;
+        if (closeXBtn) closeXBtn.disabled = false;
+    }
 }
 
 function updateCardStatusUI(card, status) {
@@ -4549,7 +4628,7 @@ document.addEventListener('keydown', function(event) {
                 </div>
                 <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--color-text-primary);">Send Back for Revisions</h3>
             </div>
-            <button type="button" onclick="closeRevisionPromptModal()" style="background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 4px; border-radius: 6px;">
+            <button type="button" id="revisionPromptCloseXBtn" onclick="closeRevisionPromptModal()" style="background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 4px; border-radius: 6px;">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
@@ -4565,10 +4644,10 @@ document.addEventListener('keydown', function(event) {
             </div>
         </div>
         <div style="padding: 12px 20px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display: flex; justify-content: flex-end; gap: 8px;">
-            <button type="button" onclick="closeRevisionPromptModal()" style="background: transparent; border: 1px solid var(--color-border-primary); padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: 8px; color: var(--color-text-primary); cursor: pointer;">
+            <button type="button" id="revisionPromptCancelBtn" onclick="closeRevisionPromptModal()" style="background: transparent; border: 1px solid var(--color-border-primary); padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: 8px; color: var(--color-text-primary); cursor: pointer;">
                 Cancel
             </button>
-            <button type="button" onclick="confirmRevisionPrompt()" style="background: #ef4444; border: none; padding: 7px 16px; font-size: 12px; font-weight: 700; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);">
+            <button type="button" id="revisionPromptSubmitBtn" onclick="confirmRevisionPrompt()" style="background: #ef4444; border: none; padding: 7px 16px; font-size: 12px; font-weight: 700; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);">
                 <span>Request Revision</span>
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
             </button>

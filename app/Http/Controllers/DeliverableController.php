@@ -2993,7 +2993,9 @@ class DeliverableController extends Controller
         $oldStatus = $deliverable->status ?? 'To Do';
         if (in_array($oldStatus, ['Review', 'Approval'])) $oldStatus = 'Approval Stage';
 
-        if ($oldStatus === $newStatus) {
+        $hasRevisionInstructions = !empty($validated['revision_instructions']);
+
+        if ($oldStatus === $newStatus && !$hasRevisionInstructions) {
             return response()->json([
                 'success' => true, 
                 'status' => $newStatus, 
@@ -3022,7 +3024,12 @@ class DeliverableController extends Controller
         }
 
         $user = auth()->user();
-        $isAdminOrManager = $user && ($user->isAdmin() || in_array($user->role, ['Admin', 'Owner', 'Operations Manager']));
+        $isAdminOrManager = $user && (
+            $user->isAdmin() || 
+            in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager']) ||
+            $project->brand_manager_id == $user->id ||
+            $project->approver_id == $user->id
+        );
 
         // Assigned person check
         $assignedUserId = $deliverable->writer_id ?: ($deliverable->designer_id ?: null);
@@ -3166,8 +3173,8 @@ class DeliverableController extends Controller
             }
         } else {
             // Moving back to To Do or In Progress
-            if ($isInApproval) {
-                // Sent back from approval for revisions/updates: ALWAYS route to 'In Progress'
+            if ($isInApproval || $hasRevisionInstructions) {
+                // Sent back from approval or requested changes for revisions/updates: ALWAYS route to 'In Progress'
                 $newStatus = 'In Progress';
                 $deliverable->status = 'In Progress';
                 $deliverable->approval_stage = $isOutline ? 'Assignee' : 'Assign';
@@ -3183,7 +3190,7 @@ class DeliverableController extends Controller
                 $deliverable->revisionsHistory()->create([
                     'user_id'           => $user->id,
                     'instructions'      => $instructions,
-                    'stage_at_revision' => 'Approval Stage',
+                    'stage_at_revision' => $oldStatus ?: 'Approval Stage',
                 ]);
 
                 // Notify Worker
