@@ -4689,7 +4689,6 @@ function openCampaignReassignModal(taskId) {
     const overlay = document.getElementById('campaignReassignModalOverlay');
     if (!overlay) return;
 
-    const task = campaignDeliverablesData[taskId] || null;
     const card = document.getElementById('kanban-card-' + taskId);
     const title = (card ? card.querySelector('#card-view-title-' + taskId)?.textContent : null) || task?.title || 'Deliverable';
     const currentName = task?.assignee_name || (card ? card.querySelector('#card-view-assignee-badge-' + taskId)?.textContent?.trim() : null) || 'Unassigned';
