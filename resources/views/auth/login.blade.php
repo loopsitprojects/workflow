@@ -47,6 +47,13 @@
         } else {
             document.documentElement.classList.remove('dark');
         }
+
+        // Force a fresh CSRF token if the page is restored from browser cache (bfcache)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
     </script>
 </head>
 <body class="bg-mesh h-screen flex items-center justify-center p-6 overflow-hidden">
