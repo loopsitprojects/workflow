@@ -3023,6 +3023,14 @@ class DeliverableController extends Controller
             ], 422);
         }
 
+        // Workflow Rule 3: Deliverables can ONLY move to Complete / Done from Approval Stage
+        if (in_array($newStatusLower, ['done', 'completed', 'complete']) && !in_array($oldStatusLower, ['approval stage', 'approval', 'review', 'under review'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Deliverables in In Progress cannot be marked as complete directly. They must go through the Approval Stage first.',
+            ], 422);
+        }
+
         $user = auth()->user();
         $isAdminOrManager = $user && (
             $user->isAdmin() || 

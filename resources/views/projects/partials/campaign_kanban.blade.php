@@ -1218,6 +1218,16 @@ async function kanbanOnDrop(event, targetStatus) {
         return;
     }
 
+    // Flow Rule 3: Deliverables can ONLY move to Complete / Done from Approval Stage
+    const isTargetDone = ['done', 'completed', 'complete'].includes(normTarget);
+    const isOldApproval = ['approval stage', 'approval', 'review', 'under review'].includes(normOld);
+    if (isTargetDone && !isOldApproval) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Deliverables in In Progress cannot be marked as complete directly. They must go through the Approval Stage first.', type: 'error' } 
+        }));
+        return;
+    }
+
     // Check if target is Approval Stage
     const isTargetApproval = ['Approval Stage', 'Approval', 'Review'].includes(targetStatus);
     const currentApproverId = card ? card.getAttribute('data-approver-id') : null;
@@ -3848,10 +3858,6 @@ function renderCampaignDetailsModalContent(task) {
                     <span>Move Back to To Do</span>
                 </button>
             ` : ''}
-            <button type="button" class="cd-btn-success" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Done')">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                <span>Mark Complete</span>
-            </button>
         `;
     } else if (isApproval) {
         quickActionsHtml = `
@@ -4252,6 +4258,16 @@ async function transitionDeliverableStatus(taskId, targetStatus) {
     if (isTargetToDo && !isFromProgress) {
         window.dispatchEvent(new CustomEvent('toast', { 
             detail: { message: 'Deliverables can only be moved to To Do from In Progress.', type: 'error' } 
+        }));
+        return;
+    }
+
+    // Flow Rule 3: Deliverables can ONLY move to Complete / Done from Approval Stage
+    const isTargetDone = ['done', 'completed', 'complete'].includes(normTarget);
+    const isOldApproval = ['approval stage', 'approval', 'review', 'under review'].includes(normOld);
+    if (isTargetDone && !isOldApproval) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Deliverables in In Progress cannot be marked as complete directly. They must go through the Approval Stage first.', type: 'error' } 
         }));
         return;
     }
