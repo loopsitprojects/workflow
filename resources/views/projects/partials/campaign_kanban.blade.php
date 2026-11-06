@@ -2642,6 +2642,21 @@ function extractRevisionsHistory(data, existingTask) {
             fixed_by_user_name: r.fixed_by_user?.name || r.fixedByUser?.name || r.fixed_by_user_name || null
         }));
     }
+    const fallbackInstructions = data.revision_instructions || existingTask?.revision_instructions;
+    if (fallbackInstructions) {
+        return [{
+            round: Number(data.revisions || existingTask?.revisions || 1),
+            user_name: data.approver?.name || data.approver_name || existingTask?.approver_name || 'Approver',
+            instructions: fallbackInstructions,
+            stage: 'Approval Stage',
+            image_path: null,
+            revision_deadline: null,
+            date: data.updated_at ? (typeof formatDateTimeDisplay === 'function' ? formatDateTimeDisplay(data.updated_at) : '') : '',
+            created_at: data.updated_at || null,
+            fixed_at: null,
+            fixed_by_user_name: null
+        }];
+    }
     return existingTask?.revisions_history || [];
 }
 
@@ -2732,6 +2747,7 @@ async function openCampaignDetailsModal(taskId) {
     const modal = document.getElementById('campaignDetailsModalOverlay');
     if (!modal) return;
 
+    window.currentCampaignHistoryTab = null;
     modal.dataset.currentTaskId = taskId;
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
@@ -2937,6 +2953,72 @@ function renderCampaignDetailsModalContent(task) {
         taskStatusColor = '#6366f1';
         taskStatusBg = 'rgba(99, 102, 241, 0.1)';
         taskStatusBorder = 'rgba(99, 102, 241, 0.3)';
+    }
+
+    // 0. Active Revision Notice Banner Construction
+    const revCount = Number(task.revisions) || 0;
+    const revHistory = Array.isArray(task.revisions_history) ? task.revisions_history : [];
+    const hasRevs = revCount > 0 || Boolean(task.revision_instructions) || revHistory.length > 0;
+    const latestRev = revHistory.length > 0 ? revHistory[0] : null;
+    const latestInstructions = (latestRev && latestRev.instructions) || task.revision_instructions || '';
+    const latestRound = (latestRev && latestRev.round !== undefined) ? latestRev.round : (revCount || 1);
+    const requestedBy = (latestRev && latestRev.user_name) || task.approver_name || 'Approver';
+    const requestedDate = (latestRev && latestRev.date) || '';
+    const hasMarkupImage = Boolean(latestRev && latestRev.image_path);
+
+    let revisionBannerHtml = '';
+    if (hasRevs && (['in progress', 'progress'].includes(stLower) || latestInstructions)) {
+        revisionBannerHtml = `
+            <div class="cd-detail-card" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.04); border-color: rgba(239, 68, 68, 0.35);">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        </div>
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span style="font-size: 13px; font-weight: 800; color: #ef4444; letter-spacing: 0.02em;">
+                                    REVISION REQUESTED • ROUND ${latestRound}
+                                </span>
+                                <span style="font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 2px 7px; border-radius: 5px;">
+                                    Action Required
+                                </span>
+                            </div>
+                            <div style="font-size: 11px; color: var(--color-text-secondary); margin-top: 2px;">
+                                Requested by <strong style="color: var(--color-text-primary);">${escapeHtml(requestedBy)}</strong> ${requestedDate ? `• ${escapeHtml(requestedDate)}` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" 
+                            onclick="switchCampaignHistoryTab('revisions'); const el = document.getElementById('campaignHistoryCard'); if (el) el.scrollIntoView({ behavior: 'smooth' });"
+                            style="background: transparent; border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                        <span>All Revisions (${revCount || revHistory.length || 1})</span>
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                </div>
+
+                ${latestInstructions ? `
+                    <div style="margin-top: 12px; padding: 12px 14px; background: var(--color-bg-primary); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; font-size: 13px; line-height: 1.55; color: var(--color-text-primary); white-space: pre-wrap; word-break: break-word;">
+                        ${escapeHtml(latestInstructions)}
+                    </div>
+                ` : `
+                    <div style="margin-top: 10px; font-size: 12px; color: var(--color-text-secondary); font-style: italic;">
+                        Deliverable was returned to In Progress for revisions by the approver.
+                    </div>
+                `}
+
+                ${hasMarkupImage ? `
+                    <div style="margin-top: 10px;">
+                        <button type="button" 
+                                onclick="previewDeliverableArtwork('${escapeHtml(latestRev.image_path)}', 'Revision Markup - Round ${latestRound}', '${escapeHtml(latestRev.image_path)}')" 
+                                style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #2563eb; font-size: 11.5px; font-weight: 700; padding: 5px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <span>View Annotated Screenshot / Markup</span>
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
     }
 
     // 1. Brief Card Construction
@@ -3327,14 +3409,18 @@ function renderCampaignDetailsModalContent(task) {
     const approvals = Array.isArray(task.approvals_history) ? [...task.approvals_history] : [];
     const reassignments = Array.isArray(task.reassignments_history) ? [...task.reassignments_history] : [];
     let activeHistoryTab = window.currentCampaignHistoryTab || 'approvals';
-    if (approvals.length === 0 && revs.length > 0 && !window.currentCampaignHistoryTab) {
-        activeHistoryTab = 'revisions';
-    } else if (approvals.length === 0 && revs.length === 0 && reassignments.length > 0 && !window.currentCampaignHistoryTab) {
-        activeHistoryTab = 'reassignments';
+    if (!window.currentCampaignHistoryTab) {
+        if (hasRevs && ['in progress', 'progress'].includes(stLower)) {
+            activeHistoryTab = 'revisions';
+        } else if (approvals.length === 0 && revs.length > 0) {
+            activeHistoryTab = 'revisions';
+        } else if (approvals.length === 0 && revs.length === 0 && reassignments.length > 0) {
+            activeHistoryTab = 'reassignments';
+        }
     }
 
     let historyCardHtml = `
-        <div class="cd-detail-card">
+        <div class="cd-detail-card" id="campaignHistoryCard">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); color: #d97706; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
@@ -3766,10 +3852,6 @@ function renderCampaignDetailsModalContent(task) {
                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                 <span>Mark Complete</span>
             </button>
-            <button type="button" class="cd-btn-danger" style="width: 100%;" onclick="openRevisionPromptModal(${task.id}, 'In Progress', '${escapeHtml(task.status || 'In Progress')}', document.getElementById('kanban-card-${task.id}'))">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                <span>Request Changes / Revisions</span>
-            </button>
         `;
     } else if (isApproval) {
         quickActionsHtml = `
@@ -3914,6 +3996,7 @@ function renderCampaignDetailsModalContent(task) {
         <div class="campaign-detail-layout" style="display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr); gap: 24px; align-items: start;">
             <!-- Left Column: Content Canvas (~70%) -->
             <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+                ${revisionBannerHtml}
                 ${briefCardHtml}
                 ${refCardHtml}
                 ${historyCardHtml}
