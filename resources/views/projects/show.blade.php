@@ -8324,7 +8324,8 @@ function applyAssignedFilter(isOnlyAssigned) {
                     }
                 });
 
-                if (isBatchAssigned || hasAssignedSubtask) {
+                const shouldShowHeading = subtaskRows.length > 0 ? hasAssignedSubtask : isBatchAssigned;
+                if (shouldShowHeading) {
                     heading.classList.remove('assigned-filtered-out');
                     anyVisible = true;
                 } else {
