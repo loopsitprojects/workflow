@@ -1086,7 +1086,7 @@ function updateCardArtworkUI(taskId, d) {
                     <span>Uploaded Work (${files.length})</span>
                 </span>
                 ${(canUpload && !isToDo) ? `
-                <label class="card-add-file-label card-add-file-label-${taskId}" style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
+                <label class="card-add-file-label card-add-file-label-${taskId}" style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                     <span>Add</span>
                     <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
@@ -1105,11 +1105,11 @@ function updateCardArtworkUI(taskId, d) {
             uploadBox.style.display = 'block';
             if (canUpload) {
                 uploadBox.innerHTML = `
-                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
-                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
-                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 7px 10px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); border: 1.5px dashed rgba(16, 185, 129, 0.45); color: #10b981; font-size: 11.5px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                           onmouseover="this.style.background='rgba(16, 185, 129, 0.2)'; this.style.borderColor='#10b981';" 
+                           onmouseout="this.style.background='rgba(16, 185, 129, 0.1)'; this.style.borderColor='rgba(16, 185, 129, 0.45)';"
                            onclick="event.stopPropagation()">
-                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.3"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         <span id="card-upload-label-${taskId}">Upload Work (Image or File)</span>
                         <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${taskId})">
                     </label>
@@ -2188,7 +2188,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             <span>Uploaded Work (${cardFiles.length})</span>
                         </span>
                         ${(canUploadArtwork && !isColToDo) ? `
-                        <label class="card-add-file-label card-add-file-label-${d.id}" style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
+                        <label class="card-add-file-label card-add-file-label-${d.id}" style="cursor: pointer; font-size: 10.5px; font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                             <span>Add</span>
                             <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${d.id})">
@@ -2203,11 +2203,11 @@ function insertCreatedCardIntoColumn(colKey, d) {
         } else if (canUploadArtwork) {
             uploadedWorkHtml = `
                 <div id="card-upload-box-${d.id}" class="card-upload-box card-upload-box-${d.id}" style="display: ${isColToDo ? 'none' : 'block'}; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--color-border-primary);" onclick="event.stopPropagation()">
-                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
-                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
-                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 7px 10px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); border: 1.5px dashed rgba(16, 185, 129, 0.45); color: #10b981; font-size: 11.5px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                           onmouseover="this.style.background='rgba(16, 185, 129, 0.2)'; this.style.borderColor='#10b981';" 
+                           onmouseout="this.style.background='rgba(16, 185, 129, 0.1)'; this.style.borderColor='rgba(16, 185, 129, 0.45)';"
                            onclick="event.stopPropagation()">
-                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.3"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         <span id="card-upload-label-${d.id}">Upload Work (Image or File)</span>
                         <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, ${d.id})">
                     </label>
@@ -4565,12 +4565,12 @@ document.addEventListener('keydown', function(event) {
             <div>
                 <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 6px;">Deliverable File / Artwork</label>
                 <label for="uploadDeliverableModalFileInput" 
-                       style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1.5px dashed rgba(59, 130, 246, 0.4); border-radius: 10px; cursor: pointer; background: rgba(59, 130, 246, 0.04); transition: border-color 0.15s;"
-                       onmouseenter="this.style.borderColor='#2563eb'" 
-                       onmouseleave="this.style.borderColor='rgba(59, 130, 246, 0.4)'">
-                    <svg width="20" height="20" fill="none" stroke="#2563eb" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                       style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1.5px dashed rgba(16, 185, 129, 0.45); border-radius: 10px; cursor: pointer; background: rgba(16, 185, 129, 0.06); transition: border-color 0.15s;"
+                       onmouseenter="this.style.borderColor='#10b981'" 
+                       onmouseleave="this.style.borderColor='rgba(16, 185, 129, 0.45)'">
+                    <svg width="20" height="20" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                     <div style="flex: 1; min-width: 0;">
-                        <div id="uploadDeliverableModalFileLabel" style="font-size: 12px; font-weight: 700; color: #2563eb; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Choose file(s)…</div>
+                        <div id="uploadDeliverableModalFileLabel" style="font-size: 12px; font-weight: 700; color: #10b981; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Choose file(s)…</div>
                         <div style="font-size: 10px; color: var(--color-text-secondary); margin-top: 1px;">Upload images or files (multiple allowed)</div>
                     </div>
                     <input id="uploadDeliverableModalFileInput" type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="if(this.files && this.files.length) { document.getElementById('uploadDeliverableModalFileLabel').textContent = Array.from(this.files).map(f => f.name).join(', '); }">
@@ -4589,7 +4589,7 @@ document.addEventListener('keydown', function(event) {
             <button type="button" onclick="closeUploadDeliverableModal()" style="background: transparent; border: 1px solid var(--color-border-primary); padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: 8px; color: var(--color-text-primary); cursor: pointer;">
                 Cancel
             </button>
-            <button type="button" id="uploadDeliverableModalSubmitBtn" onclick="confirmUploadDeliverable()" style="background: #2563eb; border: none; padding: 7px 16px; font-size: 12px; font-weight: 700; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);">
+            <button type="button" id="uploadDeliverableModalSubmitBtn" onclick="confirmUploadDeliverable()" style="background: #10b981; border: none; padding: 7px 16px; font-size: 12px; font-weight: 700; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);">
                 <span>Upload & Submit to Approval</span>
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
             </button>

@@ -404,7 +404,7 @@
                             <span>Uploaded Work ({{ count($artworkFiles) }})</span>
                         </span>
                         @if($canUploadFile)
-                        <label class="card-add-file-label card-add-file-label-{{ $task->id }}" style="display: {{ $isToDo ? 'none' : 'inline-flex' }}; cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
+                        <label class="card-add-file-label card-add-file-label-{{ $task->id }}" style="display: {{ $isToDo ? 'none' : 'inline-flex' }}; cursor: pointer; font-size: 10.5px; font-weight: 700; color: #10b981; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                             <span>Add</span>
                             <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, {{ $task->id }})">
@@ -453,11 +453,11 @@
                     </div>
                 @else
                     @if($canUploadFile)
-                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
-                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
-                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 7px 10px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); border: 1.5px dashed rgba(16, 185, 129, 0.45); color: #10b981; font-size: 11.5px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                           onmouseover="this.style.background='rgba(16, 185, 129, 0.2)'; this.style.borderColor='#10b981';" 
+                           onmouseout="this.style.background='rgba(16, 185, 129, 0.1)'; this.style.borderColor='rgba(16, 185, 129, 0.45)';"
                            onclick="event.stopPropagation()">
-                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.3"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         <span id="card-upload-label-{{ $task->id }}">Upload Work (Image or File)</span>
                         <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, {{ $task->id }})">
                     </label>
@@ -656,7 +656,7 @@
                             <span>Uploaded Work ({{ count($artworkFiles) }})</span>
                         </span>
                         @if($canUploadFile)
-                        <label class="card-add-file-label card-add-file-label-{{ $task->id }}" style="display: {{ $isToDo ? 'none' : 'inline-flex' }}; cursor: pointer; font-size: 10.5px; font-weight: 700; color: #3b82f6; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
+                        <label class="card-add-file-label card-add-file-label-{{ $task->id }}" style="display: {{ $isToDo ? 'none' : 'inline-flex' }}; cursor: pointer; font-size: 10.5px; font-weight: 700; color: #10b981; align-items: center; gap: 2px;" title="Upload additional file or image" onclick="event.stopPropagation()">
                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                             <span>Add</span>
                             <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, {{ $task->id }})">
@@ -705,11 +705,11 @@
                     </div>
                 @else
                     @if($canUploadFile)
-                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1.5px dashed rgba(59, 130, 246, 0.4); color: #2563eb; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
-                           onmouseover="this.style.background='rgba(59,130,246,0.15)'; this.style.borderColor='#2563eb';" 
-                           onmouseout="this.style.background='rgba(59,130,246,0.08)'; this.style.borderColor='rgba(59,130,246,0.4)';"
+                    <label style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 7px 10px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); border: 1.5px dashed rgba(16, 185, 129, 0.45); color: #10b981; font-size: 11.5px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; box-sizing: border-box;" 
+                           onmouseover="this.style.background='rgba(16, 185, 129, 0.2)'; this.style.borderColor='#10b981';" 
+                           onmouseout="this.style.background='rgba(16, 185, 129, 0.1)'; this.style.borderColor='rgba(16, 185, 129, 0.45)';"
                            onclick="event.stopPropagation()">
-                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.3"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         <span id="card-view-upload-label-{{ $task->id }}">Upload Work (Image or File)</span>
                         <input type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt" style="display: none;" onchange="quickUploadCardFile(event, {{ $task->id }})">
                     </label>
