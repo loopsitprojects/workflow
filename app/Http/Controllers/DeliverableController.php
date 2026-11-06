@@ -968,10 +968,32 @@ class DeliverableController extends Controller
     public function reassignWriter(Request $request, Deliverable $deliverable)
     {
         $user = auth()->user();
-        $isCreator = $user && ((int) $user->id === (int) $deliverable->effective_creator_id);
-        $isProjectCreator = $deliverable->project && ((int) $user->id === (int) $deliverable->project->creator_id);
-        if (!$user || (!$user->canReassign() && !$isCreator && !$isProjectCreator)) {
-            abort(403, 'Unauthorized. Only coordinators and managerial roles can reassign deliverable team members.');
+        $isCampaignOrPitch = $deliverable->project && in_array($deliverable->project->workflow_type, ['campaign', 'pitch']);
+
+        if ($isCampaignOrPitch) {
+            $role = strtolower(trim((string) ($user?->role ?? '')));
+            $isApprover = in_array($role, ['approver', 'approver coordinator'])
+                || ((int) $deliverable->approver_id === (int) $user?->id)
+                || ($deliverable->project && (int) $deliverable->project->approver_id === (int) $user?->id);
+            $isBrandManager = ($role === 'brand manager')
+                || ($deliverable->project && (int) $deliverable->project->brand_manager_id === (int) $user?->id);
+            $canReassignCampaign = $user && (
+                $user->isAdmin()
+                || in_array($role, ['admin', 'owner', 'operations manager'])
+                || $isBrandManager
+                || $isApprover
+            );
+
+            if (!$canReassignCampaign) {
+                abort(403, 'Unauthorized. Reassigning deliverables can only be done by an Approver, Brand Manager, or Administrator.');
+            }
+        } else {
+            // Retainer workflow authorization
+            $isCreator = $user && ((int) $user->id === (int) $deliverable->effective_creator_id);
+            $isProjectCreator = $deliverable->project && ((int) $user->id === (int) $deliverable->project->creator_id);
+            if (!$user || (!$user->canReassign() && !$isCreator && !$isProjectCreator)) {
+                abort(403, 'Unauthorized. Only coordinators and managerial roles can reassign deliverable team members.');
+            }
         }
 
         $validated = $request->validate([
@@ -2901,11 +2923,33 @@ class DeliverableController extends Controller
             }
         }
 
+        $role = strtolower(trim((string) ($user?->role ?? '')));
+        $isApproverRole = in_array($role, ['approver', 'approver coordinator']) 
+            || ((int) $deliverable->approver_id === (int) $user?->id)
+            || ($project && (int) $project->approver_id === (int) $user?->id);
+        $isBrandManagerRole = ($role === 'brand manager')
+            || ($project && (int) $project->brand_manager_id === (int) $user?->id);
+        $canReassignThis = $isSuperAdmin 
+            || in_array($role, ['admin', 'owner', 'operations manager'])
+            || $isBrandManagerRole
+            || $isApproverRole;
+
         $previousAssigneeId = $deliverable->writer_id;
         $newAssignee = null;
         $isNewlyAssigned = false;
 
         if (array_key_exists('writer_id', $validated)) {
+            // Reassigning an already assigned deliverable requires Approver, Brand Manager, or Admin
+            if ($previousAssigneeId && !$canReassignThis) {
+                $requestedWriterId = !empty($validated['writer_id']) && is_numeric($validated['writer_id']) ? (int) $validated['writer_id'] : null;
+                if ($requestedWriterId !== (int) $previousAssigneeId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unauthorized. Reassigning deliverables can only be done by an Approver, Brand Manager, or Administrator.'
+                    ], 403);
+                }
+            }
+
             if (!empty($validated['writer_id']) && is_numeric($validated['writer_id'])) {
                 $assignee = User::find($validated['writer_id']);
                 $deliverable->writer_id = $assignee?->id;

@@ -287,7 +287,24 @@ const kanbanIsAdmin = {{ (auth()->user() && auth()->user()->isAdmin()) ? 'true' 
 const kanbanIsAdminOrManager = {{ (auth()->user() && (auth()->user()->isAdmin() || in_array(auth()->user()->role, ['Admin', 'Owner', 'Operations Manager']))) ? 'true' : 'false' }};
 const kanbanCanManageDeliverables = {{ $canManageDeliverables ? 'true' : 'false' }};
 const kanbanProjectApproverId = {{ $project->approver_id ?? ($project->brand_manager_id ?? ($project->lead_id ?? 'null')) }};
+const kanbanProjectExplicitApproverId = {{ $project->approver_id ?? 'null' }};
+const kanbanProjectBrandManagerId = {{ $project->brand_manager_id ?? 'null' }};
 const kanbanProjectName = @json($project->name ?? 'Campaign Project');
+
+function canUserReassignDeliverable(taskOrId) {
+    if (kanbanIsAdmin) return true;
+    const role = (kanbanCurrentUserRole || '').toLowerCase().trim();
+    if (['admin', 'owner', 'operations manager', 'brand manager', 'approver', 'approver coordinator'].includes(role)) {
+        return true;
+    }
+    const currentUserId = Number(kanbanCurrentUserId);
+    if (!currentUserId) return false;
+    const task = (taskOrId && typeof taskOrId === 'object') ? taskOrId : (campaignDeliverablesData[taskOrId] || null);
+    if (task && task.approver_id && Number(task.approver_id) === currentUserId) return true;
+    if (kanbanProjectExplicitApproverId && Number(kanbanProjectExplicitApproverId) === currentUserId) return true;
+    if (kanbanProjectBrandManagerId && Number(kanbanProjectBrandManagerId) === currentUserId) return true;
+    return false;
+}
 
 const campaignDeliverablesData = {};
 @foreach($tasks as $t)
@@ -370,6 +387,7 @@ campaignDeliverablesData[{{ $t->id }}] = {
     has_artwork: {{ $t->hasArtwork() ? 'true' : 'false' }},
     writer_id: {{ $t->writer_id ?? 'null' }},
     designer_id: {{ $t->designer_id ?? 'null' }},
+    approver_id: {{ $t->approver_id ?? ($project->approver_id ?? 'null') }},
     created_by: {{ $t->created_by ?? ($t->effective_creator_id ?? 'null') }},
     assignee_name: @json($t->writer?->name ?? ($t->designer?->name ?? 'Unassigned')),
     approver_name: @json($t->approver?->name ?? null),
@@ -2032,6 +2050,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
             has_artwork: Boolean(d.has_artwork || (d.final_designs_list && d.final_designs_list.length > 0)),
             writer_id: d.writer_id || null,
             designer_id: d.designer_id || null,
+            approver_id: d.approver_id || null,
             created_by: d.created_by || null,
             assignee_name: d.assignee_name || 'Unassigned',
             approver_name: d.approver_name || null,
@@ -2097,6 +2116,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
     const creatorId = d.created_by || d.effective_creator_id || null;
     const isCreator = creatorId && kanbanCurrentUserId == creatorId;
     const canEdit = kanbanIsAdmin || isCreator || kanbanCanManageDeliverables;
+    const canReassignThis = canUserReassignDeliverable(d);
     const hasArtwork = Boolean(d.has_artwork || d.final_designs || d.final_designs_link || (d.final_designs_list && d.final_designs_list.length > 0));
     const isInProgress = (d.status === 'In Progress');
     const assignedId = d.writer_id || d.designer_id || null;
@@ -2300,9 +2320,9 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         </span>
                     </div>
                     <span id="card-view-assignee-badge-${d.id}" 
-                          onclick="event.stopPropagation(); openCampaignReassignModal(${d.id})"
-                          style="font-size: 10px; font-weight: 600; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; transition: all 0.15s;"
-                          title="${hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) + ' (Click to reassign)' : 'Click to assign'}">
+                          ${canReassignThis ? `onclick="event.stopPropagation(); openCampaignReassignModal(${d.id})"` : `onclick="event.stopPropagation();"`}
+                          style="font-size: 10px; font-weight: 600; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; cursor: ${canReassignThis ? 'pointer' : 'default'}; transition: all 0.15s;"
+                          title="${canReassignThis ? (hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) + ' (Click to reassign)' : 'Click to assign') : (hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) : 'Unassigned')}">
                         <span>${escapeHtml(assigneeDisplay)}</span>
                     </span>
                 </div>
@@ -2410,6 +2430,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                             </svg>
+                            ${(canReassignThis || !hasAssignee) ? `
                             <select name="writer_id" 
                                     id="card-input-writer-${d.id}"
                                     data-original-writer-id="${d.writer_id || d.designer_id || ''}"
@@ -2417,7 +2438,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                     style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
                                 ${assigneeOptions}
                             </select>
-                            ${(d.writer_id || d.designer_id) ? `
+                            ${(canReassignThis && (d.writer_id || d.designer_id)) ? `
                             <button type="button" 
                                     onclick="event.stopPropagation(); openCampaignReassignModal(${d.id})" 
                                     style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); color: #3b82f6; padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; white-space: nowrap;" 
@@ -2425,6 +2446,12 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                 Reassign
                             </button>
                             ` : ''}
+                            ` : `
+                            <span style="font-size: 11.5px; font-weight: 600; color: var(--color-text-primary); padding: 2px 0; width: 100%;">
+                                ${escapeHtml(assigneeDisplay)}
+                            </span>
+                            <input type="hidden" name="writer_id" id="card-input-writer-${d.id}" value="${d.writer_id || d.designer_id || ''}">
+                            `}
                         </div>
 
                         {{-- Reassignment Reason (Shown when changing assignee inline) --}}
@@ -4157,11 +4184,15 @@ function renderCampaignDetailsModalContent(task) {
         `;
     }
 
+    if (canUserReassignDeliverable(task)) {
+        quickActionsHtml += `
+            <button type="button" class="cd-btn-outline" style="width: 100%; color: #3b82f6; border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'" onmouseout="this.style.background='rgba(59,130,246,0.06)'" onclick="openCampaignReassignModal(${task.id})">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                <span>Reassign Deliverable</span>
+            </button>
+        `;
+    }
     quickActionsHtml += `
-        <button type="button" class="cd-btn-outline" style="width: 100%; color: #3b82f6; border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'" onmouseout="this.style.background='rgba(59,130,246,0.06)'" onclick="openCampaignReassignModal(${task.id})">
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-            <span>Reassign Deliverable</span>
-        </button>
         <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="closeCampaignDetailsModal(); setTimeout(() => { toggleCardEditor(${task.id}, true); const el = document.getElementById('kanban-card-${task.id}'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150);">
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
             <span>Edit in Kanban Card</span>
@@ -4224,6 +4255,7 @@ function renderCampaignDetailsModalContent(task) {
                             </span>
                             <span>${escapeHtml(task.assignee_name || 'Unassigned')}</span>
                         </span>
+                        ${canUserReassignDeliverable(task) ? `
                         <button type="button" 
                                 onclick="openCampaignReassignModal(${task.id})" 
                                 style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); color: #2563eb; padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 700; cursor: pointer; transition: all 0.15s;" 
@@ -4232,6 +4264,7 @@ function renderCampaignDetailsModalContent(task) {
                                 title="Reassign deliverable assignee">
                             Reassign
                         </button>
+                        ` : ''}
                     </div>
                 </div>
 
@@ -4651,6 +4684,13 @@ function setCampaignReassignPreset(preset) {
 }
 
 function openCampaignReassignModal(taskId) {
+    const task = campaignDeliverablesData[taskId] || null;
+    if (!canUserReassignDeliverable(task)) {
+        window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: 'Only an Approver, Brand Manager, or Administrator can reassign deliverables.', type: 'warning' }
+        }));
+        return;
+    }
     currentReassignTaskId = taskId;
     const overlay = document.getElementById('campaignReassignModalOverlay');
     if (!overlay) return;

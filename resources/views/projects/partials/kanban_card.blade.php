@@ -60,6 +60,14 @@
     // Deliverable editor permission: Super Admin, Creator, or users with manage permissions (Brand Managers, Managers, Approvers)
     $canEditCard = $isSuperAdmin || $isCreator || ($canManageDeliverables ?? false);
 
+    // Reassignment permission: Only Approver, Brand Manager, or Admin
+    $userRole = strtolower(trim((string)($currentUser?->role ?? '')));
+    $isProjectBrandManager = ($task->project?->brand_manager_id && (int)$currentUserId === (int)$task->project->brand_manager_id);
+    $canReassignDeliverable = $isSuperAdmin 
+        || in_array($userRole, ['admin', 'owner', 'operations manager', 'brand manager', 'approver', 'approver coordinator']) 
+        || $isApprover 
+        || $isProjectBrandManager;
+
     $artworkFiles = $task->getFinalDesignsArray();
     $hasArtwork = !empty($artworkFiles);
     $canUploadFile = $isAssignee || $isAdminOrManager || $isCreator;
@@ -137,9 +145,13 @@
                 </span>
             </div>
             <span id="card-view-assignee-badge-{{ $task->id }}" 
+                  @if($canReassignDeliverable)
                   onclick="event.stopPropagation(); openCampaignReassignModal({{ $task->id }})"
-                  style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? '#3b82f6' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; transition: all 0.15s;" 
-                  title="{{ $hasAssignee ? 'Assigned to ' . $assigneeFullName . ' (Click to reassign)' : 'Click to assign' }}">
+                  @else
+                  onclick="event.stopPropagation();"
+                  @endif
+                  style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? '#3b82f6' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'rgba(59,130,246,0.1)' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'rgba(59,130,246,0.2)' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; cursor: {{ $canReassignDeliverable ? 'pointer' : 'default' }}; transition: all 0.15s;" 
+                  title="{{ $canReassignDeliverable ? ($hasAssignee ? 'Assigned to ' . $assigneeFullName . ' (Click to reassign)' : 'Click to assign') : ($hasAssignee ? 'Assigned to ' . $assigneeFullName : 'Unassigned') }}">
                 <span>{{ $assigneeDisplay }}</span>
             </span>
         </div>
@@ -277,6 +289,7 @@
                     <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
+                    @if($canReassignDeliverable || !$hasAssignee)
                     <select name="writer_id" 
                             id="card-input-writer-{{ $task->id }}"
                             data-original-writer-id="{{ $task->writer_id ?: ($task->designer_id ?: '') }}"
@@ -296,6 +309,12 @@
                             title="Reassign deliverable with reason">
                         Reassign
                     </button>
+                    @endif
+                    @else
+                    <span style="font-size: 11.5px; font-weight: 600; color: var(--color-text-primary); padding: 2px 0; width: 100%;">
+                        {{ $assigneeDisplay }}
+                    </span>
+                    <input type="hidden" name="writer_id" id="card-input-writer-{{ $task->id }}" value="{{ $task->writer_id ?: ($task->designer_id ?: '') }}">
                     @endif
                 </div>
 
