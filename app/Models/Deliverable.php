@@ -500,6 +500,69 @@ class Deliverable extends Model
     }
 
     /**
+     * Determine if this deliverable is assigned to the specified user (or authenticated user).
+     *
+     * @param int|\App\Models\User|null $user
+     * @return bool
+     */
+    public function isAssignedToUser($user = null): bool
+    {
+        $userId = $user instanceof User ? $user->id : ($user ?: auth()->id());
+        if (!$userId) {
+            return false;
+        }
+
+        $userId = (int) $userId;
+
+        // Effective role assignees on this deliverable (inheriting from parent or project if unset)
+        $effectiveWriterId = (int) ($this->writer_id ?: ($this->parent?->writer_id ?: $this->project?->writer_id));
+        $effectiveDesignerId = (int) ($this->designer_id ?: ($this->parent?->designer_id ?: $this->project?->designer_id));
+        $effectiveCoordinatorId = (int) ($this->coordinator_id ?: ($this->parent?->coordinator_id ?: $this->project?->coordinator_id));
+        $effectiveApproverId = (int) ($this->approver_id ?: ($this->parent?->approver_id ?: $this->project?->approver_id));
+        $effectiveFurtherApproverId = (int) ($this->further_approver_id ?: ($this->parent?->further_approver_id ?? 0));
+        $effectiveBrandManagerId = (int) ($this->brand_manager_id ?: ($this->parent?->brand_manager_id ?: $this->project?->brand_manager_id));
+
+        if ($userId === $effectiveWriterId ||
+            $userId === $effectiveDesignerId ||
+            $userId === $effectiveCoordinatorId ||
+            $userId === $effectiveApproverId ||
+            $userId === $effectiveFurtherApproverId ||
+            $userId === $effectiveBrandManagerId) {
+            return true;
+        }
+
+        // If parent deliverable, check if any child subtask is assigned to this user
+        $subtasks = $this->relationLoaded('subtasks') ? $this->subtasks : $this->subtasks()->get();
+        if ($subtasks && $subtasks->isNotEmpty()) {
+            foreach ($subtasks as $subtask) {
+                // Avoid recursion loops by directly checking subtask roles
+                $subWriter = (int) ($subtask->writer_id ?: ($this->writer_id ?: $this->project?->writer_id));
+                $subDesigner = (int) ($subtask->designer_id ?: ($this->designer_id ?: $this->project?->designer_id));
+                $subCoordinator = (int) ($subtask->coordinator_id ?: ($this->coordinator_id ?: $this->project?->coordinator_id));
+                $subApprover = (int) ($subtask->approver_id ?: ($this->approver_id ?: $this->project?->approver_id));
+                $subFurther = (int) ($subtask->further_approver_id ?: ($this->further_approver_id ?? 0));
+                $subBM = (int) ($subtask->brand_manager_id ?: ($this->brand_manager_id ?: $this->project?->brand_manager_id));
+
+                if ($userId === $subWriter ||
+                    $userId === $subDesigner ||
+                    $userId === $subCoordinator ||
+                    $userId === $subApprover ||
+                    $userId === $subFurther ||
+                    $userId === $subBM) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public function getIsAssignedToUserAttribute(): bool
+    {
+        return $this->isAssignedToUser();
+    }
+
+    /**
      * Get the user who should be notified for a specific stage.
      */
     public function getRequiredFieldForStage($stage)

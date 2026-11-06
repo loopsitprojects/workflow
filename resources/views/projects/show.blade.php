@@ -138,6 +138,107 @@
             color: #ffffff;
         }
 
+        /* Assigned Filter Switch / Pill */
+        .assigned-filtered-out {
+            display: none !important;
+        }
+        .assigned-filter-wrapper {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--color-bg-secondary);
+            padding: 5px 8px 5px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--color-border-primary);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            user-select: none;
+            cursor: pointer;
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .assigned-filter-wrapper:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.04);
+        }
+        .assigned-filter-wrapper.is-active {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 2px 10px rgba(59, 130, 246, 0.15);
+        }
+        .assigned-filter-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            transition: color 0.15s ease;
+        }
+        .assigned-filter-wrapper.is-active .assigned-filter-label {
+            color: #2563eb;
+            font-weight: 700;
+        }
+        .dark .assigned-filter-wrapper.is-active .assigned-filter-label {
+            color: #60a5fa;
+        }
+        .assigned-filter-switch {
+            width: 32px;
+            height: 18px;
+            border-radius: 9999px;
+            background: rgba(148, 163, 184, 0.3);
+            position: relative;
+            transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            flex-shrink: 0;
+        }
+        .assigned-filter-wrapper.is-active .assigned-filter-switch {
+            background: #2563eb;
+        }
+        .dark .assigned-filter-wrapper.is-active .assigned-filter-switch {
+            background: #3b82f6;
+        }
+        .assigned-filter-switch-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ffffff;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .assigned-filter-wrapper.is-active .assigned-filter-switch-thumb {
+            transform: translateX(14px);
+        }
+        .assigned-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 2px 7.5px;
+            border-radius: 9999px;
+            line-height: 1;
+            background: rgba(148, 163, 184, 0.18);
+            color: var(--color-text-secondary);
+            transition: all 0.18s ease;
+        }
+        .assigned-filter-wrapper.is-active .assigned-badge {
+            background: #2563eb;
+            color: #ffffff;
+        }
+        .dark .assigned-filter-wrapper.is-active .assigned-badge {
+            background: #3b82f6;
+            color: #ffffff;
+        }
+        .board-tab-badge.badge-assigned-active {
+            background: #2563eb !important;
+            color: #ffffff !important;
+        }
+        .dark .board-tab-badge.badge-assigned-active {
+            background: #3b82f6 !important;
+            color: #ffffff !important;
+        }
+
         /* Campaign / Pitch View Switcher Toggle */
         .campaign-view-toggle {
             display: inline-flex;
@@ -1262,14 +1363,37 @@
                 'Text field'   => ['bg' => '#fffbeb', 'text' => '#d97706', 'border' => '#fef3c7'],
                 'default'     => ['bg' => '#f8fafc', 'text' => '#475569', 'border' => '#e2e8f0'],
             ];
+            $currentUserId = auth()->id();
             $fastTrackTasks = $project->deliverables->whereNull('parent_deliverable_id')->where('flow_type', 'direct_design');
             $contentTasks = $project->deliverables->whereNull('parent_deliverable_id')->filter(fn($t) => $t->flow_type !== 'direct_design');
             $hasFastTrack = $fastTrackTasks->count() > 0 && $project->workflow_type === 'retainer';
+
+            $allParentTasks = $project->deliverables->whereNull('parent_deliverable_id');
+            $totalDeliverablesCount = $allParentTasks->count();
+            $assignedTotalCount = $allParentTasks->filter(fn($t) => $t->isAssignedToUser($currentUserId))->count();
+            $assignedContentCount = $contentTasks->filter(fn($t) => $t->isAssignedToUser($currentUserId))->count();
+            $assignedFastTrackCount = $fastTrackTasks->filter(fn($t) => $t->isAssignedToUser($currentUserId))->count();
         @endphp
 
-        <div x-data="{ activeBoardTab: 'all' }" style="margin-bottom: 24px;">
-            @if($hasFastTrack)
-            {{-- Modern Tab Filter Pill Bar (only shown when fast track deliverables exist) --}}
+        <div x-data="{ 
+                activeBoardTab: 'all',
+                onlyAssigned: new URLSearchParams(window.location.search).get('assigned') === '1',
+                assignedTotalCount: {{ $assignedTotalCount }},
+                assignedContentCount: {{ $assignedContentCount }},
+                assignedFastTrackCount: {{ $assignedFastTrackCount }},
+                totalCount: {{ $totalDeliverablesCount }},
+                contentCount: {{ $contentTasks->count() }},
+                fastTrackCount: {{ $fastTrackTasks->count() }},
+                toggleAssignedFilter() {
+                    this.onlyAssigned = !this.onlyAssigned;
+                    applyAssignedFilter(this.onlyAssigned);
+                }
+             }" 
+             x-init="if (onlyAssigned) { $nextTick(() => applyAssignedFilter(true)); }"
+             style="margin-bottom: 24px;">
+
+            @if($totalDeliverablesCount > 0)
+            {{-- Modern Tab Filter Pill Bar & Assigned Filter Switch --}}
             <div class="board-tabs-bar">
                 <div class="board-tabs-wrapper">
                     <button type="button" 
@@ -1278,16 +1402,17 @@
                             :class="activeBoardTab === 'all' ? 'is-active' : ''">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                         <span>All Deliverables</span>
-                        <span class="board-tab-badge">{{ $project->deliverables->whereNull('parent_deliverable_id')->count() }}</span>
+                        <span class="board-tab-badge" :class="onlyAssigned ? 'badge-assigned-active' : ''" x-text="onlyAssigned ? assignedTotalCount : totalCount">{{ $totalDeliverablesCount }}</span>
                     </button>
 
+                    @if($hasFastTrack)
                     <button type="button" 
                             @click="activeBoardTab = 'content'"
                             class="board-tab-btn"
                             :class="activeBoardTab === 'content' ? 'is-active' : ''">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         <span>Content Deliverables</span>
-                        <span class="board-tab-badge">{{ $contentTasks->count() }}</span>
+                        <span class="board-tab-badge" :class="onlyAssigned ? 'badge-assigned-active' : ''" x-text="onlyAssigned ? assignedContentCount : contentCount">{{ $contentTasks->count() }}</span>
                     </button>
 
                     <button type="button" 
@@ -1296,8 +1421,30 @@
                             :class="activeBoardTab === 'fasttrack' ? 'is-active' : ''">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         <span>Direct Design</span>
-                        <span class="board-tab-badge">{{ $fastTrackTasks->count() }}</span>
+                        <span class="board-tab-badge" :class="onlyAssigned ? 'badge-assigned-active' : ''" x-text="onlyAssigned ? assignedFastTrackCount : fastTrackCount">{{ $fastTrackTasks->count() }}</span>
                     </button>
+                    @endif
+                </div>
+
+                {{-- Only Assigned to Me Filter Switch --}}
+                <div class="assigned-filter-wrapper"
+                     @click="toggleAssignedFilter()"
+                     :class="onlyAssigned ? 'is-active' : ''"
+                     role="button"
+                     tabindex="0"
+                     @keydown.space.prevent="toggleAssignedFilter()"
+                     @keydown.enter.prevent="toggleAssignedFilter()"
+                     title="Toggle to view only deliverables assigned to you">
+                    <div class="assigned-filter-switch">
+                        <div class="assigned-filter-switch-thumb"></div>
+                    </div>
+                    <span class="assigned-filter-label">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="flex-shrink:0;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        <span>Only Assigned to Me</span>
+                    </span>
+                    <span class="assigned-badge" x-text="assignedTotalCount">{{ $assignedTotalCount }}</span>
                 </div>
             </div>
             @endif
@@ -1339,7 +1486,7 @@
                             @forelse($project->deliverables->whereNull('parent_deliverable_id')->filter(fn($t) => $t->flow_type !== 'direct_design') as $task)
                                 @if($task->subtasks->count() > 0)
                                     <!-- Heading Row for Deliverable with Subtasks -->
-                                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" class="rtb-heading-row" style="background:var(--color-bg-secondary); border-left:3px solid #3b82f6; cursor:pointer;" onclick="toggleSubtasks(event, {{ $task->id }})">
+                                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" data-assigned="{{ $task->isAssignedToUser($currentUserId) ? '1' : '0' }}" class="rtb-heading-row" style="background:var(--color-bg-secondary); border-left:3px solid #3b82f6; cursor:pointer;" onclick="toggleSubtasks(event, {{ $task->id }})">
                                         <td colspan="4">
                                             <div class="deliverable-name-cell" style="padding: 8px 0; display:flex; align-items:center; gap:10px;">
                                                 <button id="toggle-btn-{{ $task->id }}" class="subtask-toggle active" onclick="toggleSubtasks(event, {{ $task->id }})" style="margin-right:6px; outline:none;"></button>
@@ -1458,7 +1605,7 @@
                                         $isWriter = ($userRole === 'writer' || $userRole === 'assignee');
                                         $canEditInline = $isAdmin || (($subtask->approval_stage === 'Writer' || $subtask->approval_stage === 'Assignee') && $isWriter && (!$subtask->writer_id || auth()->id() == $subtask->writer_id));
                                     @endphp
-                                    <tr id="deliverable-row-{{ $subtask->id }}" data-deliverable-id="{{ $subtask->id }}" class="subtask-row rtb-subtask-row subtask-of-{{ $task->id }} {{ $subIndex === $task->subtasks->count() - 1 ? 'last-subtask' : '' }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
+                                    <tr id="deliverable-row-{{ $subtask->id }}" data-deliverable-id="{{ $subtask->id }}" data-parent-id="{{ $task->id }}" data-assigned="{{ $subtask->isAssignedToUser($currentUserId) ? '1' : '0' }}" class="subtask-row rtb-subtask-row subtask-of-{{ $task->id }} {{ $subIndex === $task->subtasks->count() - 1 ? 'last-subtask' : '' }} {{ $subtask->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                         <td>
                                             <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
                                                 @php
@@ -1708,7 +1855,7 @@
                                     @endforeach
                                 @else
                                     <!-- Standard Row for Deliverable without Subtasks -->
-                                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
+                                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" data-assigned="{{ $task->isAssignedToUser($currentUserId) ? '1' : '0' }}" class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                                         <td>
                                             <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
                                                 <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:var(--color-text-primary);">{{ $task->title }}</span>
@@ -2013,6 +2160,18 @@
                                 </td>
                             </tr>
                             @endforelse
+                            <tr id="cd-assigned-empty-state" class="assigned-empty-state-row" style="display:none;">
+                                <td colspan="12" style="padding:48px 24px; text-align:center;">
+                                    <div style="display:inline-flex;flex-direction:column;align-items:center;gap:10px;">
+                                        <div style="width:48px;height:48px;border-radius:50%;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);display:flex;align-items:center;justify-content:center;">
+                                            <svg width="20" height="20" fill="none" stroke="#3b82f6" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                        </div>
+                                        <div style="font-size:13px;font-weight:700;color:var(--color-text-primary);">No content deliverables assigned to you</div>
+                                        <div style="font-size:11px;color:var(--color-text-secondary);max-width:320px;">You are not currently assigned to any content deliverables in this project.</div>
+                                        <button type="button" @click="toggleAssignedFilter()" style="margin-top:4px;font-size:11px;font-weight:700;color:#3b82f6;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);padding:5px 14px;border-radius:7px;cursor:pointer;">Show all deliverables</button>
+                                    </div>
+                                </td>
+                            </tr>
                         </tbody>
                 </table>
             </div>
@@ -8119,6 +8278,95 @@ async function reassignWriter(btn) {
         }
     }
 }
+
+function applyAssignedFilter(isOnlyAssigned) {
+    window._onlyAssignedActive = isOnlyAssigned;
+
+    const tables = document.querySelectorAll('.cd-table');
+    tables.forEach(table => {
+        const rows = table.querySelectorAll('tbody tr[data-deliverable-id]');
+        let anyVisible = false;
+
+        // Pass 1: Handle subtask rows and standalone rows
+        rows.forEach(row => {
+            const isAssigned = row.dataset.assigned === '1';
+            const isSubtask = row.classList.contains('subtask-row');
+            const isHeading = row.classList.contains('rtb-heading-row');
+
+            if (isSubtask) {
+                if (isOnlyAssigned && !isAssigned) {
+                    row.classList.add('assigned-filtered-out');
+                } else {
+                    row.classList.remove('assigned-filtered-out');
+                }
+            } else if (!isHeading) {
+                if (isOnlyAssigned && !isAssigned) {
+                    row.classList.add('assigned-filtered-out');
+                } else {
+                    row.classList.remove('assigned-filtered-out');
+                    anyVisible = true;
+                }
+            }
+        });
+
+        // Pass 2: Handle batch headings
+        const headingRows = table.querySelectorAll('tbody tr.rtb-heading-row');
+        headingRows.forEach(heading => {
+            const taskId = heading.dataset.deliverableId;
+            const subtaskRows = table.querySelectorAll(`tbody tr.subtask-of-${taskId}`);
+            const isBatchAssigned = heading.dataset.assigned === '1';
+
+            if (isOnlyAssigned) {
+                let hasAssignedSubtask = false;
+                subtaskRows.forEach(subRow => {
+                    if (subRow.dataset.assigned === '1') {
+                        hasAssignedSubtask = true;
+                    }
+                });
+
+                if (isBatchAssigned || hasAssignedSubtask) {
+                    heading.classList.remove('assigned-filtered-out');
+                    anyVisible = true;
+                } else {
+                    heading.classList.add('assigned-filtered-out');
+                }
+            } else {
+                heading.classList.remove('assigned-filtered-out');
+                anyVisible = true;
+            }
+        });
+
+        // Pass 3: Empty state row inside table
+        const emptyRow = table.querySelector('tbody .assigned-empty-state-row');
+        if (emptyRow) {
+            emptyRow.style.display = (isOnlyAssigned && !anyVisible && rows.length > 0) ? '' : 'none';
+        }
+    });
+
+    // Campaign Kanban cards
+    const kanbanCards = document.querySelectorAll('.kanban-card');
+    kanbanCards.forEach(card => {
+        const isAssigned = card.dataset.assigned === '1';
+        if (isOnlyAssigned && !isAssigned) {
+            card.classList.add('assigned-filtered-out');
+        } else {
+            card.classList.remove('assigned-filtered-out');
+        }
+    });
+
+    if (typeof recalculateKanbanCounts === 'function') {
+        recalculateKanbanCounts();
+    }
+}
+
+window.toggleOnlyAssigned = function(forceVal) {
+    const root = document.querySelector('[x-data*="onlyAssigned"]');
+    if (root && root._x_dataStack && root._x_dataStack[0]) {
+        const alpine = root._x_dataStack[0];
+        alpine.onlyAssigned = (typeof forceVal === 'boolean') ? forceVal : !alpine.onlyAssigned;
+        applyAssignedFilter(alpine.onlyAssigned);
+    }
+};
 
 function searchDeliverables(query) {
     query = query.toLowerCase();

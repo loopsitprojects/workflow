@@ -82,7 +82,7 @@
                     @endphp
 
                     {{-- Parent Row --}}
-                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" class="{{ $hasSubtasks ? 'rtb-heading-row' : '' }} {{ $isClosed ? 'task-closed' : '' }}"
+                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" data-assigned="{{ $task->isAssignedToUser($currentUserId) ? '1' : '0' }}" class="{{ $hasSubtasks ? 'rtb-heading-row' : '' }} {{ $isClosed ? 'task-closed' : '' }}"
                         style="{{ $hasSubtasks ? 'background:var(--color-bg-secondary); border-left:3px solid #6366f1; cursor:pointer;' : '' }}"
                         @if($hasSubtasks) onclick="toggleSubtasks(event, {{ $task->id }})" @else onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $task->id }}] ? window.projectDeliverables[{{ $task->id }}] : {{ $task->id }})" style="cursor:pointer;" @endif>
                         
@@ -394,7 +394,7 @@
                                 $subArtFiles = $sub->getFinalDesignsArray();
                                 $subArtUrls = $sub->getFinalDesignsUrlsArray();
                             @endphp
-                            <tr id="deliverable-row-{{ $sub->id }}" data-deliverable-id="{{ $sub->id }}" class="subtask-row subtask-of-{{ $task->id }} {{ $subIsClosed ? 'task-closed' : '' }}"
+                            <tr id="deliverable-row-{{ $sub->id }}" data-deliverable-id="{{ $sub->id }}" data-parent-id="{{ $task->id }}" data-assigned="{{ $sub->isAssignedToUser($currentUserId) ? '1' : '0' }}" class="subtask-row subtask-of-{{ $task->id }} {{ $subIsClosed ? 'task-closed' : '' }}"
                                 onclick="openTaskModal(window.projectDeliverables && window.projectDeliverables[{{ $sub->id }}] ? window.projectDeliverables[{{ $sub->id }}] : {{ $sub->id }})" style="cursor:pointer;">
                                 
                                 {{-- Subtask Title & Format --}}
@@ -615,6 +615,18 @@
                         @endforeach
                     @endif
                 @endforeach
+                <tr id="dd-assigned-empty-state" class="assigned-empty-state-row" style="display:none;">
+                    <td colspan="10" style="padding:40px 24px; text-align:center;">
+                        <div style="display:inline-flex;flex-direction:column;align-items:center;gap:10px;">
+                            <div style="width:44px;height:44px;border-radius:50%;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);display:flex;align-items:center;justify-content:center;">
+                                <svg width="18" height="18" fill="none" stroke="#6366f1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            </div>
+                            <div style="font-size:13px;font-weight:700;color:var(--color-text-primary);">No direct design deliverables assigned to you</div>
+                            <div style="font-size:11px;color:var(--color-text-secondary);max-width:320px;">You are not currently assigned to any direct design deliverables in this project.</div>
+                            <button type="button" @click="toggleAssignedFilter()" style="margin-top:4px;font-size:11px;font-weight:700;color:#6366f1;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);padding:5px 14px;border-radius:7px;cursor:pointer;">Show all direct design</button>
+                        </div>
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>

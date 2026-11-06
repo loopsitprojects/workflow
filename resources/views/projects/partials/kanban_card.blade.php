@@ -105,6 +105,7 @@
 <div class="kanban-card" 
      id="kanban-card-{{ $task->id }}"
      data-id="{{ $task->id }}"
+     data-assigned="{{ $task->isAssignedToUser($currentUserId) ? '1' : '0' }}"
      data-status="{{ $task->status ?? 'To Do' }}"
      data-approver-id="{{ $task->approver_id ?? '' }}"
      data-approver-name="{{ $task->approver?->name ?? '' }}"

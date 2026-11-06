@@ -1923,10 +1923,10 @@ function updateCardStatusUI(card, status) {
 }
 
 function recalculateKanbanCounts() {
-    const todoCount = document.querySelectorAll('#cards-container-todo .kanban-card').length;
-    const inprogressCount = document.querySelectorAll('#cards-container-inprogress .kanban-card').length;
-    const approvalCount = document.querySelectorAll('#cards-container-approval .kanban-card').length;
-    const completeCount = document.querySelectorAll('#cards-container-complete .kanban-card').length;
+    const todoCount = document.querySelectorAll('#cards-container-todo .kanban-card:not(.assigned-filtered-out)').length;
+    const inprogressCount = document.querySelectorAll('#cards-container-inprogress .kanban-card:not(.assigned-filtered-out)').length;
+    const approvalCount = document.querySelectorAll('#cards-container-approval .kanban-card:not(.assigned-filtered-out)').length;
+    const completeCount = document.querySelectorAll('#cards-container-complete .kanban-card:not(.assigned-filtered-out)').length;
 
     const elTodo = document.getElementById('badge-count-todo');
     const elInprogress = document.getElementById('badge-count-inprogress');
@@ -2320,6 +2320,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
         <div class="kanban-card" 
              id="kanban-card-${d.id}"
              data-id="${d.id}"
+             data-assigned="${(d.is_assigned_to_user ?? false) ? '1' : '0'}"
              data-status="${escapeHtml(d.status || 'To Do')}"
              data-approver-id="${d.approver_id || ''}"
              data-approver-name="${escapeHtml(d.approver_name || '')}"

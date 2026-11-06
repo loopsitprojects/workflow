@@ -55,7 +55,7 @@
             <tbody>
                 @forelse($outlineTasks as $task)
                     {{-- Standalone Outline Deliverable --}}
-                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
+                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" data-assigned="{{ $task->isAssignedToUser($currentUserId) ? '1' : '0' }}" class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                         @php
                             $canEditStandalone = $isAdmin || (($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || auth()->id() == $task->writer_id));
                         @endphp
@@ -323,7 +323,7 @@
             <tbody>
                 @forelse($otherTasks as $task)
                     {{-- Standalone Other Deliverable --}}
-                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
+                    <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" data-assigned="{{ $task->isAssignedToUser($currentUserId) ? '1' : '0' }}" class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                         @php
                             $isAssignedStandalonePerson = ($task->writer_id && auth()->id() == $task->writer_id) || ($task->designer_id && auth()->id() == $task->designer_id);
                             $canEditOtherStandalone = ($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer' || $task->approval_stage === 'Assign' || !$task->approval_stage) && $isAssignedStandalonePerson;
