@@ -1377,7 +1377,7 @@
 
         <div x-data="{ 
                 activeBoardTab: 'all',
-                onlyAssigned: (new URLSearchParams(window.location.search).get('assigned') !== '0' && new URLSearchParams(window.location.search).get('assigned') !== 'false'),
+                onlyAssigned: (new URLSearchParams(window.location.search).get('assigned') === '1' || new URLSearchParams(window.location.search).get('assigned') === 'true'),
                 assignedTotalCount: {{ $assignedTotalCount }},
                 assignedContentCount: {{ $assignedContentCount }},
                 assignedFastTrackCount: {{ $assignedFastTrackCount }},
@@ -8385,7 +8385,7 @@ function initAssignedFilterOnLoad() {
         applyAssignedFilter(root._x_dataStack[0].onlyAssigned);
     } else {
         const urlParam = new URLSearchParams(window.location.search).get('assigned');
-        const defaultAssigned = (urlParam !== '0' && urlParam !== 'false');
+        const defaultAssigned = (urlParam === '1' || urlParam === 'true');
         applyAssignedFilter(defaultAssigned);
     }
 }

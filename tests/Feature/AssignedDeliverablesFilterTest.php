@@ -131,8 +131,8 @@ class AssignedDeliverablesFilterTest extends TestCase
         // Check that the empty state placeholder exists in the DOM
         $response->assertSee('id="cd-assigned-empty-state"', false);
 
-        // Check that onlyAssigned defaults to on unless assigned=0
-        $this->assertStringContainsString("onlyAssigned: (new URLSearchParams(window.location.search).get('assigned') !== '0'", $content);
+        // Check that onlyAssigned defaults to off unless assigned=1 or assigned=true
+        $this->assertStringContainsString("onlyAssigned: (new URLSearchParams(window.location.search).get('assigned') === '1'", $content);
     }
 
     public function test_direct_design_section_renders_assigned_filter_and_data_attributes(): void
