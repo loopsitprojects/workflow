@@ -131,8 +131,13 @@ class ProjectController extends Controller
         if ($request->hasFile('brief_file')) {
             $file = $request->file('brief_file');
             $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('briefs', $filename, 's3');
-            $validated['brief_file_path'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
+            try {
+                $path = $file->storeAs('briefs', $filename, 's3');
+                $validated['brief_file_path'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
+            } catch (\Throwable $e) {
+                $localPath = $file->storeAs('briefs', $filename, 'public');
+                $validated['brief_file_path'] = asset('storage/' . $localPath);
+            }
         }
 
         if (empty($validated['brand_manager_id'])) {
@@ -686,8 +691,13 @@ class ProjectController extends Controller
         if ($request->hasFile('brief_file')) {
             $file = $request->file('brief_file');
             $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('briefs', $filename, 's3');
-            $validated['brief_file_path'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
+            try {
+                $path = $file->storeAs('briefs', $filename, 's3');
+                $validated['brief_file_path'] = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
+            } catch (\Throwable $e) {
+                $localPath = $file->storeAs('briefs', $filename, 'public');
+                $validated['brief_file_path'] = asset('storage/' . $localPath);
+            }
         } elseif ($request->input('remove_brief_file') == '1') {
             $validated['brief_file_path'] = null;
         }

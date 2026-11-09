@@ -1339,18 +1339,22 @@ class DeliverableController extends Controller
         
         $path = $request->folder . '/' . $filename;
         
-        $client = \Illuminate\Support\Facades\Storage::disk('s3')->getClient();
-        
-        $command = $client->getCommand('PutObject', [
-            'Bucket' => config('filesystems.disks.s3.bucket'),
-            'Key'    => $path,
-            'ContentType' => $request->content_type ?? 'application/octet-stream',
-        ]);
-        
-        $presignedRequest = $client->createPresignedRequest($command, '+60 minutes');
+        try {
+            $client = \Illuminate\Support\Facades\Storage::disk('s3')->getClient();
+            $command = $client->getCommand('PutObject', [
+                'Bucket' => config('filesystems.disks.s3.bucket'),
+                'Key'    => $path,
+                'ContentType' => $request->content_type ?? 'application/octet-stream',
+            ]);
+            $presignedRequest = $client->createPresignedRequest($command, '+60 minutes');
+            $url = (string) $presignedRequest->getUri();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('S3 presigning unavailable, using local endpoint fallback: ' . $e->getMessage());
+            $url = asset('storage/' . $path);
+        }
         
         return response()->json([
-            'url' => (string) $presignedRequest->getUri(),
+            'url' => $url,
             'path' => $path,
             'full_url' => \Illuminate\Support\Facades\Storage::disk('s3')->url($path)
         ]);
@@ -2125,9 +2129,7 @@ class DeliverableController extends Controller
                 $imagePath = \Illuminate\Support\Facades\Storage::disk('s3')->url(ltrim($request->revision_image, '/'));
             } elseif ($request->hasFile('revision_image')) {
                 $file = $request->file('revision_image');
-                $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('revision_images', $filename, 's3');
-                $imagePath = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
+                $imagePath = $this->moveUploadedFile($file, 'revision_images');
             }
 
             $result = $deliverable->getWorkflow()->requestRevisions($deliverable, $validated, $imagePath, auth()->user());
@@ -2157,9 +2159,7 @@ class DeliverableController extends Controller
         $imagePath = null;
         if ($request->hasFile('revision_image')) {
             $file = $request->file('revision_image');
-            $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('revision_images', $filename, 's3');
-            $imagePath = \Illuminate\Support\Facades\Storage::disk('s3')->url($path);
+            $imagePath = $this->moveUploadedFile($file, 'revision_images');
         }
 
         // Enforce: all subtasks must be at the same stage before batch revision
