@@ -1377,7 +1377,7 @@
 
         <div x-data="{ 
                 activeBoardTab: 'all',
-                onlyAssigned: new URLSearchParams(window.location.search).get('assigned') === '1',
+                onlyAssigned: (new URLSearchParams(window.location.search).get('assigned') !== '0' && new URLSearchParams(window.location.search).get('assigned') !== 'false'),
                 assignedTotalCount: {{ $assignedTotalCount }},
                 assignedContentCount: {{ $assignedContentCount }},
                 assignedFastTrackCount: {{ $assignedFastTrackCount }},
@@ -1393,7 +1393,15 @@
              }" 
              x-init="
                 $watch('onlyAssigned', val => { if (typeof applyAssignedFilter === 'function') applyAssignedFilter(val); });
-                if (onlyAssigned) { $nextTick(() => { if (typeof applyAssignedFilter === 'function') applyAssignedFilter(true); }); }
+                if (onlyAssigned) { 
+                    $nextTick(() => { 
+                        if (typeof applyAssignedFilter === 'function') {
+                            applyAssignedFilter(true); 
+                        } else {
+                            setTimeout(() => { if (typeof applyAssignedFilter === 'function') applyAssignedFilter(true); }, 50);
+                        }
+                    }); 
+                }
              "
              style="margin-bottom: 24px;">
 
@@ -8370,6 +8378,22 @@ window.toggleOnlyAssigned = function(forceVal) {
         applyAssignedFilter(alpine.onlyAssigned);
     }
 };
+
+function initAssignedFilterOnLoad() {
+    const root = document.querySelector('[x-data*="onlyAssigned"]');
+    if (root && root._x_dataStack && root._x_dataStack[0]) {
+        applyAssignedFilter(root._x_dataStack[0].onlyAssigned);
+    } else {
+        const urlParam = new URLSearchParams(window.location.search).get('assigned');
+        const defaultAssigned = (urlParam !== '0' && urlParam !== 'false');
+        applyAssignedFilter(defaultAssigned);
+    }
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAssignedFilterOnLoad);
+} else {
+    initAssignedFilterOnLoad();
+}
 
 function searchDeliverables(query) {
     query = query.toLowerCase();
