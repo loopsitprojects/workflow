@@ -81,6 +81,13 @@
                     Analytics
                 </a>
             @endif
+            @if(\App\Services\FeatureManager::isClosedTabEnabled())
+                <a href="{{ route('closed.index') }}"
+                   class="nav-link-item px-3 py-1.5 rounded-lg transition-all duration-150
+                          {{ request()->is('closed*') || request()->is('archive*') ? 'nav-item-active bg-white/15 text-white font-semibold' : 'nav-item-inactive text-white/85 hover:text-white hover:bg-white/10' }}">
+                    Closed Projects
+                </a>
+            @endif
             @if(auth()->user() && auth()->user()->isAdmin())
                 <a href="{{ route('admin.settings') }}"
                    class="nav-link-item px-3 py-1.5 rounded-lg transition-all duration-150

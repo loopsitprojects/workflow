@@ -394,6 +394,47 @@
                                 </form>
                             </div>
 
+                            <!-- Closed Work Archive Tab -->
+                            <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-10 h-10 {{ ($closedTabEnabled ?? true) ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500' }} rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2.5 flex-wrap">
+                                            <h4 class="text-sm font-bold text-slate-900 dark:text-white">Closed Projects Tab</h4>
+                                            @if($closedTabEnabled ?? true)
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> FEATURE ENABLED
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> FEATURE DISABLED
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <p class="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed mt-1">
+                                            Enable or disable the "Closed Projects" archive tab in the top navigation bar for completed projects and deliverables.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <form action="{{ route('admin.features.toggle-closed-tab') }}" method="POST" id="closedTabToggleForm" class="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
+                                    @csrf
+                                    <input type="hidden" name="tab" value="features">
+                                    <span class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                        {{ ($closedTabEnabled ?? true) ? 'ON' : 'OFF' }}
+                                    </span>
+                                    <button type="submit" onclick="return confirmAction(event, '{{ ($closedTabEnabled ?? true) ? 'Disable Closed Projects Tab?' : 'Enable Closed Projects Tab?' }}', '{{ ($closedTabEnabled ?? true) ? 'Hide the Closed Projects tab from the navigation bar for all team members?' : 'Enable the Closed Projects tab in the navigation bar for all team members?' }}', false, '{{ ($closedTabEnabled ?? true) ? 'Disable Tab' : 'Enable Tab' }}');"
+                                        class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ ($closedTabEnabled ?? true) ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700' }}"
+                                        role="switch" aria-checked="{{ ($closedTabEnabled ?? true) ? 'true' : 'false' }}">
+                                        <span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ ($closedTabEnabled ?? true) ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                                    </button>
+                                </form>
+                            </div>
+
                             <!-- 4. Google Authentication (SSO) -->
                             <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
                                 <div class="flex items-start gap-4">

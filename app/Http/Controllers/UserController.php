@@ -143,11 +143,12 @@ class UserController extends Controller
         $clientReviewEnabled = \App\Services\FeatureManager::isClientReviewEnabled();
         $directDesignEnabled = \App\Services\FeatureManager::isDirectDesignEnabled();
         $analyticsEnabled = \App\Services\FeatureManager::isAnalyticsEnabled();
+        $closedTabEnabled = \App\Services\FeatureManager::isClosedTabEnabled();
         $googleAuthEnabled = \App\Services\FeatureManager::isGoogleAuthEnabled();
         $halloweenThemeEnabled = \App\Services\FeatureManager::isHalloweenThemeEnabled();
         $activeTheme = \App\Services\FeatureManager::getActiveTheme();
         $projectTypesStatus = \App\Services\FeatureManager::getProjectTypesStatus();
-        return view('admin.settings', compact('maintenance', 'clientReviewEnabled', 'directDesignEnabled', 'analyticsEnabled', 'googleAuthEnabled', 'halloweenThemeEnabled', 'activeTheme', 'projectTypesStatus'));
+        return view('admin.settings', compact('maintenance', 'clientReviewEnabled', 'directDesignEnabled', 'analyticsEnabled', 'closedTabEnabled', 'googleAuthEnabled', 'halloweenThemeEnabled', 'activeTheme', 'projectTypesStatus'));
     }
 
     public function toggleAnalytics(Request $request)
@@ -157,6 +158,22 @@ class UserController extends Controller
         $msg = $newStatus
             ? 'Analytics & Reports tab has been ENABLED. Team members can now view the analytics reports.'
             : 'Analytics & Reports tab has been DISABLED. The analytics tab is now hidden.';
+
+        if ($request->filled('tab')) {
+            $tab = $request->input('tab');
+            return redirect()->to(route('admin.settings', ['tab' => $tab]) . '#' . $tab)->with('success', $msg);
+        }
+
+        return redirect()->route('admin.settings')->with('success', $msg);
+    }
+
+    public function toggleClosedTab(Request $request)
+    {
+        $newStatus = \App\Services\FeatureManager::toggleClosedTab();
+
+        $msg = $newStatus
+            ? 'Closed Work Archive tab has been ENABLED. Team members can now access the Closed tab in navigation.'
+            : 'Closed Work Archive tab has been DISABLED. The Closed tab is now hidden from navigation.';
 
         if ($request->filled('tab')) {
             $tab = $request->input('tab');

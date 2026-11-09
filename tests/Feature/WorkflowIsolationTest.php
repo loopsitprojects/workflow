@@ -323,7 +323,7 @@ test('campaign deliverable with outlines stores concept, caption, and post copy'
     expect($deliverable)->not->toBeNull()
         ->and($deliverable->title)->toBe('Outline Post #1')
         ->and($deliverable->post_type)->toBe('Outlines')
-        ->and($deliverable->approval_stage)->toBe('Assignee')
+        ->and($deliverable->approval_stage)->toBe('Coordinator')
         ->and($deliverable->concept)->toBe('Brand narrative concept')
         ->and($deliverable->caption)->toBe('Exciting caption for outline')
         ->and($deliverable->post_copy)->toContain('Body copy outline')

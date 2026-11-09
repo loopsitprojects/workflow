@@ -33,6 +33,7 @@ class FeatureManager
             'client_review_enabled' => true,
             'direct_design_enabled' => true,
             'analytics_enabled' => true,
+            'closed_tab_enabled' => true,
             'google_auth_enabled' => true,
             'halloween_theme_enabled' => false,
             'christmas_theme_enabled' => false,
@@ -179,6 +180,37 @@ class FeatureManager
     {
         $newStatus = !self::isAnalyticsEnabled();
         self::setAnalyticsEnabled($newStatus);
+        return $newStatus;
+    }
+
+    /**
+     * Check if the Closed Tab / Archive feature is enabled.
+     */
+    public static function isClosedTabEnabled(): bool
+    {
+        $settings = self::getAll();
+        return (bool) ($settings['closed_tab_enabled'] ?? true);
+    }
+
+    /**
+     * Set the Closed Tab feature status.
+     */
+    public static function setClosedTabEnabled(bool $enabled): void
+    {
+        $current = self::getAll();
+        $current['closed_tab_enabled'] = $enabled;
+        $current['updated_at'] = now()->toDateTimeString();
+
+        Storage::disk('local')->put(self::SETTINGS_FILE, json_encode($current, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Toggle the Closed Tab feature.
+     */
+    public static function toggleClosedTab(): bool
+    {
+        $newStatus = !self::isClosedTabEnabled();
+        self::setClosedTabEnabled($newStatus);
         return $newStatus;
     }
 

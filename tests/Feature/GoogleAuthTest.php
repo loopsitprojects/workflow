@@ -14,6 +14,12 @@ class GoogleAuthTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \App\Services\FeatureManager::setGoogleAuthEnabled(true);
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();
