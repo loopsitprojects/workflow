@@ -51,11 +51,27 @@ class AssignedDeliverablesFilterTest extends TestCase
             'approver_id' => $this->approver->id,
         ]);
 
+        // At Coordinator stage: only Coordinator is active
         $this->assertTrue($deliverable->isAssignedToUser($this->coordinator));
-        $this->assertTrue($deliverable->isAssignedToUser($this->designer));
-        $this->assertTrue($deliverable->isAssignedToUser($this->writer));
-        $this->assertTrue($deliverable->isAssignedToUser($this->approver));
+        $this->assertFalse($deliverable->isAssignedToUser($this->designer));
+        $this->assertFalse($deliverable->isAssignedToUser($this->writer));
+        $this->assertFalse($deliverable->isAssignedToUser($this->approver));
         $this->assertFalse($deliverable->isAssignedToUser($this->otherUser));
+
+        // At Designer stage: only Designer is active
+        $deliverable->approval_stage = 'Designer';
+        $this->assertTrue($deliverable->isAssignedToUser($this->designer));
+        $this->assertFalse($deliverable->isAssignedToUser($this->coordinator));
+
+        // At Writer stage: only Writer is active
+        $deliverable->approval_stage = 'Writer';
+        $this->assertTrue($deliverable->isAssignedToUser($this->writer));
+        $this->assertFalse($deliverable->isAssignedToUser($this->coordinator));
+
+        // At Approver stage: only Approver is active
+        $deliverable->approval_stage = 'Approver';
+        $this->assertTrue($deliverable->isAssignedToUser($this->approver));
+        $this->assertFalse($deliverable->isAssignedToUser($this->coordinator));
     }
 
     public function test_parent_batch_is_assigned_if_any_subtask_is_assigned(): void
@@ -251,5 +267,77 @@ class AssignedDeliverablesFilterTest extends TestCase
         $this->assertStringContainsString('id="deliverable-row-' . $batch2->id . '" data-deliverable-id="' . $batch2->id . '" data-assigned="0"', $content);
         // Subtask 2A is not assigned
         $this->assertStringContainsString('id="deliverable-row-' . $subtask2A->id . '" data-deliverable-id="' . $subtask2A->id . '" data-parent-id="' . $batch2->id . '" data-assigned="0"', $content);
+    }
+
+    public function test_retainer_unassigned_writer_stage_deliverables_behavior(): void
+    {
+        $bm = User::factory()->create(['name' => 'BM Yoshini', 'role' => 'Brand Manager']);
+        $this->brand->members()->attach($bm->id);
+
+        $retainerProject = Project::create([
+            'brand_id' => $this->brand->id,
+            'name' => 'Retainer Test Brand Project',
+            'workflow_type' => 'retainer',
+            'brand_manager_id' => $bm->id,
+            'created_by' => $bm->id,
+        ]);
+
+        $batch = Deliverable::create([
+            'project_id' => $retainerProject->id,
+            'title' => 'Batch 1',
+            'approval_stage' => 'Writer',
+            'brand_manager_id' => $bm->id,
+        ]);
+
+        $post1 = Deliverable::create([
+            'project_id' => $retainerProject->id,
+            'parent_deliverable_id' => $batch->id,
+            'title' => 'Carousel 1',
+            'approval_stage' => 'Writer',
+            'brand_manager_id' => $bm->id,
+            'writer_id' => null, // Unassigned in shared writer pool
+        ]);
+
+        $post2 = Deliverable::create([
+            'project_id' => $retainerProject->id,
+            'parent_deliverable_id' => $batch->id,
+            'title' => 'Static Post 1',
+            'approval_stage' => 'Writer',
+            'brand_manager_id' => $bm->id,
+            'writer_id' => null, // Unassigned in shared writer pool
+        ]);
+
+        // 1. For Brand Manager: deliverables are in Writer stage, so BM is NOT the active assignee
+        $this->assertFalse($post1->isAssignedToUser($bm));
+        $this->assertFalse($post2->isAssignedToUser($bm));
+        $this->assertFalse($batch->isAssignedToUser($bm));
+
+        // 2. For Writer: prior to working/assignment, unassigned posts are NOT in the writer's personal assigned list
+        $this->assertFalse($post1->isAssignedToUser($this->writer));
+        $this->assertFalse($post2->isAssignedToUser($this->writer));
+        $this->assertFalse($batch->isAssignedToUser($this->writer));
+
+        // 3. Now Writer claims / is assigned to Post 1
+        $post1->writer_id = $this->writer->id;
+        $post1->save();
+
+        // Post 1 is now assigned to the writer
+        $this->assertTrue($post1->isAssignedToUser($this->writer));
+        // Post 2 is still unassigned
+        $this->assertFalse($post2->isAssignedToUser($this->writer));
+        // Batch 1 has Post 1 assigned to writer, so batch heading is visible to writer
+        $this->assertTrue($batch->isAssignedToUser($this->writer));
+
+        // For BM, Post 1 is still in Writer stage, so still not BM's turn
+        $this->assertFalse($post1->isAssignedToUser($bm));
+
+        // 4. When Post 1 advances to Brand Manager stage:
+        $post1->approval_stage = 'Brand Manager';
+        $post1->save();
+
+        // Now it is Brand Manager's turn!
+        $this->assertTrue($post1->isAssignedToUser($bm));
+        // And no longer the Writer's active turn
+        $this->assertFalse($post1->isAssignedToUser($this->writer));
     }
 }
