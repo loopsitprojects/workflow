@@ -115,6 +115,10 @@ class ProjectController extends Controller
             'workflow_type.in' => 'The selected project type is currently disabled by administrator.',
         ]);
 
+        if (isset($validated['description'])) {
+            $validated['description'] = \App\Services\HtmlSanitizer::clean($validated['description']);
+        }
+
         if (!$isCampaignOrPitch) {
             $validated['writer_id'] = null;
         }
@@ -557,6 +561,8 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
+        $this->authorizeProjectAccess($project);
+
         $project->load([
             'members',
             'deliverables.revisionsHistory.user', 
@@ -619,6 +625,7 @@ class ProjectController extends Controller
 
     public function edit(Project $project)
     {
+        $this->authorizeProjectAccess($project);
         $user = auth()->user();
         if (!$user->isAdmin() && !in_array($user->role, ['Operations Manager', 'Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
         $brands = \App\Models\Brand::all();
@@ -639,6 +646,7 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
+        $this->authorizeProjectAccess($project);
         $user = auth()->user();
         if (!$user->isAdmin() && !in_array($user->role, ['Operations Manager', 'Brand Manager', 'Coordinator', 'Approver', 'Approver Coordinator'])) abort(403);
 
@@ -670,6 +678,10 @@ class ProjectController extends Controller
         ], [
             'workflow_type.in' => 'The selected project type is currently disabled by administrator.',
         ]);
+
+        if (isset($validated['description'])) {
+            $validated['description'] = \App\Services\HtmlSanitizer::clean($validated['description']);
+        }
 
         if ($request->hasFile('brief_file')) {
             $file = $request->file('brief_file');
@@ -727,6 +739,7 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
+        $this->authorizeProjectAccess($project);
         $user = auth()->user();
         if (!$user->isAdmin() && !in_array($user->role, ['Operations Manager', 'Brand Manager'])) abort(403);
         $project->delete();
@@ -739,11 +752,48 @@ class ProjectController extends Controller
      */
     public function lastUpdated(Project $project)
     {
+        $this->authorizeProjectAccess($project);
         $latestDeliverable = $project->deliverables()->max('updated_at');
         $timestamps = array_filter([$project->updated_at?->toIso8601String(), $latestDeliverable]);
         $latest = !empty($timestamps) ? max($timestamps) : $project->updated_at?->toIso8601String();
 
         return response()->json(['last_updated' => $latest]);
+    }
+
+    /**
+     * Authorize user access to the project.
+     */
+    protected function authorizeProjectAccess(Project $project): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            abort(401);
+        }
+        if ($user->isAdmin() || $user->role === 'Operations Manager') {
+            return;
+        }
+
+        $brand = $project->brand;
+        $hasBrandAccess = $brand && $brand->members()->where('users.id', $user->id)->exists();
+        $hasProjectAccess = $project->members()->where('users.id', $user->id)->exists()
+            || in_array($user->id, array_filter([
+                $project->brand_manager_id, $project->lead_id, $project->writer_id,
+                $project->designer_id, $project->approver_id, $project->coordinator_id, $project->created_by
+            ]));
+
+        $hasDeliverableAccess = $project->deliverables()
+            ->where(function ($q) use ($user) {
+                $q->where('writer_id', $user->id)
+                  ->orWhere('designer_id', $user->id)
+                  ->orWhere('approver_id', $user->id)
+                  ->orWhere('brand_manager_id', $user->id)
+                  ->orWhere('coordinator_id', $user->id)
+                  ->orWhere('further_approver_id', $user->id);
+            })->exists();
+
+        if (!$hasBrandAccess && !$hasProjectAccess && !$hasDeliverableAccess) {
+            abort(403, 'Unauthorized access: You are not assigned to this project or its brand.');
+        }
     }
 }
 

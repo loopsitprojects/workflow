@@ -1172,7 +1172,7 @@
                                     </label>
                                 </div>
                                 <input type="hidden" id="modalConcept" name="concept" value="{{ $initialBriefOrConcept }}" form="submitStageForm">
-                                <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:160px; border-radius:10px;">{!! $initialBriefOrConcept !!}</div>
+                                <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:160px; border-radius:10px;">{!! \App\Services\HtmlSanitizer::clean($initialBriefOrConcept) !!}</div>
                             </div>
 
                             <!-- Section 2: Copy -->

@@ -16,8 +16,8 @@ class CrmWebhookController extends Controller
      */
     public function handleJobWebhook(Request $request)
     {
-        // 1. Optional Secret Validation
-        $configuredSecret = env('CRM_WEBHOOK_SECRET');
+        // 1. Secret Validation
+        $configuredSecret = config('services.crm.webhook_secret', env('CRM_WEBHOOK_SECRET'));
         if (!empty($configuredSecret)) {
             $providedSecret = $request->header('X-CRM-Secret')
                 ?? $request->header('X-Webhook-Secret')
@@ -125,8 +125,25 @@ class CrmWebhookController extends Controller
     /**
      * Get available CRM jobs for a given brand (by ID or slug).
      */
-    public function getJobsForBrand($brandIdentifier)
+    public function getJobsForBrand($brandIdentifier, Request $request)
     {
+        // Require either authenticated user with access to brand OR valid API webhook secret
+        $user = auth()->user();
+        $configuredSecret = config('services.crm.webhook_secret', env('CRM_WEBHOOK_SECRET'));
+        $providedSecret = $request->header('X-CRM-Secret')
+            ?? $request->header('X-Webhook-Secret')
+            ?? $request->bearerToken()
+            ?? $request->query('secret');
+
+        $isAuthorizedBySecret = (!empty($configuredSecret) && $providedSecret === $configuredSecret);
+
+        if (!$user && !$isAuthorizedBySecret) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized: Authentication or valid webhook secret required.',
+            ], 401);
+        }
+
         $brand = is_numeric($brandIdentifier)
             ? Brand::find($brandIdentifier)
             : Brand::where('slug', $brandIdentifier)->orWhereRaw('LOWER(name) = ?', [strtolower(trim($brandIdentifier))])->first();
@@ -136,6 +153,16 @@ class CrmWebhookController extends Controller
                 'success' => false,
                 'message' => 'Brand not found',
             ], 404);
+        }
+
+        if ($user && !$user->isAdmin() && $user->role !== 'Operations Manager') {
+            $isMember = $brand->members()->where('users.id', $user->id)->exists();
+            if (!$isMember && !$isAuthorizedBySecret) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden: You do not have access to this brand.',
+                ], 403);
+            }
         }
 
         $jobs = CrmJob::where('status', 'available')

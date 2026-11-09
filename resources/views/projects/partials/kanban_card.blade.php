@@ -1,9 +1,20 @@
 @php
+    $coordUser = $task->coordinator ?: ($task->project?->coordinator ?: null);
     $assigneeFullName = $task->assignee_name ?: ($task->writer?->name ?? ($task->designer?->name ?? ($task->coordinator?->name ?? 'Unassigned')));
     $hasAssignee = !empty($assigneeFullName) && strtolower($assigneeFullName) !== 'unassigned';
     $assigneeDisplay = $hasAssignee ? $assigneeFullName : 'Unassigned';
+    if ($task->isOutline()) {
+        if ($task->designer) {
+            $assigneeDisplay = 'Des: ' . $task->designer->name;
+            $assigneeFullName = $task->designer->name;
+            $hasAssignee = true;
+        } elseif (!$task->writer_id && !$task->designer_id) {
+            $assigneeDisplay = 'Assign Designer';
+            $hasAssignee = false;
+        }
+    }
     $assigneeInitial = $hasAssignee
-        ? mb_strtoupper(mb_substr(trim($assigneeFullName), 0, 1))
+        ? mb_strtoupper(mb_substr(trim($task->designer?->name ?? $assigneeFullName), 0, 1))
         : 'U';
 
     $prio = $task->priority ?? 'Medium';
@@ -142,6 +153,12 @@
                 <span id="card-view-post-type-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-card-sub); background: var(--bg-column); border: 1px solid var(--border-card); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                     {{ $postTypeLabel }}
                 </span>
+                @if($task->isOutline() && $coordUser)
+                <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #a855f7; background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center; gap: 3px;" title="Assigned Coordinator: {{ $coordUser->name }}">
+                    <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    <span>Coord: {{ $coordUser->name }}</span>
+                </span>
+                @endif
                 <span id="card-view-stage-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--badge-blue-text, #93c5fd); background: var(--badge-blue-bg, rgba(59,130,246,0.18)); border: 1px solid var(--badge-blue-border, rgba(147,197,253,0.35)); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: {{ $isAssignStage ? 'none' : 'inline-flex' }}; align-items: center;">
                     {{ $stage }}
                 </span>
@@ -186,6 +203,14 @@
                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     <span>{{ $task->deadline ? \Carbon\Carbon::parse($task->deadline)->format('M d') : '' }}</span>
                 </div>
+
+                {{-- Designer Deadline Pill --}}
+                @if($task->designer_deadline)
+                <div id="card-view-des-date-{{ $task->id }}" style="display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 800; color: #ec4899; background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.25); padding: 1px 5px; border-radius: 4px;" title="Designer Deadline {{ \Carbon\Carbon::parse($task->designer_deadline)->format('M d, Y') }}">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span>Des: {{ \Carbon\Carbon::parse($task->designer_deadline)->format('M d') }}</span>
+                </div>
+                @endif
 
                 {{-- Revision Due Date --}}
                 @if($task->revision_deadline && ($task->revision_instructions || ($task->revisions && $task->revisions > 0)))
@@ -296,6 +321,16 @@
             {{-- Row 2: Action Pickers with Icons (Matching reference layout) --}}
             <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px dashed var(--color-border-primary);">
                 
+                @if($task->isOutline() && $coordUser)
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 3px 0; font-size: 11px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 600;">
+                        <svg width="12" height="12" fill="none" stroke="#a855f7" viewBox="0 0 24 24" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        <span>Coordinator:</span>
+                    </span>
+                    <span style="font-weight: 700; color: #a855f7;">{{ $coordUser->name }}</span>
+                </div>
+                @endif
+
                 {{-- Assignee --}}
                 <div style="display: flex; align-items: center; gap: 6px;">
                     <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
@@ -368,6 +403,22 @@
                            placeholder="Add dates…"
                            style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
                 </div>
+
+                {{-- Designer Deadline (For Outlines / when coordinator assigns designer) --}}
+                @if($task->isOutline() || $task->designer_id)
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="13" height="13" fill="none" stroke="#ec4899" viewBox="0 0 24 24" style="flex-shrink:0;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <input type="date" 
+                           name="designer_deadline" 
+                           id="card-input-designer-deadline-{{ $task->id }}"
+                           value="{{ $task->designer_deadline ? \Carbon\Carbon::parse($task->designer_deadline)->format('Y-m-d') : '' }}"
+                           placeholder="Designer Deadline…"
+                           title="Designer Deadline"
+                           style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: #ec4899; cursor: pointer; outline: none; padding: 2px 0;">
+                </div>
+                @endif
 
                 {{-- Priority --}}
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -584,6 +635,18 @@
                         <span id="card-readonly-revisions-total-{{ $task->id }}">{{ $task->revisions ?: 1 }}</span> round(s)
                     </span>
                 </div>
+                @if($task->isOutline() && $coordUser)
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 500;">
+                        <svg width="13" height="13" fill="none" stroke="#a855f7" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        <span>Coordinator</span>
+                    </span>
+                    <span style="font-weight: 700; color: #a855f7;">
+                        {{ $coordUser->name }}
+                    </span>
+                </div>
+                @endif
+
                 {{-- Assignee --}}
                 <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px;">
                     <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 500;">
@@ -616,6 +679,19 @@
                         {{ $task->deadline ? \Carbon\Carbon::parse($task->deadline)->format('M d, Y') : 'No deadline' }}
                     </span>
                 </div>
+
+                {{-- Designer Deadline --}}
+                @if($task->designer_deadline)
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px; color: #ec4899; font-weight: 500;">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span>Designer Deadline</span>
+                    </span>
+                    <span style="font-weight: 700; color: #ec4899;">
+                        {{ \Carbon\Carbon::parse($task->designer_deadline)->format('M d, Y') }}
+                    </span>
+                </div>
+                @endif
 
                 {{-- Priority --}}
                 <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px;">

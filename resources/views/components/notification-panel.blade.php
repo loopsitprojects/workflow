@@ -174,7 +174,7 @@ style="display:none;">
                             <p class="text-[12px] leading-snug text-gray-500 dark:text-slate-400">
                                 <span class="font-semibold text-gray-900 dark:text-white" x-text="notif.actor_name"></span>
                                 <span x-html="notif.message
-                                    ? ' ' + notif.message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                    ? ' ' + notif.message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                                     : ' updated a deliverable'"></span>
                             </p>
                             <p class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5 truncate" x-text="notif.title"></p>

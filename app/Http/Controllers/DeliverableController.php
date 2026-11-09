@@ -21,6 +21,8 @@ class DeliverableController extends Controller
 {
     public function show(Deliverable $deliverable)
     {
+        $this->authorizeDeliverableAccess($deliverable);
+
         $deliverable->load([
             'project.brand', 'parent', 'writer', 'approver', 'brandManager', 
             'coordinator', 'designer', 'revisionsHistory.user', 'revisionsHistory.fixedByUser',
@@ -115,6 +117,22 @@ class DeliverableController extends Controller
 
         $validated = $request->validated();
 
+        foreach (['concept', 'caption', 'post_copy', 'description', 'notes'] as $cleanField) {
+            if (isset($validated[$cleanField])) {
+                $validated[$cleanField] = \App\Services\HtmlSanitizer::clean($validated[$cleanField]);
+            }
+        }
+        if (!empty($validated['subtasks']) && is_array($validated['subtasks'])) {
+            foreach ($validated['subtasks'] as &$subTaskItem) {
+                foreach (['concept', 'caption', 'post_copy', 'description', 'notes'] as $cleanField) {
+                    if (isset($subTaskItem[$cleanField])) {
+                        $subTaskItem[$cleanField] = \App\Services\HtmlSanitizer::clean($subTaskItem[$cleanField]);
+                    }
+                }
+            }
+            unset($subTaskItem);
+        }
+
         $subtasks = !empty($validated['subtasks']) ? $validated['subtasks'] : [];
         $parentId = $validated['parent_deliverable_id'] ?? null;
         $project = Project::find($validated['project_id']);
@@ -193,7 +211,11 @@ class DeliverableController extends Controller
                 $isOutline = ($pType === 'outlines' || $pType === 'outline');
                 if ($isOutline) {
                     $taskData['approval_stage'] = 'Coordinator';
-                    $coordId = !empty($sub['writer_id']) ? $sub['writer_id'] : ($taskData['writer_id'] ?? $project->coordinator_id);
+                    $coordId = !empty($sub['coordinator_id']) 
+                        ? $sub['coordinator_id'] 
+                        : (!empty($taskData['coordinator_id']) 
+                            ? $taskData['coordinator_id'] 
+                            : (!empty($sub['writer_id']) ? $sub['writer_id'] : ($taskData['writer_id'] ?? $project->coordinator_id)));
                     $taskData['coordinator_id'] = $coordId;
                     $taskData['writer_id'] = null;
                     if ($coordId) {
@@ -278,7 +300,9 @@ class DeliverableController extends Controller
                     : Deliverable::OTHER_DELIVERABLE_STAGES[0];
             }
             if ($isOutline) {
-                $coordId = $parentData['writer_id'] ?? $project->coordinator_id;
+                $coordId = !empty($parentData['coordinator_id']) 
+                    ? $parentData['coordinator_id'] 
+                    : ($parentData['writer_id'] ?? $project->coordinator_id);
                 $parentData['coordinator_id'] = $coordId;
                 $parentData['writer_id'] = null;
                 if ($coordId) {
@@ -650,6 +674,8 @@ class DeliverableController extends Controller
 
     public function showBatch(Deliverable $deliverable)
     {
+        $this->authorizeDeliverableAccess($deliverable);
+
         if ($deliverable->parent_deliverable_id) abort(404);
 
         $deliverable->load([
@@ -831,6 +857,9 @@ class DeliverableController extends Controller
             'caption' => 'nullable|string',
             'post_copy' => 'nullable|string',
             'reference' => 'nullable|string',
+            'reference_file' => 'nullable|file|mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm,pdf,doc,docx,ppt,pptx,txt,zip|max:512000',
+            'reference_files' => 'nullable|array',
+            'reference_files.*' => 'nullable|file|mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm,pdf,doc,docx,ppt,pptx,txt,zip|max:512000',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
             'approver_id' => 'nullable|exists:users,id',
@@ -840,6 +869,12 @@ class DeliverableController extends Controller
             'revisions' => 'nullable|integer',
             'is_ready' => 'nullable|boolean',
         ]);
+
+        foreach (['concept', 'caption', 'post_copy', 'description', 'notes'] as $cleanField) {
+            if (isset($validated[$cleanField])) {
+                $validated[$cleanField] = \App\Services\HtmlSanitizer::clean($validated[$cleanField]);
+            }
+        }
 
         if ($request->has('writer_id')) {
             $writerId = $request->input('writer_id');
@@ -1069,6 +1104,7 @@ class DeliverableController extends Controller
         $validated = $request->validate([
             'writer_id' => 'required|exists:users,id',
             'deadline' => 'nullable|date',
+            'designer_deadline' => 'nullable|date',
             'reason' => 'nullable|string|max:500',
             'reassign_subtasks' => 'nullable|boolean',
         ]);
@@ -1091,9 +1127,8 @@ class DeliverableController extends Controller
                 'assignee_name'  => $newWriter?->name ?? 'Unassigned',
                 'approval_stage' => 'Designer',
             ];
-            if (in_array(strtolower(trim($deliverable->status ?? '')), ['to do', 'todo', 'to commence', ''])) {
-                $updatePayload['status'] = 'In Progress';
-                $updatePayload['progress_percent'] = 25;
+            if (array_key_exists('designer_deadline', $validated) && !empty($validated['designer_deadline'])) {
+                $updatePayload['designer_deadline'] = $validated['designer_deadline'];
             }
         } else {
             if ($oldWriterId == $newWriterId) {
@@ -1142,9 +1177,8 @@ class DeliverableController extends Controller
                     ];
                     if ($isOutlineAssignDesigner) {
                         $subtaskUpdate['approval_stage'] = 'Designer';
-                        if (in_array(strtolower(trim($subtask->status ?? '')), ['to do', 'todo', 'to commence', ''])) {
-                            $subtaskUpdate['status'] = 'In Progress';
-                            $subtaskUpdate['progress_percent'] = 25;
+                        if (!empty($validated['designer_deadline'])) {
+                            $subtaskUpdate['designer_deadline'] = $validated['designer_deadline'];
                         }
                     }
                     if (!empty($validated['deadline'])) {
@@ -1189,6 +1223,8 @@ class DeliverableController extends Controller
             'assignee_name' => $toName,
             'writer_id' => $newWriterId,
             'designer_id' => $isOutlineAssignDesigner ? $newWriterId : $deliverable->designer_id,
+            'designer_deadline' => $deliverable->designer_deadline ? $deliverable->designer_deadline->format('Y-m-d') : null,
+            'designer_deadline_formatted' => $deliverable->designer_deadline ? $deliverable->designer_deadline->format('M d, Y') : null,
             'approval_stage' => $deliverable->approval_stage,
             'status' => $deliverable->status,
             'reassignment' => [
@@ -1286,14 +1322,20 @@ class DeliverableController extends Controller
     public function generatePresignedUrl(Request $request)
     {
         $request->validate([
-            'filename' => 'required|string',
+            'filename' => 'required|string|max:255',
             'folder' => 'required|string|in:artwork,references,briefs,brand_logos,revision_images'
         ]);
 
+        $extension = strtolower(pathinfo($request->filename, PATHINFO_EXTENSION));
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'mp4', 'mov', 'avi', 'webm', 'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'zip', 'ai', 'psd', 'eps'];
+        if (!in_array($extension, $allowedExtensions)) {
+            return response()->json(['error' => 'File extension not permitted.'], 422);
+        }
+
         $originalName = pathinfo($request->filename, PATHINFO_FILENAME);
         $safeName = \Illuminate\Support\Str::slug($originalName);
-        $extension = pathinfo($request->filename, PATHINFO_EXTENSION);
-        $filename = date('Y-m-d') . '_' . $safeName . '.' . $extension;
+        $safeName = !empty($safeName) ? substr($safeName, 0, 50) : 'file';
+        $filename = date('Y-m-d') . '_' . $safeName . '_' . \Illuminate\Support\Str::random(10) . '.' . $extension;
         
         $path = $request->folder . '/' . $filename;
         
@@ -2026,10 +2068,17 @@ class DeliverableController extends Controller
         if (!$file->isValid()) {
             throw new \Exception("File upload failed: " . $file->getErrorMessage());
         }
+
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'bin');
+        $dangerousExtensions = ['php', 'phtml', 'phar', 'php3', 'php4', 'php5', 'php7', 'phps', 'cgi', 'pl', 'exe', 'sh', 'bash', 'bat', 'cmd', 'js', 'html', 'htm', 'pht'];
+        if (in_array($extension, $dangerousExtensions)) {
+            throw new \InvalidArgumentException("Uploaded file extension .{$extension} is not allowed.");
+        }
         
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $safeName = \Illuminate\Support\Str::slug($originalName);
-        $filename = date('Y-m-d') . '_' . $safeName . '.' . $file->getClientOriginalExtension();
+        $safeName = !empty($safeName) ? substr($safeName, 0, 50) : 'file';
+        $filename = date('Y-m-d') . '_' . $safeName . '_' . \Illuminate\Support\Str::random(10) . '.' . $extension;
         
         try {
             $path = \Illuminate\Support\Facades\Storage::disk('s3')->putFileAs($folder, $file, $filename);
@@ -2174,6 +2223,8 @@ class DeliverableController extends Controller
      */
     public function exportDocx(Deliverable $deliverable)
     {
+        $this->authorizeDeliverableAccess($deliverable);
+
         $phpWord = new \PhpOffice\PhpWord\PhpWord();
         $section = $phpWord->addSection();
 
@@ -2268,6 +2319,8 @@ class DeliverableController extends Controller
      */
     public function exportPpt(Deliverable $deliverable)
     {
+        $this->authorizeDeliverableAccess($deliverable);
+
         $prs = new \PhpOffice\PhpPresentation\PhpPresentation();
         $this->buildPptSlide($prs->getActiveSlide(), $deliverable);
 
@@ -2285,6 +2338,8 @@ class DeliverableController extends Controller
      */
     public function exportBatchPpt(Deliverable $deliverable)
     {
+        $this->authorizeDeliverableAccess($deliverable);
+
         $deliverable->load(['subtasks.project.brand', 'subtasks.writer', 'subtasks.approver', 'subtasks.brandManager', 'subtasks.coordinator', 'subtasks.designer']);
 
         $deliverables = $deliverable->subtasks->isNotEmpty()
@@ -2312,6 +2367,8 @@ class DeliverableController extends Controller
      */
     public function exportBatchPdf(Deliverable $deliverable)
     {
+        $this->authorizeDeliverableAccess($deliverable);
+
         $deliverable->load(['subtasks.project.brand', 'subtasks.writer', 'subtasks.approver', 'subtasks.brandManager', 'subtasks.coordinator', 'subtasks.designer']);
 
         $deliverables = $deliverable->subtasks->isNotEmpty()
@@ -2332,6 +2389,8 @@ class DeliverableController extends Controller
      */
     public function downloadArtwork(Deliverable $deliverable, int $index)
     {
+        $this->authorizeDeliverableAccess($deliverable);
+
         $files = $deliverable->getFinalDesignsArray();
         if (!isset($files[$index])) {
             abort(404, 'File not found');
@@ -2360,8 +2419,8 @@ class DeliverableController extends Controller
 
     /**
      * Resolve a stored image URL to an absolute local filesystem path.
-     * Images are stored as asset('storage/...') URLs; this extracts the
-     * relative part after /storage/ and maps it to storage/app/public/.
+     * Checks local storage disks first to prevent loopbacks, and applies
+     * SSRF validation before attempting to fetch any remote images.
      */
     private function pptLocalImagePath(?string $url): ?string
     {
@@ -2373,10 +2432,46 @@ class DeliverableController extends Controller
         if (!$url || !is_string($url)) return null;
         if (!preg_match('/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i', $url)) return null;
 
+        // Legacy / local storage: /storage/... or http(s)://domain/storage/...
+        if (preg_match('#/storage/(.+?)(\?.*)?$#i', $url, $m)) {
+            $abs = storage_path('app/public/' . $m[1]);
+            if (file_exists($abs)) return $abs;
+        }
+
+        // Relative path check: /references/..., /artwork/..., /brand_logos/..., /briefs/...
+        if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
+            $abs = public_path(ltrim($url, '/'));
+            if (file_exists($abs)) return $abs;
+        }
+
+        // Direct local filesystem path fallback
+        if (file_exists($url)) return $url;
+
+        // Remote URL (e.g. S3 or external CDN)
         if (str_starts_with($url, 'http')) {
-            $content = @file_get_contents($url);
-            if ($content) {
-                $ext = preg_match('/\.([a-z0-9]+)(?:[\?#]|$)/i', $url, $m) ? $m[1] : 'png';
+            if (!$this->isSafeRemoteUrl($url)) {
+                \Illuminate\Support\Facades\Log::warning("SSRF blocked attempt to fetch: {$url}");
+                return null;
+            }
+
+            $ctx = stream_context_create([
+                'http' => [
+                    'timeout' => 5,
+                    'follow_location' => 1,
+                    'max_redirects' => 3,
+                ],
+                'ssl' => [
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                ]
+            ]);
+
+            $content = @file_get_contents($url, false, $ctx);
+            if ($content && strlen($content) <= 25 * 1024 * 1024) {
+                $ext = preg_match('/\.([a-z0-9]+)(?:[\?#]|$)/i', $url, $m) ? strtolower($m[1]) : 'png';
+                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+                    $ext = 'png';
+                }
                 $tmpFile = tempnam(sys_get_temp_dir(), 'pptimg_') . '.' . $ext;
                 file_put_contents($tmpFile, $content);
                 return $tmpFile;
@@ -2384,18 +2479,6 @@ class DeliverableController extends Controller
             return null;
         }
 
-        // New storage: /references/..., /artwork/..., /brand_logos/..., /briefs/...
-        if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
-            $abs = public_path(ltrim($url, '/'));
-            if (file_exists($abs)) return $abs;
-        }
-        // Legacy storage: /storage/...
-        if (preg_match('#/storage/(.+?)(\?.*)?$#i', $url, $m)) {
-            $abs = storage_path('app/public/' . $m[1]);
-            if (file_exists($abs)) return $abs;
-        }
-        // Absolute filesystem path fallback
-        if (file_exists($url)) return $url;
         return null;
     }
 
@@ -3022,6 +3105,7 @@ class DeliverableController extends Controller
             'writer_id' => 'nullable',
             'approver_id' => 'nullable',
             'deadline' => 'nullable|date',
+            'designer_deadline' => 'nullable|date',
             'priority' => 'nullable|string|in:Low,Medium,High Priority,Urgent,High',
             'concept' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -3031,10 +3115,10 @@ class DeliverableController extends Controller
 
         $deliverable->title = $validated['title'];
         if (array_key_exists('concept', $validated)) {
-            $deliverable->concept = $validated['concept'];
+            $deliverable->concept = \App\Services\HtmlSanitizer::clean($validated['concept']);
         }
         if (array_key_exists('notes', $validated)) {
-            $deliverable->notes = $validated['notes'];
+            $deliverable->notes = \App\Services\HtmlSanitizer::clean($validated['notes']);
         }
         // Once a deliverable is set for a task type it cannot be changed
         if (array_key_exists('post_type', $validated) && !empty($validated['post_type']) && empty($deliverable->post_type)) {
@@ -3049,6 +3133,9 @@ class DeliverableController extends Controller
             } else {
                 $deliverable->deadline = null;
             }
+        }
+        if (array_key_exists('designer_deadline', $validated)) {
+            $deliverable->designer_deadline = !empty($validated['designer_deadline']) ? $validated['designer_deadline'] : null;
         }
 
         $role = strtolower(trim((string) ($user?->role ?? '')));
@@ -3097,10 +3184,6 @@ class DeliverableController extends Controller
                     $deliverable->designer_id = $assignee?->id;
                     $deliverable->assignee_name = $assignee?->name ?? 'Unassigned';
                     $deliverable->approval_stage = 'Designer';
-                    if (in_array(strtolower(trim($deliverable->status ?? '')), ['to do', 'todo', 'to commence', ''])) {
-                        $deliverable->status = 'In Progress';
-                        $deliverable->progress_percent = 25;
-                    }
                     if ($assignee && $assignee->id != $previousAssigneeId) {
                         $newAssignee = $assignee;
                         $isNewlyAssigned = true;
@@ -3499,6 +3582,75 @@ class DeliverableController extends Controller
             'revision_instructions' => $deliverable->revision_instructions,
             'deliverable' => $deliverable,
         ]);
+    }
+
+    /**
+     * Authorize user access to a deliverable.
+     */
+    protected function authorizeDeliverableAccess(Deliverable $deliverable): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            abort(401);
+        }
+        if ($user->isAdmin() || $user->role === 'Operations Manager') {
+            return;
+        }
+
+        $project = $deliverable->project;
+        if (!$project) {
+            return;
+        }
+
+        $brand = $project->brand;
+        $hasBrandAccess = $brand && $brand->members()->where('users.id', $user->id)->exists();
+        $hasProjectAccess = $project->members()->where('users.id', $user->id)->exists()
+            || in_array($user->id, array_filter([
+                $project->brand_manager_id, $project->lead_id, $project->writer_id,
+                $project->designer_id, $project->approver_id, $project->coordinator_id, $project->created_by
+            ]));
+
+        $isAssignedToDeliverable = in_array($user->id, array_filter([
+            $deliverable->writer_id,
+            $deliverable->designer_id,
+            $deliverable->approver_id,
+            $deliverable->brand_manager_id,
+            $deliverable->coordinator_id,
+            $deliverable->further_approver_id,
+            $deliverable->created_by ?? null,
+        ]));
+
+        if (!$hasBrandAccess && !$hasProjectAccess && !$isAssignedToDeliverable) {
+            abort(403, 'Unauthorized access: You are not assigned to this deliverable, project, or brand.');
+        }
+    }
+
+    /**
+     * Verify that an external image URL is safe to retrieve (SSRF defense).
+     */
+    private function isSafeRemoteUrl(string $url): bool
+    {
+        $parts = parse_url($url);
+        if (!$parts || empty($parts['scheme']) || empty($parts['host'])) {
+            return false;
+        }
+
+        $scheme = strtolower($parts['scheme']);
+        if (!in_array($scheme, ['http', 'https'])) {
+            return false;
+        }
+
+        $host = $parts['host'];
+        $ip = filter_var($host, FILTER_VALIDATE_IP) ? $host : gethostbyname($host);
+        if (!$ip || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return false;
+        }
+
+        if ($ip === '169.254.169.254' || str_starts_with($ip, '127.') || str_starts_with($ip, '10.') || str_starts_with($ip, '192.168.')) {
+            return false;
+        }
+
+        return true;
     }
 }
 

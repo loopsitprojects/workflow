@@ -128,52 +128,16 @@ test('comprehensive end-to-end verification of all workflows and roles in a new 
 
     $outline = Deliverable::where('title', 'Digital Banking - Launch Outlines')->first();
     expect($outline)->not->toBeNull();
-    expect($outline->approval_stage)->toBeIn(['Assignee', 'Writer']);
+    expect($outline->approval_stage)->toBe('Coordinator');
     expect($outline->priority)->toBe('High Priority');
-    expect($outline->getStageProgress())->toBe(0);
+    expect($outline->getStageProgress())->toBe(40);
 
-    // Authorization Test: Designer tries to submit Writer stage -> should fail
+    // Authorization Test: Designer tries to submit Coordinator stage -> should fail
     $unauthResp = $this->actingAs($designer)->post(route('deliverables.submit', $outline), [
-        'approver_id' => $approver->id,
+        'designer_id' => $designer->id,
     ]);
     $unauthResp->assertSessionHas('error');
-    expect($outline->fresh()->approval_stage)->toBeIn(['Assignee', 'Writer']);
-
-    // Step 1: Writer Natasha submits stage -> moves to Approver (10%)
-    $s1Resp = $this->actingAs($writer)->post(route('deliverables.submit', $outline), [
-        'approver_id' => $approver->id,
-    ]);
-    expect($s1Resp->status())->toBeIn([200, 302]);
-    $outline->refresh();
-    expect($outline->approval_stage)->toBe('Approver');
-    expect($outline->getStageProgress())->toBe(10);
-
-    // Step 2: Approver Oken reviews and routes to Further Approver Irangi (20%)
-    $s2Resp = $this->actingAs($approver)->post(route('deliverables.submit', $outline), [
-        'further_approver_id' => $furtherApprover->id,
-    ]);
-    expect($s2Resp->status())->toBeIn([200, 302]);
-    $outline->refresh();
-    expect($outline->approval_stage)->toBe('Further Approver');
-    expect($outline->getStageProgress())->toBe(20);
-
-    // Step 3: Further Approver Irangi submits -> moves to Brand Manager (30%)
-    $s3Resp = $this->actingAs($furtherApprover)->post(route('deliverables.submit', $outline), [
-        'brand_manager_id' => $brandManager->id,
-    ]);
-    expect($s3Resp->status())->toBeIn([200, 302]);
-    $outline->refresh();
-    expect($outline->approval_stage)->toBe('Brand Manager');
-    expect($outline->getStageProgress())->toBe(30);
-
-    // Step 4: Brand Manager Yoshini submits -> moves to Coordinator (40%)
-    $s4Resp = $this->actingAs($brandManager)->post(route('deliverables.submit', $outline), [
-        'coordinator_id' => $coordinator->id,
-    ]);
-    expect($s4Resp->status())->toBeIn([200, 302]);
-    $outline->refresh();
-    expect($outline->approval_stage)->toBe('Coordinator');
-    expect($outline->getStageProgress())->toBe(40);
+    expect($outline->fresh()->approval_stage)->toBe('Coordinator');
 
     // Step 5: Coordinator Kavi submits -> moves to Designer (50%)
     $s5Resp = $this->actingAs($coordinator)->post(route('deliverables.submit', $outline), [

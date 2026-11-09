@@ -42,4 +42,8 @@ return [
         'hosted_domain' => env('GOOGLE_HOSTED_DOMAIN'),
     ],
 
+    'crm' => [
+        'webhook_secret' => env('CRM_WEBHOOK_SECRET'),
+    ],
+
 ];

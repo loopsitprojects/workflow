@@ -32,10 +32,10 @@ class ForgotPasswordController extends Controller
         // Delete any existing OTPs for this email
         PasswordOtp::where('email', $email)->delete();
 
-        // Create new OTP valid for 15 minutes
+        // Create new OTP valid for 15 minutes (hashed for security)
         PasswordOtp::create([
             'email'      => $email,
-            'otp'        => $otp,
+            'otp'        => Hash::make($otp),
             'expires_at' => now()->addMinutes(15),
         ]);
 
@@ -69,16 +69,23 @@ class ForgotPasswordController extends Controller
         ]);
 
         $email = strtolower(trim($request->input('email')));
-        $otpRecord = PasswordOtp::where('email', $email)
-            ->where('otp', trim($request->input('otp')))
-            ->first();
+        $inputOtp = trim($request->input('otp'));
 
-        if (!$otpRecord) {
-            return back()->withErrors(['otp' => 'Invalid OTP code. Please check and try again.'])->withInput();
+        $records = PasswordOtp::where('email', $email)
+            ->where('expires_at', '>', now())
+            ->get();
+
+        $matchingRecord = null;
+        foreach ($records as $record) {
+            // Check hashed OTP or legacy plain-text fallback for backward compatibility
+            if (Hash::check($inputOtp, $record->otp) || $record->otp === $inputOtp) {
+                $matchingRecord = $record;
+                break;
+            }
         }
 
-        if ($otpRecord->isExpired()) {
-            return back()->withErrors(['otp' => 'This OTP code has expired. Please request a new code.'])->withInput();
+        if (!$matchingRecord) {
+            return back()->withErrors(['otp' => 'Invalid or expired OTP code. Please check and try again.'])->withInput();
         }
 
         // Mark OTP verified in session

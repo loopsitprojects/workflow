@@ -79,6 +79,7 @@ class CrmJobWebhookTest extends TestCase
 
     public function test_api_returns_jobs_for_brand()
     {
+        $admin = User::factory()->create(['role' => 'Admin']);
         $brand = Brand::create(['name' => 'Tesla', 'slug' => 'tesla']);
         CrmJob::create([
             'crm_job_id' => 'TSLA-01',
@@ -95,7 +96,7 @@ class CrmJobWebhookTest extends TestCase
             'status'     => 'assigned', // already used
         ]);
 
-        $response = $this->getJson("/api/brands/{$brand->id}/crm-jobs");
+        $response = $this->actingAs($admin)->getJson("/api/brands/{$brand->id}/crm-jobs");
 
         $response->assertStatus(200);
         $response->assertJsonCount(1, 'jobs');

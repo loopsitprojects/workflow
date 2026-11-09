@@ -1329,7 +1329,7 @@
                     @if($project->description)
                         <div class="ql-snow">
                             <div class="ql-editor" style="font-size:13px; color:var(--color-text-primary); line-height:1.6; font-weight:500; padding:0;">
-                                {!! $project->description !!}
+                                {!! \App\Services\HtmlSanitizer::clean($project->description) !!}
                             </div>
                         </div>
                     @endif

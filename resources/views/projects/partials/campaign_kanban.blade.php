@@ -427,6 +427,10 @@ campaignDeliverablesData[{{ $t->id }}] = {
     writer_id: {{ $t->writer_id ?? 'null' }},
     designer_id: {{ $t->designer_id ?? 'null' }},
     coordinator_id: {{ $t->coordinator_id ?? 'null' }},
+    coordinator_name: @json($t->coordinator?->name ?? ($project->coordinator?->name ?? null)),
+    designer_name: @json($t->designer?->name ?? null),
+    designer_deadline: @json($t->designer_deadline ? $t->designer_deadline->toISOString() : null),
+    designer_deadline_formatted: @json($t->designer_deadline ? \Carbon\Carbon::parse($t->designer_deadline)->format('d M, Y') : null),
     approval_stage: @json($t->approval_stage ?? ''),
     approver_id: {{ $t->approver_id ?? ($project->approver_id ?? 'null') }},
     created_by: {{ $t->created_by ?? ($t->effective_creator_id ?? 'null') }},
@@ -744,6 +748,30 @@ function updateCardViewElements(taskId, d) {
         } else {
             dateContainer.style.display = 'none';
         }
+    }
+
+    let desDateContainer = document.getElementById('card-view-des-date-' + taskId);
+    if (d.designer_deadline) {
+        try {
+            const dt = new Date(d.designer_deadline);
+            const formatted = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            if (!desDateContainer) {
+                const footerMeta = card ? (card.querySelector('.kanban-card-view > div:last-child > div:first-child') || dateContainer?.parentElement) : dateContainer?.parentElement;
+                if (footerMeta) {
+                    desDateContainer = document.createElement('div');
+                    desDateContainer.id = 'card-view-des-date-' + taskId;
+                    desDateContainer.style.cssText = 'display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 800; color: #ec4899; background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.25); padding: 1px 5px; border-radius: 4px;';
+                    desDateContainer.innerHTML = `<svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span>Des: ${formatted}</span>`;
+                    footerMeta.appendChild(desDateContainer);
+                }
+            } else {
+                desDateContainer.style.display = 'inline-flex';
+                const span = desDateContainer.querySelector('span');
+                if (span) span.textContent = 'Des: ' + formatted;
+            }
+        } catch(e) {}
+    } else if (desDateContainer) {
+        desDateContainer.style.display = 'none';
     }
 
     const prioFlag = document.getElementById('card-view-prio-' + taskId);
@@ -2358,6 +2386,12 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         <span id="card-view-post-type-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-card-sub); background: var(--bg-column); border: 1px solid var(--border-card); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                             ${escapeHtml(d.post_type || 'Outlines')}
                         </span>
+                        ${(isOutline && d.coordinator_name) ? `
+                        <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #a855f7; background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center; gap: 3px;" title="Assigned Coordinator: ${escapeHtml(d.coordinator_name)}">
+                            <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            <span>Coord: ${escapeHtml(d.coordinator_name)}</span>
+                        </span>
+                        ` : ''}
                         <span id="card-view-stage-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--badge-blue-text, #93c5fd); background: var(--badge-blue-bg, rgba(59,130,246,0.18)); border: 1px solid var(--badge-blue-border, rgba(147,197,253,0.35)); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: ${isAssign ? 'none' : 'inline-flex'}; align-items: center;">
                             ${escapeHtml(stageDisplay)}
                         </span>
@@ -2393,6 +2427,12 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             <span>${escapeHtml(formattedDate)}</span>
                         </div>
+                        ${d.designer_deadline ? `
+                        <div id="card-view-des-date-${d.id}" style="display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 800; color: #ec4899; background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.25); padding: 1px 5px; border-radius: 4px;" title="Designer Deadline: ${escapeHtml(d.designer_deadline_formatted || d.designer_deadline)}">
+                            <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <span>Des: ${escapeHtml(d.designer_deadline_formatted ? d.designer_deadline_formatted.substring(0, 6) : 'Des')}</span>
+                        </div>
+                        ` : ''}
                         <div id="card-view-work-badge-${d.id}" style="display: ${hasCardFiles ? 'inline-flex' : 'none'}; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; color: #10b981; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1px 5px; border-radius: 4px;" title="${cardFiles.length} deliverable file(s) uploaded">
                             <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             <span>Work (<span id="card-view-work-count-${d.id}">${cardFiles.length}</span>)</span>
@@ -4354,6 +4394,14 @@ function renderCampaignDetailsModalContent(task) {
                 </div>
 
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; border-top: 1px dashed var(--card-border);">
+                    <span style="color: var(--color-text-secondary); font-weight: 500;">Coordinator</span>
+                    <span style="font-weight: 700; color: #a855f7; display: inline-flex; align-items: center; gap: 6px;">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        <span>${escapeHtml(task.coordinator_name || 'Coordinator')}</span>
+                    </span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                     <span style="color: var(--color-text-secondary); font-weight: 500;">Assignee</span>
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span style="font-weight: 700; color: var(--color-text-primary); display: inline-flex; align-items: center; gap: 6px;">
@@ -4394,6 +4442,16 @@ function renderCampaignDetailsModalContent(task) {
                         <span>${escapeHtml(task.deadline_formatted || 'No deadline')}</span>
                     </span>
                 </div>
+
+                ${task.designer_deadline ? `
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <span style="color: #ec4899; font-weight: 500;">Designer Deadline</span>
+                    <span style="font-weight: 700; color: #ec4899; display: inline-flex; align-items: center; gap: 5px;">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span>${escapeHtml(task.designer_deadline_formatted || formatLocalDateStr(task.designer_deadline))}</span>
+                    </span>
+                </div>
+                ` : ''}
 
                 ${task.created_at_formatted ? `
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
@@ -4882,6 +4940,24 @@ function openCampaignReassignModal(taskId) {
         sel.value = '';
     }
 
+    const desDeadlineWrapper = document.getElementById('campaignReassignDesignerDeadlineWrapper');
+    const desDeadlineInput = document.getElementById('campaignReassignDesignerDeadline');
+    if (desDeadlineWrapper && desDeadlineInput) {
+        if (isOutline || isAssigningDesigner) {
+            desDeadlineWrapper.style.display = 'block';
+            let initialDesDeadline = '';
+            if (task?.designer_deadline) {
+                initialDesDeadline = task.designer_deadline.split('T')[0];
+            } else if (task?.deadline) {
+                initialDesDeadline = task.deadline.split('T')[0];
+            }
+            desDeadlineInput.value = initialDesDeadline;
+        } else {
+            desDeadlineWrapper.style.display = 'none';
+            desDeadlineInput.value = '';
+        }
+    }
+
     overlay.style.display = 'flex';
 }
 
@@ -4912,6 +4988,9 @@ async function submitCampaignReassignment(btn) {
         return;
     }
 
+    const desDlInput = document.getElementById('campaignReassignDesignerDeadline');
+    const desDlVal = (desDlInput && desDlInput.parentElement?.style.display !== 'none') ? (desDlInput.value || null) : null;
+
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<span>Reassigning…</span>';
@@ -4928,6 +5007,7 @@ async function submitCampaignReassignment(btn) {
             body: JSON.stringify({
                 writer_id: newUserId,
                 reason: reason,
+                designer_deadline: desDlVal,
                 reassign_subtasks: false,
             })
         });
@@ -4944,6 +5024,10 @@ async function submitCampaignReassignment(btn) {
                 if (result.designer_id) campaignDeliverablesData[taskId].designer_id = result.designer_id;
                 if (result.approval_stage) campaignDeliverablesData[taskId].approval_stage = result.approval_stage;
                 if (result.status) campaignDeliverablesData[taskId].status = result.status;
+                if (result.designer_deadline) {
+                    campaignDeliverablesData[taskId].designer_deadline = result.designer_deadline;
+                    campaignDeliverablesData[taskId].designer_deadline_formatted = result.designer_deadline_formatted;
+                }
                 campaignDeliverablesData[taskId].writer_id = newUserId;
                 if (!Array.isArray(campaignDeliverablesData[taskId].reassignments_history)) {
                     campaignDeliverablesData[taskId].reassignments_history = [];
@@ -4958,6 +5042,8 @@ async function submitCampaignReassignment(btn) {
                 assignee_name: newName,
                 writer_id: newUserId,
                 designer_id: result.designer_id,
+                designer_deadline: result.designer_deadline,
+                designer_deadline_formatted: result.designer_deadline_formatted,
                 approval_stage: result.approval_stage,
                 status: result.status
             });
@@ -5156,6 +5242,22 @@ document.addEventListener('keydown', function(event) {
                         style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid rgba(59,130,246,0.3); font-size: 13px; font-weight: 600; color: var(--color-text-primary); background: var(--color-bg-secondary); outline: none;">
                     <option value="">Select team member…</option>
                 </select>
+            </div>
+
+            {{-- Designer Deadline (Visible for Outlines / when assigning designer) --}}
+            <div id="campaignReassignDesignerDeadlineWrapper" style="display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <label style="font-size: 11px; font-weight: 800; color: #ec4899; text-transform: uppercase; letter-spacing: 0.06em; display: inline-flex; align-items: center; gap: 4px;">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span>Designer Deadline</span>
+                    </label>
+                    <span style="font-size: 10px; color: var(--color-text-secondary);">Deadline for designer to deliver work</span>
+                </div>
+                <input type="date" 
+                       id="campaignReassignDesignerDeadline" 
+                       style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1.5px solid rgba(236,72,153,0.35); font-size: 13px; font-weight: 600; color: var(--color-text-primary); background: var(--color-bg-secondary); outline: none;" 
+                       onfocus="this.style.borderColor='#ec4899'" 
+                       onblur="this.style.borderColor='rgba(236,72,153,0.35)'">
             </div>
 
             {{-- Reason Input with Presets --}}

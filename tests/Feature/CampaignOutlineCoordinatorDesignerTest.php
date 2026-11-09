@@ -160,9 +160,10 @@ test('coordinator can assign designer to outline deliverable via reassignWriter'
         'brand_manager_id' => $this->brandManager->id,
     ]);
 
-    // Coordinator assigns designer
+    // Coordinator assigns designer with designer deadline
     $response = $this->actingAs($this->coordinator)->json('POST', route('deliverables.reassign-writer', $deliverable), [
         'writer_id' => $this->designer->id,
+        'designer_deadline' => now()->addDays(5)->toDateString(),
         'reason' => 'Assigning designer to produce artwork assets',
     ]);
 
@@ -174,7 +175,16 @@ test('coordinator can assign designer to outline deliverable via reassignWriter'
     expect($deliverable->writer_id)->toBeNull();
     expect($deliverable->approval_stage)->toBe('Designer');
     expect($deliverable->assignee_name)->toBe($this->designer->name);
-    expect($deliverable->status)->toBe('In Progress');
+    // Should remain in To Do so designer can move it to In Progress
+    expect($deliverable->status)->toBe('To Do');
+    expect($deliverable->designer_deadline)->not->toBeNull();
+
+    // Designer moves the deliverable to In Progress
+    $moveResp = $this->actingAs($this->designer)->json('POST', route('deliverables.update-kanban-status', $deliverable), [
+        'status' => 'In Progress',
+    ]);
+    expect($moveResp->status())->toBe(200);
+    expect($deliverable->fresh()->status)->toBe('In Progress');
 
     // Audit trail should record role 'designer'
     $reassignment = DeliverableReassignment::where('deliverable_id', $deliverable->id)->first();
@@ -216,7 +226,7 @@ test('coordinator can assign designer via quickUpdateCampaignKanban', function (
     expect($deliverable->designer_id)->toBe($this->designer->id);
     expect($deliverable->approval_stage)->toBe('Designer');
     expect($deliverable->assignee_name)->toBe($this->designer->name);
-    expect($deliverable->status)->toBe('In Progress');
+    expect($deliverable->status)->toBe('To Do');
 });
 
 test('pitch flow operates identically for outline coordinator to designer assignment', function () {
@@ -245,7 +255,7 @@ test('pitch flow operates identically for outline coordinator to designer assign
     expect($deliverable->designer_id)->toBe($this->designer->id);
     expect($deliverable->approval_stage)->toBe('Designer');
     expect($deliverable->assignee_name)->toBe($this->designer->name);
-    expect($deliverable->status)->toBe('In Progress');
+    expect($deliverable->status)->toBe('To Do');
 });
 
 test('advancing outline from Designer stage skips Writer Review straight to Approver Review when no writer exists', function () {

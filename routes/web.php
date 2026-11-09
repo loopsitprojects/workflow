@@ -18,7 +18,7 @@ use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\ClosedArchiveController;
 
 Route::get('/invite/{token}', [RegisterController::class, 'show'])->name('register');
-Route::post('/invite/{token}', [RegisterController::class, 'store']);
+Route::post('/invite/{token}', [RegisterController::class, 'store'])->middleware('throttle:10,1');
 
 // Google OAuth Authentication
 Route::middleware('guest')->group(function () {
@@ -32,7 +32,7 @@ Route::post('/artwork-review/{token}/annotate', [ArtworkReviewController::class,
 Route::post('/artwork-review/{token}/approve', [ArtworkReviewController::class, 'approve'])->name('artwork.review.approve')->middleware('throttle:30,1');
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Password Reset & OTP Routes
