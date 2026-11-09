@@ -152,6 +152,8 @@ class ArtworkReviewController extends Controller
      */
     public function create(Request $request, Deliverable $deliverable)
     {
+        $this->authorizeDeliverableAccess($deliverable);
+
         if (!\App\Services\FeatureManager::isClientReviewEnabled()) {
             return response()->json(['success' => false, 'message' => 'The Send to Client feature is disabled by administrator.'], 403);
         }
@@ -197,6 +199,8 @@ class ArtworkReviewController extends Controller
      */
     public function dashboard(Deliverable $deliverable)
     {
+        $this->authorizeDeliverableAccess($deliverable);
+
         $deliverable->load('subtasks');
         $artworks = $deliverable->getAllArtworkFiles();
 
@@ -222,6 +226,10 @@ class ArtworkReviewController extends Controller
      */
     public function respond(Request $request, ArtworkAnnotation $annotation)
     {
+        if ($annotation->review?->deliverable) {
+            $this->authorizeDeliverableAccess($annotation->review->deliverable);
+        }
+
         $request->validate([
             'comment' => ['nullable', 'string', 'max:2000'],
             'response_text' => ['nullable', 'string', 'max:2000'],
@@ -268,6 +276,10 @@ class ArtworkReviewController extends Controller
 
     public function resolve(ArtworkAnnotation $annotation)
     {
+        if ($annotation->review?->deliverable) {
+            $this->authorizeDeliverableAccess($annotation->review->deliverable);
+        }
+
         $annotation->update([
             'is_resolved' => !$annotation->is_resolved,
             'resolved_by' => $annotation->is_resolved ? null : auth()->id(),
@@ -297,6 +309,10 @@ class ArtworkReviewController extends Controller
      */
     public function destroy(ArtworkReview $review)
     {
+        if ($review->deliverable) {
+            $this->authorizeDeliverableAccess($review->deliverable);
+        }
+
         $review->update(['is_active' => false]);
 
         return response()->json(['success' => true]);
@@ -308,6 +324,8 @@ class ArtworkReviewController extends Controller
      */
     public function reviewsJson(Deliverable $deliverable)
     {
+        $this->authorizeDeliverableAccess($deliverable);
+
         $reviews = ArtworkReview::where('deliverable_id', $deliverable->id)
             ->withCount(['annotations', 'annotations as unresolved_count' => function ($q) {
                 $q->where('is_resolved', false);
@@ -330,5 +348,46 @@ class ArtworkReviewController extends Controller
             });
 
         return response()->json($reviews);
+    }
+
+    /**
+     * Authorize user access to a deliverable.
+     */
+    protected function authorizeDeliverableAccess(Deliverable $deliverable): void
+    {
+        $user = auth()->user();
+        if (!$user) {
+            abort(401);
+        }
+        if ($user->isAdmin() || $user->role === 'Operations Manager') {
+            return;
+        }
+
+        $project = $deliverable->project;
+        if (!$project) {
+            return;
+        }
+
+        $brand = $project->brand;
+        $hasBrandAccess = $brand && $brand->members()->where('users.id', $user->id)->exists();
+        $hasProjectAccess = $project->members()->where('users.id', $user->id)->exists()
+            || in_array($user->id, array_filter([
+                $project->brand_manager_id, $project->lead_id, $project->writer_id,
+                $project->designer_id, $project->approver_id, $project->coordinator_id, $project->created_by
+            ]));
+
+        $isAssignedToDeliverable = in_array($user->id, array_filter([
+            $deliverable->writer_id,
+            $deliverable->designer_id,
+            $deliverable->approver_id,
+            $deliverable->brand_manager_id,
+            $deliverable->coordinator_id,
+            $deliverable->further_approver_id,
+            $deliverable->created_by ?? null,
+        ]));
+
+        if (!$hasBrandAccess && !$hasProjectAccess && !$isAssignedToDeliverable) {
+            abort(403, 'Unauthorized access: You are not assigned to this deliverable, project, or brand.');
+        }
     }
 }

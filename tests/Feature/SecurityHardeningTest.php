@@ -110,6 +110,12 @@ class SecurityHardeningTest extends TestCase
 
         $response = $this->get(route('deliverables.export.ppt', $this->deliverable));
         $response->assertStatus(403);
+
+        $response = $this->get(route('artwork.dashboard', $this->deliverable));
+        $response->assertStatus(403);
+
+        $response = $this->get(route('artwork.reviews-json', $this->deliverable));
+        $response->assertStatus(403);
     }
 
     public function test_assigned_user_and_admin_can_access_deliverable_show()
