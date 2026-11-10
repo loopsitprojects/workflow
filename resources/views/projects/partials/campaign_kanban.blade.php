@@ -448,10 +448,18 @@ campaignDeliverablesData[{{ $t->id }}] = {
 
 function isAssignStageName(val) {
     const s = (val || '').toLowerCase().trim();
-    return !s || s === 'assign' || s === 'assignee' || s === 'todo' || s === 'to do' || s === 'in progress' || s === 'writer';
+    return !s || s === 'assign' || s === 'assignee' || s === 'todo' || s === 'to do' || s === 'in progress' || s === 'writer' || s === 'coordinator';
 }
 
 function checkCardMovePermission(d) {
+    const pType = (d.post_type || '').toLowerCase().trim();
+    const isOutline = (pType === 'outlines' || pType === 'outline');
+    const needsDesigner = isOutline && (!d.designer_id || d.approval_stage === 'Coordinator');
+
+    if (needsDesigner) {
+        return { canMove: false, reason: 'Please assign a designer before moving this deliverable to In Progress.' };
+    }
+
     if (kanbanIsAdminOrManager) {
         return { canMove: true, reason: '' };
     }
@@ -781,24 +789,33 @@ function updateCardViewElements(taskId, d) {
         prioFlag.title = d.priority || 'Medium';
     }
 
-    const hasAssignee = d.assignee_name && d.assignee_name !== 'Unassigned';
-    const name = hasAssignee ? d.assignee_name : 'Unassigned';
+    const pType = (d.post_type || '').toLowerCase().trim();
+    const isOutline = (pType === 'outlines' || pType === 'outline');
+    const needsDesigner = isOutline && (!d.designer_id || d.approval_stage === 'Coordinator');
+    const hasAssignee = !needsDesigner && d.assignee_name && d.assignee_name !== 'Unassigned';
+    const name = needsDesigner ? 'Assign Designer' : (hasAssignee ? d.assignee_name : 'Unassigned');
 
     ['card-view-assignee-badge-', 'card-editor-assignee-badge-', 'card-readonly-assignee-badge-'].forEach(prefix => {
         const badge = document.getElementById(prefix + taskId);
         if (badge) {
-            const span = badge.querySelector('span') || badge;
-            span.textContent = name;
-            if (hasAssignee) {
+            badge.classList.remove('is-assigned', 'is-unassigned', 'is-needs-designer');
+            if (needsDesigner) {
+                badge.classList.add('is-needs-designer');
+                badge.innerHTML = `<svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg><span>Assign Designer</span>`;
+                badge.style.color = '';
+                badge.style.background = '';
+                badge.style.border = '';
+                badge.title = 'Click to assign a designer';
+            } else if (hasAssignee) {
                 badge.classList.add('is-assigned');
-                badge.classList.remove('is-unassigned');
+                badge.innerHTML = `<span>${escapeHtml(name)}</span>`;
                 badge.style.color = 'var(--badge-blue-text, #93c5fd)';
                 badge.style.background = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
                 badge.style.border = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
                 badge.title = 'Assigned to ' + name;
             } else {
-                badge.classList.remove('is-assigned');
                 badge.classList.add('is-unassigned');
+                badge.innerHTML = `<span>Unassigned</span>`;
                 badge.style.color = 'var(--color-text-secondary)';
                 badge.style.background = 'var(--color-bg-secondary)';
                 badge.style.border = '1px solid var(--color-border-primary)';
@@ -806,6 +823,16 @@ function updateCardViewElements(taskId, d) {
             }
         }
     });
+
+    if (card) {
+        card.setAttribute('data-needs-designer', needsDesigner ? '1' : '0');
+        if (needsDesigner) {
+            card.setAttribute('data-can-move', 'false');
+            card.setAttribute('draggable', 'false');
+            card.setAttribute('data-restriction-reason', 'Please assign a designer before moving this deliverable to In Progress.');
+            card.title = 'Please assign a designer before moving this deliverable to In Progress.';
+        }
+    }
 
     const readonlyAssigneeName = document.getElementById('card-readonly-assignee-name-' + taskId);
     if (readonlyAssigneeName) {
@@ -1326,6 +1353,15 @@ async function kanbanOnDrop(event, targetStatus) {
     if (isFromToDo && !isToProgress) {
         window.dispatchEvent(new CustomEvent('toast', { 
             detail: { message: 'Deliverables in To Do can only be moved to In Progress.', type: 'error' } 
+        }));
+        return;
+    }
+
+    // Flow Rule 1b: Outline deliverable with coordinator cannot move to In Progress until designer is assigned
+    const cardNeedsDesigner = card ? (card.getAttribute('data-needs-designer') === '1') : false;
+    if (isToProgress && cardNeedsDesigner) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Please assign a designer before moving this deliverable to In Progress.', type: 'error' } 
         }));
         return;
     }
@@ -2200,11 +2236,15 @@ function insertCreatedCardIntoColumn(colKey, d) {
     const isAssignee = (assignedId && kanbanCurrentUserId == assignedId);
     const canUploadArtwork = isAssignee || kanbanIsAdmin || isCreator;
 
-    const hasAssignee = d.assignee_name && d.assignee_name !== 'Unassigned';
-    const assigneeDisplay = hasAssignee ? d.assignee_name : 'Unassigned';
-    const badgeColor = hasAssignee ? 'var(--badge-blue-text, #93c5fd)' : 'var(--text-card-sub)';
-    const badgeBg = hasAssignee ? 'var(--badge-blue-bg, rgba(59,130,246,0.18))' : 'var(--bg-column)';
-    const badgeBorder = hasAssignee ? 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))' : '1px solid var(--border-card)';
+    const pType = (d.post_type || '').toLowerCase().trim();
+    const isOutline = (pType === 'outlines' || pType === 'outline');
+    const needsDesigner = isOutline && (!d.designer_id || d.approval_stage === 'Coordinator');
+    const hasAssignee = !needsDesigner && d.assignee_name && d.assignee_name !== 'Unassigned';
+    const assigneeDisplay = needsDesigner ? 'Assign Designer' : (hasAssignee ? d.assignee_name : 'Unassigned');
+    const badgeClass = needsDesigner ? 'is-needs-designer' : (hasAssignee ? 'is-assigned' : 'is-unassigned');
+    const badgeColor = needsDesigner ? '' : (hasAssignee ? 'var(--badge-blue-text, #93c5fd)' : 'var(--text-card-sub)');
+    const badgeBg = needsDesigner ? '' : (hasAssignee ? 'var(--badge-blue-bg, rgba(59,130,246,0.18))' : 'var(--bg-column)');
+    const badgeBorder = needsDesigner ? '' : (hasAssignee ? 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))' : '1px solid var(--border-card)');
     const stageDisplay = d.approval_stage || d.stage || '';
     const isAssign = isAssignStageName(stageDisplay);
 
@@ -2368,6 +2408,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
              data-can-edit="${canEdit ? 'true' : 'false'}"
              data-can-manage="${canEdit ? 'true' : 'false'}"
              data-can-move="${canMove ? 'true' : 'false'}"
+             data-needs-designer="${needsDesigner ? '1' : '0'}"
              data-has-file="${hasArtwork ? 'true' : 'false'}"
              data-restriction-reason="${escapeHtml(restrictionReason)}"
              draggable="${canMove ? 'true' : 'false'}"
@@ -2381,8 +2422,8 @@ function insertCreatedCardIntoColumn(colKey, d) {
             
             {{-- Collapsed Card View --}}
             <div class="kanban-card-view" id="kanban-card-view-${d.id}">
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
-                    <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; row-gap: 5px;">
+                    <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0;">
                         <span id="card-view-post-type-${d.id}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-card-sub); background: var(--bg-column); border: 1px solid var(--border-card); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                             ${escapeHtml(d.post_type || 'Outlines')}
                         </span>
@@ -2404,10 +2445,11 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         </span>
                     </div>
                     <span id="card-view-assignee-badge-${d.id}" 
-                          class="card-assignee-badge ${hasAssignee ? 'is-assigned' : 'is-unassigned'}"
+                          class="card-assignee-badge ${badgeClass}"
                           ${canReassignThis ? `onclick="event.stopPropagation(); openCampaignReassignModal(${d.id})"` : `onclick="event.stopPropagation();"`}
-                          style="font-size: 10px; font-weight: 600; color: ${badgeColor}; background: ${badgeBg}; border: ${badgeBorder}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; cursor: ${canReassignThis ? 'pointer' : 'default'}; transition: all 0.15s;"
-                          title="${canReassignThis ? (hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) + ' (Click to reassign)' : 'Click to assign') : (hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) : 'Unassigned')}">
+                          style="font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; cursor: ${canReassignThis ? 'pointer' : 'default'}; transition: all 0.15s; line-height: 1.2;"
+                          title="${canReassignThis ? (needsDesigner ? 'Click to assign a designer' : (hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) + ' (Click to reassign)' : 'Click to assign')) : (needsDesigner ? 'Needs Designer' : (hasAssignee ? 'Assigned to ' + escapeHtml(assigneeDisplay) : 'Unassigned'))}">
+                        ${needsDesigner ? `<svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>` : ''}
                         <span>${escapeHtml(assigneeDisplay)}</span>
                     </span>
                 </div>
@@ -4265,7 +4307,15 @@ function renderCampaignDetailsModalContent(task) {
     const isAdmin = Boolean(kanbanIsAdmin || ['admin', 'owner', 'operations manager'].includes(userRole));
     const isBrandManager = Boolean(userRole === 'brand manager' || (kanbanProjectBrandManagerId && Number(kanbanProjectBrandManagerId) === currentUserId));
 
-    // Assigned users: assignee (writer/designer) or designated approver
+    const isOutlineCard = ['outlines', 'outline'].includes((task.post_type || '').toLowerCase().trim());
+    const isAssigningDesigner = isOutlineCard && (!task.designer_id || task.approval_stage === 'Coordinator');
+    const isCoordinatorOfTask = Boolean(isOutlineCard && currentUserId && (
+        (task.coordinator_id && Number(task.coordinator_id) === currentUserId) ||
+        (kanbanProjectCoordinatorId && Number(kanbanProjectCoordinatorId) === currentUserId) ||
+        userRole === 'coordinator'
+    ));
+
+    // Assigned users: assignee (writer/designer), coordinator (for outline), or designated approver
     const isAssignee = Boolean(currentUserId && (
         (task.writer_id && Number(task.writer_id) === currentUserId) || 
         (task.designer_id && Number(task.designer_id) === currentUserId)
@@ -4275,20 +4325,29 @@ function renderCampaignDetailsModalContent(task) {
         (kanbanProjectExplicitApproverId && Number(kanbanProjectExplicitApproverId) === currentUserId) ||
         ['approver', 'approver coordinator'].includes(userRole)
     ));
-    const isAssignedUser = Boolean(isAssignee || isDesignatedApprover);
+    const isAssignedUser = Boolean(isAssignee || isDesignatedApprover || isCoordinatorOfTask);
 
     // Permission check for Quick Actions: only assigned users, brand manager, and admin
     const canAccessQuickActions = Boolean(isAdmin || isBrandManager || isAssignedUser);
 
     let quickActionsHtml = '';
     if (canAccessQuickActions) {
-        if (isToDo && (isAssignee || isBrandManager || isAdmin)) {
-            quickActionsHtml += `
-                <button type="button" class="cd-btn-primary" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'In Progress')">
-                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <span>Start Task</span>
-                </button>
-            `;
+        if (isToDo && (isAssignee || isBrandManager || isAdmin || isCoordinatorOfTask)) {
+            if (isAssigningDesigner) {
+                quickActionsHtml += `
+                    <button type="button" class="cd-btn-primary" style="width: 100%; background: #f59e0b; border-color: #f59e0b;" onclick="openCampaignReassignModal(${task.id})">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                        <span>Assign Designer</span>
+                    </button>
+                `;
+            } else {
+                quickActionsHtml += `
+                    <button type="button" class="cd-btn-primary" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'In Progress')">
+                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Start Task</span>
+                    </button>
+                `;
+            }
         } else if (isInProgress && (isAssignee || isBrandManager || isAdmin)) {
             quickActionsHtml += `
                 <button type="button" class="cd-btn-primary" style="width: 100%;" onclick="transitionDeliverableStatus(${task.id}, 'Approval Stage')">
@@ -4327,12 +4386,14 @@ function renderCampaignDetailsModalContent(task) {
         if (canUserReassignDeliverable(task)) {
             const isOutlineCard = ['outlines', 'outline'].includes((task.post_type || '').toLowerCase().trim());
             const isAssigningDesigner = isOutlineCard && (!task.designer_id || task.approval_stage === 'Coordinator');
-            quickActionsHtml += `
-                <button type="button" class="cd-btn-outline" style="width: 100%; color: #3b82f6; border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'" onmouseout="this.style.background='rgba(59,130,246,0.06)'" onclick="openCampaignReassignModal(${task.id})">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                    <span>${isAssigningDesigner ? 'Assign Designer' : 'Reassign Deliverable'}</span>
-                </button>
-            `;
+            if (!isToDo || !isAssigningDesigner) {
+                quickActionsHtml += `
+                    <button type="button" class="cd-btn-outline" style="width: 100%; color: #3b82f6; border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'" onmouseout="this.style.background='rgba(59,130,246,0.06)'" onclick="openCampaignReassignModal(${task.id})">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                        <span>${isAssigningDesigner ? 'Assign Designer' : 'Reassign Deliverable'}</span>
+                    </button>
+                `;
+            }
         }
 
         const canEditCard = Boolean(isAdmin || isBrandManager || isAssignee || (task.created_by && Number(task.created_by) === currentUserId));
@@ -4757,6 +4818,15 @@ async function transitionDeliverableStatus(taskId, targetStatus) {
     if (isFromToDo && !isToProgress) {
         window.dispatchEvent(new CustomEvent('toast', { 
             detail: { message: 'Deliverables in To Do can only be moved to In Progress.', type: 'error' } 
+        }));
+        return;
+    }
+
+    // Flow Rule 1b: Outline deliverable with coordinator cannot move to In Progress until designer is assigned
+    const cardNeedsDesigner = card ? (card.getAttribute('data-needs-designer') === '1') : false;
+    if (isToProgress && cardNeedsDesigner) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { message: 'Please assign a designer before moving this deliverable to In Progress.', type: 'error' } 
         }));
         return;
     }

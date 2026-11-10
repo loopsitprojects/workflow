@@ -3,12 +3,15 @@
     $assigneeFullName = $task->assignee_name ?: ($task->writer?->name ?? ($task->designer?->name ?? ($task->coordinator?->name ?? 'Unassigned')));
     $hasAssignee = !empty($assigneeFullName) && strtolower($assigneeFullName) !== 'unassigned';
     $assigneeDisplay = $hasAssignee ? $assigneeFullName : 'Unassigned';
-    if ($task->isOutline()) {
+    
+    $isOutline = $task->isOutline();
+    $needsDesigner = $isOutline && (!$task->designer_id || $task->approval_stage === 'Coordinator');
+    if ($isOutline) {
         if ($task->designer) {
             $assigneeDisplay = 'Des: ' . $task->designer->name;
             $assigneeFullName = $task->designer->name;
             $hasAssignee = true;
-        } elseif (!$task->writer_id && !$task->designer_id) {
+        } else {
             $assigneeDisplay = 'Assign Designer';
             $hasAssignee = false;
         }
@@ -29,7 +32,7 @@
     $postTypeLabel = $task->post_type ?: ($task->flow_type === 'direct_design' ? 'Design' : 'Deliverable');
     
     $stage = $task->approval_stage ?: '';
-    $isAssignStage = in_array(strtolower(trim($stage)), ['assign', 'assignee', 'todo', 'to do', 'in progress', 'writer', '']);
+    $isAssignStage = in_array(strtolower(trim($stage)), ['assign', 'assignee', 'todo', 'to do', 'in progress', 'writer', 'coordinator', '']);
 
     $statusBorder = match($task->status) {
         'Done', 'Completed', 'Complete' => 'border-left: 3px solid #10b981;',
@@ -97,7 +100,10 @@
     $isInProgress = in_array($statusLower, ['in progress', 'on hold']);
     $isToDo = in_array($statusLower, ['to do', 'todo', 'backlog', 'new', '']) || (!$isInApproval && !$isCompleted && !$isInProgress);
 
-    if ($isAdminOrManager) {
+    if ($needsDesigner) {
+        $canMove = false;
+        $moveRestrictionReason = 'Please assign a designer before moving this deliverable to In Progress.';
+    } elseif ($isAdminOrManager) {
         $canMove = true;
         $moveRestrictionReason = '';
     } elseif ($isInApproval) {
@@ -132,6 +138,7 @@
      data-can-edit="{{ $canEditCard ? 'true' : 'false' }}"
      data-can-manage="{{ $canEditCard ? 'true' : 'false' }}"
      data-can-move="{{ $canMove ? 'true' : 'false' }}"
+     data-needs-designer="{{ $needsDesigner ? '1' : '0' }}"
      data-has-file="{{ $task->hasArtwork() ? 'true' : 'false' }}"
      data-restriction-reason="{{ $moveRestrictionReason }}"
      draggable="{{ $canMove ? 'true' : 'false' }}"
@@ -148,8 +155,8 @@
     {{-- ========================================================= --}}
     <div class="kanban-card-view" id="kanban-card-view-{{ $task->id }}">
         {{-- Card Header: Type, Stage & Assignee --}}
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
-            <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; row-gap: 5px;">
+            <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0;">
                 <span id="card-view-post-type-{{ $task->id }}" style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-card-sub); background: var(--bg-column); border: 1px solid var(--border-card); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                     {{ $postTypeLabel }}
                 </span>
@@ -171,15 +178,20 @@
                 </span>
             </div>
             <span id="card-view-assignee-badge-{{ $task->id }}" 
-                  class="card-assignee-badge {{ $hasAssignee ? 'is-assigned' : 'is-unassigned' }}"
+                  class="card-assignee-badge {{ $hasAssignee ? 'is-assigned' : ($needsDesigner ? 'is-needs-designer' : 'is-unassigned') }}"
                   @if($canReassignDeliverable)
                   onclick="event.stopPropagation(); openCampaignReassignModal({{ $task->id }})"
                   @else
                   onclick="event.stopPropagation();"
                   @endif
-                  style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? 'var(--badge-blue-text, #93c5fd)' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'var(--badge-blue-bg, rgba(59,130,246,0.18))' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'var(--badge-blue-border, rgba(147,197,253,0.35))' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; cursor: {{ $canReassignDeliverable ? 'pointer' : 'default' }}; transition: all 0.15s;" 
-                  title="{{ $canReassignDeliverable ? ($hasAssignee ? 'Assigned to ' . $assigneeFullName . ' (Click to reassign)' : 'Click to assign') : ($hasAssignee ? 'Assigned to ' . $assigneeFullName : 'Unassigned') }}">
-                <span>{{ $assigneeDisplay }}</span>
+                  style="font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; cursor: {{ $canReassignDeliverable ? 'pointer' : 'default' }}; transition: all 0.15s; line-height: 1.2;" 
+                  title="{{ $canReassignDeliverable ? ($needsDesigner ? 'Click to assign a designer' : ($hasAssignee ? 'Assigned to ' . $assigneeFullName . ' (Click to reassign)' : 'Click to assign')) : ($needsDesigner ? 'Needs Designer' : ($hasAssignee ? 'Assigned to ' . $assigneeFullName : 'Unassigned')) }}">
+                @if($needsDesigner)
+                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                    <span>Assign Designer</span>
+                @else
+                    <span>{{ $assigneeDisplay }}</span>
+                @endif
             </span>
         </div>
 
@@ -265,8 +277,8 @@
         @if($canEditCard)
         <form onsubmit="submitInlineCardEdit(event, {{ $task->id }})">
             {{-- Top Header: Stage on top very small --}}
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
-                <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; row-gap: 5px;">
+                <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0;">
                     <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-card-sub); background: var(--bg-column); border: 1px solid var(--border-card); padding: 1px 5px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                         {{ $postTypeLabel }}
                     </span>
@@ -284,9 +296,14 @@
                     </span>
                 </div>
                 <span id="card-editor-assignee-badge-{{ $task->id }}" 
-                      class="card-assignee-badge {{ $hasAssignee ? 'is-assigned' : 'is-unassigned' }}"
-                      style="font-size: 10px; font-weight: 600; color: {{ $hasAssignee ? 'var(--badge-blue-text, #93c5fd)' : 'var(--text-card-sub)' }}; background: {{ $hasAssignee ? 'var(--badge-blue-bg, rgba(59,130,246,0.18))' : 'var(--bg-column)' }}; border: 1px solid {{ $hasAssignee ? 'var(--badge-blue-border, rgba(147,197,253,0.35))' : 'var(--border-card)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    {{ $assigneeDisplay }}
+                      class="card-assignee-badge {{ $hasAssignee ? 'is-assigned' : ($needsDesigner ? 'is-needs-designer' : 'is-unassigned') }}"
+                      style="font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; line-height: 1.2;">
+                    @if($needsDesigner)
+                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                        <span>Assign Designer</span>
+                    @else
+                        <span>{{ $assigneeDisplay }}</span>
+                    @endif
                 </span>
             </div>
 
@@ -579,8 +596,8 @@
         {{-- Read-Only Expanded View (Anyone can expand and see details) --}}
         <div>
             {{-- Top Header: Stage on top very small --}}
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px;">
-                <div style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; row-gap: 5px;">
+                <div style="display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0;">
                     <span style="font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: var(--color-text-secondary); background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); padding: 1px 4px; border-radius: 4px; line-height: 1.2; display: inline-flex; align-items: center;">
                         {{ $postTypeLabel }}
                     </span>
@@ -598,9 +615,14 @@
                     </span>
                 </div>
                 <span id="card-readonly-assignee-badge-{{ $task->id }}" 
-                      class="card-assignee-badge {{ $hasAssignee ? 'is-assigned' : 'is-unassigned' }}"
-                      style="font-size: 10px; font-weight: 700; color: {{ $hasAssignee ? 'var(--badge-blue-text, #93c5fd)' : 'var(--color-text-secondary)' }}; background: {{ $hasAssignee ? 'var(--badge-blue-bg, rgba(59,130,246,0.18))' : 'var(--color-bg-secondary)' }}; border: 1px solid {{ $hasAssignee ? 'var(--badge-blue-border, rgba(147,197,253,0.35))' : 'var(--color-border-primary)' }}; padding: 1px 6px; border-radius: 5px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    {{ $assigneeDisplay }}
+                      class="card-assignee-badge {{ $hasAssignee ? 'is-assigned' : ($needsDesigner ? 'is-needs-designer' : 'is-unassigned') }}"
+                      style="font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; line-height: 1.2;">
+                    @if($needsDesigner)
+                        <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                        <span>Assign Designer</span>
+                    @else
+                        <span>{{ $assigneeDisplay }}</span>
+                    @endif
                 </span>
             </div>
 

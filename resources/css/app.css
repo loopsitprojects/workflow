@@ -800,3 +800,45 @@ html.dark [id^="card-view-stage-"],
     border-color: rgba(147, 197, 253, 0.35) !important;
 }
 
+/* =========================================================
+   ASSIGN DESIGNER ACTION BADGE (OUTLINE DELIVERABLES)
+   ========================================================= */
+.card-assignee-badge.is-needs-designer,
+[id^="card-view-assignee-badge-"].is-needs-designer,
+[id^="card-editor-assignee-badge-"].is-needs-designer,
+[id^="card-readonly-assignee-badge-"].is-needs-designer {
+    color: #d97706 !important;
+    background: rgba(245, 158, 11, 0.12) !important;
+    border: 1px dashed rgba(217, 119, 6, 0.45) !important;
+    cursor: pointer !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    max-width: none !important;
+    overflow: visible !important;
+    transition: all 0.15s ease !important;
+}
+
+html.dark .card-assignee-badge.is-needs-designer,
+.dark .card-assignee-badge.is-needs-designer,
+html.dark [id^="card-view-assignee-badge-"].is-needs-designer,
+.dark [id^="card-view-assignee-badge-"].is-needs-designer,
+html.dark [id^="card-editor-assignee-badge-"].is-needs-designer,
+.dark [id^="card-editor-assignee-badge-"].is-needs-designer,
+html.dark [id^="card-readonly-assignee-badge-"].is-needs-designer,
+.dark [id^="card-readonly-assignee-badge-"].is-needs-designer {
+    color: #fbbf24 !important;
+    background: rgba(245, 158, 11, 0.18) !important;
+    border: 1px dashed rgba(251, 191, 36, 0.55) !important;
+}
+
+.card-assignee-badge.is-needs-designer:hover,
+[id^="card-view-assignee-badge-"].is-needs-designer:hover {
+    background: rgba(245, 158, 11, 0.28) !important;
+    border-color: #f59e0b !important;
+    transform: translateY(-0.5px) !important;
+}
+

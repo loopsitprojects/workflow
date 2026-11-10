@@ -111,7 +111,7 @@ test('creating outline deliverable via Project store sets Coordinator stage and 
     }
 });
 
-test('coordinator can move outline deliverable from To Do to In Progress on Kanban', function () {
+test('outline deliverable with coordinator cannot move to In Progress until designer is assigned', function () {
     $deliverable = Deliverable::create([
         'project_id' => $this->campaignProject->id,
         'created_by' => $this->brandManager->id,
@@ -119,6 +119,7 @@ test('coordinator can move outline deliverable from To Do to In Progress on Kanb
         'post_type' => 'Outlines',
         'coordinator_id' => $this->coordinator->id,
         'writer_id' => null,
+        'designer_id' => null,
         'assignee_name' => $this->coordinator->name,
         'approval_stage' => 'Coordinator',
         'status' => 'To Do',
@@ -127,14 +128,34 @@ test('coordinator can move outline deliverable from To Do to In Progress on Kanb
         'brand_manager_id' => $this->brandManager->id,
     ]);
 
-    // Unrelated writer cannot move it
-    $failResponse = $this->actingAs($this->writer)->json('POST', route('deliverables.update-kanban-status', $deliverable), [
+    // 1. Coordinator attempting to move to In Progress without assigning designer is rejected
+    $coordFailResponse = $this->actingAs($this->coordinator)->json('POST', route('deliverables.update-kanban-status', $deliverable), [
         'status' => 'In Progress',
     ]);
-    expect($failResponse->status())->toBe(403);
+    expect($coordFailResponse->status())->toBe(422);
+    expect($coordFailResponse->json('message'))->toBe('Please assign a designer before moving this deliverable to In Progress.');
+    expect($deliverable->fresh()->status)->toBe('To Do');
 
-    // Assigned coordinator CAN move it
-    $successResponse = $this->actingAs($this->coordinator)->json('POST', route('deliverables.update-kanban-status', $deliverable), [
+    // 2. Admin attempting to move to In Progress without assigning designer is also rejected
+    $adminFailResponse = $this->actingAs($this->admin)->json('POST', route('deliverables.update-kanban-status', $deliverable), [
+        'status' => 'In Progress',
+    ]);
+    expect($adminFailResponse->status())->toBe(422);
+    expect($adminFailResponse->json('message'))->toBe('Please assign a designer before moving this deliverable to In Progress.');
+    expect($deliverable->fresh()->status)->toBe('To Do');
+
+    // 3. Assign a designer to the outline deliverable
+    $this->actingAs($this->coordinator)->json('POST', route('deliverables.reassign-writer', $deliverable), [
+        'writer_id' => $this->designer->id,
+        'reason' => 'Assigning designer to work on deliverable',
+    ]);
+
+    $deliverable->refresh();
+    expect($deliverable->designer_id)->toBe($this->designer->id);
+    expect($deliverable->approval_stage)->toBe('Designer');
+
+    // 4. Now the assigned designer (or coordinator/admin) CAN move it to In Progress
+    $successResponse = $this->actingAs($this->designer)->json('POST', route('deliverables.update-kanban-status', $deliverable), [
         'status' => 'In Progress',
     ]);
     expect($successResponse->status())->toBe(200);

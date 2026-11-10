@@ -3323,6 +3323,17 @@ class DeliverableController extends Controller
             ], 422);
         }
 
+        // Workflow Rule 4: Outline deliverables with coordinator must have a designer assigned before moving to In Progress
+        $isOutline = $deliverable->isOutline();
+        $isOutlineWithCoordinator = $isOutline && in_array($oldStatusLower, ['to do', 'todo']) && (empty($deliverable->designer_id) || $deliverable->approval_stage === 'Coordinator');
+        if (in_array($newStatusLower, ['in progress', 'progress']) && $isOutlineWithCoordinator) {
+            return response()->json([
+                'success' => false,
+                'require_designer' => true,
+                'message' => 'Please assign a designer before moving this deliverable to In Progress.',
+            ], 422);
+        }
+
         $user = auth()->user();
         $isAdminOrManager = $user && (
             $user->isAdmin() || 
