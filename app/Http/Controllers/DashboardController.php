@@ -29,7 +29,10 @@ class DashboardController extends Controller
                                   ->orWhere('designer_id', $userId)
                                   ->orWhere('further_approver_id', $userId)
                                   ->orWhereHas('project', function($p) use ($userId) {
-                                      $p->where('brand_manager_id', $userId);
+                                      $p->where('brand_manager_id', $userId)
+                                        ->orWhere('approver_id', $userId)
+                                        ->orWhere('writer_id', $userId)
+                                        ->orWhere('coordinator_id', $userId);
                                   });
                         });
                 })
@@ -38,12 +41,32 @@ class DashboardController extends Controller
                     $sub->where('status', '!=', 'Done')
                         ->where(function($inner) use ($userId, $user) {
                             $inner->where(function($w) use ($userId) {
-                                $w->whereIn('approval_stage', ['Writer', 'Assignee', 'Assign'])
-                                  ->orWhereNull('approval_stage');
-                            })->where('writer_id', $userId)
+                                $w->where(function($st) {
+                                    $st->whereIn('approval_stage', ['Writer', 'Assignee', 'Assign'])
+                                       ->orWhereNull('approval_stage');
+                                })->where(function($wu) use ($userId) {
+                                    $wu->where('writer_id', $userId)
+                                       ->orWhere(function($pw) use ($userId) {
+                                           $pw->whereNull('writer_id')
+                                              ->whereHas('project', function($p) use ($userId) {
+                                                  $p->where('writer_id', $userId);
+                                              });
+                                       });
+                                });
+                            })
                             ->orWhere(function($a) use ($userId) {
-                                $a->where('approval_stage', 'Approver')
-                                  ->where('approver_id', $userId);
+                                $a->where(function($st) {
+                                    $st->whereIn('approval_stage', ['Approver', 'Approve', 'Approval Stage', 'Approval'])
+                                       ->orWhereIn('status', ['Approval Stage', 'Approval', 'Review', 'Under Review']);
+                                })->where(function($appr) use ($userId) {
+                                    $appr->where('approver_id', $userId)
+                                         ->orWhere(function($pa) use ($userId) {
+                                             $pa->whereNull('approver_id')
+                                                ->whereHas('project', function($p) use ($userId) {
+                                                    $p->where('approver_id', $userId);
+                                                });
+                                         });
+                                });
                             })
                             ->orWhere(function($b) use ($userId, $user) {
                                 $b->whereIn('approval_stage', ['Brand Manager', 'AM/BD', 'Final Approval', 'Approve', 'Manager Review'])
@@ -77,11 +100,27 @@ class DashboardController extends Controller
                             })
                             ->orWhere(function($c) use ($userId) {
                                 $c->where('approval_stage', 'Coordinator')
-                                  ->where('coordinator_id', $userId);
+                                  ->where(function($cu) use ($userId) {
+                                      $cu->where('coordinator_id', $userId)
+                                         ->orWhere(function($pc) use ($userId) {
+                                             $pc->whereNull('coordinator_id')
+                                                ->whereHas('project', function($p) use ($userId) {
+                                                    $p->where('coordinator_id', $userId);
+                                                });
+                                         });
+                                  });
                             })
                             ->orWhere(function($d) use ($userId) {
                                 $d->where('approval_stage', 'Designer')
-                                  ->where('designer_id', $userId);
+                                  ->where(function($du) use ($userId) {
+                                      $du->where('designer_id', $userId)
+                                         ->orWhere(function($pd) use ($userId) {
+                                             $pd->whereNull('designer_id')
+                                                ->whereHas('project', function($p) use ($userId) {
+                                                    $p->where('designer_id', $userId);
+                                                });
+                                         });
+                                  });
                             })
                             ->orWhere(function($wr) use ($userId) {
                                 $wr->where('approval_stage', 'Writer Review')
@@ -89,11 +128,22 @@ class DashboardController extends Controller
                             })
                             ->orWhere(function($ar) use ($userId) {
                                 $ar->where('approval_stage', 'Approver Review')
-                                   ->where('approver_id', $userId);
+                                   ->where(function($au) use ($userId) {
+                                       $au->where('approver_id', $userId)
+                                          ->orWhere(function($pa) use ($userId) {
+                                              $pa->whereNull('approver_id')
+                                                 ->whereHas('project', function($p) use ($userId) {
+                                                     $p->where('approver_id', $userId);
+                                                 });
+                                          });
+                                   });
                             })
                             ->orWhere(function($fa) use ($userId) {
                                 $fa->where('approval_stage', 'Further Approver')
-                                   ->where('further_approver_id', $userId);
+                                   ->where(function($fu) use ($userId) {
+                                       $fu->where('further_approver_id', $userId)
+                                          ->orWhere('brand_manager_id', $userId);
+                                   });
                             })
                             ->orWhere(function($sch) use ($userId) {
                                 $sch->where('approval_stage', 'Scheduled')

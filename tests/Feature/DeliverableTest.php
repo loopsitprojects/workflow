@@ -175,6 +175,55 @@ test('dashboard only shows pending deliverables where the logged-in user is resp
     expect($viewDeliverables->contains('id', $d3->id))->toBeTrue();
 });
 
+test('approver dashboard displays campaign deliverables in Approve stage assigned to approver', function () {
+    $brand = Brand::create(['name' => 'Campaign Brand', 'slug' => 'campaign-brand', 'description' => 'Desc']);
+    $project = Project::create([
+        'brand_id' => $brand->id,
+        'name' => 'Campaign Launch',
+        'workflow_type' => 'campaign',
+        'priority' => 'Medium',
+    ]);
+
+    $writer = User::factory()->create(['role' => 'Writer', 'name' => 'Vinul']);
+    $approver = User::factory()->create(['role' => 'Approver', 'name' => 'Irangi']);
+    $otherApprover = User::factory()->create(['role' => 'Approver', 'name' => 'Other']);
+
+    // Presentation deliverable in Approval Stage with approval_stage = 'Approve' assigned to Irangi
+    $presentation = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Presentation Deck',
+        'post_type' => 'Presentation',
+        'writer_id' => $writer->id,
+        'approver_id' => $approver->id,
+        'approval_stage' => 'Approve',
+        'status' => 'Approval Stage',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 60,
+        'deadline' => now()->addDays(5)->toDateString(),
+    ]);
+
+    // Deliverable assigned to another approver
+    $otherDeliverable = Deliverable::create([
+        'project_id' => $project->id,
+        'title' => 'Other Deliverable',
+        'post_type' => 'Presentation',
+        'writer_id' => $writer->id,
+        'approver_id' => $otherApprover->id,
+        'approval_stage' => 'Approve',
+        'status' => 'Approval Stage',
+        'task_type' => 'Deliverable',
+        'progress_percent' => 60,
+        'deadline' => now()->addDays(5)->toDateString(),
+    ]);
+
+    $response = $this->actingAs($approver)->get(route('dashboard'));
+    $response->assertStatus(200);
+    $viewDeliverables = $response->viewData('deliverables');
+
+    expect($viewDeliverables->contains('id', $presentation->id))->toBeTrue();
+    expect($viewDeliverables->contains('id', $otherDeliverable->id))->toBeFalse();
+});
+
 test('main dashboard displays latest deliverables on top', function () {
     $brand = Brand::create(['name' => 'Sort Brand', 'slug' => 'sort-brand']);
     $project = Project::create([
