@@ -52,7 +52,7 @@ class UserController extends Controller
             'role'      => $validated['role'],
         ]);
 
-        if ($user->role === 'Operations Manager') {
+        if ($user->isAdmin() || $user->role === 'Operations Manager') {
             $user->brands()->sync(\App\Models\Brand::pluck('id')->toArray());
         }
 
@@ -92,7 +92,7 @@ class UserController extends Controller
 
         $user->save();
 
-        if ($user->role === 'Operations Manager') {
+        if ($user->isAdmin() || $user->role === 'Operations Manager') {
             $user->brands()->syncWithoutDetaching(\App\Models\Brand::pluck('id')->toArray());
         }
 

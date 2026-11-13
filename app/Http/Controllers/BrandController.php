@@ -18,7 +18,8 @@ class BrandController extends Controller
     {
         $user = auth()->user();
         $brands = Brand::withCount('projects')->with('members')->get();
-        return view('brands.index', compact('brands'));
+        $users = User::whereNotIn('role', ['Admin', 'Owner'])->get();
+        return view('brands.index', compact('brands', 'users'));
     }
 
     public function create()
@@ -27,7 +28,7 @@ class BrandController extends Controller
         if ((!$user->isAdmin() && $user->role !== 'Operations Manager') && $user->role !== 'Brand Manager') {
             return redirect()->route('brands.index')->with('error', 'Access Denied: You do not have permission to create brands.');
         }
-        $users = \App\Models\User::all();
+        $users = User::whereNotIn('role', ['Admin', 'Owner'])->get();
         return view('brands.create', compact('users'));
     }
 
@@ -78,8 +79,8 @@ class BrandController extends Controller
         if (!in_array(auth()->id(), $members)) {
             $members[] = auth()->id();
         }
-        $opsManagers = \App\Models\User::where('role', 'Operations Manager')->pluck('id')->toArray();
-        $members = array_unique(array_merge($members, $opsManagers));
+        $defaultUsers = User::whereIn('role', ['Admin', 'Owner', 'Operations Manager'])->pluck('id')->toArray();
+        $members = array_unique(array_merge($members, $defaultUsers));
         $brand->members()->sync($members);
         $brand->update(['total_members' => count($members)]);
 
@@ -152,7 +153,7 @@ class BrandController extends Controller
                 }
             }
         }
-        $users = \App\Models\User::all();
+        $users = User::whereNotIn('role', ['Admin', 'Owner'])->get();
         $brand->load('members');
         return view('brands.edit', compact('brand', 'users'));
     }
@@ -206,8 +207,8 @@ class BrandController extends Controller
         $brand->update($brandData);
 
         if ($request->has('members')) {
-            $opsManagers = \App\Models\User::where('role', 'Operations Manager')->pluck('id')->toArray();
-            $members = array_unique(array_merge($request->members, $opsManagers));
+            $defaultUsers = User::whereIn('role', ['Admin', 'Owner', 'Operations Manager'])->pluck('id')->toArray();
+            $members = array_unique(array_merge($request->members ?? [], $defaultUsers));
             $brand->members()->sync($members);
             $brand->update(['total_members' => count($members)]);
             

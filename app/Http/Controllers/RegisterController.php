@@ -55,7 +55,7 @@ class RegisterController extends Controller
             'role'      => $role,
         ]);
 
-        if ($role === 'Operations Manager') {
+        if ($user->isAdmin() || $role === 'Operations Manager') {
             $user->brands()->syncWithoutDetaching(\App\Models\Brand::pluck('id')->toArray());
         }
 

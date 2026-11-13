@@ -213,8 +213,8 @@
                         <!-- Team Selection -->
                         <div class="modal-form-section" style="border-bottom:none;"
                              x-data="{
-                                allUsers: {{ \Illuminate\Support\Js::from(\App\Models\User::all()->map(fn($u) => (string)$u->id)) }},
-                                selected: {{ \Illuminate\Support\Js::from(collect(old('members', $brand->members->pluck('id')))->map(fn($id) => (string)$id)->toArray()) }},
+                                allUsers: {{ \Illuminate\Support\Js::from($users->map(fn($u) => (string)$u->id)) }},
+                                selected: {{ \Illuminate\Support\Js::from(collect(old('members', $brand->members->whereNotIn('role', ['Admin', 'Owner'])->pluck('id')))->map(fn($id) => (string)$id)->toArray()) }},
                                 toggle(id) {
                                     const index = this.selected.indexOf(id.toString());
                                     if (index > -1) { this.selected.splice(index, 1); }
@@ -243,7 +243,7 @@
                             <div class="rounded-xl overflow-hidden" style="border: 1px solid var(--color-border-primary);">
                                 <div class="max-h-40 overflow-y-auto p-2">
                                     <div class="grid grid-cols-2 gap-1.5">
-                                        @foreach(\App\Models\User::all() as $user)
+                                        @foreach($users as $user)
                                         <button type="button" @click="toggle({{ $user->id }})"
                                             class="flex items-center gap-2 p-2 rounded-lg transition-all text-left"
                                             :style="isSelected({{ $user->id }}) ? 'background: rgba(0,85,212,0.08); border: 1.5px solid rgba(0,85,212,0.3);' : 'background: var(--color-bg-secondary); border: 1.5px solid transparent;'">

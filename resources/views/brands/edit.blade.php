@@ -114,7 +114,7 @@
         <div class="f-section" style="border-bottom:none;"
              x-data="{
                 users: {{ \Illuminate\Support\Js::from($users->sortBy('role')->values()->map(fn($u) => ['id'=>$u->id,'name'=>$u->name,'email'=>$u->email,'role'=>$u->role])) }},
-                selected: {{ \Illuminate\Support\Js::from(collect(old('members', $brand->members->pluck('id')))->map(fn($id) => (string)$id)->toArray()) }},
+                selected: {{ \Illuminate\Support\Js::from(collect(old('members', $brand->members->whereNotIn('role', ['Admin', 'Owner'])->pluck('id')))->map(fn($id) => (string)$id)->toArray()) }},
                 search: '',
                 get filtered() {
                     const s = this.search.toLowerCase();
