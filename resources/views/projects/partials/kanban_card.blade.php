@@ -1,12 +1,31 @@
 @php
     $coordUser = $task->coordinator ?: ($task->project?->coordinator ?: null);
-    $assigneeFullName = $task->assignee_name ?: ($task->writer?->name ?? ($task->designer?->name ?? ($task->coordinator?->name ?? 'Unassigned')));
-    $hasAssignee = !empty($assigneeFullName) && strtolower($assigneeFullName) !== 'unassigned';
-    $assigneeDisplay = $hasAssignee ? $assigneeFullName : 'Unassigned';
-    
+    $statusLower = strtolower(trim($task->status ?? ''));
+    $isInApproval = in_array($statusLower, ['approval stage', 'approval', 'review', 'under review']);
+    $isCompleted = in_array($statusLower, ['done', 'completed', 'complete']);
+    $isInProgress = in_array($statusLower, ['in progress', 'on hold']);
+    $isToDo = in_array($statusLower, ['to do', 'todo', 'backlog', 'new', '']) || (!$isInApproval && !$isCompleted && !$isInProgress);
+
+    // Approver resolution
+    $approverUser = ($task->approval_stage === 'Further Approver')
+        ? ($task->furtherApprover ?: ($task->approver ?: ($task->project?->approver ?: null)))
+        : ($task->approver ?: ($task->project?->approver ?: null));
+    $approverId = $approverUser?->id ?: ($task->approver_id ?: ($task->project?->approver_id ?: null));
+
     $isOutline = $task->isOutline();
     $needsDesigner = $isOutline && (!$task->designer_id || $task->approval_stage === 'Coordinator');
-    if ($isOutline) {
+
+    // Author / production assignee (Writer / Designer / Coordinator)
+    $authorFullName = $task->assignee_name ?: ($task->writer?->name ?? ($task->designer?->name ?? ($task->coordinator?->name ?? 'Unassigned')));
+    $hasAuthor = !empty($authorFullName) && strtolower($authorFullName) !== 'unassigned';
+
+    // Active Assignee based on current workflow stage
+    if ($isInApproval || $isCompleted) {
+        $assigneeFullName = $approverUser?->name ?? 'Approver';
+        $hasAssignee = !empty($approverUser);
+        $assigneeDisplay = $hasAssignee ? $assigneeFullName : 'Approver';
+        $needsDesigner = false;
+    } elseif ($isOutline) {
         if ($task->designer) {
             $assigneeDisplay = 'Des: ' . $task->designer->name;
             $assigneeFullName = $task->designer->name;
@@ -14,10 +33,16 @@
         } else {
             $assigneeDisplay = 'Assign Designer';
             $hasAssignee = false;
+            $assigneeFullName = 'Unassigned';
         }
+    } else {
+        $assigneeFullName = $authorFullName;
+        $hasAssignee = $hasAuthor;
+        $assigneeDisplay = $hasAssignee ? $assigneeFullName : 'Unassigned';
     }
+
     $assigneeInitial = $hasAssignee
-        ? mb_strtoupper(mb_substr(trim($task->designer?->name ?? $assigneeFullName), 0, 1))
+        ? mb_strtoupper(mb_substr(trim($assigneeFullName), 0, 1))
         : 'U';
 
     $prio = $task->priority ?? 'Medium';
@@ -69,9 +94,6 @@
     $isAssignee = $assignedUserId && $currentUserId == $assignedUserId;
     $isUnassigned = !$assignedUserId;
 
-    // Approver resolution
-    $approverUser = $task->approver ?: ($task->project?->approver ?: null);
-    $approverId = $task->approver_id ?: ($task->project?->approver_id ?: null);
     $isApprover = ($approverId && $currentUserId == $approverId);
 
     $creatorId = $task->effective_creator_id;
@@ -99,11 +121,6 @@
     $hasArtwork = !empty($artworkFiles);
     $canUploadFile = (!$isUnassigned) ? ($isAssignee || $isAdminOrManager) : ($isAdminOrManager || $isCreator);
 
-    $statusLower = strtolower(trim($task->status ?? ''));
-    $isInApproval = in_array($statusLower, ['approval stage', 'approval', 'review', 'under review']);
-    $isCompleted = in_array($statusLower, ['done', 'completed', 'complete']);
-    $isInProgress = in_array($statusLower, ['in progress', 'on hold']);
-    $isToDo = in_array($statusLower, ['to do', 'todo', 'backlog', 'new', '']) || (!$isInApproval && !$isCompleted && !$isInProgress);
 
     if ($needsDesigner) {
         $canMove = false;
@@ -381,7 +398,7 @@
                     @endif
                     @else
                     <span style="font-size: 11.5px; font-weight: 600; color: var(--color-text-primary); padding: 2px 0; width: 100%;">
-                        {{ $assigneeDisplay }}
+                        {{ $authorFullName }}
                     </span>
                     <input type="hidden" name="writer_id" id="card-input-writer-{{ $task->id }}" value="{{ $task->writer_id ?: ($task->designer_id ?: ($task->coordinator_id ?: '')) }}">
                     @endif
@@ -403,6 +420,7 @@
                     </svg>
                     <select name="approver_id" 
                             id="card-input-approver-{{ $task->id }}"
+                            onchange="handleCardApproverChange({{ $task->id }})"
                             style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
                         <option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add approver…</option>
                         @foreach($cardSelectableUsers as $u)

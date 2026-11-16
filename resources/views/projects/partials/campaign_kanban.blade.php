@@ -432,10 +432,10 @@ campaignDeliverablesData[{{ $t->id }}] = {
     designer_deadline: @json($t->designer_deadline ? $t->designer_deadline->toISOString() : null),
     designer_deadline_formatted: @json($t->designer_deadline ? \Carbon\Carbon::parse($t->designer_deadline)->format('d M, Y') : null),
     approval_stage: @json($t->approval_stage ?? ''),
-    approver_id: {{ $t->approver_id ?? ($project->approver_id ?? 'null') }},
+    approver_id: {{ ($t->approval_stage === 'Further Approver' ? ($t->further_approver_id ?? $t->approver_id) : $t->approver_id) ?? ($project->approver_id ?? 'null') }},
     created_by: {{ $t->created_by ?? ($t->effective_creator_id ?? 'null') }},
     assignee_name: @json($t->assignee_name ?: ($t->writer?->name ?? ($t->designer?->name ?? ($t->coordinator?->name ?? 'Unassigned')))),
-    approver_name: @json($t->approver?->name ?? null),
+    approver_name: @json(($t->approval_stage === 'Further Approver' ? ($t->furtherApprover?->name ?? $t->approver?->name) : $t->approver?->name) ?? ($project->approver?->name ?? null)),
     created_at_formatted: @json($createdFmt),
     revisions: {{ (int)($t->revisions ?? 0) }},
     revision_instructions: @json($t->revision_instructions ?? ''),
@@ -609,6 +609,37 @@ function handleCardAssigneeChange(taskId) {
     }
 }
 
+function handleCardApproverChange(taskId) {
+    const sel = document.getElementById('card-input-approver-' + taskId);
+    const card = document.getElementById('kanban-card-' + taskId);
+    if (!sel) return;
+
+    const stLower = (card ? card.getAttribute('data-status') : '') || (campaignDeliverablesData[taskId]?.status) || '';
+    const isInApproval = ['approval stage', 'approval', 'review', 'under review'].includes(stLower.toLowerCase().trim());
+    if (!isInApproval) return;
+
+    const selectedOption = sel.options[sel.selectedIndex];
+    const hasApprover = Boolean(sel.value);
+    let name = 'Approver';
+    if (hasApprover && selectedOption) {
+        name = selectedOption.text.split('(')[0].trim();
+    }
+
+    const editorBadge = document.getElementById('card-editor-assignee-badge-' + taskId);
+    if (editorBadge) {
+        const span = editorBadge.querySelector('span') || editorBadge;
+        span.textContent = name;
+        if (hasApprover) {
+            editorBadge.classList.add('is-assigned');
+            editorBadge.classList.remove('is-unassigned');
+            editorBadge.style.color = 'var(--badge-blue-text, #93c5fd)';
+            editorBadge.style.background = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
+            editorBadge.style.border = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
+            editorBadge.title = 'Assigned to ' + name + ' (Approver)';
+        }
+    }
+}
+
 async function submitInlineCardEdit(event, taskId) {
     event.preventDefault();
     const card = document.getElementById('kanban-card-' + taskId);
@@ -732,11 +763,31 @@ function updateCardViewElements(taskId, d) {
     const postTypeEl = document.getElementById('card-view-post-type-' + taskId);
     if (postTypeEl) postTypeEl.textContent = d.post_type || 'Deliverable';
 
+    const pType = (d.post_type || '').toLowerCase().trim();
+    const isOutline = (pType === 'outlines' || pType === 'outline');
+    const stLower = (d.status || (card ? card.getAttribute('data-status') : '') || '').toLowerCase().trim();
+    const isInApproval = ['approval stage', 'approval', 'review', 'under review'].includes(stLower);
+    const isCompleted = ['done', 'completed', 'complete'].includes(stLower);
+
+    let name = 'Unassigned';
+    let hasAssignee = false;
+    let needsDesigner = false;
+
+    if (isInApproval || isCompleted) {
+        const approverName = d.approver_name || (card ? card.getAttribute('data-approver-name') : null) || 'Approver';
+        name = approverName;
+        hasAssignee = Boolean(d.approver_id || (d.approver_name && d.approver_name !== 'Unassigned'));
+    } else {
+        needsDesigner = isOutline && (!d.designer_id || d.approval_stage === 'Coordinator');
+        hasAssignee = !needsDesigner && d.assignee_name && d.assignee_name !== 'Unassigned';
+        name = needsDesigner ? 'Assign Designer' : (hasAssignee ? d.assignee_name : 'Unassigned');
+    }
+
     const avatarEl = document.getElementById('card-view-avatar-' + taskId);
-    const initial = (d.assignee_name && d.assignee_name !== 'Unassigned') ? d.assignee_name.trim().charAt(0).toUpperCase() : 'U';
+    const initial = (name && name !== 'Unassigned' && name !== 'Assign Designer') ? name.trim().charAt(0).toUpperCase() : 'U';
     if (avatarEl) {
         avatarEl.textContent = initial;
-        avatarEl.title = d.assignee_name || 'Unassigned';
+        avatarEl.title = (isInApproval || isCompleted) ? ('Assigned to ' + name + ' (Approver)') : (name || 'Unassigned');
     }
 
     const dateContainer = document.getElementById('card-view-date-' + taskId);
@@ -789,12 +840,6 @@ function updateCardViewElements(taskId, d) {
         prioFlag.title = d.priority || 'Medium';
     }
 
-    const pType = (d.post_type || '').toLowerCase().trim();
-    const isOutline = (pType === 'outlines' || pType === 'outline');
-    const needsDesigner = isOutline && (!d.designer_id || d.approval_stage === 'Coordinator');
-    const hasAssignee = !needsDesigner && d.assignee_name && d.assignee_name !== 'Unassigned';
-    const name = needsDesigner ? 'Assign Designer' : (hasAssignee ? d.assignee_name : 'Unassigned');
-
     ['card-view-assignee-badge-', 'card-editor-assignee-badge-', 'card-readonly-assignee-badge-'].forEach(prefix => {
         const badge = document.getElementById(prefix + taskId);
         if (badge) {
@@ -812,7 +857,7 @@ function updateCardViewElements(taskId, d) {
                 badge.style.color = 'var(--badge-blue-text, #93c5fd)';
                 badge.style.background = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
                 badge.style.border = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
-                badge.title = 'Assigned to ' + name;
+                badge.title = (isInApproval || isCompleted) ? ('Assigned to ' + name + ' (Approver)') : ('Assigned to ' + name);
             } else {
                 badge.classList.add('is-unassigned');
                 badge.innerHTML = `<span>Unassigned</span>`;
@@ -1496,6 +1541,17 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
         targetContainer.appendChild(card);
         card.setAttribute('data-status', targetStatus);
 
+        if (campaignDeliverablesData[taskId]) {
+            campaignDeliverablesData[taskId].status = targetStatus;
+            if (extraData && extraData.approver_id) {
+                campaignDeliverablesData[taskId].approver_id = extraData.approver_id;
+            }
+            if (extraData && extraData.approver_name) {
+                campaignDeliverablesData[taskId].approver_name = extraData.approver_name;
+            }
+        }
+        updateCardViewElements(taskId, campaignDeliverablesData[taskId] || { status: targetStatus, id: taskId });
+
         // Toggle approver visibility: hidden in To Do stage, shown in next stages
         const isNowToDo = (targetStatus === 'To Do');
         const approverRow = document.getElementById('card-view-approver-row-' + taskId);
@@ -1546,6 +1602,10 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
             if (card && oldContainer) {
                 oldContainer.appendChild(card);
                 card.setAttribute('data-status', oldStatus);
+                if (campaignDeliverablesData[taskId]) {
+                    campaignDeliverablesData[taskId].status = oldStatus;
+                }
+                updateCardViewElements(taskId, campaignDeliverablesData[taskId] || { status: oldStatus, id: taskId });
                 updateCardStatusUI(card, oldStatus);
                 recalculateKanbanCounts();
             }
@@ -1595,6 +1655,8 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
                 campaignDeliverablesData[taskId].status = targetStatus;
                 if (result.approval_stage) campaignDeliverablesData[taskId].approval_stage = result.approval_stage;
             }
+
+            updateCardViewElements(taskId, campaignDeliverablesData[taskId] || result.deliverable);
 
             // Update revision badges & revision message callouts
             const revCount = (typeof result.revisions !== 'undefined') ? result.revisions : ((result.deliverable && result.deliverable.revisions) || 0);
@@ -2246,11 +2308,36 @@ function insertCreatedCardIntoColumn(colKey, d) {
     const canReassignThis = canUserReassignDeliverable(d);
     const hasArtwork = Boolean(d.has_artwork || d.final_designs || d.final_designs_link || (d.final_designs_list && d.final_designs_list.length > 0));
     const isInProgress = (d.status === 'In Progress');
-    const assigneeDisplay = needsDesigner ? 'Assign Designer' : (hasAssignee ? d.assignee_name : 'Unassigned');
-    const badgeClass = needsDesigner ? 'is-needs-designer' : (hasAssignee ? 'is-assigned' : 'is-unassigned');
-    const badgeColor = needsDesigner ? '' : (hasAssignee ? 'var(--badge-blue-text, #93c5fd)' : 'var(--text-card-sub)');
-    const badgeBg = needsDesigner ? '' : (hasAssignee ? 'var(--badge-blue-bg, rgba(59,130,246,0.18))' : 'var(--bg-column)');
-    const badgeBorder = needsDesigner ? '' : (hasAssignee ? 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))' : '1px solid var(--border-card)');
+    const stLower = (d.status || colKey || '').toLowerCase().trim();
+    const isInApprovalCol = ['approval stage', 'approval', 'review', 'under review'].includes(stLower);
+    const isDoneCol = ['done', 'completed', 'complete'].includes(stLower);
+
+    let assigneeDisplay = 'Unassigned';
+    let badgeClass = 'is-unassigned';
+    let badgeColor = 'var(--text-card-sub)';
+    let badgeBg = 'var(--bg-column)';
+    let badgeBorder = '1px solid var(--border-card)';
+
+    if (isInApprovalCol || isDoneCol) {
+        const approverName = d.approver_name || 'Approver';
+        assigneeDisplay = approverName;
+        badgeClass = 'is-assigned';
+        badgeColor = 'var(--badge-blue-text, #93c5fd)';
+        badgeBg = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
+        badgeBorder = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
+    } else if (needsDesigner) {
+        assigneeDisplay = 'Assign Designer';
+        badgeClass = 'is-needs-designer';
+        badgeColor = '';
+        badgeBg = '';
+        badgeBorder = '';
+    } else if (hasAssignee) {
+        assigneeDisplay = d.assignee_name || 'Assigned';
+        badgeClass = 'is-assigned';
+        badgeColor = 'var(--badge-blue-text, #93c5fd)';
+        badgeBg = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
+        badgeBorder = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
+    }
     const stageDisplay = d.approval_stage || d.stage || '';
     const isAssign = isAssignStageName(stageDisplay);
 
@@ -2589,7 +2676,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             ` : ''}
                             ` : `
                             <span style="font-size: 11.5px; font-weight: 600; color: var(--color-text-primary); padding: 2px 0; width: 100%;">
-                                ${escapeHtml(assigneeDisplay)}
+                                ${escapeHtml(d.assignee_name || 'Unassigned')}
                             </span>
                             <input type="hidden" name="writer_id" id="card-input-writer-${d.id}" value="${d.writer_id || d.designer_id || ''}">
                             `}
@@ -2611,6 +2698,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                             </svg>
                             <select name="approver_id" 
                                     id="card-input-approver-${d.id}"
+                                    onchange="handleCardApproverChange(${d.id})"
                                     style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
                                 ${approverOptions}
                             </select>
