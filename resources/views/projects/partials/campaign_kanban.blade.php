@@ -777,7 +777,10 @@ function updateCardViewElements(taskId, d) {
     let hasAssignee = false;
     let needsDesigner = false;
 
-    if (isOutline) {
+    if (isInApproval || isCompleted) {
+        name = approverName;
+        hasAssignee = Boolean(d.approver_id || (approverName && approverName !== 'Unassigned' && approverName !== 'Approver'));
+    } else if (isOutline) {
         needsDesigner = (!d.designer_id || d.approval_stage === 'Coordinator');
         hasAssignee = !needsDesigner && Boolean(d.designer_id || (authorName && authorName !== 'Unassigned'));
         name = needsDesigner ? 'Assign Designer' : (hasAssignee ? (d.designer_name ? 'Des: ' + d.designer_name : authorName) : 'Unassigned');
@@ -790,7 +793,7 @@ function updateCardViewElements(taskId, d) {
     const initial = (name && name !== 'Unassigned' && name !== 'Assign Designer') ? name.trim().charAt(0).toUpperCase() : 'U';
     if (avatarEl) {
         avatarEl.textContent = initial;
-        avatarEl.title = (name && name !== 'Unassigned') ? ('Assigned to ' + name) : 'Unassigned';
+        avatarEl.title = (name && name !== 'Unassigned') ? ((isInApproval || isCompleted) ? ('Approver: ' + name) : ('Assigned to ' + name)) : 'Unassigned';
     }
 
     const dateContainer = document.getElementById('card-view-date-' + taskId);
@@ -860,7 +863,7 @@ function updateCardViewElements(taskId, d) {
                 badge.style.color = 'var(--badge-blue-text, #93c5fd)';
                 badge.style.background = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
                 badge.style.border = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
-                badge.title = 'Assigned to ' + name;
+                badge.title = (isInApproval || isCompleted) ? ('Approver: ' + name) : ('Assigned to ' + name);
             } else {
                 badge.classList.add('is-unassigned');
                 badge.innerHTML = `<span>Unassigned</span>`;
@@ -2327,7 +2330,14 @@ function insertCreatedCardIntoColumn(colKey, d) {
     let badgeBg = 'var(--bg-column)';
     let badgeBorder = '1px solid var(--border-card)';
 
-    if (needsDesigner) {
+    if (isInApprovalCol || isDoneCol) {
+        const approverName = d.approver_name || 'Approver';
+        assigneeDisplay = approverName;
+        badgeClass = (approverName && approverName !== 'Unassigned' && approverName !== 'Approver') ? 'is-assigned' : 'is-unassigned';
+        badgeColor = 'var(--badge-blue-text, #93c5fd)';
+        badgeBg = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
+        badgeBorder = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
+    } else if (needsDesigner) {
         assigneeDisplay = 'Assign Designer';
         badgeClass = 'is-needs-designer';
         badgeColor = '';

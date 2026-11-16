@@ -7,8 +7,9 @@
     $isToDo = in_array($statusLower, ['to do', 'todo', 'backlog', 'new', '']) || (!$isInApproval && !$isCompleted && !$isInProgress);
 
     // Approver resolution
-    $approverUser = ($task->approval_stage === 'Further Approver')
-        ? ($task->furtherApprover ?: ($task->approver ?: ($task->project?->approver ?: null)))
+    // Approver resolution
+    $approverUser = ($task->approval_stage === 'Further Approver' || !empty($task->further_approver_id))
+        ? ($task->furtherApprover ?: ($task->further_approver_id ? \App\Models\User::find($task->further_approver_id) : ($task->approver ?: ($task->project?->approver ?: null))))
         : ($task->approver ?: ($task->project?->approver ?: null));
     $approverId = $approverUser?->id ?: ($task->approver_id ?: ($task->project?->approver_id ?: null));
 
@@ -19,25 +20,30 @@
     $authorFullName = $task->assignee_name ?: ($task->writer?->name ?? ($task->designer?->name ?? ($task->coordinator?->name ?? 'Unassigned')));
     $hasAuthor = !empty($authorFullName) && strtolower($authorFullName) !== 'unassigned';
 
-    // Active Assignee based on current workflow stage
-    if ($isOutline) {
+    // Person in the stage (shown on top-right badge & avatar)
+    if ($isInApproval || $isCompleted) {
+        $stagePersonName = $approverUser?->name ?? 'Approver';
+        $hasStagePerson = !empty($approverUser);
+        $stagePersonDisplay = $hasStagePerson ? $stagePersonName : 'Approver';
+        $needsDesigner = false;
+    } elseif ($isOutline) {
         if ($task->designer) {
-            $assigneeDisplay = 'Des: ' . $task->designer->name;
-            $assigneeFullName = $task->designer->name;
-            $hasAssignee = true;
+            $stagePersonDisplay = 'Des: ' . $task->designer->name;
+            $stagePersonName = $task->designer->name;
+            $hasStagePerson = true;
         } else {
-            $assigneeDisplay = 'Assign Designer';
-            $hasAssignee = false;
-            $assigneeFullName = 'Unassigned';
+            $stagePersonDisplay = 'Assign Designer';
+            $hasStagePerson = false;
+            $stagePersonName = 'Unassigned';
         }
     } else {
-        $assigneeFullName = $authorFullName;
-        $hasAssignee = $hasAuthor;
-        $assigneeDisplay = $hasAssignee ? $assigneeFullName : 'Unassigned';
+        $stagePersonName = $authorFullName;
+        $hasStagePerson = $hasAuthor;
+        $stagePersonDisplay = $hasStagePerson ? $stagePersonName : 'Unassigned';
     }
 
-    $assigneeInitial = $hasAssignee
-        ? mb_strtoupper(mb_substr(trim($assigneeFullName), 0, 1))
+    $assigneeInitial = $hasStagePerson
+        ? mb_strtoupper(mb_substr(trim($stagePersonName), 0, 1))
         : 'U';
 
     $prio = $task->priority ?? 'Medium';
@@ -195,19 +201,19 @@
                 </span>
             </div>
             <span id="card-view-assignee-badge-{{ $task->id }}" 
-                  class="card-assignee-badge {{ $hasAssignee ? 'is-assigned' : ($needsDesigner ? 'is-needs-designer' : 'is-unassigned') }}"
+                  class="card-assignee-badge {{ $hasStagePerson ? 'is-assigned' : ($needsDesigner ? 'is-needs-designer' : 'is-unassigned') }}"
                   @if($canReassignDeliverable)
                   onclick="event.stopPropagation(); openCampaignReassignModal({{ $task->id }})"
                   @else
                   onclick="event.stopPropagation();"
                   @endif
                   style="font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; cursor: {{ $canReassignDeliverable ? 'pointer' : 'default' }}; transition: all 0.15s; line-height: 1.2;" 
-                  title="{{ $canReassignDeliverable ? ($needsDesigner ? 'Click to assign a designer' : ($hasAssignee ? 'Assigned to ' . $assigneeFullName . ' (Click to reassign)' : 'Click to assign')) : ($needsDesigner ? 'Needs Designer' : ($hasAssignee ? 'Assigned to ' . $assigneeFullName : 'Unassigned')) }}">
+                  title="{{ $canReassignDeliverable ? ($needsDesigner ? 'Click to assign a designer' : ($hasStagePerson ? ($isInApproval ? 'Approver: ' . $stagePersonName : 'Assigned to ' . $stagePersonName) . ' (Click to reassign)' : 'Click to assign')) : ($needsDesigner ? 'Needs Designer' : ($hasStagePerson ? ($isInApproval ? 'Approver: ' . $stagePersonName : 'Assigned to ' . $stagePersonName) : 'Unassigned')) }}">
                 @if($needsDesigner)
                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                     <span>Assign Designer</span>
                 @else
-                    <span>{{ $assigneeDisplay }}</span>
+                    <span>{{ $stagePersonDisplay }}</span>
                 @endif
             </span>
         </div>
@@ -223,7 +229,7 @@
                 {{-- Assignee Avatar Initial (like the purple S in reference) --}}
                 <div id="card-view-avatar-{{ $task->id }}" 
                      style="width: 22px; height: 22px; border-radius: 50%; background: #7c3aed; color: #ffffff; font-size: 10.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(124,58,237,0.3); flex-shrink: 0;" 
-                     title="{{ $assigneeFullName }}">
+                     title="{{ $stagePersonName }}">
                     {{ $assigneeInitial }}
                 </div>
 
