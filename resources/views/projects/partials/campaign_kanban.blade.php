@@ -745,6 +745,7 @@ async function submitInlineCardEdit(event, taskId) {
 }
 
 function updateCardViewElements(taskId, d) {
+    d = Object.assign({}, campaignDeliverablesData[taskId] || {}, d || {});
     const card = document.getElementById('kanban-card-' + taskId);
     if (card) {
         if (d.approver_id) card.setAttribute('data-approver-id', d.approver_id);
@@ -758,10 +759,10 @@ function updateCardViewElements(taskId, d) {
     }
 
     const titleEl = document.getElementById('card-view-title-' + taskId);
-    if (titleEl) titleEl.textContent = d.title;
+    if (titleEl && d.title) titleEl.textContent = d.title;
 
     const postTypeEl = document.getElementById('card-view-post-type-' + taskId);
-    if (postTypeEl) postTypeEl.textContent = d.post_type || 'Deliverable';
+    if (postTypeEl && d.post_type) postTypeEl.textContent = d.post_type;
 
     const pType = (d.post_type || '').toLowerCase().trim();
     const isOutline = (pType === 'outlines' || pType === 'outline');
@@ -769,25 +770,27 @@ function updateCardViewElements(taskId, d) {
     const isInApproval = ['approval stage', 'approval', 'review', 'under review'].includes(stLower);
     const isCompleted = ['done', 'completed', 'complete'].includes(stLower);
 
+    const authorName = d.assignee_name || d.writer_name || (card ? card.getAttribute('data-assignee-name') : '') || 'Unassigned';
+    const approverName = d.approver_name || (card ? card.getAttribute('data-approver-name') : null) || 'Approver';
+
     let name = 'Unassigned';
     let hasAssignee = false;
     let needsDesigner = false;
 
-    if (isInApproval || isCompleted) {
-        const approverName = d.approver_name || (card ? card.getAttribute('data-approver-name') : null) || 'Approver';
-        name = approverName;
-        hasAssignee = Boolean(d.approver_id || (d.approver_name && d.approver_name !== 'Unassigned'));
+    if (isOutline) {
+        needsDesigner = (!d.designer_id || d.approval_stage === 'Coordinator');
+        hasAssignee = !needsDesigner && Boolean(d.designer_id || (authorName && authorName !== 'Unassigned'));
+        name = needsDesigner ? 'Assign Designer' : (hasAssignee ? (d.designer_name ? 'Des: ' + d.designer_name : authorName) : 'Unassigned');
     } else {
-        needsDesigner = isOutline && (!d.designer_id || d.approval_stage === 'Coordinator');
-        hasAssignee = !needsDesigner && d.assignee_name && d.assignee_name !== 'Unassigned';
-        name = needsDesigner ? 'Assign Designer' : (hasAssignee ? d.assignee_name : 'Unassigned');
+        hasAssignee = Boolean(authorName && authorName !== 'Unassigned');
+        name = hasAssignee ? authorName : 'Unassigned';
     }
 
     const avatarEl = document.getElementById('card-view-avatar-' + taskId);
     const initial = (name && name !== 'Unassigned' && name !== 'Assign Designer') ? name.trim().charAt(0).toUpperCase() : 'U';
     if (avatarEl) {
         avatarEl.textContent = initial;
-        avatarEl.title = (isInApproval || isCompleted) ? ('Assigned to ' + name + ' (Approver)') : (name || 'Unassigned');
+        avatarEl.title = (name && name !== 'Unassigned') ? ('Assigned to ' + name) : 'Unassigned';
     }
 
     const dateContainer = document.getElementById('card-view-date-' + taskId);
@@ -857,7 +860,7 @@ function updateCardViewElements(taskId, d) {
                 badge.style.color = 'var(--badge-blue-text, #93c5fd)';
                 badge.style.background = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
                 badge.style.border = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
-                badge.title = (isInApproval || isCompleted) ? ('Assigned to ' + name + ' (Approver)') : ('Assigned to ' + name);
+                badge.title = 'Assigned to ' + name;
             } else {
                 badge.classList.add('is-unassigned');
                 badge.innerHTML = `<span>Unassigned</span>`;
@@ -881,7 +884,13 @@ function updateCardViewElements(taskId, d) {
 
     const readonlyAssigneeName = document.getElementById('card-readonly-assignee-name-' + taskId);
     if (readonlyAssigneeName) {
-        readonlyAssigneeName.textContent = name;
+        readonlyAssigneeName.textContent = authorName;
+    }
+
+    const approverNameEl = document.getElementById('card-view-approver-name-' + taskId);
+    if (approverNameEl && (d.approver_name || d.approver_id)) {
+        approverNameEl.textContent = approverName;
+        approverNameEl.style.color = (approverName && approverName !== 'Unassigned') ? 'var(--color-text-primary)' : 'var(--color-text-secondary)';
     }
 
     const stageBadge = document.getElementById('card-view-stage-' + taskId);
@@ -2318,14 +2327,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
     let badgeBg = 'var(--bg-column)';
     let badgeBorder = '1px solid var(--border-card)';
 
-    if (isInApprovalCol || isDoneCol) {
-        const approverName = d.approver_name || 'Approver';
-        assigneeDisplay = approverName;
-        badgeClass = 'is-assigned';
-        badgeColor = 'var(--badge-blue-text, #93c5fd)';
-        badgeBg = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
-        badgeBorder = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
-    } else if (needsDesigner) {
+    if (needsDesigner) {
         assigneeDisplay = 'Assign Designer';
         badgeClass = 'is-needs-designer';
         badgeColor = '';
@@ -2823,8 +2825,8 @@ function insertCreatedCardIntoColumn(colKey, d) {
                                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                                 <span>Assignee</span>
                             </span>
-                            <span style="font-weight: 600; color: var(--color-text-primary);">
-                                ${escapeHtml(assigneeDisplay)}
+                            <span id="card-readonly-assignee-name-${d.id}" style="font-weight: 600; color: var(--color-text-primary);">
+                                ${escapeHtml(d.assignee_name || 'Unassigned')}
                             </span>
                         </div>
 
@@ -5360,23 +5362,26 @@ async function submitCampaignFurtherApprover(btn) {
             closeCampaignFurtherApproverModal();
 
             const approverName = result.approver_name || 'Approver';
+            const assigneeName = result.assignee_name || (campaignDeliverablesData[taskId] ? campaignDeliverablesData[taskId].assignee_name : null);
 
             // 1. Update campaignDeliverablesData cache
             if (campaignDeliverablesData[taskId]) {
                 campaignDeliverablesData[taskId].further_approver_id = furtherApproverId;
                 campaignDeliverablesData[taskId].approver_id = furtherApproverId;
                 campaignDeliverablesData[taskId].approver_name = approverName;
+                if (assigneeName) campaignDeliverablesData[taskId].assignee_name = assigneeName;
                 campaignDeliverablesData[taskId].approval_stage = 'Further Approver';
                 campaignDeliverablesData[taskId].status = 'Approval Stage';
             }
 
             // 2. Update card view elements
-            updateCardViewElements(taskId, {
+            updateCardViewElements(taskId, Object.assign({}, campaignDeliverablesData[taskId] || {}, {
                 approver_id: furtherApproverId,
                 approver_name: approverName,
+                further_approver_id: furtherApproverId,
                 approval_stage: 'Further Approver',
                 status: 'Approval Stage'
-            });
+            }));
 
             // 3. Update stage badge on card
             const stageBadge = document.getElementById('card-view-stage-' + taskId);
@@ -5389,6 +5394,7 @@ async function submitCampaignFurtherApprover(btn) {
             const approverNameEl = document.getElementById('card-view-approver-name-' + taskId);
             if (approverNameEl) {
                 approverNameEl.textContent = approverName;
+                approverNameEl.style.color = 'var(--color-text-primary)';
             }
 
             // 5. If detail modal is open for this task, refresh it

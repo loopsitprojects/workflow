@@ -20,12 +20,7 @@
     $hasAuthor = !empty($authorFullName) && strtolower($authorFullName) !== 'unassigned';
 
     // Active Assignee based on current workflow stage
-    if ($isInApproval || $isCompleted) {
-        $assigneeFullName = $approverUser?->name ?? 'Approver';
-        $hasAssignee = !empty($approverUser);
-        $assigneeDisplay = $hasAssignee ? $assigneeFullName : 'Approver';
-        $needsDesigner = false;
-    } elseif ($isOutline) {
+    if ($isOutline) {
         if ($task->designer) {
             $assigneeDisplay = 'Des: ' . $task->designer->name;
             $assigneeFullName = $task->designer->name;
@@ -708,7 +703,7 @@
                         <span>Assignee</span>
                     </span>
                     <span id="card-readonly-assignee-name-{{ $task->id }}" style="font-weight: 600; color: var(--color-text-primary);">
-                        {{ $assigneeDisplay }}
+                        {{ $authorFullName }}
                     </span>
                 </div>
 

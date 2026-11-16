@@ -3372,8 +3372,10 @@ class DeliverableController extends Controller
             'success' => true,
             'message' => "Deliverable sent to {$furtherApprover->name} for further approval.",
             'deliverable' => $deliverable->load(['writer', 'designer', 'brandManager', 'approver', 'coordinator', 'furtherApprover']),
+            'assignee_name' => $deliverable->assignee_name ?: ($deliverable->writer?->name ?? ($deliverable->designer?->name ?? ($deliverable->coordinator?->name ?? 'Unassigned'))),
             'approver_id' => $furtherApprover->id,
             'approver_name' => $furtherApprover->name,
+            'further_approver_id' => $furtherApprover->id,
             'approval_stage' => 'Further Approver',
             'status' => 'Approval Stage',
         ]);

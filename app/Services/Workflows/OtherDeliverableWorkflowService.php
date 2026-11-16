@@ -248,6 +248,7 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
         // Stakeholder updates
         if (isset($data['writer_id'])) $deliverable->writer_id = $data['writer_id'];
         if (isset($data['brand_manager_id'])) $deliverable->brand_manager_id = $data['brand_manager_id'];
+        if (isset($data['further_approver_id'])) $deliverable->further_approver_id = $data['further_approver_id'];
 
         // Reset client status when advancing
         $deliverable->client_status = null;
@@ -258,7 +259,7 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
         $deliverable->revision_instructions = null;
         $deliverable->revision_deadline = null;
         $deliverable->revision_target = null;
-        $deliverable->status = ($nextStage === 'Close') ? 'Done' : 'To Do';
+        $deliverable->status = ($nextStage === 'Close') ? 'Done' : (in_array($nextStage, ['Approve', 'Further Approver']) ? 'Approval Stage' : ($deliverable->status ?: 'To Do'));
         $deliverable->is_ready = false;
         if ($hoursSpent) {
             $deliverable->work_hours = ($deliverable->work_hours ?? 0) + $hoursSpent;
