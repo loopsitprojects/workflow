@@ -432,10 +432,11 @@ campaignDeliverablesData[{{ $t->id }}] = {
     designer_deadline: @json($t->designer_deadline ? $t->designer_deadline->toISOString() : null),
     designer_deadline_formatted: @json($t->designer_deadline ? \Carbon\Carbon::parse($t->designer_deadline)->format('d M, Y') : null),
     approval_stage: @json($t->approval_stage ?? ''),
-    approver_id: {{ ($t->approval_stage === 'Further Approver' ? ($t->further_approver_id ?? $t->approver_id) : $t->approver_id) ?? ($project->approver_id ?? 'null') }},
+    further_approver_id: {{ $t->further_approver_id ?? 'null' }},
+    approver_id: {{ (($t->approval_stage === 'Further Approver' || !empty($t->further_approver_id)) ? ($t->further_approver_id ?? $t->approver_id) : $t->approver_id) ?? ($project->approver_id ?? 'null') }},
     created_by: {{ $t->created_by ?? ($t->effective_creator_id ?? 'null') }},
     assignee_name: @json($t->assignee_name ?: ($t->writer?->name ?? ($t->designer?->name ?? ($t->coordinator?->name ?? 'Unassigned')))),
-    approver_name: @json(($t->approval_stage === 'Further Approver' ? ($t->furtherApprover?->name ?? $t->approver?->name) : $t->approver?->name) ?? ($project->approver?->name ?? null)),
+    approver_name: @json((($t->approval_stage === 'Further Approver' || !empty($t->further_approver_id)) ? ($t->furtherApprover?->name ?? $t->approver?->name) : $t->approver?->name) ?? ($project->approver?->name ?? null)),
     created_at_formatted: @json($createdFmt),
     revisions: {{ (int)($t->revisions ?? 0) }},
     revision_instructions: @json($t->revision_instructions ?? ''),
@@ -769,9 +770,11 @@ function updateCardViewElements(taskId, d) {
     const stLower = (d.status || (card ? card.getAttribute('data-status') : '') || '').toLowerCase().trim();
     const isInApproval = ['approval stage', 'approval', 'review', 'under review'].includes(stLower);
     const isCompleted = ['done', 'completed', 'complete'].includes(stLower);
+    const isFurtherApprover = (d.approval_stage === 'Further Approver' || Boolean(d.further_approver_id));
+    const approverRoleTitle = isFurtherApprover ? 'Further Approver' : 'Approver';
 
     const authorName = d.assignee_name || d.writer_name || (card ? card.getAttribute('data-assignee-name') : '') || 'Unassigned';
-    const approverName = d.approver_name || (card ? card.getAttribute('data-approver-name') : null) || 'Approver';
+    const approverName = d.approver_name || (card ? card.getAttribute('data-approver-name') : null) || approverRoleTitle;
 
     let name = 'Unassigned';
     let hasAssignee = false;
@@ -779,7 +782,7 @@ function updateCardViewElements(taskId, d) {
 
     if (isInApproval || isCompleted) {
         name = approverName;
-        hasAssignee = Boolean(d.approver_id || (approverName && approverName !== 'Unassigned' && approverName !== 'Approver'));
+        hasAssignee = Boolean(d.approver_id || (approverName && approverName !== 'Unassigned' && approverName !== 'Approver' && approverName !== 'Further Approver'));
     } else if (isOutline) {
         needsDesigner = (!d.designer_id || d.approval_stage === 'Coordinator');
         hasAssignee = !needsDesigner && Boolean(d.designer_id || (authorName && authorName !== 'Unassigned'));
@@ -793,7 +796,7 @@ function updateCardViewElements(taskId, d) {
     const initial = (name && name !== 'Unassigned' && name !== 'Assign Designer') ? name.trim().charAt(0).toUpperCase() : 'U';
     if (avatarEl) {
         avatarEl.textContent = initial;
-        avatarEl.title = (name && name !== 'Unassigned') ? ((isInApproval || isCompleted) ? ('Approver: ' + name) : ('Assigned to ' + name)) : 'Unassigned';
+        avatarEl.title = (name && name !== 'Unassigned') ? ((isInApproval || isCompleted) ? (approverRoleTitle + ': ' + name) : ('Assigned to ' + name)) : 'Unassigned';
     }
 
     const dateContainer = document.getElementById('card-view-date-' + taskId);
@@ -863,7 +866,7 @@ function updateCardViewElements(taskId, d) {
                 badge.style.color = 'var(--badge-blue-text, #93c5fd)';
                 badge.style.background = 'var(--badge-blue-bg, rgba(59,130,246,0.18))';
                 badge.style.border = 'var(--badge-blue-border, 1px solid rgba(147,197,253,0.35))';
-                badge.title = (isInApproval || isCompleted) ? ('Approver: ' + name) : ('Assigned to ' + name);
+                badge.title = (isInApproval || isCompleted) ? (approverRoleTitle + ': ' + name) : ('Assigned to ' + name);
             } else {
                 badge.classList.add('is-unassigned');
                 badge.innerHTML = `<span>Unassigned</span>`;
@@ -888,6 +891,11 @@ function updateCardViewElements(taskId, d) {
     const readonlyAssigneeName = document.getElementById('card-readonly-assignee-name-' + taskId);
     if (readonlyAssigneeName) {
         readonlyAssigneeName.textContent = authorName;
+    }
+
+    const approverLabelEl = document.getElementById('card-view-approver-label-' + taskId);
+    if (approverLabelEl) {
+        approverLabelEl.textContent = approverRoleTitle;
     }
 
     const approverNameEl = document.getElementById('card-view-approver-name-' + taskId);
@@ -2844,7 +2852,7 @@ function insertCreatedCardIntoColumn(colKey, d) {
                         <div id="card-view-approver-row-${d.id}" style="display: ${isColToDo ? 'none' : 'flex'}; align-items: center; justify-content: space-between; font-size: 11.5px;">
                             <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 500;">
                                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                                <span>Approver</span>
+                                <span id="card-view-approver-label-${d.id}">${(d.approval_stage === 'Further Approver' || d.further_approver_id) ? 'Further Approver' : 'Approver'}</span>
                             </span>
                             <span id="card-view-approver-name-${d.id}" style="font-weight: 600; color: ${d.approver_name ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'};">
                                 ${escapeHtml(d.approver_name || 'Unassigned')}
@@ -4607,7 +4615,7 @@ function renderCampaignDetailsModalContent(task) {
                 </div>
 
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                    <span style="color: var(--color-text-secondary); font-weight: 500;">Approver</span>
+                    <span style="color: var(--color-text-secondary); font-weight: 500;">${(task.approval_stage === 'Further Approver' || Boolean(task.further_approver_id)) ? 'Further Approver' : 'Approver'}</span>
                     <span style="font-weight: 700; color: ${task.approver_name ? 'var(--color-text-primary)' : 'var(--color-text-secondary)'}; display: inline-flex; align-items: center; gap: 6px;">
                         ${task.approver_name ? `
                             <span style="width: 20px; height: 20px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); color: #10b981; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900;">
@@ -5401,6 +5409,10 @@ async function submitCampaignFurtherApprover(btn) {
             }
 
             // 4. Update approver row on card if visible
+            const approverLabelEl = document.getElementById('card-view-approver-label-' + taskId);
+            if (approverLabelEl) {
+                approverLabelEl.textContent = 'Further Approver';
+            }
             const approverNameEl = document.getElementById('card-view-approver-name-' + taskId);
             if (approverNameEl) {
                 approverNameEl.textContent = approverName;
