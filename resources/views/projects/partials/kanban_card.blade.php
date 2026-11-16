@@ -6,13 +6,21 @@
     $isInProgress = in_array($statusLower, ['in progress', 'on hold']);
     $isToDo = in_array($statusLower, ['to do', 'todo', 'backlog', 'new', '']) || (!$isInApproval && !$isCompleted && !$isInProgress);
 
-    // Approver resolution
-    $isFurtherApprover = ($task->approval_stage === 'Further Approver' || !empty($task->further_approver_id));
-    $approverLabel = $isFurtherApprover ? 'Further Approver' : 'Approver';
-    $approverUser = $isFurtherApprover
-        ? ($task->furtherApprover ?: ($task->further_approver_id ? \App\Models\User::find($task->further_approver_id) : ($task->approver ?: ($task->project?->approver ?: null))))
-        : ($task->approver ?: ($task->project?->approver ?: null));
+    // Approver & Further Approver resolution
+    $furtherApproverUser = $task->furtherApprover ?: ($task->further_approver_id ? \App\Models\User::find($task->further_approver_id) : null);
+    $approverUser = $task->approver ?: ($task->project?->approver ?: null);
+    if ($furtherApproverUser && $approverUser && $approverUser->id === $furtherApproverUser->id) {
+        $prevReassignment = $task->reassignmentsHistory()->where('role', 'approver')->latest()->first();
+        if ($prevReassignment && $prevReassignment->from_user_id && $prevReassignment->from_user_id !== $furtherApproverUser->id) {
+            $origUser = \App\Models\User::find($prevReassignment->from_user_id);
+            if ($origUser) $approverUser = $origUser;
+        } elseif ($task->project?->approver && $task->project->approver_id !== $furtherApproverUser->id) {
+            $approverUser = $task->project->approver;
+        }
+    }
     $approverId = $approverUser?->id ?: ($task->approver_id ?: ($task->project?->approver_id ?: null));
+    $isFurtherApprover = ($task->approval_stage === 'Further Approver');
+    $approverLabel = 'Approver';
 
     $isOutline = $task->isOutline();
     $needsDesigner = $isOutline && (!$task->designer_id || $task->approval_stage === 'Coordinator');
@@ -23,9 +31,10 @@
 
     // Person in the stage (shown on top-right badge & avatar)
     if ($isInApproval || $isCompleted) {
-        $stagePersonName = $approverUser?->name ?? $approverLabel;
-        $hasStagePerson = !empty($approverUser);
-        $stagePersonDisplay = $hasStagePerson ? $stagePersonName : $approverLabel;
+        $stageReviewer = ($task->approval_stage === 'Further Approver' && $furtherApproverUser) ? $furtherApproverUser : ($approverUser ?: $furtherApproverUser);
+        $stagePersonName = $stageReviewer?->name ?? ($task->approval_stage === 'Further Approver' ? 'Further Approver' : 'Approver');
+        $hasStagePerson = !empty($stageReviewer);
+        $stagePersonDisplay = $hasStagePerson ? $stagePersonName : ($task->approval_stage === 'Further Approver' ? 'Further Approver' : 'Approver');
         $needsDesigner = false;
     } elseif ($isOutline) {
         if ($task->designer) {
@@ -100,7 +109,7 @@
     $isAssignee = $assignedUserId && $currentUserId == $assignedUserId;
     $isUnassigned = !$assignedUserId;
 
-    $isApprover = ($approverId && $currentUserId == $approverId);
+    $isApprover = ($approverId && $currentUserId == $approverId) || ($furtherApproverUser && $currentUserId == $furtherApproverUser->id);
 
     $creatorId = $task->effective_creator_id;
     $isCreator = $creatorId && ((int)$currentUserId === (int)$creatorId);
@@ -160,8 +169,10 @@
      data-id="{{ $task->id }}"
      data-assigned="{{ $task->isAssignedToUser($currentUserId) ? '1' : '0' }}"
      data-status="{{ $task->status ?? 'To Do' }}"
-     data-approver-id="{{ $task->approver_id ?? '' }}"
-     data-approver-name="{{ $task->approver?->name ?? '' }}"
+     data-approver-id="{{ $approverId ?? '' }}"
+     data-approver-name="{{ $approverUser?->name ?? '' }}"
+     data-further-approver-id="{{ $furtherApproverUser?->id ?? '' }}"
+     data-further-approver-name="{{ $furtherApproverUser?->name ?? '' }}"
      data-creator-id="{{ $creatorId ?? '' }}"
      data-can-edit="{{ $canEditCard ? 'true' : 'false' }}"
      data-can-manage="{{ $canEditCard ? 'true' : 'false' }}"
@@ -430,12 +441,27 @@
                             style="width: 100%; border: none; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; outline: none; padding: 2px 0;">
                         <option value="" style="background: var(--color-bg-primary); color: var(--color-text-primary);">Add approver…</option>
                         @foreach($cardSelectableUsers as $u)
-                            <option value="{{ $u->id }}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ ($task->approver_id == $u->id || (!$task->approver_id && $task->brand_manager_id == $u->id)) ? 'selected' : '' }}>
+                            <option value="{{ $u->id }}" style="background: var(--color-bg-primary); color: var(--color-text-primary);" {{ (($approverUser?->id == $u->id) || (!$task->approver_id && $task->brand_manager_id == $u->id)) ? 'selected' : '' }}>
                                 {{ $u->name }} ({{ $u->role }})
                             </option>
                         @endforeach
                     </select>
                 </div>
+
+                {{-- Further Approver (hidden in To Do stage, shown if deliverable has a further approver) --}}
+                @if($furtherApproverUser)
+                <div id="card-editor-further-approver-row-{{ $task->id }}" style="display: {{ $isToDo ? 'none' : 'flex' }}; align-items: center; justify-content: space-between; font-size: 11.5px; padding: 2px 0;">
+                    <div style="display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary);">
+                        <svg width="13" height="13" fill="none" stroke="var(--color-text-secondary)" viewBox="0 0 24 24" style="flex-shrink:0;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        <span>Further Approver</span>
+                    </div>
+                    <span style="font-weight: 600; color: var(--color-text-primary);">
+                        {{ $furtherApproverUser->name }}
+                    </span>
+                </div>
+                @endif
 
                 {{-- Date --}}
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -722,10 +748,21 @@
                 <div id="card-view-approver-row-{{ $task->id }}" style="display: {{ $isToDo ? 'none' : 'flex' }}; align-items: center; justify-content: space-between; font-size: 11.5px;">
                     <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 500;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                        <span id="card-view-approver-label-{{ $task->id }}">{{ $approverLabel }}</span>
+                        <span id="card-view-approver-label-{{ $task->id }}">Approver</span>
                     </span>
                     <span id="card-view-approver-name-{{ $task->id }}" style="font-weight: 600; color: {{ $approverUser ? 'var(--color-text-primary)' : 'var(--color-text-secondary)' }};">
                         {{ $approverUser?->name ?? 'Unassigned' }}
+                    </span>
+                </div>
+
+                {{-- Further Approver (hidden in To Do stage, shown if deliverable has a further approver) --}}
+                <div id="card-view-further-approver-row-{{ $task->id }}" style="display: {{ ($isToDo || !$furtherApproverUser) ? 'none' : 'flex' }}; align-items: center; justify-content: space-between; font-size: 11.5px;">
+                    <span style="display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-secondary); font-weight: 500;">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span>Further Approver</span>
+                    </span>
+                    <span id="card-view-further-approver-name-{{ $task->id }}" style="font-weight: 600; color: var(--color-text-primary);">
+                        {{ $furtherApproverUser?->name ?? '' }}
                     </span>
                 </div>
 

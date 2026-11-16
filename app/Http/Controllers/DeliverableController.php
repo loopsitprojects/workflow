@@ -3327,7 +3327,9 @@ class DeliverableController extends Controller
         $prevApproverId = $deliverable->approver_id;
 
         $deliverable->further_approver_id = $furtherApprover->id;
-        $deliverable->approver_id = $furtherApprover->id;
+        if (!$deliverable->approver_id) {
+            $deliverable->approver_id = $prevApproverId ?: ($project->approver_id ?: $furtherApprover->id);
+        }
         $deliverable->approval_stage = 'Further Approver';
         $deliverable->status = 'Approval Stage';
         $deliverable->save();
@@ -3373,9 +3375,10 @@ class DeliverableController extends Controller
             'message' => "Deliverable sent to {$furtherApprover->name} for further approval.",
             'deliverable' => $deliverable->load(['writer', 'designer', 'brandManager', 'approver', 'coordinator', 'furtherApprover']),
             'assignee_name' => $deliverable->assignee_name ?: ($deliverable->writer?->name ?? ($deliverable->designer?->name ?? ($deliverable->coordinator?->name ?? 'Unassigned'))),
-            'approver_id' => $furtherApprover->id,
-            'approver_name' => $furtherApprover->name,
+            'approver_id' => $deliverable->approver_id,
+            'approver_name' => $deliverable->approver?->name,
             'further_approver_id' => $furtherApprover->id,
+            'further_approver_name' => $furtherApprover->name,
             'approval_stage' => 'Further Approver',
             'status' => 'Approval Stage',
         ]);
@@ -3467,9 +3470,13 @@ class DeliverableController extends Controller
         $isAssigned = $assignedUserId && $user && $user->id == $assignedUserId;
         $isUnassigned = !$assignedUserId;
 
-        // Approver check
+        // Approver check (including Further Approver)
         $approverId = $deliverable->approver_id ?: ($project->approver_id ?: null);
-        $isDesignatedApprover = ($approverId && $user && $user->id == $approverId);
+        $furtherApproverId = $deliverable->further_approver_id ?: null;
+        $isDesignatedApprover = ($user && (
+            ($approverId && (int)$user->id === (int)$approverId) ||
+            ($furtherApproverId && (int)$user->id === (int)$furtherApproverId)
+        ));
 
         $oldStatusLower = strtolower(trim($oldStatus));
         $isInApproval = in_array($oldStatusLower, ['approval stage', 'approval', 'review', 'under review']);
@@ -3684,7 +3691,11 @@ class DeliverableController extends Controller
         $updatedAssignedId = $deliverable->writer_id ?: ($deliverable->designer_id ?: null);
         $updatedIsAssignee = $updatedAssignedId && $user && $user->id == $updatedAssignedId;
         $updatedApproverId = $deliverable->approver_id ?: ($project->approver_id ?: null);
-        $updatedIsApprover = ($updatedApproverId && $user && $user->id == $updatedApproverId);
+        $updatedFurtherApproverId = $deliverable->further_approver_id ?: null;
+        $updatedIsApprover = ($user && (
+            ($updatedApproverId && (int)$user->id === (int)$updatedApproverId) ||
+            ($updatedFurtherApproverId && (int)$user->id === (int)$updatedFurtherApproverId)
+        ));
 
         if ($isAdminOrManager) {
             $canUserMoveNow = true;
@@ -3695,7 +3706,7 @@ class DeliverableController extends Controller
             $canUserMoveNow = $updatedAssignedId ? $updatedIsAssignee : false;
         }
 
-        $deliverable->load(['writer', 'designer', 'brandManager', 'approver', 'coordinator', 'revisionsHistory.user', 'revisionsHistory.fixedByUser']);
+        $deliverable->load(['writer', 'designer', 'brandManager', 'approver', 'coordinator', 'furtherApprover', 'revisionsHistory.user', 'revisionsHistory.fixedByUser']);
         $deliverable->append(['revisions_history', 'approvals_history']);
 
         return response()->json([
@@ -3707,6 +3718,8 @@ class DeliverableController extends Controller
             'assignee_name' => $deliverable->assignee_name,
             'approver_id' => $deliverable->approver_id,
             'approver_name' => $deliverable->approver?->name,
+            'further_approver_id' => $deliverable->further_approver_id,
+            'further_approver_name' => $deliverable->furtherApprover?->name,
             'has_file' => $deliverable->hasArtwork(),
             'can_move' => $canUserMoveNow,
             'revisions' => (int)($deliverable->revisions ?? 0),
