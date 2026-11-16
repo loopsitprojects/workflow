@@ -4970,11 +4970,14 @@
                     const isCreator = taskCreatorId && (AUTH_USER_ID == taskCreatorId);
                     const isTaskInProgress = (task.status === 'In Progress');
                     const isTaskToDo = (!task.status || task.status === 'To Do' || task.status === 'To commence');
+                    const taskAssignedUserId = task.writer_id || task.designer_id || task.coordinator_id || null;
+                    const taskHasAssignee = Boolean(taskAssignedUserId);
+                    const isTaskAssignee = Boolean(taskAssignedUserId && (AUTH_USER_ID == taskAssignedUserId));
 
                     const canShowArtworkUpload = (isDirectDesign || task.is_direct_design)
                         ? (stage === 'Designer')
                         : (isCampaignOrPitchProject
-                            ? (isTaskInProgress && (isOtherAssignedPerson || isAdmin || isCreator))
+                            ? (isTaskInProgress && (taskHasAssignee ? (isTaskAssignee || isAdmin) : (isAdmin || isCreator)))
                             : (isOtherDeliverable
                                 ? (isOtherAssignStage && isOtherAssignedPerson)
                                 : (stage === 'Designer')));
@@ -4994,6 +4997,9 @@
                 const isCreator = taskCreatorId && (AUTH_USER_ID == taskCreatorId);
                 const isTaskInProgress = (task.status === 'In Progress');
                 const isTaskToDo = (!task.status || task.status === 'To Do' || task.status === 'To commence');
+                const taskAssignedUserId = task.writer_id || task.designer_id || task.coordinator_id || null;
+                const taskHasAssignee = Boolean(taskAssignedUserId);
+                const isTaskAssignee = Boolean(taskAssignedUserId && (AUTH_USER_ID == taskAssignedUserId));
 
                 const isManagerOrApprover = isAdmin ||
                     ['brandmanager', 'operationsmanager', 'approver', 'approvercoordinator', 'owner'].includes(userRole) ||
@@ -5005,13 +5011,13 @@
                 const canEditBriefAndRef = (isDirectDesign || task.is_direct_design)
                     ? (isAdmin || isManager || (stage === 'Coordinator' && isAssignedCoordinator) || (task.brand_manager_id && AUTH_USER_ID == task.brand_manager_id))
                     : (isCampaignOrPitchProject
-                        ? (isTaskToDo ? (isAdmin || isCreator) : (isAdmin || isCreator || isManagerOrApprover))
+                        ? (taskHasAssignee ? (isAdmin || isTaskAssignee) : (isAdmin || isCreator || isManagerOrApprover))
                         : (isOtherDeliverable
                             ? (isAdmin || Boolean(task.can_remove_reference))
                             : writerEditPermission));
 
                 const canEditTitle = isCampaignOrPitchProject
-                    ? (isAdmin || isCreator)
+                    ? (taskHasAssignee ? (isAdmin || isTaskAssignee) : (isAdmin || isCreator))
                     : (isOtherDeliverable
                         ? (isOtherAssignStage && isOtherAssignedPerson)
                         : (writerEditPermission || isAdmin || ['writer','assignee','brandmanager','operationsmanager'].includes(userRole)));
@@ -5024,7 +5030,7 @@
                 // Reference Edit Area (Files & Links)
                 const refEditArea = document.getElementById('modalReferenceEditArea');
                 const canUploadFiles = isCampaignOrPitchProject
-                    ? (isTaskToDo ? (isAdmin || isCreator) : (isOtherAssignedPerson || isAdmin || isCreator || isManagerOrApprover))
+                    ? (taskHasAssignee ? (isAdmin || isTaskAssignee) : (isAdmin || isCreator))
                     : (isAssignedWriter || isAssignedDesigner || isOtherAssignedPerson || isManagerOrApprover || isAdmin || canEditBriefAndRef);
                 if (refEditArea) {
                     const toggleBtn = document.getElementById('toggleRefEditBtn');
@@ -5047,7 +5053,7 @@
                 }
 
                 const canSaveContent = isCampaignOrPitchProject
-                    ? (isTaskToDo ? (isAdmin || isCreator) : (isOtherAssignedPerson || isAdmin || isCreator))
+                    ? (taskHasAssignee ? (isAdmin || isTaskAssignee) : (isAdmin || isCreator))
                     : (isOtherDeliverable
                         ? (isOtherAssignedPerson || canUploadFiles || canEditBriefAndRef || isManager)
                         : (canUploadFiles || canEditBriefAndRef || (designerEditPermission && stage === 'Designer') || isAdmin || userRole === 'brandmanager'));

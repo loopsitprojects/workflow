@@ -770,23 +770,23 @@ class DeliverableController extends Controller
                           in_array($user->role, ['Brand Manager', 'Operations Manager']);
             if (!$isAssigned) abort(403, 'Direct design deliverables can only be edited by the assigned designer or manager.');
         } elseif ($deliverable->isOtherDeliverable()) {
-            $isAssignStage = in_array($deliverable->approval_stage, ['Assign', 'Assignee', 'Writer']) || !$deliverable->approval_stage;
-            $isAssignedPerson = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
-                                ($deliverable->designer_id && $user->id == $deliverable->designer_id) ||
-                                ($deliverable->coordinator_id && $user->id == $deliverable->coordinator_id) ||
+            $assignedUserId = $deliverable->writer_id ?: ($deliverable->designer_id ?: ($deliverable->coordinator_id ?: null));
+            $hasAssignee = !empty($assignedUserId);
+            $isAdmin = $user && ($user->isAdmin() || in_array($user->role, ['Admin', 'Owner', 'Operations Manager']));
+            $isAssignedPerson = ($assignedUserId && (int)$user->id === (int)$assignedUserId) ||
                                 ($deliverable->assignee_name && $deliverable->assignee_name === $user->name);
 
-            if ($isAssignStage) {
-                $isAssigned = $user->isAdmin() || $isAssignedPerson;
+            if ($hasAssignee) {
+                // Once assigned to a person, only assigned person and admin have accessibility to make changes
+                $isAssigned = $isAdmin || $isAssignedPerson;
             } else {
-                $isAssigned = $user->isAdmin() ||
-                              $isAssignedPerson ||
+                $isAssigned = $isAdmin ||
                               ($deliverable->brand_manager_id && $user->id == $deliverable->brand_manager_id) ||
                               ($deliverable->project && $user->id == $deliverable->project->brand_manager_id) ||
                               $deliverable->canUserRemoveReference($user) ||
                               in_array($user->role, ['Brand Manager', 'Operations Manager']);
             }
-            if (!$isAssigned) abort(403, 'Other deliverables can only be edited by the assigned person.');
+            if (!$isAssigned) abort(403, 'Once a deliverable is assigned, only the assigned person and administrators can make changes to it.');
         } else {
             if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
         }
@@ -817,23 +817,23 @@ class DeliverableController extends Controller
                           in_array($user->role, ['Brand Manager', 'Operations Manager']);
             if (!$isAssigned) abort(403, 'Direct design deliverables can only be edited by the assigned designer or manager.');
         } elseif ($deliverable->isOtherDeliverable()) {
-            $isAssignStage = in_array($deliverable->approval_stage, ['Assign', 'Assignee', 'Writer']) || !$deliverable->approval_stage;
-            $isAssignedPerson = ($deliverable->writer_id && $user->id == $deliverable->writer_id) ||
-                                ($deliverable->designer_id && $user->id == $deliverable->designer_id) ||
-                                ($deliverable->coordinator_id && $user->id == $deliverable->coordinator_id) ||
+            $assignedUserId = $deliverable->writer_id ?: ($deliverable->designer_id ?: ($deliverable->coordinator_id ?: null));
+            $hasAssignee = !empty($assignedUserId);
+            $isAdmin = $user && ($user->isAdmin() || in_array($user->role, ['Admin', 'Owner', 'Operations Manager']));
+            $isAssignedPerson = ($assignedUserId && (int)$user->id === (int)$assignedUserId) ||
                                 ($deliverable->assignee_name && $deliverable->assignee_name === $user->name);
 
-            if ($isAssignStage) {
-                $isAssigned = $user->isAdmin() || $isAssignedPerson;
+            if ($hasAssignee) {
+                // Once assigned to a person, only assigned person and admin have accessibility to make changes
+                $isAssigned = $isAdmin || $isAssignedPerson;
             } else {
-                $isAssigned = $user->isAdmin() ||
-                              $isAssignedPerson ||
+                $isAssigned = $isAdmin ||
                               ($deliverable->brand_manager_id && $user->id == $deliverable->brand_manager_id) ||
                               ($deliverable->project && $user->id == $deliverable->project->brand_manager_id) ||
                               $deliverable->canUserRemoveReference($user) ||
                               in_array($user->role, ['Brand Manager', 'Operations Manager']);
             }
-            if (!$isAssigned) abort(403, 'Other deliverables can only be edited by the assigned person.');
+            if (!$isAssigned) abort(403, 'Once a deliverable is assigned, only the assigned person and administrators can make changes to it.');
         } else {
             if (!$user->isAdmin() && $user->role !== 'Brand Manager' && $user->role !== 'Writer') abort(403);
         }
@@ -1522,14 +1522,24 @@ class DeliverableController extends Controller
 
             $isCampaignOrPitch = in_array($deliverable->project?->workflow_type ?? '', ['campaign', 'pitch']);
             if ($isCampaignOrPitch) {
-                $canEditBrief = $user->isAdmin() ||
-                    ($deliverable->isOtherDeliverable() && ($isAssignedPerson ?? false)) ||
-                    in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
-                    $deliverable->project?->lead_id == $user->id ||
-                    $deliverable->project?->brand_manager_id == $user->id ||
-                    $deliverable->project?->approver_id == $user->id ||
-                    $deliverable->brand_manager_id == $user->id ||
-                    $deliverable->approver_id == $user->id;
+                $assignedUserId = $deliverable->writer_id ?: ($deliverable->designer_id ?: ($deliverable->coordinator_id ?: null));
+                $hasAssignee = !empty($assignedUserId);
+                $isAdmin = $user && ($user->isAdmin() || in_array($user->role, ['Admin', 'Owner', 'Operations Manager']));
+                $isAssignedPerson = ($assignedUserId && (int)$user->id === (int)$assignedUserId) ||
+                                    ($deliverable->assignee_name && $deliverable->assignee_name === $user->name);
+
+                if ($hasAssignee) {
+                    $canEditBrief = $isAdmin || $isAssignedPerson;
+                    $canEditContent = $isAdmin || $isAssignedPerson;
+                } else {
+                    $canEditBrief = $isAdmin ||
+                        in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
+                        $deliverable->project?->lead_id == $user->id ||
+                        $deliverable->project?->brand_manager_id == $user->id ||
+                        $deliverable->project?->approver_id == $user->id ||
+                        $deliverable->brand_manager_id == $user->id ||
+                        $deliverable->approver_id == $user->id;
+                }
             } else {
                 $canEditBrief = $canEditBriefAndRef;
             }
@@ -3076,26 +3086,35 @@ class DeliverableController extends Controller
 
         $user = auth()->user();
         $isSuperAdmin = $user && $user->isAdmin();
-        $isCreator = $user && ((int) $user->id === (int) $deliverable->effective_creator_id);
-        $isOutlineCoordinator = $deliverable->isOutline() && (
-            (int) $deliverable->coordinator_id === (int) $user->id ||
-            ($project && (int) $project->coordinator_id === (int) $user->id) ||
-            $user->role === 'Coordinator'
-        );
-        $canManage = $user && (
-            $isSuperAdmin ||
-            $isCreator ||
-            $isOutlineCoordinator ||
-            in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']) ||
-            $project->lead_id == $user->id ||
-            $project->brand_manager_id == $user->id ||
-            $project->approver_id == $user->id
-        );
+        $isAdmin = $user && ($isSuperAdmin || in_array($user->role, ['Admin', 'Owner', 'Operations Manager']));
+        $assignedUserId = $deliverable->writer_id ?: ($deliverable->designer_id ?: ($deliverable->coordinator_id ?: null));
+        $hasAssignee = !empty($assignedUserId);
+        $isAssignedPerson = ($assignedUserId && (int) $user->id === (int) $assignedUserId) ||
+                            ($deliverable->assignee_name && $deliverable->assignee_name === $user->name);
 
-        if (!$canManage) {
+        // Once the deliverable is assigned to a person, only assigned person and admin has accessibility to make changes
+        if ($hasAssignee) {
+            $canModify = $isAdmin || $isAssignedPerson;
+        } else {
+            $isCreator = $user && ((int) $user->id === (int) $deliverable->effective_creator_id);
+            $isOutlineCoordinator = $deliverable->isOutline() && (
+                (int) $deliverable->coordinator_id === (int) $user->id ||
+                ($project && (int) $project->coordinator_id === (int) $user->id) ||
+                $user->role === 'Coordinator'
+            );
+            $canModify = $isAdmin ||
+                $isCreator ||
+                $isOutlineCoordinator ||
+                in_array($user->role, ['Brand Manager', 'Approver', 'Approver Coordinator']) ||
+                $project->lead_id == $user->id ||
+                $project->brand_manager_id == $user->id ||
+                $project->approver_id == $user->id;
+        }
+
+        if (!$canModify) {
             return response()->json([
                 'success' => false, 
-                'message' => 'You do not have permission to modify this deliverable.'
+                'message' => 'Once a deliverable is assigned, only the assigned person and administrators can make changes to it.'
             ], 403);
         }
 
@@ -3258,6 +3277,105 @@ class DeliverableController extends Controller
             'success' => true,
             'message' => $message,
             'deliverable' => $deliverable,
+        ]);
+    }
+
+    /**
+     * Send deliverable to a Further Approver in Campaign and Pitch Kanban flows.
+     * Retains deliverable in the Approval Stage while routing authority to the chosen further approver.
+     */
+    public function sendToFurtherApproverKanban(Request $request, Deliverable $deliverable)
+    {
+        $project = $deliverable->project;
+        if (!$project || !in_array($project->workflow_type, ['campaign', 'pitch'])) {
+            return response()->json(['success' => false, 'message' => 'This action is restricted to Campaign and Pitch projects.'], 403);
+        }
+
+        $user = auth()->user();
+        $isSuperAdmin = $user && $user->isAdmin();
+        $isAdminOrManager = $user && (
+            $isSuperAdmin || 
+            in_array($user->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager']) ||
+            $project->brand_manager_id == $user->id
+        );
+
+        $currentApproverId = $deliverable->approver_id ?: ($project->approver_id ?: null);
+        $isDesignatedApprover = ($currentApproverId && $user && (int)$user->id === (int)$currentApproverId);
+
+        if (!$isAdminOrManager && !$isDesignatedApprover) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only the assigned approver or project managers can send this deliverable to a further approver.',
+            ], 403);
+        }
+
+        $statusLower = strtolower(trim($deliverable->status ?? ''));
+        $isInApproval = in_array($statusLower, ['approval stage', 'approval', 'review', 'under review']);
+        if (!$isInApproval) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Deliverables can only be sent to a further approver while in the Approval Stage.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'further_approver_id' => 'required|exists:users,id',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $furtherApprover = User::findOrFail($validated['further_approver_id']);
+        $prevApproverId = $deliverable->approver_id;
+
+        $deliverable->further_approver_id = $furtherApprover->id;
+        $deliverable->approver_id = $furtherApprover->id;
+        $deliverable->approval_stage = 'Further Approver';
+        $deliverable->status = 'Approval Stage';
+        $deliverable->save();
+
+        // Audit log in approvals history
+        $deliverable->approvalsHistory()->create([
+            'user_id' => $user->id,
+            'stage'   => 'Further Approver',
+            'notes'   => !empty($validated['notes']) ? $validated['notes'] : "Sent to {$furtherApprover->name} for further approval.",
+        ]);
+
+        // Audit log in reassignments history
+        DeliverableReassignment::create([
+            'deliverable_id' => $deliverable->id,
+            'role' => 'approver',
+            'from_user_id' => $prevApproverId ?: $user->id,
+            'to_user_id' => $furtherApprover->id,
+            'reassigned_by_user_id' => $user->id,
+            'reason' => !empty($validated['notes']) ? $validated['notes'] : 'Forwarded for further approval',
+        ]);
+
+        // Notification to Further Approver
+        try {
+            $furtherApprover->notify(new \App\Notifications\DeliverableUpdated(
+                $deliverable,
+                "forwarded **{$deliverable->title}** to you for further approval",
+                'stage_update',
+                $user
+            ));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Further approver notification error: ' . $e->getMessage());
+        }
+
+        // Broadcast real-time update
+        try {
+            \App\Events\DeliverablesUpdated::dispatch($deliverable->project_id);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Broadcast error: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Deliverable sent to {$furtherApprover->name} for further approval.",
+            'deliverable' => $deliverable->load(['writer', 'designer', 'brandManager', 'approver', 'coordinator', 'furtherApprover']),
+            'approver_id' => $furtherApprover->id,
+            'approver_name' => $furtherApprover->name,
+            'approval_stage' => 'Further Approver',
+            'status' => 'Approval Stage',
         ]);
     }
 

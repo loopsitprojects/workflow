@@ -2228,18 +2228,24 @@ function insertCreatedCardIntoColumn(colKey, d) {
 
     const creatorId = d.created_by || d.effective_creator_id || null;
     const isCreator = creatorId && kanbanCurrentUserId == creatorId;
-    const canEdit = kanbanIsAdmin || isCreator || kanbanCanManageDeliverables;
-    const canReassignThis = canUserReassignDeliverable(d);
-    const hasArtwork = Boolean(d.has_artwork || d.final_designs || d.final_designs_link || (d.final_designs_list && d.final_designs_list.length > 0));
-    const isInProgress = (d.status === 'In Progress');
-    const assignedId = d.writer_id || d.designer_id || null;
+    const assignedId = d.writer_id || d.designer_id || d.coordinator_id || null;
     const isAssignee = (assignedId && kanbanCurrentUserId == assignedId);
-    const canUploadArtwork = isAssignee || kanbanIsAdmin || isCreator;
 
     const pType = (d.post_type || '').toLowerCase().trim();
     const isOutline = (pType === 'outlines' || pType === 'outline');
     const needsDesigner = isOutline && (!d.designer_id || d.approval_stage === 'Coordinator');
-    const hasAssignee = !needsDesigner && d.assignee_name && d.assignee_name !== 'Unassigned';
+    const hasAssignee = !needsDesigner && Boolean(assignedId);
+
+    // Once the deliverable is assigned to a person, only assigned person and admin has accessibility to make changes
+    const canEdit = hasAssignee
+        ? Boolean(kanbanIsAdmin || isAssignee)
+        : Boolean(kanbanIsAdmin || isCreator || kanbanCanManageDeliverables);
+    const canUploadArtwork = hasAssignee
+        ? Boolean(kanbanIsAdmin || isAssignee)
+        : Boolean(kanbanIsAdmin || isCreator);
+    const canReassignThis = canUserReassignDeliverable(d);
+    const hasArtwork = Boolean(d.has_artwork || d.final_designs || d.final_designs_link || (d.final_designs_list && d.final_designs_list.length > 0));
+    const isInProgress = (d.status === 'In Progress');
     const assigneeDisplay = needsDesigner ? 'Assign Designer' : (hasAssignee ? d.assignee_name : 'Unassigned');
     const badgeClass = needsDesigner ? 'is-needs-designer' : (hasAssignee ? 'is-assigned' : 'is-unassigned');
     const badgeColor = needsDesigner ? '' : (hasAssignee ? 'var(--badge-blue-text, #93c5fd)' : 'var(--text-card-sub)');
@@ -3423,8 +3429,16 @@ function renderCampaignDetailsModalContent(task) {
     const artFiles = Array.isArray(task.final_designs_list) ? task.final_designs_list : (task.final_designs ? extractArtworkFiles(task) : []);
     const artUrls = Array.isArray(task.final_designs_urls_list) ? task.final_designs_urls_list : (task.final_designs_link ? extractArtworkUrls(task) : []);
     const totalArtwork = artFiles.length + artUrls.length;
-    const assignedId = task.writer_id || task.designer_id || null;
-    const canUploadArtwork = Boolean(kanbanIsAdmin || (assignedId && kanbanCurrentUserId == assignedId) || kanbanCanManageDeliverables || (task.created_by && kanbanCurrentUserId == task.created_by));
+    const assignedId = task.writer_id || task.designer_id || task.coordinator_id || null;
+    const isAssignee = (assignedId && kanbanCurrentUserId == assignedId);
+    const pType = (task.post_type || '').toLowerCase().trim();
+    const isOutline = (pType === 'outlines' || pType === 'outline');
+    const needsDesigner = isOutline && (!task.designer_id || task.approval_stage === 'Coordinator');
+    const hasAssignee = !needsDesigner && Boolean(assignedId);
+
+    const canUploadArtwork = hasAssignee
+        ? Boolean(kanbanIsAdmin || isAssignee)
+        : Boolean(kanbanIsAdmin || kanbanCanManageDeliverables || (task.created_by && kanbanCurrentUserId == task.created_by));
 
     let artworkCardHtml = `
         <div class="cd-detail-card" id="campaignArtworkCard-${task.id}">
@@ -4361,6 +4375,10 @@ function renderCampaignDetailsModalContent(task) {
                     <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                     <span>Approve & Mark Complete</span>
                 </button>
+                <button type="button" class="cd-btn-outline" style="width: 100%; color: #8b5cf6; border-color: rgba(139,92,246,0.35); background: rgba(139,92,246,0.08); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.15s;" onmouseover="this.style.background='rgba(139,92,246,0.16)'" onmouseout="this.style.background='rgba(139,92,246,0.08)'" onclick="openCampaignFurtherApproverModal(${task.id})">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                    <span>Send to Further Approver</span>
+                </button>
                 <button type="button" class="cd-btn-danger" style="width: 100%;" onclick="openRevisionPromptModal(${task.id}, 'In Progress', '${escapeHtml(task.status || 'Approval Stage')}', document.getElementById('kanban-card-${task.id}'))">
                     <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     <span>Request Revisions</span>
@@ -4396,7 +4414,11 @@ function renderCampaignDetailsModalContent(task) {
             }
         }
 
-        const canEditCard = Boolean(isAdmin || isBrandManager || isAssignee || (task.created_by && Number(task.created_by) === currentUserId));
+        const taskAssignedId = task.writer_id || task.designer_id || task.coordinator_id || null;
+        const taskHasAssignee = Boolean(taskAssignedId);
+        const canEditCard = taskHasAssignee
+            ? Boolean(isAdmin || isAssignee)
+            : Boolean(isAdmin || isBrandManager || (task.created_by && Number(task.created_by) === currentUserId));
         if (canEditCard) {
             quickActionsHtml += `
                 <button type="button" class="cd-btn-outline" style="width: 100%;" onclick="closeCampaignDetailsModal(); setTimeout(() => { toggleCardEditor(${task.id}, true); const el = document.getElementById('kanban-card-${task.id}'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150);">
@@ -5150,6 +5172,165 @@ async function submitCampaignReassignment(btn) {
     }
 }
 
+let currentFurtherApproverTaskId = null;
+
+function openCampaignFurtherApproverModal(taskId) {
+    const task = campaignDeliverablesData[taskId] || null;
+    const currentUserId = Number(kanbanCurrentUserId);
+    const userRole = (kanbanCurrentUserRole || '').toLowerCase().trim();
+    const isAdmin = Boolean(kanbanIsAdmin || ['admin', 'owner', 'operations manager'].includes(userRole));
+    const isBrandManager = Boolean(userRole === 'brand manager' || (kanbanProjectBrandManagerId && Number(kanbanProjectBrandManagerId) === currentUserId));
+    const isDesignatedApprover = Boolean(currentUserId && (
+        (task && task.approver_id && Number(task.approver_id) === currentUserId) ||
+        (kanbanProjectExplicitApproverId && Number(kanbanProjectExplicitApproverId) === currentUserId) ||
+        ['approver', 'approver coordinator'].includes(userRole)
+    ));
+
+    if (!isAdmin && !isBrandManager && !isDesignatedApprover) {
+        window.dispatchEvent(new CustomEvent('toast', {
+            detail: { message: 'Only the assigned approver or project managers can send deliverables to a further approver.', type: 'warning' }
+        }));
+        return;
+    }
+
+    currentFurtherApproverTaskId = taskId;
+    const overlay = document.getElementById('campaignFurtherApproverModalOverlay');
+    if (!overlay) return;
+
+    const card = document.getElementById('kanban-card-' + taskId);
+    const title = (card ? card.querySelector('#card-view-title-' + taskId)?.textContent : null) || task?.title || 'Deliverable';
+    const currentApproverName = task?.approver_name || (card ? card.getAttribute('data-approver-name') : null) || 'Unassigned';
+
+    const titleEl = document.getElementById('campaignFurtherApproverTaskTitle');
+    if (titleEl) titleEl.textContent = title;
+
+    const currentApproverEl = document.getElementById('campaignFurtherApproverCurrentApprover');
+    if (currentApproverEl) currentApproverEl.textContent = currentApproverName;
+
+    const notesEl = document.getElementById('campaignFurtherApproverNotes');
+    if (notesEl) notesEl.value = '';
+
+    const sel = document.getElementById('campaignFurtherApproverSelect');
+    if (sel) {
+        sel.innerHTML = '<option value="">Select a Further Approver…</option>';
+        const approverList = (Array.isArray(kanbanSelectableApprovers) && kanbanSelectableApprovers.length > 0)
+            ? kanbanSelectableApprovers
+            : (Array.isArray(kanbanSelectableUsers) ? kanbanSelectableUsers.filter(u => ['approver', 'approver coordinator', 'brand manager', 'operations manager', 'admin', 'owner'].includes((u.role || '').toLowerCase())) : []);
+
+        approverList.forEach(u => {
+            const isCurrent = (task && task.approver_id && Number(task.approver_id) === Number(u.id));
+            sel.innerHTML += `<option value="${u.id}" ${isCurrent ? 'disabled style="opacity:0.5;"' : ''}>${escapeHtml(u.name)} (${escapeHtml(u.role)})${isCurrent ? ' - Current' : ''}</option>`;
+        });
+        sel.value = '';
+    }
+
+    overlay.style.display = 'flex';
+}
+
+function closeCampaignFurtherApproverModal() {
+    const overlay = document.getElementById('campaignFurtherApproverModalOverlay');
+    if (overlay) overlay.style.display = 'none';
+    currentFurtherApproverTaskId = null;
+}
+
+async function submitCampaignFurtherApprover(btn) {
+    if (!currentFurtherApproverTaskId) return;
+    const taskId = currentFurtherApproverTaskId;
+
+    const sel = document.getElementById('campaignFurtherApproverSelect');
+    const furtherApproverId = sel ? sel.value : '';
+    const notesEl = document.getElementById('campaignFurtherApproverNotes');
+    const notes = notesEl ? notesEl.value.trim() : '';
+
+    if (!furtherApproverId) {
+        alert('Please select a Further Approver.');
+        if (sel) sel.focus();
+        return;
+    }
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Sending…</span>';
+    }
+
+    try {
+        const response = await fetch(`/deliverables/${taskId}/campaign-kanban/further-approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            },
+            body: JSON.stringify({
+                further_approver_id: furtherApproverId,
+                notes: notes,
+            })
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success) {
+            closeCampaignFurtherApproverModal();
+
+            const approverName = result.approver_name || 'Approver';
+
+            // 1. Update campaignDeliverablesData cache
+            if (campaignDeliverablesData[taskId]) {
+                campaignDeliverablesData[taskId].further_approver_id = furtherApproverId;
+                campaignDeliverablesData[taskId].approver_id = furtherApproverId;
+                campaignDeliverablesData[taskId].approver_name = approverName;
+                campaignDeliverablesData[taskId].approval_stage = 'Further Approver';
+                campaignDeliverablesData[taskId].status = 'Approval Stage';
+            }
+
+            // 2. Update card view elements
+            updateCardViewElements(taskId, {
+                approver_id: furtherApproverId,
+                approver_name: approverName,
+                approval_stage: 'Further Approver',
+                status: 'Approval Stage'
+            });
+
+            // 3. Update stage badge on card
+            const stageBadge = document.getElementById('card-view-stage-' + taskId);
+            if (stageBadge) {
+                stageBadge.textContent = 'FURTHER APPROVER';
+                stageBadge.style.display = 'inline-flex';
+            }
+
+            // 4. Update approver row on card if visible
+            const approverNameEl = document.getElementById('card-view-approver-name-' + taskId);
+            if (approverNameEl) {
+                approverNameEl.textContent = approverName;
+            }
+
+            // 5. If detail modal is open for this task, refresh it
+            const detailModal = document.getElementById('campaignDetailsModalOverlay');
+            if (detailModal && detailModal.style.display !== 'none' && currentCampaignDetailsTaskId === taskId) {
+                renderCampaignDetailsModalContent(campaignDeliverablesData[taskId]);
+            }
+
+            window.dispatchEvent(new CustomEvent('toast', {
+                detail: { message: result.message || 'Deliverable sent to Further Approver.', type: 'success' }
+            }));
+        } else {
+            alert(result.message || 'Failed to send deliverable to Further Approver.');
+        }
+    } catch (err) {
+        console.error('Error sending to further approver:', err);
+        alert('An unexpected error occurred. Please try again.');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                </svg>
+                <span>Send to Further Approver</span>
+            `;
+        }
+    }
+}
+
 // Escape key collapses card editor and closes inline creator / modals
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
@@ -5160,6 +5341,7 @@ document.addEventListener('keydown', function(event) {
         }
         closeCampaignDetailsModal();
         closeCampaignReassignModal();
+        closeCampaignFurtherApproverModal();
         closeUploadDeliverableModal();
         closeAssignApproverModal();
         closeRevisionPromptModal();
@@ -5361,6 +5543,79 @@ document.addEventListener('keydown', function(event) {
             </button>
             <button type="button" id="campaignReassignSubmitBtn" onclick="submitCampaignReassignment(this)" style="background: #2563eb; border: none; padding: 8px 20px; font-size: 12px; font-weight: 800; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(37,99,235,0.35);">
                 <span>Confirm Reassignment</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+{{-- Modal: Send to Further Approver in Campaign & Pitch Flows --}}
+<div id="campaignFurtherApproverModalOverlay" 
+     style="display: none; position: fixed; inset: 0; z-index: 99999; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); padding: 16px;" 
+     onclick="if(event.target === this) closeCampaignFurtherApproverModal()">
+    <div style="background: var(--color-bg-primary); border: 1px solid var(--color-border-primary); border-radius: 16px; width: 100%; max-width: 480px; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column;">
+        {{-- Header --}}
+        <div style="padding: 16px 20px; border-bottom: 1px solid var(--color-border-primary); background: var(--color-bg-secondary); display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(139, 92, 246, 0.12); color: #8b5cf6; display: flex; align-items: center; justify-content: center;">
+                    <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 14.5px; font-weight: 800; color: #8b5cf6; text-transform: uppercase; letter-spacing: 0.04em;">Send to Further Approver</h3>
+                    <div id="campaignFurtherApproverTaskTitle" style="font-size: 11.5px; color: var(--color-text-secondary); margin-top: 1px; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Deliverable</div>
+                </div>
+            </div>
+            <button type="button" onclick="closeCampaignFurtherApproverModal()" style="background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 4px; border-radius: 6px;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        {{-- Body --}}
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+            {{-- Current Approver Info --}}
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--color-bg-secondary); border: 1px solid var(--color-border-primary); border-radius: 10px;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Current Approver</span>
+                <span id="campaignFurtherApproverCurrentApprover" style="font-size: 12.5px; font-weight: 700; color: var(--color-text-primary);">Unassigned</span>
+            </div>
+
+            {{-- Further Approver Select --}}
+            <div>
+                <label style="display: block; font-size: 11px; font-weight: 800; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;">
+                    Select Further Approver <span style="color: #ef4444;">*</span>
+                </label>
+                <select id="campaignFurtherApproverSelect" 
+                        style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid rgba(139,92,246,0.3); font-size: 13px; font-weight: 600; color: var(--color-text-primary); background: var(--color-bg-secondary); outline: none;">
+                    <option value="">Select a Further Approver…</option>
+                </select>
+                <span style="font-size: 10.5px; color: var(--color-text-secondary); margin-top: 4px; display: block;">The deliverable will remain in Approval Stage and appear on the selected approver's dashboard.</span>
+            </div>
+
+            {{-- Notes / Instructions --}}
+            <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <label style="font-size: 11px; font-weight: 800; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em;">
+                        Approval Notes / Context <span style="font-size: 10px; font-weight: 500; color: var(--color-text-secondary); text-transform: none;">(Optional)</span>
+                    </label>
+                    <span style="font-size: 10px; color: var(--color-text-secondary);">Logged to history</span>
+                </div>
+                <textarea id="campaignFurtherApproverNotes" 
+                          rows="3" 
+                          placeholder="Add any context or specific areas you want the further approver to review…" 
+                          style="width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 12.5px; line-height: 1.45; background: var(--color-bg-secondary); color: var(--color-text-primary); border: 1.5px solid rgba(139,92,246,0.3); border-radius: 10px; outline: none; resize: vertical; font-family: inherit;"></textarea>
+            </div>
+        </div>
+
+        {{-- Footer --}}
+        <div style="padding: 14px 20px; background: var(--color-bg-secondary); border-top: 1px solid var(--color-border-primary); display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" onclick="closeCampaignFurtherApproverModal()" style="background: transparent; border: 1px solid var(--color-border-primary); padding: 8px 16px; font-size: 12px; font-weight: 700; border-radius: 8px; color: var(--color-text-primary); cursor: pointer;">
+                Cancel
+            </button>
+            <button type="button" id="campaignFurtherApproverSubmitBtn" onclick="submitCampaignFurtherApprover(this)" style="background: #8b5cf6; border: none; padding: 8px 20px; font-size: 12px; font-weight: 800; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(139,92,246,0.35);">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                </svg>
+                <span>Send to Further Approver</span>
             </button>
         </div>
     </div>

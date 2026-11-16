@@ -15,6 +15,39 @@
     });
 @endphp
 
+<style>
+    .campaign-cd-table {
+        table-layout: fixed !important;
+        width: 100% !important;
+    }
+    .campaign-cd-table th,
+    .campaign-cd-table td {
+        padding: 11px 6px !important;
+        box-sizing: border-box !important;
+    }
+    .campaign-cd-table .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 3px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    .campaign-cd-table .quick-action-btn {
+        padding: 4px 4px;
+        font-size: 9.5px;
+        box-sizing: border-box;
+    }
+    .campaign-cd-table .cell-text {
+        word-break: break-word;
+    }
+    .campaign-cd-table select {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+</style>
+
 @if($outlineTasks->count() > 0)
 {{-- ========================================================= --}}
 {{-- 1. SECTION: OUTLINES                                     --}}
@@ -35,21 +68,21 @@
         </div>
     </div>
 
-    <div style="width:100%; overflow-x:auto;">
-        <table class="cd-table">
+    <div style="width:100%; overflow:hidden;">
+        <table class="cd-table campaign-cd-table">
             <thead>
                 <tr>
-                    <th style="width:170px;">Deliverable</th>
-                    <th style="width:110px;">Due</th>
-                    <th style="width:120px;">Concept</th>
-                    <th style="width:140px;">Copy</th>
-                    <th style="width:120px;">Caption</th>
-                    <th style="width:85px;">Ref</th>
-                    <th style="width:90px;">Artwork</th>
-                    <th style="width:70px;">Rev</th>
-                    <th style="width:85px;">Stage</th>
-                    <th style="width:110px;">Client</th>
-                    <th style="width:130px; text-align:center;">Action</th>
+                    <th style="width:16%;">Deliverable</th>
+                    <th style="width:9%;">Due</th>
+                    <th style="width:11%;">Concept</th>
+                    <th style="width:12%;">Copy</th>
+                    <th style="width:11%;">Caption</th>
+                    <th style="width:6%;">Ref</th>
+                    <th style="width:7%;">Artwork</th>
+                    <th style="width:5%;">Rev</th>
+                    <th style="width:7%;">Stage</th>
+                    <th style="width:7%;">Client</th>
+                    <th style="width:9%; text-align:center;">Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -60,7 +93,7 @@
                             $canEditStandalone = $isAdmin || (($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer') && ($userRole === 'writer' || $userRole === 'assignee') && (!$task->writer_id || auth()->id() == $task->writer_id));
                         @endphp
                         <td>
-                            <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
+                            <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px; min-width:0;">
                                 @php
                                     $taskPrio = $task->priority ?? 'Medium';
                                     $taskPrioColor = $taskPrio === 'High Priority' ? '#ef4444' : '#10b981';
@@ -70,7 +103,7 @@
                                         <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
                                     </svg>
                                 </span>
-                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:var(--color-text-primary);">{{ $task->title }}</span>
+                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:var(--color-text-primary); word-break:break-word; min-width:0; line-height:1.3;">{{ $task->title }}</span>
                             </div>
                         </td>
                         <td>
@@ -315,20 +348,20 @@
         </div>
     </div>
 
-    <div style="width:100%; overflow-x:auto;">
-        <table class="cd-table">
+    <div style="width:100%; overflow:hidden;">
+        <table class="cd-table campaign-cd-table">
             <thead>
                 <tr>
-                    <th style="width:170px;">Deliverable</th>
-                    <th style="width:110px;">Due</th>
-                    <th style="width:130px;">Type</th>
-                    <th style="width:210px;">Brief</th>
-                    <th style="width:100px;">File / Ref</th>
-                    <th style="width:90px;">Artwork</th>
-                    <th style="width:70px;">Rev</th>
-                    <th style="width:85px;">Stage</th>
-                    <th style="width:110px;">Client</th>
-                    <th style="width:130px; text-align:center;">Action</th>
+                    <th style="width:17%;">Deliverable</th>
+                    <th style="width:10%;">Due</th>
+                    <th style="width:10%;">Type</th>
+                    <th style="width:20%;">Brief</th>
+                    <th style="width:7%;">File / Ref</th>
+                    <th style="width:7%;">Artwork</th>
+                    <th style="width:5%;">Rev</th>
+                    <th style="width:7%;">Stage</th>
+                    <th style="width:8%;">Client</th>
+                    <th style="width:9%; text-align:center;">Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -337,10 +370,10 @@
                     <tr id="deliverable-row-{{ $task->id }}" data-deliverable-id="{{ $task->id }}" data-assigned="{{ $task->isAssignedToUser($currentUserId) ? '1' : '0' }}" class="{{ $task->approval_stage === 'Closed' ? 'task-closed' : '' }}">
                         @php
                             $isAssignedStandalonePerson = ($task->writer_id && auth()->id() == $task->writer_id) || ($task->designer_id && auth()->id() == $task->designer_id);
-                            $canEditOtherStandalone = ($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer' || $task->approval_stage === 'Assign' || !$task->approval_stage) && $isAssignedStandalonePerson;
+                            $canEditOtherStandalone = $isAdmin || (($task->approval_stage === 'Assignee' || $task->approval_stage === 'Writer' || $task->approval_stage === 'Assign' || !$task->approval_stage) && $isAssignedStandalonePerson);
                         @endphp
                         <td>
-                            <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px;">
+                            <div class="deliverable-name-cell" style="display:flex; align-items:center; gap:8px; min-width:0;">
                                 @php
                                     $taskPrio = $task->priority ?? 'Medium';
                                     $taskPrioColor = $taskPrio === 'High Priority' ? '#ef4444' : '#10b981';
@@ -350,7 +383,7 @@
                                         <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z"/>
                                     </svg>
                                 </span>
-                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:var(--color-text-primary);">{{ $task->title }}</span>
+                                <span class="dashboard-task-title-{{ $task->id }}" style="font-weight:900; color:var(--color-text-primary); word-break:break-word; min-width:0; line-height:1.3;">{{ $task->title }}</span>
                             </div>
                         </td>
                         <td>

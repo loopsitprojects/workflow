@@ -35,6 +35,7 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
         if (!$stage) return self::STAGES[0];
         $lower = strtolower(trim($stage));
         if (in_array($lower, ['assign', 'assignee', 'writer'])) return 'Assign';
+        if (in_array($lower, ['further approver', 'further approval', 'further approver review'])) return 'Further Approver';
         if (in_array($lower, ['approve', 'approver', 'brand manager', 'am/bd', 'final approval'])) return 'Approve';
         if (in_array($lower, ['close', 'closed', 'done'])) return 'Close';
         return $stage;
@@ -56,10 +57,11 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
     {
         $stage = $this->normalizeStage($deliverable->approval_stage);
         return match ($stage) {
-            'Assign'  => 10,
-            'Approve' => 50,
-            'Close'   => 100,
-            default   => 10,
+            'Assign'           => 10,
+            'Approve'          => 50,
+            'Further Approver' => 75,
+            'Close'            => 100,
+            default            => 10,
         };
     }
 
@@ -69,10 +71,13 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
     public function getNextStage(Deliverable $deliverable, array $data = []): ?string
     {
         $currentStage = $this->normalizeStage($deliverable->approval_stage);
+        if ($currentStage === 'Approve') {
+            return !empty($data['further_approver_id']) ? 'Further Approver' : 'Close';
+        }
         return match ($currentStage) {
-            'Assign'  => 'Approve',
-            'Approve' => 'Close',
-            default   => null,
+            'Assign'           => 'Approve',
+            'Further Approver' => 'Close',
+            default            => null,
         };
     }
 
@@ -83,9 +88,10 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
     {
         $currentStage = $this->normalizeStage($deliverable->approval_stage);
         return match ($currentStage) {
-            'Close'   => 'Approve',
-            'Approve' => 'Assign',
-            default   => null,
+            'Close'            => $deliverable->further_approver_id ? 'Further Approver' : 'Approve',
+            'Further Approver' => 'Approve',
+            'Approve'          => 'Assign',
+            default            => null,
         };
     }
 
@@ -96,9 +102,10 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
     {
         $norm = $this->normalizeStage($stage);
         return match ($norm) {
-            'Assign'  => 'writer_id',
-            'Approve' => 'brand_manager_id',
-            default   => null,
+            'Assign'           => 'writer_id',
+            'Approve'          => 'brand_manager_id',
+            'Further Approver' => 'further_approver_id',
+            default            => null,
         };
     }
 
@@ -109,8 +116,9 @@ class OtherDeliverableWorkflowService implements WorkflowInterface
     {
         $norm = $this->normalizeStage($stage);
         $target = match ($norm) {
-            'Approve'         => $deliverable->brandManager ?? $deliverable->project?->brandManager,
-            'Assign', 'Close' => $deliverable->writer ?? $deliverable->project?->writer,
+            'Further Approver' => $deliverable->furtherApprover ?? ($deliverable->further_approver_id ? User::find($deliverable->further_approver_id) : null),
+            'Approve'          => $deliverable->brandManager ?? $deliverable->project?->brandManager,
+            'Assign', 'Close'  => $deliverable->writer ?? $deliverable->project?->writer,
             default           => null,
         };
 
