@@ -60,9 +60,32 @@
         $project->approver_id == $currentKanbanUserId
     );
 
-    $selectableApprovers = $selectableUsers->filter(function($u) {
-        return in_array($u->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']);
-    })->values();
+    $brandManagersAndApprovers = \App\Models\User::whereIn('role', ['Brand Manager', 'Approver', 'Approver Coordinator', 'Operations Manager', 'Admin'])
+        ->where(function ($q) use ($project) {
+            if ($project->brand_id) {
+                $q->whereHas('brands', fn($b) => $b->where('brands.id', $project->brand_id))
+                  ->orWhereIn('role', ['Admin', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']);
+            }
+        })
+        ->orderBy('name')
+        ->get();
+
+    $selectableApprovers = $selectableUsers
+        ->filter(fn($u) => in_array($u->role, ['Admin', 'Owner', 'Operations Manager', 'Brand Manager', 'Approver', 'Approver Coordinator']))
+        ->merge($brandManagersAndApprovers)
+        ->unique('id')
+        ->sortBy(function($u) {
+            return match($u->role) {
+                'Brand Manager' => 1,
+                'Approver' => 2,
+                'Approver Coordinator' => 3,
+                'Operations Manager' => 4,
+                'Admin', 'Owner' => 5,
+                default => 6,
+            };
+        })
+        ->values();
+
     if ($selectableApprovers->isEmpty()) {
         $selectableApprovers = $selectableUsers;
     }
@@ -1459,10 +1482,8 @@ async function kanbanOnDrop(event, targetStatus) {
             openUploadDeliverableModal(taskId, targetStatus, oldStatus, card);
             return;
         }
-        if (!hasApprover) {
-            openAssignApproverModal(taskId, targetStatus, oldStatus, card);
-            return;
-        }
+        openAssignApproverModal(taskId, targetStatus, oldStatus, card);
+        return;
     }
 
     // Check if moving out of Approval Stage back for revisions: Always route to In Progress!
@@ -1834,27 +1855,69 @@ function openUploadDeliverableModal(taskId, targetStatus, oldStatus, card) {
     if (fileLabel) fileLabel.textContent = 'Choose file(s)…';
 
     const currentApproverId = card ? card.getAttribute('data-approver-id') : null;
-    const hasCardApprover = Boolean(currentApproverId && currentApproverId !== 'null' && currentApproverId !== '0' && currentApproverId.trim() !== '');
     const approverGroup = document.getElementById('uploadDeliverableApproverGroup');
     const select = document.getElementById('uploadDeliverableApproverSelect');
 
-    if (!hasCardApprover) {
-        if (approverGroup) approverGroup.style.display = 'block';
-        if (select) {
-            select.innerHTML = '<option value="">Choose an Approver…</option>';
-            kanbanSelectableApprovers.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.id;
-                opt.textContent = `${u.name} (${u.role})`;
-                select.appendChild(opt);
-            });
-            select.value = '';
-        }
-    } else {
-        if (approverGroup) approverGroup.style.display = 'none';
+    if (approverGroup) approverGroup.style.display = 'block';
+    if (select) {
+        const defaultApprId = (currentApproverId && currentApproverId !== 'null' && currentApproverId !== '0')
+            ? currentApproverId
+            : (kanbanProjectBrandManagerId || kanbanProjectExplicitApproverId);
+        populateApproverDropdown(select, defaultApprId);
     }
 
     if (modal) modal.style.display = 'flex';
+}
+
+function populateApproverDropdown(selectEl, selectedId) {
+    if (!selectEl) return;
+    selectEl.innerHTML = '<option value="">Choose an Approver…</option>';
+
+    const bmUsers = kanbanSelectableApprovers.filter(u => u.role === 'Brand Manager');
+    const apprUsers = kanbanSelectableApprovers.filter(u => ['Approver', 'Approver Coordinator'].includes(u.role));
+    const mgmtUsers = kanbanSelectableApprovers.filter(u => !['Brand Manager', 'Approver', 'Approver Coordinator'].includes(u.role));
+
+    if (bmUsers.length > 0) {
+        const group = document.createElement('optgroup');
+        group.label = 'Brand Managers';
+        bmUsers.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            opt.textContent = `${u.name} (Brand Manager)`;
+            group.appendChild(opt);
+        });
+        selectEl.appendChild(group);
+    }
+
+    if (apprUsers.length > 0) {
+        const group = document.createElement('optgroup');
+        group.label = 'Approvers';
+        apprUsers.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            opt.textContent = `${u.name} (${u.role})`;
+            group.appendChild(opt);
+        });
+        selectEl.appendChild(group);
+    }
+
+    if (mgmtUsers.length > 0) {
+        const group = document.createElement('optgroup');
+        group.label = 'Management & Admins';
+        mgmtUsers.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            opt.textContent = `${u.name} (${u.role})`;
+            group.appendChild(opt);
+        });
+        selectEl.appendChild(group);
+    }
+
+    if (selectedId && selectEl.querySelector(`option[value="${selectedId}"]`)) {
+        selectEl.value = selectedId;
+    } else {
+        selectEl.value = '';
+    }
 }
 
 function closeUploadDeliverableModal() {
@@ -1873,14 +1936,16 @@ async function confirmUploadDeliverable() {
         return;
     }
 
-    let approverId = card ? card.getAttribute('data-approver-id') : null;
+    let approverId = '';
+    const select = document.getElementById('uploadDeliverableApproverSelect');
+    if (select && select.value) {
+        approverId = select.value;
+    } else {
+        approverId = card ? card.getAttribute('data-approver-id') : null;
+    }
     if (!approverId || approverId === 'null' || approverId === '0' || approverId.trim() === '') {
-        const select = document.getElementById('uploadDeliverableApproverSelect');
-        approverId = select ? select.value : '';
-        if (!approverId) {
-            alert('Please select an approver before submitting.');
-            return;
-        }
+        alert('Please select an approver before submitting.');
+        return;
     }
 
     const submitBtn = document.getElementById('uploadDeliverableModalSubmitBtn');
@@ -1990,14 +2055,11 @@ function openAssignApproverModal(taskId, targetStatus, oldStatus, card) {
 
     const select = document.getElementById('assignApproverModalSelect');
     if (select) {
-        select.innerHTML = '<option value="">Choose an Approver…</option>';
-        kanbanSelectableApprovers.forEach(u => {
-            const opt = document.createElement('option');
-            opt.value = u.id;
-            opt.textContent = `${u.name} (${u.role})`;
-            select.appendChild(opt);
-        });
-        select.value = '';
+        const currentApproverId = card ? card.getAttribute('data-approver-id') : (campaignDeliverablesData[taskId]?.approver_id);
+        const defaultApprId = (currentApproverId && currentApproverId !== 'null' && currentApproverId !== '0')
+            ? currentApproverId
+            : (kanbanProjectBrandManagerId || kanbanProjectExplicitApproverId);
+        populateApproverDropdown(select, defaultApprId);
     }
     if (modal) modal.style.display = 'flex';
 }
@@ -5010,11 +5072,9 @@ async function transitionDeliverableStatus(taskId, targetStatus) {
             openUploadDeliverableModal(taskId, targetStatus, oldStatus, card);
             return;
         }
-        if (!hasApprover) {
-            closeCampaignDetailsModal();
-            openAssignApproverModal(taskId, targetStatus, oldStatus, card);
-            return;
-        }
+        closeCampaignDetailsModal();
+        openAssignApproverModal(taskId, targetStatus, oldStatus, card);
+        return;
     }
 
     if (['Approval Stage', 'Approval', 'Review', 'Under Review'].includes(oldStatus)) {
@@ -5562,7 +5622,7 @@ document.addEventListener('keydown', function(event) {
                 <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); color: #f59e0b; display: flex; align-items: center; justify-content: center;">
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                 </div>
-                <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--color-text-primary);">Assign Approver</h3>
+                <h3 style="margin: 0; font-size: 14px; font-weight: 700; color: var(--color-text-primary);">Select Approver / Brand Manager</h3>
             </div>
             <button type="button" onclick="closeAssignApproverModal()" style="background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 4px; border-radius: 6px;">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -5570,10 +5630,10 @@ document.addEventListener('keydown', function(event) {
         </div>
         <div style="padding: 20px;">
             <p style="margin: 0 0 8px 0; font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.4;">
-                Select who will approve <strong id="assignApproverModalTaskTitle" style="color: var(--color-text-primary);">this deliverable</strong>:
+                Select who will review and approve <strong id="assignApproverModalTaskTitle" style="color: var(--color-text-primary);">this deliverable</strong> in the Approval Stage:
             </p>
             <div style="margin-top: 12px;">
-                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 6px;">Approver</label>
+                <label style="display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-secondary); margin-bottom: 6px;">Approver / Brand Manager</label>
                 <select id="assignApproverModalSelect" style="width: 100%; padding: 9px 12px; font-size: 13px; font-weight: 600; background: var(--color-bg-secondary); color: var(--color-text-primary); border: 1px solid var(--color-border-primary); border-radius: 8px; outline: none;">
                     <option value="">Choose an Approver…</option>
                 </select>
@@ -5584,7 +5644,7 @@ document.addEventListener('keydown', function(event) {
                 Cancel
             </button>
             <button type="button" onclick="confirmAssignApprover()" style="background: #f59e0b; border: none; padding: 7px 16px; font-size: 12px; font-weight: 700; border-radius: 8px; color: #ffffff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);">
-                <span>Submit to Approver</span>
+                <span>Submit to Approval</span>
                 <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
             </button>
         </div>

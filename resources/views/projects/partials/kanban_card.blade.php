@@ -653,7 +653,7 @@
                     </span>
                 </div>
                 <span id="card-readonly-assignee-badge-{{ $task->id }}" 
-                      class="card-assignee-badge {{ $hasAssignee ? 'is-assigned' : ($needsDesigner ? 'is-needs-designer' : 'is-unassigned') }}"
+                      class="card-assignee-badge {{ !empty($hasAssignee) ? 'is-assigned' : (!empty($needsDesigner) ? 'is-needs-designer' : 'is-unassigned') }}"
                       style="font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; line-height: 1.2;">
                     @if($needsDesigner)
                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
