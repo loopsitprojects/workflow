@@ -3430,14 +3430,14 @@ function renderCampaignDetailsModalContent(task) {
     const artUrls = Array.isArray(task.final_designs_urls_list) ? task.final_designs_urls_list : (task.final_designs_link ? extractArtworkUrls(task) : []);
     const totalArtwork = artFiles.length + artUrls.length;
     const assignedId = task.writer_id || task.designer_id || task.coordinator_id || null;
-    const isAssignee = (assignedId && kanbanCurrentUserId == assignedId);
+    const isArtworkAssignee = (assignedId && kanbanCurrentUserId == assignedId);
     const pType = (task.post_type || '').toLowerCase().trim();
     const isOutline = (pType === 'outlines' || pType === 'outline');
     const needsDesigner = isOutline && (!task.designer_id || task.approval_stage === 'Coordinator');
     const hasAssignee = !needsDesigner && Boolean(assignedId);
 
     const canUploadArtwork = hasAssignee
-        ? Boolean(kanbanIsAdmin || isAssignee)
+        ? Boolean(kanbanIsAdmin || isArtworkAssignee)
         : Boolean(kanbanIsAdmin || kanbanCanManageDeliverables || (task.created_by && kanbanCurrentUserId == task.created_by));
 
     let artworkCardHtml = `

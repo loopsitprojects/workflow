@@ -866,7 +866,7 @@
                 @endif
             </div>
 
-            {{-- Footer actions: Details on left, Close on right --}}
+            {{-- Footer actions: Details on left, Further Approver / Close on right --}}
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border-primary);">
                 <button type="button" 
                         onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false); openCampaignDetailsModal({{ $task->id }})"
@@ -875,11 +875,22 @@
                     <span>Details</span>
                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                 </button>
-                <button type="button" 
-                        onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false)"
-                        style="background: transparent; border: 1px solid var(--color-border-primary); font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; padding: 3px 9px; border-radius: 6px;">
-                    Close
-                </button>
+                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                    @if($isInApproval && ($isApprover || ($canManageDeliverables ?? false) || $isSuperAdmin))
+                    <button type="button" 
+                            onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false); openCampaignFurtherApproverModal({{ $task->id }})"
+                            style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.25); color: #8b5cf6; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"
+                            title="Forward to a further approver">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                        <span>Further Approver</span>
+                    </button>
+                    @endif
+                    <button type="button" 
+                            onclick="event.stopPropagation(); toggleCardEditor({{ $task->id }}, false)"
+                            style="background: transparent; border: 1px solid var(--color-border-primary); font-size: 11.5px; font-weight: 600; color: var(--color-text-secondary); cursor: pointer; padding: 3px 9px; border-radius: 6px;">
+                        Close
+                    </button>
+                </div>
             </div>
         </div>
         @endif

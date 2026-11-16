@@ -3737,7 +3737,15 @@ class DeliverableController extends Controller
             || in_array($user->id, array_filter([
                 $project->brand_manager_id, $project->lead_id, $project->writer_id,
                 $project->designer_id, $project->approver_id, $project->coordinator_id, $project->created_by
-            ]));
+            ]))
+            || $project->deliverables()->where(function ($q) use ($user) {
+                $q->where('writer_id', $user->id)
+                  ->orWhere('designer_id', $user->id)
+                  ->orWhere('approver_id', $user->id)
+                  ->orWhere('brand_manager_id', $user->id)
+                  ->orWhere('coordinator_id', $user->id)
+                  ->orWhere('further_approver_id', $user->id);
+            })->exists();
 
         $isAssignedToDeliverable = in_array($user->id, array_filter([
             $deliverable->writer_id,
