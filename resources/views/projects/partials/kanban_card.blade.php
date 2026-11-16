@@ -42,6 +42,10 @@
         $stagePersonDisplay = $hasStagePerson ? $stagePersonName : 'Unassigned';
     }
 
+    $hasAssignee = $hasStagePerson;
+    $assigneeDisplay = $stagePersonDisplay;
+    $assigneeFullName = $stagePersonName;
+
     $assigneeInitial = $hasStagePerson
         ? mb_strtoupper(mb_substr(trim($stagePersonName), 0, 1))
         : 'U';
