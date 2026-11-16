@@ -1257,5 +1257,6 @@
     <x-toast />
     <x-confirm-modal />
     <x-highlighted-upload-overlay />
+    <x-closing-deliverable-overlay />
 </body>
 </html>

@@ -1546,6 +1546,18 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
         card = document.getElementById('kanban-card-' + taskId);
     }
 
+    const isClosing = (targetStatus === 'Done');
+    if (isClosing && typeof window.showDeliverableClosingOverlay === 'function') {
+        const taskTitle = (card && card.querySelector('#card-view-title-' + taskId)?.textContent?.trim())
+            || (campaignDeliverablesData[taskId]?.title)
+            || 'Deliverable';
+        window.showDeliverableClosingOverlay({
+            title: 'Closing Deliverable…',
+            subtitle: `Completing and closing "${taskTitle}"…`,
+            status: 'Updating status…'
+        });
+    }
+
     // Target container
     let containerId = 'cards-container-todo';
     if (targetStatus === 'In Progress') containerId = 'cards-container-inprogress';
@@ -1618,6 +1630,9 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
 
         const result = await response.json();
         if (!response.ok || !result.success) {
+            if (isClosing && typeof window.hideDeliverableClosingOverlay === 'function') {
+                window.hideDeliverableClosingOverlay();
+            }
             // Revert on failure
             if (card && oldContainer) {
                 oldContainer.appendChild(card);
@@ -1782,10 +1797,16 @@ async function executeKanbanMove(taskId, targetStatus, oldStatus, card, extraDat
                     card.title = '';
                 }
             }
+            if (isClosing && typeof window.hideDeliverableClosingOverlay === 'function') {
+                window.hideDeliverableClosingOverlay(350);
+            }
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: result.message || 'Status updated', type: 'success' } }));
             return result;
         }
     } catch (err) {
+        if (isClosing && typeof window.hideDeliverableClosingOverlay === 'function') {
+            window.hideDeliverableClosingOverlay();
+        }
         console.error('Kanban move error:', err);
         if (card && oldContainer) {
             oldContainer.appendChild(card);

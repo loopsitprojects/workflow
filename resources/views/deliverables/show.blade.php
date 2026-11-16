@@ -4612,6 +4612,19 @@
                     
                     const btn = e.submitter;
                     const actionValue = btn ? btn.value : 'submit';
+
+                    const isClosing = btn && (
+                        (btn.textContent && (btn.textContent.includes('Approve & Close') || btn.textContent.toLowerCase().includes('close deliverable'))) ||
+                        btn.value === 'close'
+                    );
+                    if (isClosing && typeof window.showDeliverableClosingOverlay === 'function') {
+                        const taskTitle = document.getElementById('modalTaskTitle')?.value || document.querySelector('h1')?.textContent?.trim() || 'Deliverable';
+                        window.showDeliverableClosingOverlay({
+                            title: 'Closing Deliverable…',
+                            subtitle: `Finalizing approval and closing "${taskTitle}"…`,
+                            status: 'Closing deliverable…'
+                        });
+                    }
                     
                     const submitForm = this;
                     const formData = new FormData(submitForm);
@@ -4730,6 +4743,7 @@
                             const result = await response.json();
                             if (!response.ok || !result.success) {
                                 if (window.HighlightedUpload) window.HighlightedUpload.hide();
+                                if (typeof window.hideDeliverableClosingOverlay === 'function') window.hideDeliverableClosingOverlay();
                                 showErrorModal(result.message || 'An error occurred.');
                             } else {
                                 if (window.HighlightedUpload) {
@@ -4739,6 +4753,7 @@
                             }
                         } else {
                             if (window.HighlightedUpload) window.HighlightedUpload.hide();
+                            if (typeof window.hideDeliverableClosingOverlay === 'function') window.hideDeliverableClosingOverlay();
                             const errorText = await response.text();
                             console.error('Server returned non-JSON response:', errorText);
                             if (response.status === 419) {
@@ -4749,6 +4764,7 @@
                         }
                     } catch (error) {
                         if (window.HighlightedUpload) window.HighlightedUpload.hide();
+                        if (typeof window.hideDeliverableClosingOverlay === 'function') window.hideDeliverableClosingOverlay();
                         console.error('Fetch error:', error);
                         showErrorModal('An unexpected error occurred while communicating with the server.');
                     } finally {

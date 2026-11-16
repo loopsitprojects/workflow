@@ -7802,6 +7802,19 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             const submitter = form._submitter || form.querySelector('button[type="submit"]');
+
+            const isClosing = submitter && (
+                (submitter.textContent && (submitter.textContent.includes('Approve & Close') || submitter.textContent.toLowerCase().includes('close deliverable'))) ||
+                submitter.value === 'close'
+            );
+            if (isClosing && typeof window.showDeliverableClosingOverlay === 'function') {
+                const taskTitle = document.getElementById('modalTaskTitle')?.value || 'Deliverable';
+                window.showDeliverableClosingOverlay({
+                    title: 'Closing Deliverable…',
+                    subtitle: `Finalizing approval and closing "${taskTitle}"…`,
+                    status: 'Closing deliverable…'
+                });
+            }
             
             // Set all buttons to disabled/uploading state
             const allBtns = form.querySelectorAll('button[type="submit"]');
@@ -8012,6 +8025,9 @@ document.addEventListener('DOMContentLoaded', function() {
             processUploads();
             
             function resetButtons() {
+                if (typeof window.hideDeliverableClosingOverlay === 'function') {
+                    window.hideDeliverableClosingOverlay();
+                }
                 allBtns.forEach(b => {
                     if (b.dataset.orig) b.innerHTML = b.dataset.orig;
                     b.style.pointerEvents = 'auto';

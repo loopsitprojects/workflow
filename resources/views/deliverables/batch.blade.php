@@ -634,6 +634,21 @@ function closeSubmitModal() {
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { closeReviseModal(); closeSubmitModal(); closeLightbox(); }
 });
+
+const batchSubmitForm = document.getElementById('submitForm');
+if (batchSubmitForm) {
+    batchSubmitForm.addEventListener('submit', function() {
+        const nextStageLabel = document.getElementById('submitNextStageLabel')?.textContent?.trim() || '';
+        const isClosing = nextStageLabel.toLowerCase().includes('close') || nextStageLabel.toLowerCase().includes('closed');
+        if (isClosing && typeof window.showDeliverableClosingOverlay === 'function') {
+            window.showDeliverableClosingOverlay({
+                title: 'Closing Deliverables Batch…',
+                subtitle: 'Finalizing batch approval and closing deliverables…',
+                status: 'Closing batch…'
+            });
+        }
+    });
+}
 </script>
 </x-layout>
 
