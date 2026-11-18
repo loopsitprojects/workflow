@@ -1106,9 +1106,6 @@
                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                         Back to Project
                     </a>
-                    <button type="button" onclick="closeTaskModal()" class="cd-btn cd-btn-outline" style="padding:6px 9px; border-radius:8px; color:var(--color-text-secondary); cursor:pointer; display:inline-flex; align-items:center; justify-content:center;" title="Close">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
                 </div>
             </div>
 
