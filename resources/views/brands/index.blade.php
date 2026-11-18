@@ -41,7 +41,7 @@
                 <p class="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-2">Workspace Overview</p>
                 <h1 class="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">Brand Directory</h1>
             </div>
-            <div class="relative flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-xs w-72 sm:w-80 flex-shrink-0 focus-within:bg-white focus-within:border-blue-500/60 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+            <div class="relative flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#F8FAFC] dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] shadow-xs w-72 sm:w-80 flex-shrink-0 focus-within:bg-white dark:focus-within:bg-white/[0.08] focus-within:border-blue-500/60 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
                 <svg class="w-4 h-4 text-slate-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 <input type="text"
                        x-model="search"
@@ -50,7 +50,7 @@
                        autocomplete="off"
                        autocorrect="off"
                        autocapitalize="off"
-                       class="w-full min-w-0 flex-1 bg-transparent border-0 p-0 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-0">
+                       class="w-full min-w-0 flex-1 bg-transparent border-0 p-0 text-sm text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-400 focus:outline-none focus:ring-0">
                 <button type="button"
                         x-show="search"
                         x-cloak

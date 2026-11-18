@@ -986,6 +986,18 @@ class DeliverableController extends Controller
             abort(403, 'Unauthorized. Only coordinators and managerial roles can reassign deliverable team members.');
         }
 
+        $isDirectDesign = $deliverable->isDirectDesign();
+        $isPreDesigner = $isDirectDesign 
+            ? ($deliverable->approval_stage === 'Coordinator')
+            : in_array($deliverable->approval_stage, ['Writer', 'Assignee', 'Assign', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator']);
+
+        if ($isPreDesigner) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Designers can only be reassigned after stage 5 (Coordinator).'
+            ], 422);
+        }
+
         $validated = $request->validate([
             'designer_id' => 'required|exists:users,id',
             'designer_deadline' => 'nullable|date',
@@ -3327,9 +3339,7 @@ class DeliverableController extends Controller
         $prevApproverId = $deliverable->approver_id;
 
         $deliverable->further_approver_id = $furtherApprover->id;
-        if (!$deliverable->approver_id) {
-            $deliverable->approver_id = $prevApproverId ?: ($project->approver_id ?: $furtherApprover->id);
-        }
+        $deliverable->approver_id = $furtherApprover->id;
         $deliverable->approval_stage = 'Further Approver';
         $deliverable->status = 'Approval Stage';
         $deliverable->save();

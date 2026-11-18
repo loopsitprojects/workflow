@@ -3745,11 +3745,14 @@
 
                 // Reassign Designer & Writer Buttons and Modal Setup
                 const canUserReassign = Boolean(window.CAN_USER_REASSIGN || isAdmin);
+                const isAfterStage5 = isDirectDesign 
+                    ? (stage !== 'Coordinator')
+                    : !['Writer', 'Assignee', 'Assign', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator'].includes(stage);
 
                 const reassignDesignerBtn = document.getElementById('btnOpenReassignDesignerModal');
                 const reassignDesignerModalOverlay = document.getElementById('reassignDesignerModalOverlay');
                 if (reassignDesignerBtn) {
-                    if (canUserReassign && !isOtherDeliverable) {
+                    if (canUserReassign && !isOtherDeliverable && isAfterStage5) {
                         reassignDesignerBtn.style.display = 'inline-flex';
                         reassignDesignerBtn.setAttribute('data-task-id', task.id);
                         if (reassignDesignerModalOverlay) {
@@ -4139,7 +4142,7 @@
                         (role.key === 'brand_manager' && ['Brand Manager', 'AM/BD', 'Final Approval', 'Approve', 'Manager Review'].includes(normStage))
                     ));
 
-                    const isReassignable = canUserReassign && (role.key === 'writer' || role.key === 'assignee' || role.key === 'designer');
+                    const isReassignable = canUserReassign && (role.key === 'writer' || role.key === 'assignee' || (role.key === 'designer' && isAfterStage5));
                     const reassignAction = (role.key === 'writer' || role.key === 'assignee') ? 'openReassignWriterModal()' : 'openReassignDesignerModal()';
 
                     const item = document.createElement('div');
@@ -7349,6 +7352,16 @@
         const overlay = document.getElementById('reassignDesignerModalOverlay');
         if (!overlay) return;
         if (currentTaskData) {
+            const isDD = (currentTaskData.flow_type === 'direct_design' || currentTaskData.is_direct_design);
+            const stg = currentTaskData.approval_stage;
+            const isPreDesigner = isDD 
+                ? (stg === 'Coordinator')
+                : ['Writer', 'Assignee', 'Assign', 'Approver', 'Further Approver', 'Brand Manager', 'Coordinator'].includes(stg);
+            if (isPreDesigner) {
+                window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Designers can only be reassigned after stage 5 (Coordinator).', type: 'error' } }));
+                return;
+            }
+
             overlay.setAttribute('data-task-id', currentTaskData.id);
             const currentDesignerName = currentTaskData.designer?.name || currentTaskData.associates?.designer || 'Unassigned';
             const currentNameEl = document.getElementById('reassignDesignerCurrentName');
