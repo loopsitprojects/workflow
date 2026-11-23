@@ -168,8 +168,8 @@
                      class="w-full h-full object-cover">
             </div>
             <div class="hidden md:block">
-                <p class="text-[13px] font-semibold text-white leading-none">
-                    {{ auth()->user()->name ?? 'Guest' }}
+                <p class="text-[13px] font-semibold text-white leading-none uppercase">
+                    {{ strtoupper(auth()->user()->name ?? 'Guest') }}
                 </p>
                 <p class="text-[10px] text-slate-300 uppercase tracking-wide mt-0.5">
                     {{ auth()->user()->role ?? '' }}
