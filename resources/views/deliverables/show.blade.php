@@ -1159,35 +1159,38 @@
                                     <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">Creative Content</span>
                                 </div>
                                 <div style="display:flex; align-items:center; gap:10px;">
-                                    <button type="button" id="btnCheckGrammar" onclick="runGrammarCheck()" class="cd-btn cd-btn-outline" style="padding:4px 10px; font-size:11px; font-weight:700; border-radius:7px; display:inline-flex; align-items:center; gap:5px; color:#3b82f6; border:1px solid rgba(59,130,246,0.3); background:rgba(59,130,246,0.06); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'; this.style.borderColor='#3b82f6';" onmouseout="this.style.background='rgba(59,130,246,0.06)'; this.style.borderColor='rgba(59,130,246,0.3)';" title="Check spelling and grammar">
-                                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        <span>Check Grammar</span>
-                                    </button>
                                     <div id="creativeAutoSaveStatus" style="font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:6px; min-height:20px; transition:opacity 0.25s ease;"></div>
                                 </div>
                             </div>
 
-                            <!-- Grammar & Spelling Check Results Drawer -->
-                            <div id="grammarCheckDrawer" style="display:none; margin-bottom:16px;"></div>
-
                             <!-- Section 1: Concept / Brief -->
                             <div class="detail-item full" id="modalConceptGroup" style="display:block; margin:0 0 20px 0;">
-                                <div style="margin-bottom:8px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">
                                     <label class="detail-label dd-section-label" id="modalConceptLabel" style="font-size:11px; font-weight:900; color:#ffffff !important; background:{{ $deliverable->isDirectDesign() ? '#6366f1' : '#3b82f6' }}; padding:4px 10px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.06em; box-shadow:0 2px 6px rgba(59,130,246,0.25);">
                                         <span id="modalConceptTitleText" style="color:#ffffff !important;">{{ $isBriefOnlyDeliverable ? 'Brief' : 'Concept' }}</span>
                                     </label>
+                                    <button type="button" id="btnCheckGrammar_concept" onclick="runGrammarCheck('concept')" class="cd-btn cd-btn-outline" style="padding:3px 9px; font-size:11px; font-weight:700; border-radius:7px; display:inline-flex; align-items:center; gap:5px; color:#3b82f6; border:1px solid rgba(59,130,246,0.3); background:rgba(59,130,246,0.06); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'; this.style.borderColor='#3b82f6';" onmouseout="this.style.background='rgba(59,130,246,0.06)'; this.style.borderColor='rgba(59,130,246,0.3)';" title="Check spelling and grammar for Concept">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span>Check Concept</span>
+                                    </button>
                                 </div>
+                                <div id="grammarCheckDrawer_concept" style="display:none; margin-bottom:12px;"></div>
                                 <input type="hidden" id="modalConcept" name="concept" value="{{ $initialBriefOrConcept }}" form="submitStageForm">
                                 <div id="quillConcept" class="detail-val-textarea" style="padding:0; min-height:160px; border-radius:10px;">{!! \App\Services\HtmlSanitizer::clean($initialBriefOrConcept) !!}</div>
                             </div>
 
                             <!-- Section 2: Copy -->
                             <div class="detail-item full" id="modalCopyGroup" style="{{ $isBriefOnlyDeliverable ? 'display:none;' : 'display:block;' }} margin:0 0 20px 0;">
-                                <div style="margin-bottom:8px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">
                                     <label class="detail-label dd-section-label" id="modalCopyLabel" style="font-size:11px; font-weight:900; color:#ffffff !important; background:#3b82f6; padding:4px 10px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.06em; box-shadow:0 2px 6px rgba(59,130,246,0.25);">
                                         <span style="color:#ffffff !important;">Copy</span>
                                     </label>
+                                    <button type="button" id="btnCheckGrammar_copy" onclick="runGrammarCheck('copy')" class="cd-btn cd-btn-outline" style="padding:3px 9px; font-size:11px; font-weight:700; border-radius:7px; display:inline-flex; align-items:center; gap:5px; color:#3b82f6; border:1px solid rgba(59,130,246,0.3); background:rgba(59,130,246,0.06); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'; this.style.borderColor='#3b82f6';" onmouseout="this.style.background='rgba(59,130,246,0.06)'; this.style.borderColor='rgba(59,130,246,0.3)';" title="Check spelling and grammar for Copy">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span>Check Copy</span>
+                                    </button>
                                 </div>
+                                <div id="grammarCheckDrawer_copy" style="display:none; margin-bottom:12px;"></div>
                                 <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
                                 <input type="hidden" id="deleteReferenceFile" name="delete_reference_file" value="0" form="submitStageForm">
                                 <div id="quillCopy" class="detail-val-textarea" style="padding:0; min-height:160px; background:var(--color-bg-primary); border-color:var(--color-border-primary); border-radius:10px;"></div>
@@ -1195,11 +1198,16 @@
 
                             <!-- Section 3: Caption -->
                             <div class="detail-item full" id="modalCaptionGroup" style="{{ $isBriefOnlyDeliverable ? 'display:none;' : 'display:block;' }} margin:0;">
-                                <div style="margin-bottom:8px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;">
                                     <label class="detail-label dd-section-label" id="modalCaptionLabel" style="font-size:11px; font-weight:900; color:#ffffff !important; background:#3b82f6; padding:4px 10px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.06em; box-shadow:0 2px 6px rgba(59,130,246,0.25);">
                                         <span style="color:#ffffff !important;">Caption</span>
                                     </label>
+                                    <button type="button" id="btnCheckGrammar_caption" onclick="runGrammarCheck('caption')" class="cd-btn cd-btn-outline" style="padding:3px 9px; font-size:11px; font-weight:700; border-radius:7px; display:inline-flex; align-items:center; gap:5px; color:#3b82f6; border:1px solid rgba(59,130,246,0.3); background:rgba(59,130,246,0.06); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'; this.style.borderColor='#3b82f6';" onmouseout="this.style.background='rgba(59,130,246,0.06)'; this.style.borderColor='rgba(59,130,246,0.3)';" title="Check spelling and grammar for Caption">
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span>Check Caption</span>
+                                    </button>
                                 </div>
+                                <div id="grammarCheckDrawer_caption" style="display:none; margin-bottom:12px;"></div>
                                 <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
                                 <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:160px; border-radius:10px;"></div>
                             </div>
@@ -1980,38 +1988,48 @@
             }
         });
 
-        /* Grammar & Spelling Check Functionality */
+        /* Grammar & Spelling Check Functionality (Separated per field: concept, copy, caption) */
         let activeGrammarIssues = [];
 
-        async function runGrammarCheck() {
-            const btn = document.getElementById('btnCheckGrammar');
-            const drawer = document.getElementById('grammarCheckDrawer');
+        async function runGrammarCheck(targetField) {
+            const btn = document.getElementById('btnCheckGrammar_' + targetField) || document.getElementById('btnCheckGrammar');
+            const drawer = document.getElementById('grammarCheckDrawer_' + targetField) || document.getElementById('grammarCheckDrawer');
             if (!btn || !drawer) return;
 
             const originalBtnHtml = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = `<svg style="animation:spin 1s linear infinite;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"></circle></svg> <span>Checking...</span>`;
+            btn.innerHTML = `<svg style="animation:spin 1s linear infinite;" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"></circle></svg> <span>Checking...</span>`;
+
+            const quillMap = {
+                'concept': typeof quillConcept !== 'undefined' ? quillConcept : null,
+                'copy': typeof quillCopy !== 'undefined' ? quillCopy : null,
+                'caption': typeof quillCaption !== 'undefined' ? quillCaption : null
+            };
 
             const fields = {};
-            if (typeof quillConcept !== 'undefined' && quillConcept) {
-                fields.concept = quillConcept.root.innerHTML;
-            }
-            if (typeof quillCopy !== 'undefined' && quillCopy) {
-                fields.copy = quillCopy.root.innerHTML;
-            }
-            if (typeof quillCaption !== 'undefined' && quillCaption) {
-                fields.caption = quillCaption.root.innerHTML;
+            if (targetField && quillMap[targetField]) {
+                fields[targetField] = quillMap[targetField].root.innerHTML;
+            } else {
+                if (quillMap.concept) fields.concept = quillMap.concept.root.innerHTML;
+                if (quillMap.copy) fields.copy = quillMap.copy.root.innerHTML;
+                if (quillMap.caption) fields.caption = quillMap.caption.root.innerHTML;
             }
 
+            const fieldLabels = {
+                'concept': 'Concept',
+                'copy': 'Copy',
+                'caption': 'Caption'
+            };
+            const fieldName = targetField ? (fieldLabels[targetField] || targetField) : 'Content';
             const hasContent = Object.values(fields).some(val => val && val.replace(/<[^>]*>/g, '').trim().length > 0);
             if (!hasContent) {
                 btn.disabled = false;
                 btn.innerHTML = originalBtnHtml;
                 drawer.style.display = 'block';
                 drawer.innerHTML = `
-                    <div style="padding:12px 16px; border-radius:10px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.2); display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                        <span style="font-size:12px; font-weight:600; color:var(--color-text-primary);">Please enter some text in Concept, Copy, or Caption before checking.</span>
-                        <button type="button" onclick="closeGrammarDrawer()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer; font-size:16px; font-weight:bold;">&times;</button>
+                    <div style="padding:10px 14px; border-radius:10px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.2); display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                        <span style="font-size:12px; font-weight:600; color:var(--color-text-primary);">Please enter some text in ${fieldName} before checking.</span>
+                        <button type="button" onclick="closeGrammarDrawer('${targetField || ''}')" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer; font-size:16px; font-weight:bold;">&times;</button>
                     </div>
                 `;
                 return;
@@ -2034,14 +2052,14 @@
                 }
 
                 const data = await response.json();
-                renderGrammarCheckResults(data);
+                renderGrammarCheckResults(data, targetField);
             } catch (err) {
                 console.error('Grammar check failed:', err);
                 drawer.style.display = 'block';
                 drawer.innerHTML = `
-                    <div style="padding:12px 16px; border-radius:10px; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                    <div style="padding:10px 14px; border-radius:10px; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); display:flex; align-items:center; justify-content:space-between; gap:10px;">
                         <span style="font-size:12px; font-weight:600; color:#ef4444;">Could not connect to grammar service. Please try again.</span>
-                        <button type="button" onclick="closeGrammarDrawer()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px; font-weight:bold;">&times;</button>
+                        <button type="button" onclick="closeGrammarDrawer('${targetField || ''}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px; font-weight:bold;">&times;</button>
                     </div>
                 `;
             } finally {
@@ -2050,28 +2068,39 @@
             }
         }
 
-        function closeGrammarDrawer() {
-            const drawer = document.getElementById('grammarCheckDrawer');
+        function closeGrammarDrawer(targetField) {
+            const drawerId = targetField ? 'grammarCheckDrawer_' + targetField : 'grammarCheckDrawer';
+            const drawer = document.getElementById(drawerId);
             if (drawer) {
                 drawer.style.display = 'none';
                 drawer.innerHTML = '';
             }
         }
 
-        function renderGrammarCheckResults(data) {
-            const drawer = document.getElementById('grammarCheckDrawer');
+        function renderGrammarCheckResults(data, targetField) {
+            const drawerId = targetField ? 'grammarCheckDrawer_' + targetField : 'grammarCheckDrawer';
+            const drawer = document.getElementById(drawerId);
             if (!drawer) return;
 
             drawer.style.display = 'block';
 
-            if (!data.success || !data.total_issues || data.total_issues === 0) {
+            const fieldLabels = {
+                'concept': 'Concept',
+                'copy': 'Copy',
+                'caption': 'Caption'
+            };
+            const fieldTitle = targetField ? (fieldLabels[targetField] || targetField) : 'Content';
+            const issuesForField = (targetField && data.fields) ? (data.fields[targetField] || []) : null;
+            const issueCount = issuesForField !== null ? issuesForField.length : (data.total_issues || 0);
+
+            if (!data.success || issueCount === 0) {
                 drawer.innerHTML = `
-                    <div style="padding:14px 18px; border-radius:12px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                    <div style="padding:12px 16px; border-radius:10px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); display:flex; align-items:center; justify-content:space-between; gap:10px;">
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-size:16px;">🎉</span>
-                            <span style="font-size:12.5px; font-weight:700; color:#10b981;">Great copy! No spelling or grammar errors detected.</span>
+                            <span style="font-size:15px;">🎉</span>
+                            <span style="font-size:12px; font-weight:700; color:#10b981;">Great ${fieldTitle}! No spelling or grammar errors detected.</span>
                         </div>
-                        <button type="button" onclick="closeGrammarDrawer()" style="background:none; border:none; color:#10b981; cursor:pointer; font-size:18px; font-weight:bold;">&times;</button>
+                        <button type="button" onclick="closeGrammarDrawer('${targetField || ''}')" style="background:none; border:none; color:#10b981; cursor:pointer; font-size:16px; font-weight:bold;">&times;</button>
                     </div>
                 `;
                 return;
@@ -2079,22 +2108,10 @@
 
             activeGrammarIssues = [];
             let cardsHtml = '';
+            const fieldsToDisplay = targetField ? { [targetField]: issuesForField } : (data.fields || {});
 
-            const fieldLabels = {
-                'concept': 'Concept / Brief',
-                'copy': 'Copy',
-                'caption': 'Caption'
-            };
-
-            for (const [field, issues] of Object.entries(data.fields || {})) {
+            for (const [field, issues] of Object.entries(fieldsToDisplay)) {
                 if (!issues || issues.length === 0) continue;
-
-                cardsHtml += `
-                    <div style="margin-bottom:12px;">
-                        <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-secondary); margin-bottom:6px;">
-                            ${fieldLabels[field] || field.toUpperCase()} (${issues.length})
-                        </div>
-                `;
 
                 issues.forEach((issue) => {
                     activeGrammarIssues.push({ field, issue });
@@ -2110,7 +2127,7 @@
                             const escRep = encodeURIComponent(rep);
                             return `
                                 <button type="button" class="grammar-fix-btn" onclick="applyGrammarFix('${field}', decodeURIComponent('${escOrig}'), decodeURIComponent('${escRep}'), '${issue.id}')"
-                                        style="display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:6px; font-size:11px; font-weight:700; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); cursor:pointer; transition:all 0.15s;"
+                                        style="display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:6px; font-size:11px; font-weight:700; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); cursor:pointer; transition:all 0.15s;"
                                         onmouseover="this.style.background='#10b981'; this.style.color='#fff';"
                                         onmouseout="this.style.background='rgba(16,185,129,0.12)'; this.style.color='#10b981';">
                                     Fix: <strong>${escapeHtml(rep)}</strong>
@@ -2126,47 +2143,45 @@
                     }
 
                     cardsHtml += `
-                        <div id="${issue.id}" style="padding:10px 14px; border-radius:10px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); margin-bottom:8px; display:flex; flex-direction:column; gap:6px;">
+                        <div id="${issue.id}" style="padding:9px 12px; border-radius:8px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); margin-bottom:7px; display:flex; flex-direction:column; gap:5px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                                 <div style="display:flex; align-items:center; gap:6px;">
-                                    <span style="font-size:9.5px; font-weight:900; text-transform:uppercase; letter-spacing:0.06em; padding:2px 7px; border-radius:4px; background:${badgeBg}; color:${badgeColor}; border:1px solid ${badgeColor}33;">${badgeText}</span>
-                                    <span style="font-size:12px; font-weight:700; color:var(--color-text-primary);">${escapeHtml(issue.message || 'Possible error')}</span>
+                                    <span style="font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:0.06em; padding:2px 6px; border-radius:4px; background:${badgeBg}; color:${badgeColor}; border:1px solid ${badgeColor}33;">${badgeText}</span>
+                                    <span style="font-size:11.5px; font-weight:700; color:var(--color-text-primary);">${escapeHtml(issue.message || 'Possible error')}</span>
                                 </div>
                             </div>
-                            <div style="font-size:12px; color:var(--color-text-secondary); line-height:1.4;">
+                            <div style="font-size:11.5px; color:var(--color-text-secondary); line-height:1.4;">
                                 "${sentenceDisplay}"
                             </div>
-                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
-                                ${replacementsHtml || '<span style="font-size:11px; font-style:italic; color:var(--color-text-secondary);">No automatic replacement suggested</span>'}
+                            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
+                                ${replacementsHtml || '<span style="font-size:10.5px; font-style:italic; color:var(--color-text-secondary);">No automatic replacement suggested</span>'}
                             </div>
                         </div>
                     `;
                 });
-
-                cardsHtml += `</div>`;
             }
 
             const canFixAll = activeGrammarIssues.some(item => item.issue.replacements && item.issue.replacements.length > 0);
 
             drawer.innerHTML = `
-                <div style="padding:14px 16px; border-radius:12px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); box-shadow:0 4px 16px rgba(0,0,0,0.06);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--color-border-primary); padding-bottom:8px;">
+                <div style="padding:12px 14px; border-radius:10px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); box-shadow:0 4px 14px rgba(0,0,0,0.06);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid var(--color-border-primary); padding-bottom:7px;">
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">Grammar & Spelling Review</span>
-                            <span id="grammarIssuesCountBadge" style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:10px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25);">
-                                ${data.total_issues} ${data.total_issues === 1 ? 'issue' : 'issues'}
+                            <span style="font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">${fieldTitle} Review</span>
+                            <span id="grammarIssuesCountBadge" style="font-size:9.5px; font-weight:800; padding:1px 7px; border-radius:10px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25);">
+                                ${issueCount} ${issueCount === 1 ? 'issue' : 'issues'}
                             </span>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
                             ${canFixAll ? `
-                                <button type="button" onclick="applyAllGrammarFixes()" style="padding:4px 10px; font-size:11px; font-weight:700; border-radius:6px; background:#10b981; color:#fff; border:none; cursor:pointer; transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                                <button type="button" onclick="applyAllGrammarFixes('${targetField || ''}')" style="padding:3px 9px; font-size:10.5px; font-weight:700; border-radius:5px; background:#10b981; color:#fff; border:none; cursor:pointer; transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
                                     Fix All
                                 </button>
                             ` : ''}
-                            <button type="button" onclick="closeGrammarDrawer()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer; font-size:18px; font-weight:bold; line-height:1;" title="Dismiss">&times;</button>
+                            <button type="button" onclick="closeGrammarDrawer('${targetField || ''}')" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer; font-size:16px; font-weight:bold; line-height:1;" title="Dismiss">&times;</button>
                         </div>
                     </div>
-                    <div style="max-height:300px; overflow-y:auto; padding-right:4px;">
+                    <div style="max-height:260px; overflow-y:auto; padding-right:4px;">
                         ${cardsHtml}
                     </div>
                 </div>
@@ -2237,9 +2252,10 @@
             }
 
             activeGrammarIssues = activeGrammarIssues.filter(item => item.issue.id !== issueId);
-            const badge = document.getElementById('grammarIssuesCountBadge');
+            const drawer = document.getElementById('grammarCheckDrawer_' + field) || document.getElementById('grammarCheckDrawer');
+            const badge = drawer ? drawer.querySelector('#grammarIssuesCountBadge') : document.getElementById('grammarIssuesCountBadge');
             if (badge) {
-                const count = activeGrammarIssues.length;
+                const count = activeGrammarIssues.filter(item => item.field === field).length;
                 badge.textContent = `${count} ${count === 1 ? 'issue' : 'issues'}`;
                 if (count === 0) {
                     badge.style.background = 'rgba(16,185,129,0.12)';
@@ -2250,14 +2266,20 @@
             }
         }
 
-        function applyAllGrammarFixes() {
+        function applyAllGrammarFixes(targetField) {
             if (!activeGrammarIssues || activeGrammarIssues.length === 0) return;
-            const issuesToFix = [...activeGrammarIssues];
+            const issuesToFix = targetField 
+                ? activeGrammarIssues.filter(item => item.field === targetField)
+                : [...activeGrammarIssues];
+
             issuesToFix.forEach(item => {
                 if (item.issue.replacements && item.issue.replacements.length > 0) {
                     applyGrammarFix(item.field, item.issue.original, item.issue.replacements[0], item.issue.id);
                 }
             });
+            setTimeout(() => {
+                closeGrammarDrawer(targetField);
+            }, 600);
         }
 
         /* AI Artwork Critique / Review Functionality */
