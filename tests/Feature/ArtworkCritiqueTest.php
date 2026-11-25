@@ -153,4 +153,91 @@ class ArtworkCritiqueTest extends TestCase
         $this->assertEquals(9.0, $data['critique']['score']);
         $this->assertEquals('https://via.placeholder.com/art2.png', $data['artwork_url']);
     }
+
+    public function test_artwork_critique_cross_checks_reference_links_and_reference_images()
+    {
+        $user = User::factory()->create(['role' => 'Designer']);
+        $brand = Brand::create(['name' => 'Brand Cross Check', 'slug' => 'brand-cross-check']);
+        $user->brands()->attach($brand->id);
+        $project = Project::create(['brand_id' => $brand->id, 'name' => 'Campaign Project', 'workflow_type' => 'campaign']);
+        $deliverable = Deliverable::create([
+            'project_id' => $project->id,
+            'title' => 'Deliverable with References',
+            'status' => 'To Do',
+            'concept' => 'Minimalist modern watch launch',
+            'post_copy' => 'Precision crafted timepieces.',
+            'caption' => 'Discover timeless elegance.',
+            'reference' => 'https://pinterest.com/pin/12345, https://dribbble.com/shots/67890',
+            'reference_file' => 'https://via.placeholder.com/ref1.png',
+            'final_designs' => 'https://via.placeholder.com/artwork.png',
+        ]);
+
+        config(['services.gemini.key' => 'fake_gemini_key']);
+
+        $recordedGeminiPayload = null;
+
+        Http::fake([
+            'via.placeholder.com/ref1.png' => Http::response('fake_reference_bytes', 200, ['Content-Type' => 'image/png']),
+            'via.placeholder.com/artwork.png' => Http::response('fake_artwork_bytes', 200, ['Content-Type' => 'image/png']),
+            'generativelanguage.googleapis.com/*' => function ($request) use (&$recordedGeminiPayload) {
+                $recordedGeminiPayload = json_decode($request->body(), true);
+                return Http::response([
+                    'candidates' => [
+                        [
+                            'content' => [
+                                'parts' => [
+                                    [
+                                        'text' => json_encode([
+                                            'score' => 9.2,
+                                            'verdict' => 'Superb alignment with reference moodboard.',
+                                            'strengths' => ['Faithful color palette', 'Elegant typography'],
+                                            'hierarchy' => 'Hero timepiece stands out boldly.',
+                                            'typography' => 'Sophisticated serif styling.',
+                                            'alignment' => 'Fulfills the minimalist concept completely.',
+                                            'reference_fidelity' => 'Color grading and lighting mirror the Pinterest reference closely.',
+                                            'suggestions' => ['No major changes needed.'],
+                                        ])
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ], 200);
+            },
+        ]);
+
+        $response = $this->actingAs($user)->json('POST', route('deliverables.critique-artwork', $deliverable));
+        $response->assertStatus(200);
+
+        $data = $response->json();
+        $this->assertTrue($data['success']);
+        $this->assertEquals(9.2, $data['critique']['score']);
+        $this->assertEquals('Color grading and lighting mirror the Pinterest reference closely.', $data['critique']['reference_fidelity']);
+
+        // Verify payload sent to Gemini Vision
+        $this->assertNotNull($recordedGeminiPayload);
+        $parts = $recordedGeminiPayload['contents'][0]['parts'] ?? [];
+
+        // Check that prompt contains reference URLs
+        $promptPart = $parts[0]['text'] ?? '';
+        $this->assertStringContainsString('https://pinterest.com/pin/12345', $promptPart);
+        $this->assertStringContainsString('https://dribbble.com/shots/67890', $promptPart);
+        $this->assertStringContainsString('1 reference image(s) attached below', $promptPart);
+
+        // Check that reference image inlineData is included
+        $foundRefImagePart = false;
+        $foundArtworkImagePart = false;
+
+        foreach ($parts as $part) {
+            if (isset($part['text']) && str_contains($part['text'], '[REFERENCE IMAGE #1]')) {
+                $foundRefImagePart = true;
+            }
+            if (isset($part['text']) && str_contains($part['text'], '[SUBMITTED FINAL ARTWORK]')) {
+                $foundArtworkImagePart = true;
+            }
+        }
+
+        $this->assertTrue($foundRefImagePart, 'Reference image header was not found in Gemini payload');
+        $this->assertTrue($foundArtworkImagePart, 'Artwork header was not found in Gemini payload');
+    }
 }

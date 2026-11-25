@@ -48,35 +48,47 @@ class ArtworkCritiqueService
         $caption = strip_tags($deliverable->caption ?: 'None provided');
         $brand   = $deliverable->project?->brand?->name ?? 'Brand';
 
+        // 3. Prepare references context (links and images)
+        $referenceUrls = $deliverable->getReferenceUrlsArray();
+        $refUrlsText = !empty($referenceUrls) ? implode("\n- ", $referenceUrls) : 'None provided';
+
+        $referenceImagesData = $this->resolveReferenceImages($deliverable, 3);
+        $hasRefImagesText = !empty($referenceImagesData) ? (count($referenceImagesData) . ' reference image(s) attached below for side-by-side visual comparison.') : 'No reference images attached.';
+
         $prompt = <<<PROMPT
 You are an award-winning Creative Director and Senior Art Director at a premier marketing and design agency.
-Critique this uploaded artwork for a creative deliverable for client "{$brand}".
+Critique this uploaded final artwork for a creative deliverable for client "{$brand}".
 
---- Deliverable Context ---
+--- Deliverable Context & Brief ---
 Title: {$title}
 Creative Concept / Brief: {$concept}
 Copy / Text: {$copy}
 Caption: {$caption}
+Reference Links:
+- {$refUrlsText}
+Reference Images: {$hasRefImagesText}
 
 --- Analysis Guidelines ---
-Analyze the provided visual image across 5 professional creative criteria:
+Analyze the submitted final visual artwork across 6 professional creative criteria:
 1. Overall Aesthetic & First Impression (Score from 1 to 10 and 1-sentence verdict).
 2. Visual Hierarchy & Composition (Layout balance, focal point, breathing room/whitespace).
-3. Typography & Legibility (Font choice, text contrast, readability over background).
-4. Brand & Brief Alignment (Does this visual effectively fulfill the creative concept and copy?).
-5. Actionable Polish Tips (2 to 3 concrete, specific refinements the designer can make before final sign-off).
+3. Typography & Legibility (Font choice, text contrast, readability over background, accuracy to copy).
+4. Brand & Brief Alignment (Does this visual effectively fulfill the creative concept, copy, and caption?).
+5. Reference & Moodboard Fidelity (Cross-check with the provided reference images and reference links: does the artwork honor the requested style, palette, tone, and visual direction?).
+6. Actionable Polish Tips (2 to 3 concrete, specific refinements the designer can make before final sign-off).
 
 Output ONLY JSON matching this exact structure:
 {
   "score": 8.5,
-  "verdict": "Strong, eye-catching composition with excellent contrast, with a minor tweak needed on body font size.",
+  "verdict": "Strong, eye-catching composition with excellent contrast, matching the brief tone closely.",
   "strengths": [
     "Compelling central focal point",
     "High contrast background ensures immediate attention"
   ],
   "hierarchy": "Analysis of layout flow and focal priority...",
   "typography": "Analysis of text styling and readability...",
-  "alignment": "How well it reflects the brief and copy...",
+  "alignment": "How well it reflects the brief, copy, and caption...",
+  "reference_fidelity": "Analysis of how closely the artwork followed the reference images and links...",
   "suggestions": [
     "Increase padding around the bottom call-to-action button by 15%",
     "Ensure the headline text has enough contrast against the gradient"
@@ -88,20 +100,35 @@ PROMPT;
             $model = config('services.gemini.model', env('GEMINI_MODEL', 'gemini-flash-latest'));
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->geminiApiKey}";
 
+            $parts = [];
+            $parts[] = ['text' => $prompt];
+
+            // 1. Add Reference Images first (labeled clearly for comparison)
+            foreach ($referenceImagesData as $idx => $refImg) {
+                $parts[] = ['text' => "--- [REFERENCE IMAGE #" . ($idx + 1) . "] Visual Reference / Moodboard Style Guide ---"];
+                $parts[] = [
+                    'inlineData' => [
+                        'mimeType' => $refImg['mime'],
+                        'data'     => $refImg['base64'],
+                    ]
+                ];
+            }
+
+            // 2. Add Target Final Artwork to critique
+            $parts[] = ['text' => "--- [SUBMITTED FINAL ARTWORK] Final Design to Review and Critique ---"];
+            $parts[] = [
+                'inlineData' => [
+                    'mimeType' => $imageData['mime'],
+                    'data'     => $imageData['base64'],
+                ]
+            ];
+
             $response = Http::timeout(25)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post($url, [
                     'contents' => [
                         [
-                            'parts' => [
-                                ['text' => $prompt],
-                                [
-                                    'inlineData' => [
-                                        'mimeType' => $imageData['mime'],
-                                        'data'     => $imageData['base64'],
-                                    ]
-                                ]
-                            ]
+                            'parts' => $parts,
                         ]
                     ],
                     'generationConfig' => [
@@ -144,6 +171,37 @@ PROMPT;
     }
 
     /**
+     * Resolve up to $max visual reference images from the deliverable.
+     *
+     * @param Deliverable $deliverable
+     * @param int $max
+     * @return array<int, array{base64: string, mime: string, url: string}>
+     */
+    protected function resolveReferenceImages(Deliverable $deliverable, int $max = 3): array
+    {
+        $refFiles = $deliverable->getReferenceFilesArray();
+        $images = [];
+
+        foreach ($refFiles as $file) {
+            if (count($images) >= $max) {
+                break;
+            }
+
+            // Only attempt to process if it looks like an image
+            if (!preg_match('/\.(jpe?g|png|webp|gif)($|\?)/i', $file)) {
+                continue;
+            }
+
+            $imgData = $this->resolveFileBytesAndMime($file);
+            if ($imgData) {
+                $images[] = $imgData;
+            }
+        }
+
+        return $images;
+    }
+
+    /**
      * Resolve image binary and mime type from deliverable or direct URL.
      */
     protected function resolveImageData(Deliverable $deliverable, ?string $artworkUrl): ?array
@@ -165,6 +223,14 @@ PROMPT;
             return null;
         }
 
+        return $this->resolveFileBytesAndMime($targetPath);
+    }
+
+    /**
+     * Helper to load bytes, mime type, and optimize size for Gemini API.
+     */
+    protected function resolveFileBytesAndMime(string $targetPath): ?array
+    {
         // Clean relative path without storage prefix or domain
         $cleanRelPath = $targetPath;
         if (preg_match('#/storage/(.+?)(\?.*)?$#i', $targetPath, $m)) {
@@ -216,7 +282,7 @@ PROMPT;
                     $mime = $httpRes->header('Content-Type') ?: 'image/jpeg';
                 }
             } catch (\Throwable $e) {
-                Log::warning('Could not fetch remote artwork: ' . $e->getMessage());
+                Log::warning('Could not fetch image: ' . $e->getMessage());
             }
         }
 

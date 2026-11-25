@@ -2486,6 +2486,12 @@
                                 <div style="font-size:11.5px; color:var(--color-text-secondary); line-height:1.5;">${escapeHtml(c.alignment)}</div>
                             </div>
                         ` : ''}
+                        ${c.reference_fidelity ? `
+                            <div style="padding:10px 12px; border-radius:8px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary);">
+                                <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#06b6d4; margin-bottom:3px;">Reference & Moodboard Fidelity</div>
+                                <div style="font-size:11.5px; color:var(--color-text-secondary); line-height:1.5;">${escapeHtml(c.reference_fidelity)}</div>
+                            </div>
+                        ` : ''}
                     </div>
 
                     ${suggestions ? `
