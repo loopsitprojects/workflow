@@ -1169,6 +1169,11 @@
             const quill = new Quill(el, {
                 theme: 'snow',
                 placeholder: placeholder,
+                formats: [
+                    'header', 'size',
+                    'bold', 'italic', 'underline', 'strike',
+                    'list'
+                ],
                 modules: {
                     toolbar: [
                         [{ 'header': [1, 2, 3, false] }],
@@ -1184,6 +1189,30 @@
                                     if (op.attributes) {
                                         delete op.attributes.color;
                                         delete op.attributes.background;
+                                        delete op.attributes.code;
+                                        delete op.attributes['code-block'];
+                                        delete op.attributes.font;
+                                    }
+                                });
+                                return delta;
+                            }],
+                            ['code', function(node, delta) {
+                                delta.ops.forEach(op => {
+                                    if (op.attributes) {
+                                        delete op.attributes.code;
+                                        delete op.attributes.background;
+                                        delete op.attributes.color;
+                                    }
+                                });
+                                return delta;
+                            }],
+                            ['pre', function(node, delta) {
+                                delta.ops.forEach(op => {
+                                    if (op.attributes) {
+                                        delete op.attributes['code-block'];
+                                        delete op.attributes.code;
+                                        delete op.attributes.background;
+                                        delete op.attributes.color;
                                     }
                                 });
                                 return delta;

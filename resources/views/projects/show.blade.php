@@ -655,6 +655,27 @@
             color: var(--color-text-primary) !important;
             cursor: default;
         }
+        /* Neutralize pasted code, pre, mark, or styled elements with background */
+        .ql-snow .ql-editor code,
+        .ql-editor code,
+        .ql-snow .ql-editor pre,
+        .ql-editor pre {
+            background-color: transparent !important;
+            color: inherit !important;
+            font-family: inherit !important;
+            font-size: inherit !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            border: none !important;
+        }
+        .ql-editor mark {
+            background-color: transparent !important;
+            color: inherit !important;
+        }
+        .ql-editor [style*="background"] {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
         
         button.ql-active .ql-stroke { stroke: #0ea5e9 !important; }
         button.ql-active .ql-fill { fill: #0ea5e9 !important; }
@@ -3053,6 +3074,11 @@
             const quillOptions = {
                 theme: 'snow',
                 placeholder: 'Start typing...',
+                formats: [
+                    'header',
+                    'bold', 'italic', 'underline', 'strike',
+                    'list'
+                ],
                 modules: {
                     toolbar: [
                         [{ 'header': [1, 2, 3, false] }],
@@ -3067,6 +3093,30 @@
                                     if (op.attributes) {
                                         delete op.attributes.color;
                                         delete op.attributes.background;
+                                        delete op.attributes.code;
+                                        delete op.attributes['code-block'];
+                                        delete op.attributes.font;
+                                    }
+                                });
+                                return delta;
+                            }],
+                            ['code', function(node, delta) {
+                                delta.ops.forEach(op => {
+                                    if (op.attributes) {
+                                        delete op.attributes.code;
+                                        delete op.attributes.background;
+                                        delete op.attributes.color;
+                                    }
+                                });
+                                return delta;
+                            }],
+                            ['pre', function(node, delta) {
+                                delta.ops.forEach(op => {
+                                    if (op.attributes) {
+                                        delete op.attributes['code-block'];
+                                        delete op.attributes.code;
+                                        delete op.attributes.background;
+                                        delete op.attributes.color;
                                     }
                                 });
                                 return delta;

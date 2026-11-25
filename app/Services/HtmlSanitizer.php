@@ -180,6 +180,21 @@ class HtmlSanitizer
             return '';
         }
 
-        return htmlspecialchars($style, ENT_QUOTES, 'UTF-8');
+        // Filter properties: strip background, background-color, and color to prevent theme contrast issues
+        $properties = explode(';', $style);
+        $cleanProps = [];
+        foreach ($properties as $prop) {
+            $parts = explode(':', $prop, 2);
+            if (count($parts) === 2) {
+                $name = strtolower(trim($parts[0]));
+                if (in_array($name, ['background', 'background-color', 'color'], true)) {
+                    continue;
+                }
+                $cleanProps[] = trim($parts[0]) . ': ' . trim($parts[1]);
+            }
+        }
+
+        $result = implode('; ', $cleanProps);
+        return $result !== '' ? htmlspecialchars($result, ENT_QUOTES, 'UTF-8') : '';
     }
 }

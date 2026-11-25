@@ -46,3 +46,13 @@ test('it handles empty or plaintext safely', function () {
         ->and(HtmlSanitizer::clean(null))->toBe('')
         ->and(HtmlSanitizer::clean('Just a plain string'))->toBe('Just a plain string');
 });
+
+test('it strips background and color styles to preserve theme contrast', function () {
+    $input = '<p><span style="background-color: #ffffff; color: #000000; font-weight: bold;">Styled text</span></p>';
+    $output = HtmlSanitizer::clean($input);
+
+    expect($output)->not->toContain('background-color')
+        ->not->toContain('color: #000000')
+        ->toContain('font-weight: bold')
+        ->toContain('Styled text');
+});
