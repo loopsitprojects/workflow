@@ -68,12 +68,13 @@ class GrammarCheckService
     }
 
     /**
-     * Call Google Gemini API (1.5 Flash) for creative agency copy review, spelling, grammar & polish.
+     * Call Google Gemini API for creative agency copy review, spelling, grammar & polish.
      */
     public function checkWithGemini(string $text, string $field): ?array
     {
         try {
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$this->geminiApiKey}";
+            $model = config('services.gemini.model', env('GEMINI_MODEL', 'gemini-flash-latest'));
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->geminiApiKey}";
 
             $prompt = <<<PROMPT
 You are an expert creative marketing copy editor and proofreader.
@@ -101,7 +102,7 @@ Output ONLY JSON matching this exact structure:
 If no issues are found, return {"issues": []}.
 PROMPT;
 
-            $response = Http::timeout(10)
+            $response = Http::timeout(25)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post($url, [
                     'contents' => [

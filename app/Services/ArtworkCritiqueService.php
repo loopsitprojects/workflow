@@ -85,7 +85,8 @@ Output ONLY JSON matching this exact structure:
 PROMPT;
 
         try {
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$this->geminiApiKey}";
+            $model = config('services.gemini.model', env('GEMINI_MODEL', 'gemini-flash-latest'));
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->geminiApiKey}";
 
             $response = Http::timeout(25)
                 ->withHeaders(['Content-Type' => 'application/json'])

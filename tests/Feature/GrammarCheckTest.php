@@ -22,6 +22,9 @@ class GrammarCheckTest extends TestCase
 
     public function test_authenticated_user_can_check_grammar_with_languagetool()
     {
+        config(['services.gemini.key' => null]);
+        putenv('GEMINI_API_KEY=');
+
         $user = User::factory()->create([
             'role' => 'Writer',
         ]);
