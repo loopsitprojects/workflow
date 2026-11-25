@@ -2440,6 +2440,19 @@ class DeliverableController extends Controller
     }
 
     /**
+     * AI Artwork Review & Critique using Gemini Vision.
+     */
+    public function critiqueArtwork(Request $request, Deliverable $deliverable, \App\Services\ArtworkCritiqueService $critiqueService)
+    {
+        $this->authorizeDeliverableAccess($deliverable);
+
+        $artworkUrl = $request->input('artwork_url');
+        $result = $critiqueService->critiqueArtwork($deliverable, $artworkUrl);
+
+        return response()->json($result);
+    }
+
+    /**
      * Resolve a stored image URL to an absolute local filesystem path.
      * Checks local storage disks first to prevent loopbacks, and applies
      * SSRF validation before attempting to fetch any remote images.

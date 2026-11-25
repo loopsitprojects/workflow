@@ -1158,8 +1158,17 @@
                                     </div>
                                     <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">Creative Content</span>
                                 </div>
-                                <div id="creativeAutoSaveStatus" style="font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:6px; min-height:20px; transition:opacity 0.25s ease;"></div>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <button type="button" id="btnCheckGrammar" onclick="runGrammarCheck()" class="cd-btn cd-btn-outline" style="padding:4px 10px; font-size:11px; font-weight:700; border-radius:7px; display:inline-flex; align-items:center; gap:5px; color:#3b82f6; border:1px solid rgba(59,130,246,0.3); background:rgba(59,130,246,0.06); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'; this.style.borderColor='#3b82f6';" onmouseout="this.style.background='rgba(59,130,246,0.06)'; this.style.borderColor='rgba(59,130,246,0.3)';" title="Check spelling and grammar">
+                                        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span>Check Grammar</span>
+                                    </button>
+                                    <div id="creativeAutoSaveStatus" style="font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:6px; min-height:20px; transition:opacity 0.25s ease;"></div>
+                                </div>
                             </div>
+
+                            <!-- Grammar & Spelling Check Results Drawer -->
+                            <div id="grammarCheckDrawer" style="display:none; margin-bottom:16px;"></div>
 
                             <!-- Section 1: Concept / Brief -->
                             <div class="detail-item full" id="modalConceptGroup" style="display:block; margin:0 0 20px 0;">
@@ -1264,7 +1273,15 @@
                                     </div>
                                     <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">Final Designs Preview</span>
                                 </div>
+                                <button type="button" id="btnCritiqueArtwork" onclick="runArtworkCritique()" class="cd-btn cd-btn-outline" style="padding:4px 10px; font-size:11px; font-weight:700; border-radius:7px; display:inline-flex; align-items:center; gap:5px; color:#8b5cf6; border:1px solid rgba(139,92,246,0.3); background:rgba(139,92,246,0.06); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(139,92,246,0.12)'; this.style.borderColor='#8b5cf6';" onmouseout="this.style.background='rgba(139,92,246,0.06)'; this.style.borderColor='rgba(139,92,246,0.3)';" title="Get AI design critique & review on uploaded artwork">
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                    <span>AI Artwork Review</span>
+                                </button>
                             </div>
+
+                            <!-- AI Artwork Critique Drawer -->
+                            <div id="artworkCritiqueDrawer" style="display:none; margin-bottom:16px;"></div>
+
                             <div id="modalFinal" class="thumbnail-gallery" style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; min-height:40px;"></div>
 
                             <!-- Deliver Final Artwork (Tabbed block) -->
@@ -1937,6 +1954,7 @@
 
             [quillConcept, quillCaption, quillCopy].forEach(q => {
                 if (q) {
+                    if (q.root) q.root.setAttribute('spellcheck', 'true');
                     q.on('selection-change', (range) => {
                         if (range === null) {
                             if (!window.isPopulatingTaskModal && hasCreativeContentChanged()) {
@@ -1961,6 +1979,420 @@
                 });
             }
         });
+
+        /* Grammar & Spelling Check Functionality */
+        let activeGrammarIssues = [];
+
+        async function runGrammarCheck() {
+            const btn = document.getElementById('btnCheckGrammar');
+            const drawer = document.getElementById('grammarCheckDrawer');
+            if (!btn || !drawer) return;
+
+            const originalBtnHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<svg style="animation:spin 1s linear infinite;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"></circle></svg> <span>Checking...</span>`;
+
+            const fields = {};
+            if (typeof quillConcept !== 'undefined' && quillConcept) {
+                fields.concept = quillConcept.root.innerHTML;
+            }
+            if (typeof quillCopy !== 'undefined' && quillCopy) {
+                fields.copy = quillCopy.root.innerHTML;
+            }
+            if (typeof quillCaption !== 'undefined' && quillCaption) {
+                fields.caption = quillCaption.root.innerHTML;
+            }
+
+            const hasContent = Object.values(fields).some(val => val && val.replace(/<[^>]*>/g, '').trim().length > 0);
+            if (!hasContent) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+                drawer.style.display = 'block';
+                drawer.innerHTML = `
+                    <div style="padding:12px 16px; border-radius:10px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.2); display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                        <span style="font-size:12px; font-weight:600; color:var(--color-text-primary);">Please enter some text in Concept, Copy, or Caption before checking.</span>
+                        <button type="button" onclick="closeGrammarDrawer()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer; font-size:16px; font-weight:bold;">&times;</button>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                const response = await fetch('/deliverables/check-grammar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ fields })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network error during grammar check');
+                }
+
+                const data = await response.json();
+                renderGrammarCheckResults(data);
+            } catch (err) {
+                console.error('Grammar check failed:', err);
+                drawer.style.display = 'block';
+                drawer.innerHTML = `
+                    <div style="padding:12px 16px; border-radius:10px; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                        <span style="font-size:12px; font-weight:600; color:#ef4444;">Could not connect to grammar service. Please try again.</span>
+                        <button type="button" onclick="closeGrammarDrawer()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px; font-weight:bold;">&times;</button>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+            }
+        }
+
+        function closeGrammarDrawer() {
+            const drawer = document.getElementById('grammarCheckDrawer');
+            if (drawer) {
+                drawer.style.display = 'none';
+                drawer.innerHTML = '';
+            }
+        }
+
+        function renderGrammarCheckResults(data) {
+            const drawer = document.getElementById('grammarCheckDrawer');
+            if (!drawer) return;
+
+            drawer.style.display = 'block';
+
+            if (!data.success || !data.total_issues || data.total_issues === 0) {
+                drawer.innerHTML = `
+                    <div style="padding:14px 18px; border-radius:12px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:16px;">🎉</span>
+                            <span style="font-size:12.5px; font-weight:700; color:#10b981;">Great copy! No spelling or grammar errors detected.</span>
+                        </div>
+                        <button type="button" onclick="closeGrammarDrawer()" style="background:none; border:none; color:#10b981; cursor:pointer; font-size:18px; font-weight:bold;">&times;</button>
+                    </div>
+                `;
+                return;
+            }
+
+            activeGrammarIssues = [];
+            let cardsHtml = '';
+
+            const fieldLabels = {
+                'concept': 'Concept / Brief',
+                'copy': 'Copy',
+                'caption': 'Caption'
+            };
+
+            for (const [field, issues] of Object.entries(data.fields || {})) {
+                if (!issues || issues.length === 0) continue;
+
+                cardsHtml += `
+                    <div style="margin-bottom:12px;">
+                        <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-secondary); margin-bottom:6px;">
+                            ${fieldLabels[field] || field.toUpperCase()} (${issues.length})
+                        </div>
+                `;
+
+                issues.forEach((issue) => {
+                    activeGrammarIssues.push({ field, issue });
+                    const isSpelling = issue.category === 'spelling';
+                    const badgeBg = isSpelling ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)';
+                    const badgeColor = isSpelling ? '#ef4444' : '#f59e0b';
+                    const badgeText = isSpelling ? 'Spelling' : (issue.category_name || 'Grammar');
+
+                    let replacementsHtml = '';
+                    if (issue.replacements && issue.replacements.length > 0) {
+                        replacementsHtml = issue.replacements.map(rep => {
+                            const escOrig = encodeURIComponent(issue.original);
+                            const escRep = encodeURIComponent(rep);
+                            return `
+                                <button type="button" class="grammar-fix-btn" onclick="applyGrammarFix('${field}', decodeURIComponent('${escOrig}'), decodeURIComponent('${escRep}'), '${issue.id}')"
+                                        style="display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:6px; font-size:11px; font-weight:700; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3); cursor:pointer; transition:all 0.15s;"
+                                        onmouseover="this.style.background='#10b981'; this.style.color='#fff';"
+                                        onmouseout="this.style.background='rgba(16,185,129,0.12)'; this.style.color='#10b981';">
+                                    Fix: <strong>${escapeHtml(rep)}</strong>
+                                </button>
+                            `;
+                        }).join(' ');
+                    }
+
+                    let sentenceDisplay = escapeHtml(issue.sentence || issue.original);
+                    if (issue.original) {
+                        const regex = new RegExp(escapeRegex(issue.original), 'i');
+                        sentenceDisplay = sentenceDisplay.replace(regex, `<span style="text-decoration:line-through; color:#ef4444; font-weight:800; background:rgba(239,68,68,0.1); padding:0 3px; border-radius:3px;">${escapeHtml(issue.original)}</span>`);
+                    }
+
+                    cardsHtml += `
+                        <div id="${issue.id}" style="padding:10px 14px; border-radius:10px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary); margin-bottom:8px; display:flex; flex-direction:column; gap:6px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <span style="font-size:9.5px; font-weight:900; text-transform:uppercase; letter-spacing:0.06em; padding:2px 7px; border-radius:4px; background:${badgeBg}; color:${badgeColor}; border:1px solid ${badgeColor}33;">${badgeText}</span>
+                                    <span style="font-size:12px; font-weight:700; color:var(--color-text-primary);">${escapeHtml(issue.message || 'Possible error')}</span>
+                                </div>
+                            </div>
+                            <div style="font-size:12px; color:var(--color-text-secondary); line-height:1.4;">
+                                "${sentenceDisplay}"
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:2px;">
+                                ${replacementsHtml || '<span style="font-size:11px; font-style:italic; color:var(--color-text-secondary);">No automatic replacement suggested</span>'}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                cardsHtml += `</div>`;
+            }
+
+            const canFixAll = activeGrammarIssues.some(item => item.issue.replacements && item.issue.replacements.length > 0);
+
+            drawer.innerHTML = `
+                <div style="padding:14px 16px; border-radius:12px; background:var(--color-bg-secondary); border:1px solid var(--color-border-primary); box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--color-border-primary); padding-bottom:8px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">Grammar & Spelling Review</span>
+                            <span id="grammarIssuesCountBadge" style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:10px; background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.25);">
+                                ${data.total_issues} ${data.total_issues === 1 ? 'issue' : 'issues'}
+                            </span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            ${canFixAll ? `
+                                <button type="button" onclick="applyAllGrammarFixes()" style="padding:4px 10px; font-size:11px; font-weight:700; border-radius:6px; background:#10b981; color:#fff; border:none; cursor:pointer; transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                                    Fix All
+                                </button>
+                            ` : ''}
+                            <button type="button" onclick="closeGrammarDrawer()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer; font-size:18px; font-weight:bold; line-height:1;" title="Dismiss">&times;</button>
+                        </div>
+                    </div>
+                    <div style="max-height:300px; overflow-y:auto; padding-right:4px;">
+                        ${cardsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function escapeHtml(string) {
+            if (!string) return '';
+            return String(string)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function applyGrammarFix(field, original, replacement, issueId) {
+            const quillMap = {
+                'concept': typeof quillConcept !== 'undefined' ? quillConcept : null,
+                'copy': typeof quillCopy !== 'undefined' ? quillCopy : null,
+                'caption': typeof quillCaption !== 'undefined' ? quillCaption : null
+            };
+            const quill = quillMap[field];
+            if (!quill) return;
+
+            const text = quill.getText();
+            const index = text.indexOf(original);
+            if (index !== -1) {
+                quill.deleteText(index, original.length);
+                quill.insertText(index, replacement);
+
+                if (field === 'concept') {
+                    const el = document.getElementById('modalConcept');
+                    if (el) el.value = getCleanHtml(quill);
+                } else if (field === 'copy') {
+                    const el = document.getElementById('modalSubtaskCopy');
+                    if (el) el.value = getCleanHtml(quill);
+                } else if (field === 'caption') {
+                    const el = document.getElementById('modalCaption');
+                    if (el) el.value = getCleanHtml(quill);
+                }
+
+                if (typeof handleCreativeFieldChange === 'function') {
+                    handleCreativeFieldChange();
+                }
+                if (typeof triggerAutoSaveCreativeContent === 'function') {
+                    clearTimeout(creativeAutoSaveTimer);
+                    triggerAutoSaveCreativeContent();
+                }
+            }
+
+            const card = document.getElementById(issueId);
+            if (card) {
+                card.style.transition = 'all 0.25s';
+                card.style.opacity = '0.35';
+                card.style.pointerEvents = 'none';
+                const btns = card.querySelectorAll('.grammar-fix-btn');
+                btns.forEach(b => {
+                    b.textContent = 'Fixed ✓';
+                    b.style.background = '#10b981';
+                    b.style.color = '#fff';
+                    b.style.borderColor = '#10b981';
+                });
+            }
+
+            activeGrammarIssues = activeGrammarIssues.filter(item => item.issue.id !== issueId);
+            const badge = document.getElementById('grammarIssuesCountBadge');
+            if (badge) {
+                const count = activeGrammarIssues.length;
+                badge.textContent = `${count} ${count === 1 ? 'issue' : 'issues'}`;
+                if (count === 0) {
+                    badge.style.background = 'rgba(16,185,129,0.12)';
+                    badge.style.color = '#10b981';
+                    badge.style.borderColor = 'rgba(16,185,129,0.3)';
+                    badge.textContent = 'All fixed ✓';
+                }
+            }
+        }
+
+        function applyAllGrammarFixes() {
+            if (!activeGrammarIssues || activeGrammarIssues.length === 0) return;
+            const issuesToFix = [...activeGrammarIssues];
+            issuesToFix.forEach(item => {
+                if (item.issue.replacements && item.issue.replacements.length > 0) {
+                    applyGrammarFix(item.field, item.issue.original, item.issue.replacements[0], item.issue.id);
+                }
+            });
+        }
+
+        /* AI Artwork Critique / Review Functionality */
+        async function runArtworkCritique() {
+            const btn = document.getElementById('btnCritiqueArtwork');
+            const drawer = document.getElementById('artworkCritiqueDrawer');
+            if (!btn || !drawer) return;
+
+            const deliverableId = (typeof currentTaskData !== 'undefined' && currentTaskData && currentTaskData.id) ? currentTaskData.id : {{ $deliverable->id }};
+            if (!deliverableId) return;
+
+            const originalBtnHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<svg style="animation:spin 1s linear infinite;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"></circle></svg> <span>Analyzing...</span>`;
+
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                const response = await fetch(`/deliverables/${deliverableId}/critique-artwork`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+                renderArtworkCritiqueResults(data);
+            } catch (err) {
+                console.error('Artwork critique error:', err);
+                drawer.style.display = 'block';
+                drawer.innerHTML = `
+                    <div style="padding:12px 16px; border-radius:10px; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                        <span style="font-size:12px; font-weight:600; color:#ef4444;">Could not analyze artwork. Please verify the artwork file exists and try again.</span>
+                        <button type="button" onclick="closeArtworkCritiqueDrawer()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:16px; font-weight:bold;">&times;</button>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+            }
+        }
+
+        function closeArtworkCritiqueDrawer() {
+            const drawer = document.getElementById('artworkCritiqueDrawer');
+            if (drawer) {
+                drawer.style.display = 'none';
+                drawer.innerHTML = '';
+            }
+        }
+
+        function renderArtworkCritiqueResults(data) {
+            const drawer = document.getElementById('artworkCritiqueDrawer');
+            if (!drawer) return;
+
+            drawer.style.display = 'block';
+
+            if (!data.success) {
+                drawer.innerHTML = `
+                    <div style="padding:12px 16px; border-radius:10px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+                        <div style="display:flex; align-items:flex-start; gap:8px;">
+                            <span style="font-size:16px;">💡</span>
+                            <div style="font-size:12px; font-weight:600; color:#d97706; line-height:1.5;">${escapeHtml(data.message || 'Artwork review could not be completed.')}</div>
+                        </div>
+                        <button type="button" onclick="closeArtworkCritiqueDrawer()" style="background:none; border:none; color:#d97706; cursor:pointer; font-size:16px; font-weight:bold;">&times;</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const c = data.critique;
+            const score = c.score || 'N/A';
+            const strengths = (c.strengths || []).map(s => `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:6px; font-size:10.5px; font-weight:700; background:rgba(16,185,129,0.1); color:#10b981; border:1px solid rgba(16,185,129,0.25);">✓ ${escapeHtml(s)}</span>`).join(' ');
+            const suggestions = (c.suggestions || []).map(s => `<li style="margin-bottom:4px; font-size:12px; color:var(--color-text-primary);">${escapeHtml(s)}</li>`).join('');
+
+            drawer.innerHTML = `
+                <div style="padding:16px; border-radius:14px; background:var(--color-bg-secondary); border:1px solid rgba(139,92,246,0.3); box-shadow:0 4px 20px rgba(139,92,246,0.08);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--color-border-primary); padding-bottom:10px; flex-wrap:wrap; gap:8px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span style="font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.06em; color:#8b5cf6; display:flex; align-items:center; gap:6px;">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                AI Creative Design Critique
+                            </span>
+                            <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:900; background:rgba(139,92,246,0.15); color:#8b5cf6; border:1px solid rgba(139,92,246,0.3);">
+                                ⭐ Score: ${score}/10
+                            </span>
+                        </div>
+                        <button type="button" onclick="closeArtworkCritiqueDrawer()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer; font-size:18px; font-weight:bold; line-height:1;" title="Dismiss">&times;</button>
+                    </div>
+
+                    <div style="font-size:12.5px; font-weight:600; color:var(--color-text-primary); line-height:1.5; margin-bottom:12px; font-style:italic; background:var(--color-bg-primary); padding:10px 14px; border-radius:10px; border:1px solid var(--color-border-primary);">
+                        "${escapeHtml(c.verdict || '')}"
+                    </div>
+
+                    ${strengths ? `
+                        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+                            ${strengths}
+                        </div>
+                    ` : ''}
+
+                    <div style="display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:14px;">
+                        ${c.hierarchy ? `
+                            <div style="padding:10px 12px; border-radius:8px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary);">
+                                <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#8b5cf6; margin-bottom:3px;">Visual Hierarchy & Layout</div>
+                                <div style="font-size:11.5px; color:var(--color-text-secondary); line-height:1.5;">${escapeHtml(c.hierarchy)}</div>
+                            </div>
+                        ` : ''}
+                        ${c.typography ? `
+                            <div style="padding:10px 12px; border-radius:8px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary);">
+                                <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#3b82f6; margin-bottom:3px;">Typography & Legibility</div>
+                                <div style="font-size:11.5px; color:var(--color-text-secondary); line-height:1.5;">${escapeHtml(c.typography)}</div>
+                            </div>
+                        ` : ''}
+                        ${c.alignment ? `
+                            <div style="padding:10px 12px; border-radius:8px; background:var(--color-bg-primary); border:1px solid var(--color-border-primary);">
+                                <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#10b981; margin-bottom:3px;">Brand & Brief Alignment</div>
+                                <div style="font-size:11.5px; color:var(--color-text-secondary); line-height:1.5;">${escapeHtml(c.alignment)}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    ${suggestions ? `
+                        <div style="padding:12px 14px; border-radius:10px; background:rgba(139,92,246,0.06); border:1px solid rgba(139,92,246,0.2);">
+                            <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#8b5cf6; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+                                <span>🛠️ Actionable Polish Tips</span>
+                            </div>
+                            <ul style="margin:0; padding-left:18px; line-height:1.5;">
+                                ${suggestions}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
 
         /* Work hours — auto-save on blur */
         document.addEventListener('DOMContentLoaded', function () {

@@ -16,6 +16,7 @@ use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\ClosedArchiveController;
+use App\Http\Controllers\GrammarCheckController;
 
 Route::get('/invite/{token}', [RegisterController::class, 'show'])->name('register');
 Route::post('/invite/{token}', [RegisterController::class, 'store'])->middleware('throttle:10,1');
@@ -80,12 +81,17 @@ Route::middleware('auth')->group(function () {
     Route::get('deliverables/{deliverable}/batch', [DeliverableController::class, 'showBatch'])->name('deliverables.showBatch');
     Route::post('/deliverables/{deliverable}/checklist', [DeliverableController::class, 'updateChecklist'])->name('deliverables.update-checklist');
 
+    // Grammar & Spellcheck
+    Route::post('/deliverables/check-grammar', [GrammarCheckController::class, 'check'])->name('deliverables.check-grammar');
+    Route::post('/deliverables/{deliverable}/check-grammar', [GrammarCheckController::class, 'check']);
+
     // Campaign & Pitch Kanban Actions
     Route::post('/projects/{project}/campaign-kanban/quick-store', [DeliverableController::class, 'quickStoreCampaignKanban'])->name('campaign-kanban.quick-store');
     Route::post('/deliverables/{deliverable}/campaign-kanban/quick-update', [DeliverableController::class, 'quickUpdateCampaignKanban'])->name('campaign-kanban.quick-update');
     Route::post('/deliverables/{deliverable}/campaign-kanban/further-approve', [DeliverableController::class, 'sendToFurtherApproverKanban'])->name('campaign-kanban.further-approve');
     Route::post('/deliverables/{deliverable}/update-kanban-status', [DeliverableController::class, 'updateKanbanStatus'])->name('deliverables.update-kanban-status');
     Route::get('/deliverables/{deliverable}/download-artwork/{index}', [DeliverableController::class, 'downloadArtwork'])->name('deliverables.download-artwork');
+    Route::post('/deliverables/{deliverable}/critique-artwork', [DeliverableController::class, 'critiqueArtwork'])->name('deliverables.critique-artwork');
 
     // Deliverable exports
     Route::get('deliverables/{deliverable}/export/docx', [DeliverableController::class, 'exportDocx'])->name('deliverables.export.docx');
