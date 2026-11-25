@@ -130,8 +130,9 @@ PROMPT;
             }
 
             return [
-                'success'  => true,
-                'critique' => $critique,
+                'success'     => true,
+                'artwork_url' => $imageData['url'] ?? $artworkUrl,
+                'critique'    => $critique,
             ];
         } catch (\Throwable $e) {
             Log::error('ArtworkCritiqueService exception: ' . $e->getMessage());
@@ -164,11 +165,27 @@ PROMPT;
             return null;
         }
 
+        // Clean relative path without storage prefix or domain
+        $cleanRelPath = $targetPath;
+        if (preg_match('#/storage/(.+?)(\?.*)?$#i', $targetPath, $m)) {
+            $cleanRelPath = $m[1];
+        } else {
+            $cleanRelPath = ltrim(parse_url($targetPath, PHP_URL_PATH) ?? $targetPath, '/');
+            if (str_starts_with($cleanRelPath, 'storage/')) {
+                $cleanRelPath = substr($cleanRelPath, 8);
+            }
+        }
+
         $rawBytes = null;
         $mime = 'image/jpeg';
 
         // 1. Try local storage disks
         foreach (['public', 'local'] as $disk) {
+            if (Storage::disk($disk)->exists($cleanRelPath)) {
+                $rawBytes = Storage::disk($disk)->get($cleanRelPath);
+                $mime = Storage::disk($disk)->mimeType($cleanRelPath) ?: 'image/jpeg';
+                break;
+            }
             if (Storage::disk($disk)->exists($targetPath)) {
                 $rawBytes = Storage::disk($disk)->get($targetPath);
                 $mime = Storage::disk($disk)->mimeType($targetPath) ?: 'image/jpeg';
@@ -177,13 +194,20 @@ PROMPT;
         }
 
         // 2. If path is relative to storage public
-        if (!$rawBytes && file_exists(storage_path('app/public/' . $targetPath))) {
-            $fullPath = storage_path('app/public/' . $targetPath);
+        if (!$rawBytes && file_exists(storage_path('app/public/' . $cleanRelPath))) {
+            $fullPath = storage_path('app/public/' . $cleanRelPath);
             $rawBytes = file_get_contents($fullPath);
             $mime = mime_content_type($fullPath) ?: 'image/jpeg';
         }
 
-        // 3. If path is a remote URL or S3 URL
+        // 3. If file exists in public path
+        if (!$rawBytes && file_exists(public_path($cleanRelPath))) {
+            $fullPath = public_path($cleanRelPath);
+            $rawBytes = file_get_contents($fullPath);
+            $mime = mime_content_type($fullPath) ?: 'image/jpeg';
+        }
+
+        // 4. If path is a remote URL or S3 URL
         if (!$rawBytes && filter_var($targetPath, FILTER_VALIDATE_URL)) {
             try {
                 $httpRes = Http::timeout(10)->get($targetPath);
@@ -215,6 +239,7 @@ PROMPT;
         return [
             'base64' => base64_encode($rawBytes),
             'mime'   => $mime,
+            'url'    => $targetPath,
         ];
     }
 }

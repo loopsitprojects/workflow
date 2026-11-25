@@ -102,4 +102,55 @@ class ArtworkCritiqueTest extends TestCase
         $this->assertEquals(8.5, $data['critique']['score']);
         $this->assertCount(2, $data['critique']['suggestions']);
     }
+
+    public function test_artwork_critique_with_specific_artwork_url()
+    {
+        $user = User::factory()->create(['role' => 'Designer']);
+        $brand = Brand::create(['name' => 'Brand Test 4', 'slug' => 'brand-test-4']);
+        $user->brands()->attach($brand->id);
+        $project = Project::create(['brand_id' => $brand->id, 'name' => 'Campaign Project', 'workflow_type' => 'campaign']);
+        $deliverable = Deliverable::create([
+            'project_id' => $project->id,
+            'title' => 'Multi Artwork Task',
+            'status' => 'To Do',
+            'final_designs' => json_encode(['https://via.placeholder.com/art1.png', 'https://via.placeholder.com/art2.png']),
+        ]);
+
+        config(['services.gemini.key' => 'fake_gemini_key']);
+
+        Http::fake([
+            'via.placeholder.com/art2.png' => Http::response('fake_image_bytes_2', 200, ['Content-Type' => 'image/png']),
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [
+                    [
+                        'content' => [
+                            'parts' => [
+                                [
+                                    'text' => json_encode([
+                                        'score' => 9.0,
+                                        'verdict' => 'Outstanding branding visual.',
+                                        'strengths' => ['Brilliant clarity'],
+                                        'hierarchy' => 'Excellent priority',
+                                        'typography' => 'Crisp text',
+                                        'alignment' => 'Exact match to brand',
+                                        'suggestions' => ['No changes needed'],
+                                    ])
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ], 200),
+        ]);
+
+        $response = $this->actingAs($user)->json('POST', route('deliverables.critique-artwork', $deliverable), [
+            'artwork_url' => 'https://via.placeholder.com/art2.png',
+        ]);
+        $response->assertStatus(200);
+
+        $data = $response->json();
+        $this->assertTrue($data['success']);
+        $this->assertEquals(9.0, $data['critique']['score']);
+        $this->assertEquals('https://via.placeholder.com/art2.png', $data['artwork_url']);
+    }
 }

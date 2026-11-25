@@ -1311,7 +1311,7 @@
                             <!-- AI Artwork Critique Drawer -->
                             <div id="artworkCritiqueDrawer" style="display:none; margin-bottom:16px;"></div>
 
-                            <div id="modalFinal" class="thumbnail-gallery" style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; min-height:40px;"></div>
+                            <div id="modalFinal" class="thumbnail-gallery" style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start; min-height:40px;"></div>
 
                             <!-- Deliver Final Artwork (Tabbed block) -->
                             <div id="designerDeliveryArea" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--color-border-primary);">
@@ -2333,17 +2333,42 @@
         }
 
         /* AI Artwork Critique / Review Functionality */
-        async function runArtworkCritique() {
-            const btn = document.getElementById('btnCritiqueArtwork');
+        async function runArtworkCritique(artworkUrl = null, artworkIndex = null) {
+            let btn = null;
+            if (artworkIndex !== null) {
+                btn = document.getElementById('btnCritiqueArt_' + artworkIndex);
+            }
+            if (!btn) {
+                btn = document.getElementById('btnCritiqueArtwork');
+            }
             const drawer = document.getElementById('artworkCritiqueDrawer');
-            if (!btn || !drawer) return;
+            if (!drawer) return;
 
             const deliverableId = (typeof currentTaskData !== 'undefined' && currentTaskData && currentTaskData.id) ? currentTaskData.id : {{ $deliverable->id }};
             if (!deliverableId) return;
 
-            const originalBtnHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = `<svg style="animation:spin 1s linear infinite;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"></circle></svg> <span>Analyzing...</span>`;
+            // If no artworkUrl passed from top button, pick first image
+            if (!artworkUrl) {
+                let artFiles = [];
+                if (typeof currentTaskData !== 'undefined' && currentTaskData) {
+                    if (currentTaskData.final_designs_list && Array.isArray(currentTaskData.final_designs_list)) {
+                        artFiles = currentTaskData.final_designs_list;
+                    } else if (currentTaskData.final_designs) {
+                        try { artFiles = JSON.parse(currentTaskData.final_designs); } catch(e) { artFiles = [currentTaskData.final_designs]; }
+                    }
+                }
+                const firstImgIdx = artFiles.findIndex(f => /\.(jpe?g|png|webp|gif)(?:$|\?)/i.test(f));
+                if (firstImgIdx !== -1) {
+                    artworkUrl = artFiles[firstImgIdx];
+                    artworkIndex = firstImgIdx;
+                }
+            }
+
+            const originalBtnHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<svg style="animation:spin 1s linear infinite;" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"></circle></svg> <span>Reviewing...</span>`;
+            }
 
             try {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -2354,11 +2379,13 @@
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({})
+                    body: JSON.stringify({
+                        artwork_url: artworkUrl || null
+                    })
                 });
 
                 const data = await response.json();
-                renderArtworkCritiqueResults(data);
+                renderArtworkCritiqueResults(data, artworkUrl, artworkIndex);
             } catch (err) {
                 console.error('Artwork critique error:', err);
                 drawer.style.display = 'block';
@@ -2369,8 +2396,10 @@
                     </div>
                 `;
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalBtnHtml;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtnHtml;
+                }
             }
         }
 
@@ -2382,7 +2411,7 @@
             }
         }
 
-        function renderArtworkCritiqueResults(data) {
+        function renderArtworkCritiqueResults(data, artworkUrl = null, artworkIndex = null) {
             const drawer = document.getElementById('artworkCritiqueDrawer');
             if (!drawer) return;
 
@@ -2405,18 +2434,25 @@
             const score = c.score || 'N/A';
             const strengths = (c.strengths || []).map(s => `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:6px; font-size:10.5px; font-weight:700; background:rgba(16,185,129,0.1); color:#10b981; border:1px solid rgba(16,185,129,0.25);">✓ ${escapeHtml(s)}</span>`).join(' ');
             const suggestions = (c.suggestions || []).map(s => `<li style="margin-bottom:4px; font-size:12px; color:var(--color-text-primary);">${escapeHtml(s)}</li>`).join('');
+            const displayUrl = data.artwork_url || artworkUrl;
+            const targetLabel = artworkIndex !== null ? `Artwork #${artworkIndex + 1}` : 'Artwork Review';
 
             drawer.innerHTML = `
                 <div style="padding:16px; border-radius:14px; background:var(--color-bg-secondary); border:1px solid rgba(139,92,246,0.3); box-shadow:0 4px 20px rgba(139,92,246,0.08);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--color-border-primary); padding-bottom:10px; flex-wrap:wrap; gap:8px;">
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <span style="font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.06em; color:#8b5cf6; display:flex; align-items:center; gap:6px;">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                AI Creative Design Critique
-                            </span>
-                            <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:900; background:rgba(139,92,246,0.15); color:#8b5cf6; border:1px solid rgba(139,92,246,0.3);">
-                                ⭐ Score: ${score}/10
-                            </span>
+                            ${displayUrl ? `<img src="${displayUrl}" style="width:36px; height:36px; object-fit:cover; border-radius:7px; border:1.5px solid rgba(139,92,246,0.4); flex-shrink:0;" alt="Artwork" onerror="this.style.display='none'">` : ''}
+                            <div>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.06em; color:#8b5cf6; display:flex; align-items:center; gap:6px;">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                        AI Design Critique • ${targetLabel}
+                                    </span>
+                                    <span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:900; background:rgba(139,92,246,0.15); color:#8b5cf6; border:1px solid rgba(139,92,246,0.3);">
+                                        ⭐ Score: ${score}/10
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                         <button type="button" onclick="closeArtworkCritiqueDrawer()" style="background:none; border:none; color:var(--color-text-secondary); cursor:pointer; font-size:18px; font-weight:bold; line-height:1;" title="Dismiss">&times;</button>
                     </div>
@@ -3945,23 +3981,40 @@
                         mediaEl = `<img src="${fileUrl}" style="width:100%; height:100%; object-fit:cover;" alt="Artwork" onerror="this.src='/images/placeholder.png'">`;
                     }
 
+                    const isImage = /\.(jpe?g|png|webp|gif)(?:$|\?)/i.test(fileUrl);
+                    const escUrl = encodeURIComponent(fileUrl);
+                    const artLabel = artFiles.length > 1 ? `Artwork #${index + 1}` : 'Artwork';
+
                     finalParts.push(`
-                        <div id="${boxId}" class="art-thumb-card" style="position:relative; width:160px; height:110px; border-radius:12px; overflow:hidden; border:1.5px solid var(--color-border-primary); background:var(--color-bg-secondary); box-shadow:0 2px 8px rgba(0,0,0,0.06); flex-shrink:0;">
-                            ${mediaEl}
-                            <div class="thumb-badge">${ext}</div>
-                            <div class="thumb-hover-overlay">
-                                <button type="button" onclick="${previewClick}" class="thumb-action-btn" title="Preview">
-                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                </button>
-                                <a href="${fileUrl}" download target="_blank" class="thumb-action-btn" title="Download">
-                                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                </a>
-                                ${canRemoveArt ? `
-                                    <button type="button" onclick="removeSpecificArtFile('${boxId}', ${index}, '${fileUrl}')" class="thumb-action-btn trash" title="Remove">
-                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <div id="${boxId}" class="art-box-item art-thumb-card-wrapper" style="display:flex; flex-direction:column; width:160px; flex-shrink:0;">
+                            <div class="art-thumb-card" style="position:relative; width:160px; height:110px; border-radius:12px; overflow:hidden; border:1.5px solid var(--color-border-primary); background:var(--color-bg-secondary); box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                                ${mediaEl}
+                                <div class="thumb-badge">${ext}</div>
+                                <div class="thumb-hover-overlay">
+                                    <button type="button" onclick="${previewClick}" class="thumb-action-btn" title="Preview">
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     </button>
-                                ` : ''}
+                                    ${isImage ? `
+                                        <button type="button" onclick="runArtworkCritique(decodeURIComponent('${escUrl}'), ${index})" class="thumb-action-btn" title="AI Review ${artLabel}" style="color:#a855f7;">
+                                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                        </button>
+                                    ` : ''}
+                                    <a href="${fileUrl}" download target="_blank" class="thumb-action-btn" title="Download">
+                                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    </a>
+                                    ${canRemoveArt ? `
+                                        <button type="button" onclick="removeSpecificArtFile('${boxId}', ${index}, '${fileUrl}')" class="thumb-action-btn trash" title="Remove">
+                                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </div>
+                            ${isImage ? `
+                                <button type="button" id="btnCritiqueArt_${index}" onclick="runArtworkCritique(decodeURIComponent('${escUrl}'), ${index})" class="cd-btn cd-btn-outline" style="padding:4px 8px; font-size:10.5px; font-weight:700; border-radius:7px; color:#8b5cf6; border:1px solid rgba(139,92,246,0.3); background:rgba(139,92,246,0.06); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px; margin-top:7px; width:100%; transition:all 0.15s;" onmouseover="this.style.background='rgba(139,92,246,0.12)'; this.style.borderColor='#8b5cf6';" onmouseout="this.style.background='rgba(139,92,246,0.06)'; this.style.borderColor='rgba(139,92,246,0.3)';" title="AI Review for ${artLabel}">
+                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                    <span>AI Review ${artFiles.length > 1 ? `#${index + 1}` : ''}</span>
+                                </button>
+                            ` : ''}
                         </div>
                     `);
                 });
