@@ -2446,6 +2446,13 @@ class DeliverableController extends Controller
     {
         $this->authorizeDeliverableAccess($deliverable);
 
+        if (!\App\Services\FeatureManager::isAiFeaturesEnabled()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'AI features are currently disabled in system settings.',
+            ], 403);
+        }
+
         $artworkUrl = $request->input('artwork_url');
         $result = $critiqueService->critiqueArtwork($deliverable, $artworkUrl);
 

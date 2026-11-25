@@ -145,10 +145,27 @@ class UserController extends Controller
         $analyticsEnabled = \App\Services\FeatureManager::isAnalyticsEnabled();
         $closedTabEnabled = \App\Services\FeatureManager::isClosedTabEnabled();
         $googleAuthEnabled = \App\Services\FeatureManager::isGoogleAuthEnabled();
+        $aiFeaturesEnabled = \App\Services\FeatureManager::isAiFeaturesEnabled();
         $halloweenThemeEnabled = \App\Services\FeatureManager::isHalloweenThemeEnabled();
         $activeTheme = \App\Services\FeatureManager::getActiveTheme();
         $projectTypesStatus = \App\Services\FeatureManager::getProjectTypesStatus();
-        return view('admin.settings', compact('maintenance', 'clientReviewEnabled', 'directDesignEnabled', 'analyticsEnabled', 'closedTabEnabled', 'googleAuthEnabled', 'halloweenThemeEnabled', 'activeTheme', 'projectTypesStatus'));
+        return view('admin.settings', compact('maintenance', 'clientReviewEnabled', 'directDesignEnabled', 'analyticsEnabled', 'closedTabEnabled', 'googleAuthEnabled', 'aiFeaturesEnabled', 'halloweenThemeEnabled', 'activeTheme', 'projectTypesStatus'));
+    }
+
+    public function toggleAiFeatures(Request $request)
+    {
+        $newStatus = \App\Services\FeatureManager::toggleAiFeatures();
+
+        $msg = $newStatus
+            ? 'AI Creative Suite has been ENABLED. Spell check and AI artwork review tools are now available.'
+            : 'AI Creative Suite has been DISABLED. Spell check and AI artwork review tools are now hidden and paused.';
+
+        if ($request->filled('tab')) {
+            $tab = $request->input('tab');
+            return redirect()->to(route('admin.settings', ['tab' => $tab]) . '#' . $tab)->with('success', $msg);
+        }
+
+        return redirect()->route('admin.settings')->with('success', $msg);
     }
 
     public function toggleAnalytics(Request $request)

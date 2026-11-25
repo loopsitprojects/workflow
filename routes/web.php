@@ -121,6 +121,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/toggle-analytics', [UserController::class, 'toggleAnalytics'])->name('admin.features.toggle-analytics');
         Route::post('/settings/toggle-closed-tab', [UserController::class, 'toggleClosedTab'])->name('admin.features.toggle-closed-tab');
         Route::post('/settings/toggle-google-auth', [UserController::class, 'toggleGoogleAuth'])->name('admin.features.toggle-google-auth');
+        Route::post('/settings/toggle-ai-features', [UserController::class, 'toggleAiFeatures'])->name('admin.features.toggle-ai-features');
         Route::post('/settings/toggle-halloween-theme', [UserController::class, 'toggleHalloweenTheme'])->name('admin.features.toggle-halloween-theme');
         Route::post('/settings/toggle-christmas-theme', [UserController::class, 'toggleChristmasTheme'])->name('admin.features.toggle-christmas-theme');
         Route::post('/settings/theme', [UserController::class, 'updateActiveTheme'])->name('admin.settings.theme');

@@ -14,6 +14,13 @@ class GrammarCheckController extends Controller
      */
     public function check(Request $request, GrammarCheckService $service, ?Deliverable $deliverable = null): JsonResponse
     {
+        if (!\App\Services\FeatureManager::isAiFeaturesEnabled()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'AI features are currently disabled in system settings.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'fields'   => 'required|array',
             'fields.*' => 'nullable|string',

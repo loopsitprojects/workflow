@@ -1190,10 +1190,12 @@
                                     <label class="detail-label dd-section-label" id="modalConceptLabel" style="font-size:11px; font-weight:900; color:#ffffff !important; background:{{ $deliverable->isDirectDesign() ? '#6366f1' : '#3b82f6' }}; padding:4px 10px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.06em; box-shadow:0 2px 6px rgba(59,130,246,0.25);">
                                         <span id="modalConceptTitleText" style="color:#ffffff !important;">{{ $isBriefOnlyDeliverable ? 'Brief' : 'Concept' }}</span>
                                     </label>
+                                    @if(\App\Services\FeatureManager::isAiFeaturesEnabled())
                                     <button type="button" id="btnCheckGrammar_concept" onclick="runGrammarCheck('concept')" class="cd-btn cd-btn-outline" style="padding:3px 9px; font-size:11px; font-weight:700; border-radius:7px; display:inline-flex; align-items:center; gap:5px; color:#3b82f6; border:1px solid rgba(59,130,246,0.3); background:rgba(59,130,246,0.06); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'; this.style.borderColor='#3b82f6';" onmouseout="this.style.background='rgba(59,130,246,0.06)'; this.style.borderColor='rgba(59,130,246,0.3)';" title="Check spelling and grammar for Concept">
                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                         <span>Check Concept</span>
                                     </button>
+                                    @endif
                                 </div>
                                 <div id="grammarCheckDrawer_concept" style="display:none; margin-bottom:12px;"></div>
                                 <input type="hidden" id="modalConcept" name="concept" value="{{ $initialBriefOrConcept }}" form="submitStageForm">
@@ -1206,10 +1208,12 @@
                                     <label class="detail-label dd-section-label" id="modalCopyLabel" style="font-size:11px; font-weight:900; color:#ffffff !important; background:#3b82f6; padding:4px 10px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.06em; box-shadow:0 2px 6px rgba(59,130,246,0.25);">
                                         <span style="color:#ffffff !important;">Copy</span>
                                     </label>
+                                    @if(\App\Services\FeatureManager::isAiFeaturesEnabled())
                                     <button type="button" id="btnCheckGrammar_copy" onclick="runGrammarCheck('copy')" class="cd-btn cd-btn-outline" style="padding:3px 9px; font-size:11px; font-weight:700; border-radius:7px; display:inline-flex; align-items:center; gap:5px; color:#3b82f6; border:1px solid rgba(59,130,246,0.3); background:rgba(59,130,246,0.06); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'; this.style.borderColor='#3b82f6';" onmouseout="this.style.background='rgba(59,130,246,0.06)'; this.style.borderColor='rgba(59,130,246,0.3)';" title="Check spelling and grammar for Copy">
                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                         <span>Check Copy</span>
                                     </button>
+                                    @endif
                                 </div>
                                 <div id="grammarCheckDrawer_copy" style="display:none; margin-bottom:12px;"></div>
                                 <input type="hidden" id="modalSubtaskCopy" name="post_copy" form="submitStageForm">
@@ -1223,11 +1227,12 @@
                                     <label class="detail-label dd-section-label" id="modalCaptionLabel" style="font-size:11px; font-weight:900; color:#ffffff !important; background:#3b82f6; padding:4px 10px; border-radius:6px; display:inline-flex; align-items:center; text-transform:uppercase; letter-spacing:0.06em; box-shadow:0 2px 6px rgba(59,130,246,0.25);">
                                         <span style="color:#ffffff !important;">Caption</span>
                                     </label>
+                                    @if(\App\Services\FeatureManager::isAiFeaturesEnabled())
                                     <button type="button" id="btnCheckGrammar_caption" onclick="runGrammarCheck('caption')" class="cd-btn cd-btn-outline" style="padding:3px 9px; font-size:11px; font-weight:700; border-radius:7px; display:inline-flex; align-items:center; gap:5px; color:#3b82f6; border:1px solid rgba(59,130,246,0.3); background:rgba(59,130,246,0.06); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(59,130,246,0.12)'; this.style.borderColor='#3b82f6';" onmouseout="this.style.background='rgba(59,130,246,0.06)'; this.style.borderColor='rgba(59,130,246,0.3)';" title="Check spelling and grammar for Caption">
                                         <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                         <span>Check Caption</span>
                                     </button>
-                                </div>
+                                    @endif
                                 <div id="grammarCheckDrawer_caption" style="display:none; margin-bottom:12px;"></div>
                                 <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
                                 <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:160px; border-radius:10px;"></div>
@@ -1302,10 +1307,12 @@
                                     </div>
                                     <span style="font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:var(--color-text-primary);">Final Designs Preview</span>
                                 </div>
+                                @if(\App\Services\FeatureManager::isAiFeaturesEnabled())
                                 <button type="button" id="btnCritiqueArtwork" onclick="runArtworkCritique()" class="cd-btn cd-btn-outline" style="padding:4px 10px; font-size:11px; font-weight:700; border-radius:7px; display:inline-flex; align-items:center; gap:5px; color:#8b5cf6; border:1px solid rgba(139,92,246,0.3); background:rgba(139,92,246,0.06); cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(139,92,246,0.12)'; this.style.borderColor='#8b5cf6';" onmouseout="this.style.background='rgba(139,92,246,0.06)'; this.style.borderColor='rgba(139,92,246,0.3)';" title="Get AI design critique & review on uploaded artwork">
                                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                     <span>AI Artwork Review</span>
                                 </button>
+                                @endif
                             </div>
 
                             <!-- AI Artwork Critique Drawer -->
@@ -2038,10 +2045,14 @@
             }
         });
 
+        /* AI Features Enabled Flag */
+        const AI_FEATURES_ENABLED = {{ \App\Services\FeatureManager::isAiFeaturesEnabled() ? 'true' : 'false' }};
+
         /* Grammar & Spelling Check Functionality (Separated per field: concept, copy, caption) */
         let activeGrammarIssues = [];
 
         async function runGrammarCheck(targetField) {
+            if (!AI_FEATURES_ENABLED) return;
             const btn = document.getElementById('btnCheckGrammar_' + targetField) || document.getElementById('btnCheckGrammar');
             const drawer = document.getElementById('grammarCheckDrawer_' + targetField) || document.getElementById('grammarCheckDrawer');
             if (!btn || !drawer) return;
@@ -2334,6 +2345,7 @@
 
         /* AI Artwork Critique / Review Functionality */
         async function runArtworkCritique(artworkUrl = null, artworkIndex = null) {
+            if (!AI_FEATURES_ENABLED) return;
             let btn = null;
             if (artworkIndex !== null) {
                 btn = document.getElementById('btnCritiqueArt_' + artworkIndex);
@@ -4000,7 +4012,7 @@
                                     <button type="button" onclick="${previewClick}" class="thumb-action-btn" title="Preview">
                                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     </button>
-                                    ${isImage ? `
+                                    ${(AI_FEATURES_ENABLED && isImage) ? `
                                         <button type="button" onclick="runArtworkCritique(decodeURIComponent('${escUrl}'), ${index})" class="thumb-action-btn" title="AI Review ${artLabel}" style="color:#a855f7;">
                                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                         </button>
@@ -4015,7 +4027,7 @@
                                     ` : ''}
                                 </div>
                             </div>
-                            ${isImage ? `
+                            ${(AI_FEATURES_ENABLED && isImage) ? `
                                 <button type="button" id="btnCritiqueArt_${index}" onclick="runArtworkCritique(decodeURIComponent('${escUrl}'), ${index})" class="cd-btn cd-btn-outline" style="padding:4px 8px; font-size:10.5px; font-weight:700; border-radius:7px; color:#8b5cf6; border:1px solid rgba(139,92,246,0.3); background:rgba(139,92,246,0.06); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px; margin-top:7px; width:100%; transition:all 0.15s;" onmouseover="this.style.background='rgba(139,92,246,0.12)'; this.style.borderColor='#8b5cf6';" onmouseout="this.style.background='rgba(139,92,246,0.06)'; this.style.borderColor='rgba(139,92,246,0.3)';" title="AI Review for ${artLabel}">
                                     <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                     <span>AI Review ${artFiles.length > 1 ? `#${index + 1}` : ''}</span>

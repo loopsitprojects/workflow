@@ -35,6 +35,7 @@ class FeatureManager
             'analytics_enabled' => true,
             'closed_tab_enabled' => true,
             'google_auth_enabled' => true,
+            'ai_features_enabled' => true,
             'halloween_theme_enabled' => false,
             'christmas_theme_enabled' => false,
             'active_theme' => 'dark',
@@ -295,6 +296,37 @@ class FeatureManager
         $current['updated_at'] = now()->toDateTimeString();
 
         Storage::disk('local')->put(self::SETTINGS_FILE, json_encode($current, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Check if AI Features (Spell/Grammar checker, AI Artwork Review) are enabled.
+     */
+    public static function isAiFeaturesEnabled(): bool
+    {
+        $settings = self::getAll();
+        return (bool) ($settings['ai_features_enabled'] ?? true);
+    }
+
+    /**
+     * Set the AI Features status.
+     */
+    public static function setAiFeaturesEnabled(bool $enabled): void
+    {
+        $current = self::getAll();
+        $current['ai_features_enabled'] = $enabled;
+        $current['updated_at'] = now()->toDateTimeString();
+
+        Storage::disk('local')->put(self::SETTINGS_FILE, json_encode($current, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Toggle the AI Features.
+     */
+    public static function toggleAiFeatures(): bool
+    {
+        $newStatus = !self::isAiFeaturesEnabled();
+        self::setAiFeaturesEnabled($newStatus);
+        return $newStatus;
     }
 
     /**

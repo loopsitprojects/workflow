@@ -247,7 +247,7 @@
                             <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80">
                                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Modular Features</span>
                                 <p class="text-sm font-extrabold text-slate-900 dark:text-white mt-1">
-                                    4 Modules Ready
+                                    {{ count(array_filter([$clientReviewEnabled ?? true, $directDesignEnabled ?? true, $analyticsEnabled ?? true, $closedTabEnabled ?? true, $googleAuthEnabled ?? true, $aiFeaturesEnabled ?? true])) }} of 6 Active
                                 </p>
                             </div>
                         </div>
@@ -475,6 +475,47 @@
                                         class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ ($googleAuthEnabled ?? true) ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700' }}"
                                         role="switch" aria-checked="{{ ($googleAuthEnabled ?? true) ? 'true' : 'false' }}">
                                         <span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ ($googleAuthEnabled ?? true) ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- 6. AI Creative Suite & Intelligence -->
+                            <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-10 h-10 {{ ($aiFeaturesEnabled ?? true) ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400' }} rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2.5 flex-wrap">
+                                            <h4 class="text-sm font-bold text-slate-900 dark:text-white">AI Creative Suite & Intelligence</h4>
+                                            @if($aiFeaturesEnabled ?? true)
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> FEATURE ENABLED
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> FEATURE DISABLED
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <p class="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed mt-1">
+                                            Enable or disable AI creative tools across the platform, including AI Spelling &amp; Grammar Proofreading and Gemini Vision Artwork Review &amp; Critique.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <form action="{{ route('admin.features.toggle-ai-features') }}" method="POST" id="aiFeaturesToggleForm" class="flex items-center gap-3 self-end sm:self-center flex-shrink-0">
+                                    @csrf
+                                    <input type="hidden" name="tab" value="features">
+                                    <span class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                        {{ ($aiFeaturesEnabled ?? true) ? 'ON' : 'OFF' }}
+                                    </span>
+                                    <button type="submit" onclick="return confirmAction(event, '{{ ($aiFeaturesEnabled ?? true) ? 'Disable AI Features?' : 'Enable AI Features?' }}', '{{ ($aiFeaturesEnabled ?? true) ? 'Hide all AI review buttons, disable spell & grammar checks, and pause Gemini vision artwork critique?' : 'Enable AI spelling and grammar proofreading and Gemini Vision artwork review tools across the workspace?' }}', false, '{{ ($aiFeaturesEnabled ?? true) ? 'Disable AI' : 'Enable AI' }}');"
+                                        class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ ($aiFeaturesEnabled ?? true) ? 'bg-purple-600' : 'bg-slate-300 dark:bg-slate-700' }}"
+                                        role="switch" aria-checked="{{ ($aiFeaturesEnabled ?? true) ? 'true' : 'false' }}">
+                                        <span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ ($aiFeaturesEnabled ?? true) ? 'translate-x-5' : 'translate-x-0' }}"></span>
                                     </button>
                                 </form>
                             </div>
