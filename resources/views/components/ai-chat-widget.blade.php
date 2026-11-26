@@ -17,13 +17,15 @@
     $deliverableTitle = $activeDeliverable?->title ?? null;
     $brandName = $activeDeliverable?->project?->brand?->name ?? null;
     $stage = $activeDeliverable?->stage ?? null;
+    $revisionsCount = $activeDeliverable ? $activeDeliverable->revisionsHistory()->count() : 0;
 @endphp
 
 <div x-data="loopsAiChatWidget({
     deliverableId: {{ $deliverableId ? (int)$deliverableId : 'null' }},
     deliverableTitle: '{{ $deliverableTitle ? addslashes($deliverableTitle) : '' }}',
     brandName: '{{ $brandName ? addslashes($brandName) : '' }}',
-    stage: '{{ $stage ? addslashes($stage) : '' }}'
+    stage: '{{ $stage ? addslashes($stage) : '' }}',
+    revisionsCount: {{ (int)$revisionsCount }}
 })"
 @deliverable-selected.window="updateDeliverableContext($event.detail)"
 x-cloak
@@ -162,11 +164,17 @@ class="relative z-50 font-sans">
                         <svg class="w-2.5 h-2.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                         <span>Artwork</span>
                     </span>
+                    <template x-if="brandName">
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50/80 text-blue-700 border border-blue-200/80 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20 font-medium shadow-2xs">
+                            <svg class="w-2.5 h-2.5 text-blue-500 dark:text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                            <span>Brand DNA</span>
+                        </span>
+                    </template>
                 </div>
             </div>
         </template>
 
-        <!-- Quick Action Chips (Clean 2x2 grid, no horizontal scroll) -->
+        <!-- Quick Action Chips (Clean 2x2 grid + dynamic Revision chip, no horizontal scroll) -->
         <div class="px-3 py-2 bg-slate-50/50 border-b border-slate-200/70 dark:bg-[#0b0f19] dark:border-slate-800/60 grid grid-cols-2 gap-1.5 shrink-0">
             <!-- Chip 1: Copy & Grammar Check -->
             <button type="button"
@@ -217,6 +225,24 @@ class="relative z-50 font-sans">
                 </svg>
                 <span class="truncate">Brainstorm Ideas</span>
             </button>
+
+            <!-- Chip 5: Analyze Revisions (Appears dynamically when deliverable has revisions) -->
+            <template x-if="revisionsCount > 0">
+                <div class="col-span-2 pt-0.5">
+                    <button type="button"
+                            @click="triggerAction('analyze_revisions')"
+                            :disabled="isLoading"
+                            class="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-amber-50 text-amber-900 border border-amber-200/90 hover:bg-amber-100 hover:border-amber-300 shadow-2xs dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20 dark:hover:bg-amber-500/20 transition-colors cursor-pointer disabled:opacity-40">
+                        <svg class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.3-4.3"/>
+                            <path d="M11 8v6"/>
+                            <path d="M8 11h6"/>
+                        </svg>
+                        <span class="truncate">Analyze Revisions (<span x-text="revisionsCount"></span> recorded)</span>
+                    </button>
+                </div>
+            </template>
         </div>
 
         <!-- Scrollable Messages Area -->
@@ -430,6 +456,7 @@ function loopsAiChatWidget(config) {
         deliverableTitle: config.deliverableTitle || '',
         brandName: config.brandName || '',
         stage: config.stage || '',
+        revisionsCount: config.revisionsCount || 0,
         messages: [],
 
         init() {
@@ -441,6 +468,14 @@ function loopsAiChatWidget(config) {
                     if (!isNaN(parsed) && parsed > 0) {
                         this.deliverableId = parsed;
                     }
+                }
+            }
+
+            const revCountEl = document.getElementById('modalRevisionsCount');
+            if (revCountEl) {
+                const parsedRev = parseInt(revCountEl.textContent);
+                if (!isNaN(parsedRev) && parsedRev > 0) {
+                    this.revisionsCount = parsedRev;
                 }
             }
 
@@ -465,6 +500,15 @@ function loopsAiChatWidget(config) {
             this.deliverableTitle = detail.title || this.deliverableTitle;
             if (detail.brandName) this.brandName = detail.brandName;
             if (detail.stage) this.stage = detail.stage;
+            if (detail.revisions_count !== undefined) {
+                this.revisionsCount = detail.revisions_count;
+            } else {
+                const revCountEl = document.getElementById('modalRevisionsCount');
+                if (revCountEl) {
+                    const parsedRev = parseInt(revCountEl.textContent);
+                    this.revisionsCount = !isNaN(parsedRev) ? parsedRev : 0;
+                }
+            }
 
             // Notify user of dynamic context switch when navigating subtasks
             if (isDifferent && this.messages.length > 0) {
@@ -542,6 +586,14 @@ function loopsAiChatWidget(config) {
                 }
             }
 
+            const revCountEl = document.getElementById('modalRevisionsCount');
+            if (revCountEl) {
+                const parsedRev = parseInt(revCountEl.textContent);
+                if (!isNaN(parsedRev)) {
+                    this.revisionsCount = parsedRev;
+                }
+            }
+
             return {
                 deliverable_id: activeId,
                 concept: (concept || '').trim(),
@@ -558,6 +610,7 @@ function loopsAiChatWidget(config) {
             else if (actionName === 'artwork_critique') promptLabel = 'Critique Uploaded Artwork';
             else if (actionName === 'rewrite_caption') promptLabel = 'Rewrite Caption';
             else if (actionName === 'brainstorm') promptLabel = 'Brainstorm Creative Angles';
+            else if (actionName === 'analyze_revisions') promptLabel = 'Analyze Revision Causes & Bottlenecks';
 
             this.messages.push({
                 role: 'user',

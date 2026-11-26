@@ -107,8 +107,35 @@ class BrandController extends Controller
         }]);
         
         $pendingDeliverables = collect();
+
+        $brandDna = null;
+        if (\App\Services\FeatureManager::isAiFeaturesEnabled()) {
+            try {
+                $brandDna = app(\App\Services\BrandIntelligenceService::class)->getBrandDna($brand);
+            } catch (\Throwable $e) {
+                \Log::warning("Brand show DNA fetch error: " . $e->getMessage());
+            }
+        }
         
-        return view('brands.show', compact('brand', 'pendingDeliverables'));
+        return view('brands.show', compact('brand', 'pendingDeliverables', 'brandDna'));
+    }
+
+    /**
+     * Re-synthesize and refresh the Brand Creative DNA using AI.
+     */
+    public function refreshAiDna(Brand $brand)
+    {
+        if (!\App\Services\FeatureManager::isAiFeaturesEnabled()) {
+            return back()->with('error', 'AI features are currently disabled in System Settings.');
+        }
+
+        try {
+            app(\App\Services\BrandIntelligenceService::class)->getBrandDna($brand, forceRefresh: true);
+            return back()->with('success', 'Brand Creative DNA has been successfully refreshed from recent deliverables.');
+        } catch (\Throwable $e) {
+            \Log::error("Brand refreshAiDna error: " . $e->getMessage());
+            return back()->with('error', 'Failed to refresh Brand DNA: ' . $e->getMessage());
+        }
     }
 
     public function retainerBoard(Brand $brand)

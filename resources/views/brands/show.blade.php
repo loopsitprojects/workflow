@@ -49,6 +49,81 @@
         </div>
     </div>
 
+    {{-- Brand Creative Intelligence (AI) --}}
+    @if(\App\Services\FeatureManager::isAiFeaturesEnabled() && !empty($brandDna))
+    <div x-data="{ expanded: false }" class="bg-white dark:bg-[#111827] border border-gray-200 dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-xs">
+        <div class="flex items-center justify-between gap-3 cursor-pointer select-none" @click="expanded = !expanded">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
+                        <path d="m9 12 2 2 4-4"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-sm font-bold text-gray-900 dark:text-white">Brand Creative Intelligence</h2>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-200/80 dark:border-blue-500/20">AI Persona</span>
+                    </div>
+                    <p class="text-[12px] text-gray-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                        {{ $brandDna['brand_essence_summary'] ?? 'Synthesized creative identity and voice profile based on historical deliverables.' }}
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2" @click.stop>
+                <form action="{{ route('brands.refresh-ai-dna', $brand) }}" method="POST">
+                    @csrf
+                    <button type="submit"
+                            title="Re-analyze recent deliverables to update Brand DNA"
+                            class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-gray-600 dark:text-slate-300 bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.08] hover:bg-gray-100 dark:hover:bg-white/[0.10] transition-colors flex items-center gap-1.5 cursor-pointer">
+                        <svg class="w-3 h-3 text-gray-500 dark:text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                            <path d="M16 21h5v-5"/>
+                        </svg>
+                        <span>Refresh DNA</span>
+                    </button>
+                </form>
+                <button type="button" @click="expanded = !expanded" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 cursor-pointer">
+                    <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': expanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        {{-- Expanded Details --}}
+        <div x-show="expanded" x-collapse x-cloak class="mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.06] grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+            <div class="bg-gray-50/70 dark:bg-white/[0.02] p-3 rounded-xl border border-gray-100 dark:border-white/[0.04]">
+                <span class="text-[10.5px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Tone of Voice</span>
+                <p class="text-gray-800 dark:text-slate-200 leading-relaxed font-medium">{{ $brandDna['tone_of_voice'] ?? 'Dynamic and brand-aligned.' }}</p>
+            </div>
+
+            <div class="bg-gray-50/70 dark:bg-white/[0.02] p-3 rounded-xl border border-gray-100 dark:border-white/[0.04]">
+                <span class="text-[10.5px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Target Audience</span>
+                <p class="text-gray-800 dark:text-slate-200 leading-relaxed font-medium">{{ $brandDna['target_audience'] ?? 'Active social and digital consumer base.' }}</p>
+            </div>
+
+            <div class="bg-gray-50/70 dark:bg-white/[0.02] p-3 rounded-xl border border-gray-100 dark:border-white/[0.04]">
+                <span class="text-[10.5px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Visual &amp; Aesthetic Style</span>
+                <p class="text-gray-800 dark:text-slate-200 leading-relaxed font-medium">{{ $brandDna['visual_style'] ?? 'Clean, high-impact agency design standards.' }}</p>
+            </div>
+
+            @if(!empty($brandDna['content_pillars']))
+            <div class="md:col-span-2 lg:col-span-3 bg-gray-50/70 dark:bg-white/[0.02] p-3 rounded-xl border border-gray-100 dark:border-white/[0.04] flex flex-wrap items-center gap-2">
+                <span class="text-[10.5px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mr-1">Content Pillars:</span>
+                @foreach((array)$brandDna['content_pillars'] as $pillar)
+                    <span class="px-2.5 py-1 rounded-lg bg-white dark:bg-white/[0.06] text-gray-700 dark:text-slate-300 border border-gray-200/80 dark:border-white/[0.08] font-semibold text-[11px]">
+                        {{ $pillar }}
+                    </span>
+                @endforeach
+            </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
     {{-- Projects by type --}}
     @php
         $typeOrder = ['retainer', 'campaign', 'pitch'];

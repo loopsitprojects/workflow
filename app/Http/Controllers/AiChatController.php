@@ -33,7 +33,7 @@ class AiChatController extends Controller
 
         $validated = $request->validate([
             'message'              => 'nullable|string|max:4000',
-            'action'               => 'nullable|string|in:chat,grammar_check,artwork_critique,brainstorm,rewrite_caption',
+            'action'               => 'nullable|string|in:chat,grammar_check,artwork_critique,brainstorm,rewrite_caption,analyze_revisions,brand_trends',
             'conversation_history' => 'nullable|array',
             'conversation_history.*.role'    => 'required_with:conversation_history|string|in:user,model,assistant',
             'conversation_history.*.content' => 'required_with:conversation_history|string',

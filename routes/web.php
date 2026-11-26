@@ -60,6 +60,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/projects/{project}/toggle-close', [ClosedArchiveController::class, 'toggleProjectClose'])->name('projects.toggle-close');
     Route::post('/deliverables/{deliverable}/batch-submit', [DeliverableController::class, 'batchSubmit'])->name('deliverables.batchSubmit');
     Route::get('brands/{brand}/retainer-board', [BrandController::class, 'retainerBoard'])->name('brands.retainer-board');
+    Route::post('brands/{brand}/refresh-ai-dna', [BrandController::class, 'refreshAiDna'])->name('brands.refresh-ai-dna');
     Route::resource('projects', ProjectController::class);
     Route::get('projects/{project}/last-updated', [ProjectController::class, 'lastUpdated'])->name('projects.lastUpdated');
     Route::resource('deliverables', DeliverableController::class)->except(['index', 'show']);

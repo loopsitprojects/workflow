@@ -11,14 +11,20 @@ class AiChatService
     protected ?string $geminiApiKey;
     protected GrammarCheckService $grammarService;
     protected ArtworkCritiqueService $critiqueService;
+    protected BrandIntelligenceService $brandService;
+    protected RevisionAnalyticsService $revisionService;
 
     public function __construct(
         GrammarCheckService $grammarService,
-        ArtworkCritiqueService $critiqueService
+        ArtworkCritiqueService $critiqueService,
+        BrandIntelligenceService $brandService,
+        RevisionAnalyticsService $revisionService
     ) {
         $this->geminiApiKey = config('services.gemini.key', env('GEMINI_API_KEY'));
         $this->grammarService = $grammarService;
         $this->critiqueService = $critiqueService;
+        $this->brandService = $brandService;
+        $this->revisionService = $revisionService;
     }
 
     /**
@@ -48,7 +54,38 @@ class AiChatService
             return $this->handleArtworkCritiqueAction($deliverable);
         }
 
-        // 3. Conversational Chat & Creative Generation
+        // 3. Direct Specialized Action: Revision Diagnostic
+        if ($action === 'analyze_revisions') {
+            if (!$deliverable) {
+                return [
+                    'success' => false,
+                    'reply'   => "⚠️ **No deliverable active.** Please open a deliverable to diagnose its revision history.",
+                    'action'  => 'analyze_revisions',
+                ];
+            }
+            $result = $this->revisionService->analyzeDeliverableRevisions($deliverable);
+            return array_merge($result, ['action' => 'analyze_revisions']);
+        }
+
+        // 4. Direct Specialized Action: Brand Revision Trends
+        if ($action === 'brand_trends' && $deliverable?->project?->brand) {
+            $result = $this->revisionService->analyzeBrandRevisionTrends($deliverable->project->brand);
+            return array_merge($result, ['action' => 'brand_trends']);
+        }
+
+        // Natural language intent detection for revision diagnostics
+        if ($action === 'chat' && $deliverable && $deliverable->revisionsHistory()->exists()) {
+            $lowerMsg = strtolower($message);
+            if (
+                preg_match('/\b(why|what caused|explain|tell me why).*(many|so many|these|all)?\s*revisions?\b/i', $lowerMsg) ||
+                preg_match('/\b(analyze|break down|diagnostic on)\s*(the\s*)?revisions?\b/i', $lowerMsg)
+            ) {
+                $result = $this->revisionService->analyzeDeliverableRevisions($deliverable);
+                return array_merge($result, ['action' => 'analyze_revisions']);
+            }
+        }
+
+        // 5. Conversational Chat & Creative Generation (With Brand Intelligence)
         return $this->handleConversationalChat($message, $history, $deliverable, $action, $liveContext);
     }
 
@@ -233,7 +270,7 @@ INSTRUCTION;
         // Specialized action prompt overrides
         $userPrompt = $message;
         if ($action === 'brainstorm') {
-            $userPrompt = "Please brainstorm 3 distinct creative concept angles and visual directions for this deliverable based on the brief, brand identity, and target audience. Format each with a clear heading, concept summary, and visual style notes.";
+            $userPrompt = "Please brainstorm 3 distinct, brand-tailored creative concept angles and visual directions for this deliverable based on the brief, brand identity, and target audience. For each option include:\n- **Concept Title & Angle** (aligned with the brand's tone of voice and persona)\n- **Visual & Style Direction** (colors, typography, composition)\n- **Suggested Headline / Draft Copy Hook**\n- **Recommended Format** (e.g. 5-Slide Carousel, 15s Reel, or High-Impact Static)\nFormat cleanly with clear headings and no raw quote markers.";
         } elseif ($action === 'rewrite_caption') {
             $userPrompt = "Please rewrite the social media caption for this deliverable into 3 distinct, ready-to-use variations:\n\n### Option 1: Punchy with CTA\n### Option 2: Storytelling & Emotional\n### Option 3: Short & Minimal\n\nInclude relevant hashtags and emojis. Format each variation cleanly so it is effortless to read and copy.";
         }
@@ -390,18 +427,27 @@ CONTEXT;
         $hasArtwork = !empty($deliverable->artwork_url);
         $artworkCount = is_array($deliverable->artwork_url) ? count($deliverable->artwork_url) : ($hasArtwork ? 1 : 0);
 
+        $revisionsCount = $deliverable->revisionsHistory()->count();
+        $revisionsInfo = $revisionsCount > 0 ? "{$revisionsCount} recorded round(s) on file" : "None (0 revisions)";
+
+        $brandDnaBlock = '';
+        if ($deliverable->project?->brand) {
+            $brandDnaBlock = "\n\n" . $this->brandService->formatBrandDnaForAi($deliverable->project->brand);
+        }
+
         return <<<CONTEXT
 === CURRENT ACTIVE DELIVERABLE CONTEXT ===
 - Brand: {$brandName}
 - Project: {$projectName}
 - Deliverable: {$title}
 - Workflow Stage: {$stage}
+- Revision History: {$revisionsInfo}
 - Creative Concept: {$concept}
 - Body Copy / Text: {$copy}
 - Social Caption: {$caption}
 - Reference Links: {$refUrlsStr}
 - Uploaded Artwork: {$artworkCount} file(s) available
-==========================================
+=========================================={$brandDnaBlock}
 CONTEXT;
     }
 }
