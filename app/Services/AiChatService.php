@@ -76,7 +76,7 @@ class AiChatService
         if (empty($plainConcept) && empty($plainCopy) && empty($plainCaption)) {
             return [
                 'success' => false,
-                'reply'   => "⚠️ **No text content found to review.**\n\nPlease add some copy in the **Creative Concept**, **Body Copy**, or **Caption** fields on this deliverable, or paste the text you'd like me to review right here in the chat.",
+                'reply'   => "**No text content found to review.**\n\nPlease enter copy in the **Creative Concept**, **Body Copy**, or **Caption** fields on this deliverable, or paste the text you'd like me to inspect.",
                 'action'  => 'grammar_check',
             ];
         }
@@ -93,9 +93,9 @@ class AiChatService
         $engine = $results['engine'] ?? 'gemini';
 
         if ($totalIssues === 0) {
-            $reply = "✅ **Copy & Grammar Review Complete!**\n\nAll content fields (**Concept**, **Body Copy**, and **Caption**) look clean, polished, and on-brand. No grammatical errors or spelling typos were detected.";
+            $reply = "**Copy & Grammar Review Complete**\n\nAll content fields (**Concept**, **Body Copy**, and **Caption**) look clean, polished, and on-brand. No grammatical errors or spelling typos were detected.";
         } else {
-            $reply = "🔍 **Copy & Grammar Review Findings ({$totalIssues} issue" . ($totalIssues === 1 ? '' : 's') . " found):**\n\n";
+            $reply = "**Copy & Grammar Review Findings** ({$totalIssues} issue" . ($totalIssues === 1 ? '' : 's') . " found):\n\n";
 
             foreach (['concept' => 'Creative Concept', 'copy' => 'Body Copy', 'caption' => 'Caption'] as $fKey => $fLabel) {
                 $fieldIssues = $results['fields'][$fKey] ?? [];
@@ -111,7 +111,7 @@ class AiChatService
                     $reply .= "\n";
                 }
             }
-            $reply .= "💡 _Would you like me to rewrite any of these sections to be punchier or more engaging?_";
+            $reply .= "_Would you like me to rewrite any of these sections to be punchier or more engaging?_";
         }
 
         return [
@@ -132,7 +132,7 @@ class AiChatService
         if (!$critique['success']) {
             return [
                 'success' => false,
-                'reply'   => "⚠️ " . ($critique['message'] ?? 'Unable to analyze artwork image.'),
+                'reply'   => $critique['message'] ?? 'Unable to analyze artwork image.',
                 'action'  => 'artwork_critique',
                 'data'    => $critique,
             ];
@@ -148,14 +148,14 @@ class AiChatService
         $alignment = $data['alignment'] ?? null;
         $refFidelity = $data['reference_fidelity'] ?? null;
 
-        $reply = "🎨 **AI Artwork Review & Reference Critique**\n\n";
-        $reply .= "⭐ **Creative Director Score:** **{$score} / 10**\n";
-        $reply .= "💬 **Verdict:** {$verdict}\n\n";
+        $reply = "**Artwork Review & Reference Critique**\n\n";
+        $reply .= "**Creative Director Score:** **{$score} / 10**\n";
+        $reply .= "**Verdict:** {$verdict}\n\n";
 
         if (!empty($strengths)) {
             $reply .= "### **Strengths:**\n";
             foreach ($strengths as $st) {
-                $reply .= "- ✅ {$st}\n";
+                $reply .= "- {$st}\n";
             }
             $reply .= "\n";
         }
@@ -175,7 +175,7 @@ class AiChatService
         if (!empty($suggestions)) {
             $reply .= "### **Actionable Polish Tips:**\n";
             foreach ($suggestions as $sg) {
-                $reply .= "- 💡 {$sg}\n";
+                $reply .= "- {$sg}\n";
             }
         }
 
