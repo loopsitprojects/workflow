@@ -3,7 +3,7 @@
 ])
 
 @php
-    $aiEnabled = \App\Services\FeatureManager::isAiEnabled();
+    $aiEnabled = \App\Services\FeatureManager::isAiFeaturesEnabled();
     if (!$aiEnabled) {
         return;
     }

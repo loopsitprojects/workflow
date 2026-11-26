@@ -308,6 +308,14 @@ class FeatureManager
     }
 
     /**
+     * Check if AI Features are enabled (alias).
+     */
+    public static function isAiEnabled(): bool
+    {
+        return self::isAiFeaturesEnabled();
+    }
+
+    /**
      * Set the AI Features status.
      */
     public static function setAiFeaturesEnabled(bool $enabled): void

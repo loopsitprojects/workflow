@@ -23,7 +23,7 @@ class AiChatController extends Controller
     public function sendMessage(Request $request, ?Deliverable $deliverable = null): JsonResponse
     {
         // 1. Verify global AI feature toggle
-        if (!FeatureManager::isAiEnabled()) {
+        if (!FeatureManager::isAiFeaturesEnabled()) {
             return response()->json([
                 'success' => false,
                 'reply'   => 'AI features are currently turned off in System Settings. An administrator can enable them under Admin > Settings.',

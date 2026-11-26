@@ -1308,7 +1308,7 @@
     <x-confirm-modal />
     <x-highlighted-upload-overlay />
     <x-closing-deliverable-overlay />
-    @if(\App\Services\FeatureManager::isAiEnabled())
+    @if(\App\Services\FeatureManager::isAiFeaturesEnabled())
         @php
             $currentDeliverable = $deliverable ?? ($__data['deliverable'] ?? null);
         @endphp
