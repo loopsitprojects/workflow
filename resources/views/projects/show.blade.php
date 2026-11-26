@@ -2479,6 +2479,7 @@
                                 <span>Check Caption</span>
                             </button>
                             @endif
+                        </div>
                         <div id="grammarCheckDrawer_caption" style="display:none; margin-bottom:16px;"></div>
                         <input type="hidden" id="modalCaption" name="caption" form="submitStageForm">
                         <div id="quillCaption" class="detail-val-textarea" style="padding:0; min-height:80px; border-radius:10px; background:var(--color-bg-primary); border-color:var(--color-border-primary);"></div>
