@@ -28,13 +28,19 @@ class AiChatService
      * @param array $history
      * @param Deliverable|null $deliverable
      * @param string $action 'chat'|'grammar_check'|'artwork_critique'|'brainstorm'|'rewrite_caption'
+     * @param array|null $liveContext
      * @return array
      */
-    public function handleChat(string $message, array $history = [], ?Deliverable $deliverable = null, string $action = 'chat'): array
-    {
+    public function handleChat(
+        string $message,
+        array $history = [],
+        ?Deliverable $deliverable = null,
+        string $action = 'chat',
+        ?array $liveContext = null
+    ): array {
         // 1. Direct Specialized Action: Grammar Check
-        if ($action === 'grammar_check' && $deliverable) {
-            return $this->handleGrammarCheckAction($deliverable);
+        if ($action === 'grammar_check') {
+            return $this->handleGrammarCheckAction($deliverable, $liveContext);
         }
 
         // 2. Direct Specialized Action: Artwork Critique
@@ -43,18 +49,42 @@ class AiChatService
         }
 
         // 3. Conversational Chat & Creative Generation
-        return $this->handleConversationalChat($message, $history, $deliverable, $action);
+        return $this->handleConversationalChat($message, $history, $deliverable, $action, $liveContext);
     }
 
     /**
      * Run full grammar and copy review for deliverable and return structured chat response.
      */
-    protected function handleGrammarCheckAction(Deliverable $deliverable): array
+    protected function handleGrammarCheckAction(?Deliverable $deliverable, ?array $liveContext = null): array
     {
+        $concept = !empty($liveContext['concept']) 
+            ? $liveContext['concept'] 
+            : ($deliverable?->concept ?: ($deliverable?->notes ?: ''));
+
+        $copy = !empty($liveContext['copy']) 
+            ? $liveContext['copy'] 
+            : ($deliverable?->post_copy ?: '');
+
+        $caption = !empty($liveContext['caption']) 
+            ? $liveContext['caption'] 
+            : ($deliverable?->caption ?: '');
+
+        $plainConcept = trim(strip_tags($concept));
+        $plainCopy = trim(strip_tags($copy));
+        $plainCaption = trim(strip_tags($caption));
+
+        if (empty($plainConcept) && empty($plainCopy) && empty($plainCaption)) {
+            return [
+                'success' => false,
+                'reply'   => "⚠️ **No text content found to review.**\n\nPlease add some copy in the **Creative Concept**, **Body Copy**, or **Caption** fields on this deliverable, or paste the text you'd like me to review right here in the chat.",
+                'action'  => 'grammar_check',
+            ];
+        }
+
         $fields = [
-            'concept' => $deliverable->concept ?: ($deliverable->notes ?: ''),
-            'copy'    => $deliverable->post_copy ?: '',
-            'caption' => $deliverable->caption ?: '',
+            'concept' => $concept,
+            'copy'    => $copy,
+            'caption' => $caption,
         ];
 
         $results = $this->grammarService->checkFields($fields);
@@ -63,7 +93,7 @@ class AiChatService
         $engine = $results['engine'] ?? 'gemini';
 
         if ($totalIssues === 0) {
-            $reply = "✅ **Copy & Grammar Review Complete!**\n\nAll content fields (**Concept**, **Copy**, and **Caption**) look clean, polished, and ready for review. No grammatical errors or typos were detected.";
+            $reply = "✅ **Copy & Grammar Review Complete!**\n\nAll content fields (**Concept**, **Body Copy**, and **Caption**) look clean, polished, and on-brand. No grammatical errors or spelling typos were detected.";
         } else {
             $reply = "🔍 **Copy & Grammar Review Findings ({$totalIssues} issue" . ($totalIssues === 1 ? '' : 's') . " found):**\n\n";
 
@@ -81,7 +111,7 @@ class AiChatService
                     $reply .= "\n";
                 }
             }
-            $reply .= "💡 _Would you like me to rewrite any of these sections to be more punchy or engaging?_";
+            $reply .= "💡 _Would you like me to rewrite any of these sections to be punchier or more engaging?_";
         }
 
         return [
@@ -160,8 +190,13 @@ class AiChatService
     /**
      * Perform conversational dialogue or specialized prompt generation using Gemini API.
      */
-    protected function handleConversationalChat(string $message, array $history, ?Deliverable $deliverable, string $action): array
-    {
+    protected function handleConversationalChat(
+        string $message,
+        array $history,
+        ?Deliverable $deliverable,
+        string $action,
+        ?array $liveContext = null
+    ): array {
         if (empty($this->geminiApiKey)) {
             return [
                 'success' => false,
@@ -173,19 +208,21 @@ class AiChatService
         $model = config('services.gemini.model', env('GEMINI_MODEL', 'gemini-flash-latest'));
         $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->geminiApiKey}";
 
-        // Build context block
-        $context = $this->buildDeliverableContext($deliverable);
+        // Build deliverable context block incorporating live on-screen text
+        $context = $this->buildDeliverableContext($deliverable, $liveContext);
 
         $systemInstruction = <<<INSTRUCTION
-You are "Loops AI Assistant", an elite Creative Agency Director, Senior Copywriter, and Visual Strategist at a top-tier marketing and creative agency.
+You are "Loops AI Creative Copilot", an elite Creative Agency Director, Senior Copywriter, and Visual Strategist at a top-tier marketing and creative agency.
 You assist marketing specialists, copywriters, art directors, and brand managers with their daily creative workflows.
 
 Guidelines:
 1. Always be professional, insightful, inspiring, and concise.
-2. If deliverable context is provided, ground your answers in the active project brief, brand identity, concept, copy, caption, and reference assets.
-3. When providing copy suggestions or revisions, format them clearly with bullet points or blockquotes so the user can easily copy and use them.
-4. If asked to brainstorm or rewrite, provide 2 to 3 distinct high-quality options (e.g. Option A: High Energy, Option B: Minimal & Modern, Option C: Story-Driven).
-5. Format your output in clean GitHub-flavored Markdown.
+2. If deliverable context is provided, ground your answers in the active project brief, brand identity, creative concept, copy, caption, and reference assets.
+3. You have direct multimodal visual sight of the deliverable's uploaded artwork image and reference moodboards (when provided in the user turn parts). When asked about design, colors, font styles, layout, visual hierarchy, or fidelity to the concept/moodboard, analyze the images directly and provide specific observations!
+4. Agency copy frequently includes bilingual or hybrid text (e.g. English combined with Sinhala script or Singlish). Respect brand colloquialisms, slang, puns, and creative transliteration.
+5. When providing copy suggestions or revisions, format them clearly with bullet points or blockquotes so the user can easily copy and use them.
+6. If asked to brainstorm or rewrite, provide 2 to 3 distinct high-quality options (e.g. Option A: High Energy, Option B: Minimal & Modern, Option C: Story-Driven).
+7. Format your output in clean GitHub-flavored Markdown.
 
 {$context}
 INSTRUCTION;
@@ -196,9 +233,9 @@ INSTRUCTION;
         // Specialized action prompt overrides
         $userPrompt = $message;
         if ($action === 'brainstorm') {
-            $userPrompt = "Please brainstorm 3 distinct creative concept angles and visual directions for this deliverable based on the brief and target brand.";
+            $userPrompt = "Please brainstorm 3 distinct creative concept angles and visual directions for this deliverable based on the brief, brand identity, and target audience.";
         } elseif ($action === 'rewrite_caption') {
-            $userPrompt = "Please rewrite the social media caption for this deliverable into 3 distinct variations (1: Punchy/Catchy with CTA, 2: Storytelling/Emotional, 3: Short & Minimal) including relevant hashtags.";
+            $userPrompt = "Please rewrite the social media caption for this deliverable into 3 distinct variations (1: Punchy/Catchy with CTA, 2: Storytelling/Emotional, 3: Short & Minimal) including relevant emojis and hashtags.";
         }
 
         // Add history turns (limit to last 10 turns for speed and context window)
@@ -214,14 +251,48 @@ INSTRUCTION;
             }
         }
 
+        // Build current turn parts (including multimodal artwork images if available)
+        $currentTurnParts = [];
+
+        if ($deliverable) {
+            $artworkImg = $this->critiqueService->resolveImageData($deliverable);
+            if ($artworkImg) {
+                // Attach reference images first for visual comparison
+                $refImages = $this->critiqueService->resolveReferenceImages($deliverable, 2);
+                foreach ($refImages as $idx => $ref) {
+                    $currentTurnParts[] = [
+                        'text' => "--- [REFERENCE / MOODBOARD IMAGE #" . ($idx + 1) . "] Visual Reference Style Guide ---"
+                    ];
+                    $currentTurnParts[] = [
+                        'inlineData' => [
+                            'mimeType' => $ref['mime'],
+                            'data'     => $ref['base64'],
+                        ]
+                    ];
+                }
+
+                $currentTurnParts[] = [
+                    'text' => "--- [CURRENT DELIVERABLE FINAL ARTWORK] Active Design under review for: \"{$deliverable->title}\" ---"
+                ];
+                $currentTurnParts[] = [
+                    'inlineData' => [
+                        'mimeType' => $artworkImg['mime'],
+                        'data'     => $artworkImg['base64'],
+                    ]
+                ];
+            }
+        }
+
+        $currentTurnParts[] = ['text' => $userPrompt];
+
         // Append current turn
         $contents[] = [
             'role'  => 'user',
-            'parts' => [['text' => $userPrompt]],
+            'parts' => $currentTurnParts,
         ];
 
         try {
-            $response = Http::timeout(30)
+            $response = Http::timeout(35)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post($url, [
                     'systemInstruction' => [
@@ -275,19 +346,43 @@ INSTRUCTION;
     /**
      * Build rich deliverable context string to ground AI responses.
      */
-    protected function buildDeliverableContext(?Deliverable $deliverable): string
+    protected function buildDeliverableContext(?Deliverable $deliverable, ?array $liveContext = null): string
     {
+        $rawConcept = !empty($liveContext['concept']) 
+            ? $liveContext['concept'] 
+            : ($deliverable?->concept ?: ($deliverable?->notes ?: ''));
+
+        $rawCopy = !empty($liveContext['copy']) 
+            ? $liveContext['copy'] 
+            : ($deliverable?->post_copy ?: '');
+
+        $rawCaption = !empty($liveContext['caption']) 
+            ? $liveContext['caption'] 
+            : ($deliverable?->caption ?: '');
+
+        // Convert HTML breaks and paragraphs to clean linebreaks before stripping tags
+        $concept = trim(strip_tags(preg_replace('/<br\s*\/?>/i', "\n", preg_replace('/<\/p>/i', "\n", $rawConcept))));
+        $copy = trim(strip_tags(preg_replace('/<br\s*\/?>/i', "\n", preg_replace('/<\/p>/i', "\n", $rawCopy))));
+        $caption = trim(strip_tags(preg_replace('/<br\s*\/?>/i', "\n", preg_replace('/<\/p>/i', "\n", $rawCaption))));
+
         if (!$deliverable) {
-            return "Current Context: General agency hub. No specific deliverable is currently selected.";
+            if (empty($concept) && empty($copy) && empty($caption)) {
+                return "Current Context: General agency hub. No specific deliverable is currently selected.";
+            }
+
+            return <<<CONTEXT
+=== CURRENT ACTIVE ON-SCREEN CONTENT ===
+- Creative Concept: {$concept}
+- Body Copy / Text: {$copy}
+- Social Caption: {$caption}
+=======================================
+CONTEXT;
         }
 
         $brandName = $deliverable->project?->brand?->name ?? 'Agency Client';
         $projectName = $deliverable->project?->name ?? 'Campaign';
         $title = $deliverable->title ?? 'Deliverable';
         $stage = $deliverable->stage ?? 'Writer';
-        $concept = strip_tags($deliverable->concept ?: ($deliverable->notes ?: 'None provided'));
-        $copy = strip_tags($deliverable->post_copy ?: 'None provided');
-        $caption = strip_tags($deliverable->caption ?: 'None provided');
         
         $refUrls = $deliverable->getReferenceUrlsArray();
         $refUrlsStr = !empty($refUrls) ? implode(", ", $refUrls) : 'None';
@@ -302,10 +397,10 @@ INSTRUCTION;
 - Deliverable: {$title}
 - Workflow Stage: {$stage}
 - Creative Concept: {$concept}
-- Copy / Text: {$copy}
+- Body Copy / Text: {$copy}
 - Social Caption: {$caption}
 - Reference Links: {$refUrlsStr}
-- Uploaded Artwork Count: {$artworkCount}
+- Uploaded Artwork: {$artworkCount} file(s) available
 ==========================================
 CONTEXT;
     }

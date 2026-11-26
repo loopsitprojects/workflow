@@ -1,4 +1,4 @@
-<x-layout title="{{ $deliverable->title }}">
+<x-layout title="{{ $deliverable->title }}" :deliverable="$deliverable">
     @php
         $isAdmin = auth()->user()->isAdmin();
         $userRole = strtolower(str_replace(' ', '', auth()->user()->role));
@@ -2004,6 +2004,10 @@
             quillConcept = new Quill('#quillConcept', quillOptions);
             quillCaption = new Quill('#quillCaption', quillOptions);
             quillCopy = new Quill('#quillCopy', quillOptions);
+
+            window.quillConcept = quillConcept;
+            window.quillCaption = quillCaption;
+            window.quillCopy = quillCopy;
             
             quillConcept.on('text-change', () => { 
                 document.getElementById('modalConcept').value = getCleanHtml(quillConcept);
@@ -3430,6 +3434,15 @@
                     if (['writer', 'assign', 'assignee'].includes(String(displayStage || '').toLowerCase()) || !displayStage) displayStage = 'Assignee';
                     else if (['close', 'closed'].includes(String(displayStage || '').toLowerCase())) displayStage = 'Closed';
                 }
+
+                window.dispatchEvent(new CustomEvent('deliverable-selected', {
+                    detail: {
+                        id: task.id,
+                        title: task.title,
+                        brandName: @json($deliverable->project?->brand?->name ?? ''),
+                        stage: displayStage || task.approval_stage || task.stage
+                    }
+                }));
 
                 let currentStageAssignee = null;
                 const normStage = String(displayStage || '').trim();

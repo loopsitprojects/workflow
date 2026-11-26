@@ -25,6 +25,7 @@
     brandName: '{{ $brandName ? addslashes($brandName) : '' }}',
     stage: '{{ $stage ? addslashes($stage) : '' }}'
 })"
+@deliverable-selected.window="updateDeliverableContext($event.detail)"
 x-cloak
 class="relative z-50 font-sans">
 
@@ -137,15 +138,32 @@ class="relative z-50 font-sans">
 
         <!-- Deliverable Context Banner (if on deliverable) -->
         <template x-if="deliverableTitle">
-            <div class="px-4 py-2 bg-indigo-50/60 dark:bg-indigo-950/20 border-b border-indigo-100/60 dark:border-indigo-900/30 flex items-center justify-between gap-2 text-[11px]">
-                <div class="flex items-center gap-1.5 truncate text-indigo-700 dark:text-indigo-300 font-semibold">
-                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                    </svg>
-                    <span class="truncate" x-text="'Grounded in: ' + deliverableTitle"></span>
+            <div class="px-4 py-2 bg-indigo-50/70 dark:bg-indigo-950/30 border-b border-indigo-100/60 dark:border-indigo-900/40 flex flex-col gap-1.5 text-[11px]">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5 truncate text-indigo-700 dark:text-indigo-300 font-bold">
+                        <svg class="w-3.5 h-3.5 shrink-0 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        <span class="truncate" x-text="deliverableTitle + (brandName ? ' &bull; ' + brandName : '')"></span>
+                    </div>
+                    <span class="text-[9.5px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-indigo-100/80 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 shrink-0" x-text="stage || 'Active'"></span>
                 </div>
-                <span class="text-[10px] text-indigo-500 font-bold uppercase shrink-0" x-text="stage || 'Active'"></span>
+                <!-- Live Context Badges -->
+                <div class="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400">
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/70 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 font-semibold">
+                        <span class="text-emerald-500 font-bold">&check;</span> Concept
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/70 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 font-semibold">
+                        <span class="text-emerald-500 font-bold">&check;</span> Copy
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/70 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 font-semibold">
+                        <span class="text-emerald-500 font-bold">&check;</span> Caption
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/70 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60 font-semibold">
+                        <span class="text-purple-500 font-bold">&check;</span> Artwork
+                    </span>
+                </div>
             </div>
         </template>
 
@@ -293,10 +311,21 @@ function loopsAiChatWidget(config) {
         messages: [],
 
         init() {
+            // Check if page already has an active subtask/deliverable in the modal
+            if (!this.deliverableId) {
+                const taskIdAttr = document.getElementById('modalTaskTitle')?.getAttribute('data-task-id');
+                if (taskIdAttr) {
+                    const parsed = parseInt(taskIdAttr);
+                    if (!isNaN(parsed) && parsed > 0) {
+                        this.deliverableId = parsed;
+                    }
+                }
+            }
+
             // Load greetings message
             let greeting = '👋 **Hi! I am your Loops AI Creative Copilot.**\n\nI can review copy & grammar, critique final artwork against your reference moodboards, rewrite social captions, and brainstorm creative angles.';
             if (this.deliverableTitle) {
-                greeting = `👋 **Hi! I am your Loops AI Creative Copilot.**\n\nI am currently focused on **${this.deliverableTitle}**` + (this.brandName ? ` for **${this.brandName}**.` : '.') + `\n\nTap any quick action above or ask me anything!`;
+                greeting = `👋 **Hi! I am your Loops AI Creative Copilot.**\n\nI am currently focused on **${this.deliverableTitle}**` + (this.brandName ? ` for **${this.brandName}**.` : '.') + `\n\nI have loaded your live creative concept, copy, caption, and artwork. Tap any action above or ask me anything!`;
             }
 
             this.messages.push({
@@ -305,6 +334,26 @@ function loopsAiChatWidget(config) {
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 copied: false
             });
+        },
+
+        updateDeliverableContext(detail) {
+            if (!detail) return;
+            const isDifferent = this.deliverableId && detail.id && (this.deliverableId !== detail.id);
+            this.deliverableId = detail.id || this.deliverableId;
+            this.deliverableTitle = detail.title || this.deliverableTitle;
+            if (detail.brandName) this.brandName = detail.brandName;
+            if (detail.stage) this.stage = detail.stage;
+
+            // Notify user of dynamic context switch when navigating subtasks
+            if (isDifferent && this.messages.length > 0) {
+                this.messages.push({
+                    role: 'model',
+                    content: `📌 **Active deliverable updated to: ${this.deliverableTitle}**` + (this.brandName ? ` (${this.brandName})` : '') + `\n\nI am now analyzing this subtask's creative concept, copy, caption, and artwork. What would you like to review?`,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    copied: false
+                });
+                this.$nextTick(() => this.scrollToBottom());
+            }
         },
 
         toggleChat() {
@@ -327,6 +376,56 @@ function loopsAiChatWidget(config) {
             if (container) {
                 container.scrollTop = container.scrollHeight;
             }
+        },
+
+        getLiveDeliverableContext() {
+            let concept = '';
+            let copy = '';
+            let caption = '';
+
+            // 1. Concept: check window.quillConcept, textarea modalConcept, or DOM editor
+            if (window.quillConcept?.root?.innerHTML && window.quillConcept.root.innerHTML !== '<p><br></p>') {
+                concept = window.quillConcept.root.innerHTML;
+            } else if (document.getElementById('modalConcept')?.value) {
+                concept = document.getElementById('modalConcept').value;
+            } else if (document.querySelector('#quillConcept .ql-editor')?.innerHTML) {
+                concept = document.querySelector('#quillConcept .ql-editor').innerHTML;
+            }
+
+            // 2. Body Copy: check window.quillCopy, textarea modalSubtaskCopy, or DOM editor
+            if (window.quillCopy?.root?.innerHTML && window.quillCopy.root.innerHTML !== '<p><br></p>') {
+                copy = window.quillCopy.root.innerHTML;
+            } else if (document.getElementById('modalSubtaskCopy')?.value) {
+                copy = document.getElementById('modalSubtaskCopy').value;
+            } else if (document.querySelector('#quillCopy .ql-editor')?.innerHTML) {
+                copy = document.querySelector('#quillCopy .ql-editor').innerHTML;
+            }
+
+            // 3. Caption: check window.quillCaption, textarea modalCaption, or DOM editor
+            if (window.quillCaption?.root?.innerHTML && window.quillCaption.root.innerHTML !== '<p><br></p>') {
+                caption = window.quillCaption.root.innerHTML;
+            } else if (document.getElementById('modalCaption')?.value) {
+                caption = document.getElementById('modalCaption').value;
+            } else if (document.querySelector('#quillCaption .ql-editor')?.innerHTML) {
+                caption = document.querySelector('#quillCaption .ql-editor').innerHTML;
+            }
+
+            // 4. Resolve active task ID if modal is open
+            let activeId = this.deliverableId;
+            const taskIdAttr = document.getElementById('modalTaskTitle')?.getAttribute('data-task-id');
+            if (taskIdAttr) {
+                const parsed = parseInt(taskIdAttr);
+                if (!isNaN(parsed) && parsed > 0) {
+                    activeId = parsed;
+                }
+            }
+
+            return {
+                deliverable_id: activeId,
+                concept: (concept || '').trim(),
+                copy: (copy || '').trim(),
+                caption: (caption || '').trim(),
+            };
         },
 
         async triggerAction(actionName) {
@@ -369,8 +468,14 @@ function loopsAiChatWidget(config) {
 
         async callAiEndpoint(payload) {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const endpoint = this.deliverableId 
-                ? `/deliverables/${this.deliverableId}/ai-chat`
+            
+            // Extract live on-screen text from Quill editors & active modal
+            const liveCtx = this.getLiveDeliverableContext();
+            payload.live_context = liveCtx;
+
+            const targetId = liveCtx.deliverable_id || this.deliverableId;
+            const endpoint = targetId 
+                ? `/deliverables/${targetId}/ai-chat`
                 : '/ai/chat';
 
             // Prepare history turns for conversation context

@@ -177,7 +177,7 @@ PROMPT;
      * @param int $max
      * @return array<int, array{base64: string, mime: string, url: string}>
      */
-    protected function resolveReferenceImages(Deliverable $deliverable, int $max = 3): array
+    public function resolveReferenceImages(Deliverable $deliverable, int $max = 3): array
     {
         $refFiles = $deliverable->getReferenceFilesArray();
         $images = [];
@@ -204,7 +204,7 @@ PROMPT;
     /**
      * Resolve image binary and mime type from deliverable or direct URL.
      */
-    protected function resolveImageData(Deliverable $deliverable, ?string $artworkUrl): ?array
+    public function resolveImageData(Deliverable $deliverable, ?string $artworkUrl = null): ?array
     {
         $targetPath = $artworkUrl;
 

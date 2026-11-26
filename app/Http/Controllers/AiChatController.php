@@ -37,11 +37,22 @@ class AiChatController extends Controller
             'conversation_history' => 'nullable|array',
             'conversation_history.*.role'    => 'required_with:conversation_history|string|in:user,model,assistant',
             'conversation_history.*.content' => 'required_with:conversation_history|string',
+            'live_context'         => 'nullable|array',
+            'live_context.concept' => 'nullable|string|max:20000',
+            'live_context.copy'    => 'nullable|string|max:20000',
+            'live_context.caption' => 'nullable|string|max:20000',
+            'live_context.deliverable_id' => 'nullable|integer',
         ]);
 
         $message = trim($validated['message'] ?? '');
         $action = $validated['action'] ?? 'chat';
         $history = $validated['conversation_history'] ?? [];
+        $liveContext = $validated['live_context'] ?? [];
+
+        // If deliverable not injected via route parameter, attempt resolution from live_context
+        if (!$deliverable && !empty($liveContext['deliverable_id'])) {
+            $deliverable = Deliverable::with(['project.brand'])->find($liveContext['deliverable_id']);
+        }
 
         // If an empty message is provided on standard chat, default prompt
         if (empty($message) && $action === 'chat') {
@@ -55,7 +66,8 @@ class AiChatController extends Controller
             $message,
             $history,
             $deliverable,
-            $action
+            $action,
+            $liveContext
         );
 
         return response()->json($result);

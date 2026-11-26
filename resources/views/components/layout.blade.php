@@ -1,3 +1,7 @@
+@props([
+    'title' => 'Loops',
+    'deliverable' => null,
+])
 <!DOCTYPE html>
 @php
     $activeTheme = \App\Services\FeatureManager::getActiveTheme();
@@ -1311,6 +1315,14 @@
     @if(\App\Services\FeatureManager::isAiFeaturesEnabled())
         @php
             $currentDeliverable = $deliverable ?? ($__data['deliverable'] ?? null);
+            if (!$currentDeliverable) {
+                $routeParam = request()->route('deliverable');
+                if ($routeParam instanceof \App\Models\Deliverable) {
+                    $currentDeliverable = $routeParam;
+                } elseif (is_numeric($routeParam)) {
+                    $currentDeliverable = \App\Models\Deliverable::with('project.brand')->find($routeParam);
+                }
+            }
         @endphp
         <x-ai-chat-widget :deliverable="$currentDeliverable" />
     @endif
