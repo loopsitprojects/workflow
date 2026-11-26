@@ -243,10 +243,10 @@ class="relative z-50 font-sans">
                             </div>
 
                             <div class="flex-1 space-y-1.5 min-w-0">
-                                <div class="relative bg-slate-50 border border-slate-200/90 dark:bg-[#111827] dark:border-slate-800/80 rounded-xl p-3 text-xs leading-relaxed text-slate-800 dark:text-slate-200">
+                                <div class="relative bg-slate-50 border border-slate-200/90 dark:bg-[#111827] dark:border-slate-800/80 rounded-xl p-3.5 text-xs leading-relaxed text-slate-800 dark:text-slate-200 shadow-2xs">
                                     
                                     <!-- Formatted Markdown Body -->
-                                    <div class="prose dark:prose-invert max-w-none text-xs space-y-1.5 leading-relaxed text-slate-800 dark:text-slate-200"
+                                    <div class="loops-chat-content text-xs leading-relaxed text-slate-800 dark:text-slate-200"
                                          x-html="renderMarkdown(msg.content)">
                                     </div>
 
@@ -335,6 +335,87 @@ html.dark .loops-chat-scroll::-webkit-scrollbar-thumb {
 .dark .loops-chat-scroll::-webkit-scrollbar-thumb:hover,
 html.dark .loops-chat-scroll::-webkit-scrollbar-thumb:hover {
     background: rgba(71, 85, 105, 0.8);
+}
+
+/* Polished markdown typography inside chat */
+.loops-chat-content blockquote {
+    border-left: 3px solid #6366f1;
+    background: rgba(99, 102, 241, 0.05);
+    padding: 8px 12px;
+    margin: 8px 0;
+    border-radius: 0 8px 8px 0;
+    font-style: normal;
+    color: inherit;
+}
+.dark .loops-chat-content blockquote,
+html.dark .loops-chat-content blockquote {
+    border-left-color: #818cf8;
+    background: rgba(99, 102, 241, 0.1);
+}
+.loops-chat-content blockquote p {
+    margin: 4px 0;
+}
+.loops-chat-content hr {
+    border: none;
+    border-top: 1px solid rgba(226, 232, 240, 0.9);
+    margin: 12px 0;
+}
+.dark .loops-chat-content hr,
+html.dark .loops-chat-content hr {
+    border-top-color: rgba(51, 65, 85, 0.6);
+}
+.loops-chat-content h2,
+.loops-chat-content h3,
+.loops-chat-content h4 {
+    font-weight: 700;
+    margin-top: 10px;
+    margin-bottom: 4px;
+    color: inherit;
+}
+.loops-chat-content h2 { font-size: 13px; }
+.loops-chat-content h3 { font-size: 12px; }
+.loops-chat-content h4 { font-size: 11.5px; }
+.loops-chat-content ul {
+    list-style-type: disc;
+    padding-left: 18px;
+    margin: 6px 0;
+}
+.loops-chat-content ol {
+    list-style-type: decimal;
+    padding-left: 18px;
+    margin: 6px 0;
+}
+.loops-chat-content li {
+    margin: 3px 0;
+}
+.loops-chat-content p {
+    margin: 6px 0;
+}
+.loops-chat-content p:first-child {
+    margin-top: 0;
+}
+.loops-chat-content p:last-child {
+    margin-bottom: 0;
+}
+.loops-chat-content code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.15);
+}
+.dark .loops-chat-content code,
+html.dark .loops-chat-content code {
+    background: rgba(51, 65, 85, 0.6);
+}
+.loops-chat-content pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 8px 0;
+    font-size: 11px;
 }
 </style>
 
@@ -584,33 +665,48 @@ function loopsAiChatWidget(config) {
 
         renderMarkdown(rawText) {
             if (!rawText) return '';
+
+            // 1. Preferred: High-performance GFM parser via marked
+            if (window.marked && typeof window.marked.parse === 'function') {
+                try {
+                    return window.marked.parse(rawText);
+                } catch (e) {
+                    console.error('Marked parse error:', e);
+                }
+            }
             
-            // Safe HTML escaping
-            let escaped = rawText
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
+            // 2. Comprehensive fallback parser
+            let text = rawText;
+
+            // Normalize blockquotes: convert markdown blockquote lines to styled blockquote tags
+            text = text.replace(/(^>.*(\r?\n>.*)*)/gm, function(match) {
+                const cleaned = match.replace(/^>\s?/gm, '').trim();
+                return `<blockquote><p>${cleaned.replace(/\r?\n/g, '<br/>')}</p></blockquote>`;
+            });
+
+            // Horizontal dividers
+            text = text.replace(/^(---|\*\*\*|___)$/gm, '<hr/>');
 
             // Headers
-            escaped = escaped.replace(/^### (.*$)/gim, '<h4 class="font-bold text-slate-800 dark:text-slate-100 mt-2 mb-1 text-xs">$1</h4>');
-            escaped = escaped.replace(/^## (.*$)/gim, '<h3 class="font-extrabold text-slate-800 dark:text-slate-100 mt-2.5 mb-1 text-xs">$1</h3>');
+            text = text.replace(/^### (.*$)/gim, '<h4 class="font-bold text-slate-800 dark:text-slate-100 mt-2 mb-1 text-xs">$1</h4>');
+            text = text.replace(/^## (.*$)/gim, '<h3 class="font-extrabold text-slate-800 dark:text-slate-100 mt-2.5 mb-1 text-xs">$1</h3>');
 
             // Bold & Italic
-            escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-slate-100">$1</strong>');
-            escaped = escaped.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-            escaped = escaped.replace(/_(.*?)_/g, '<em class="italic text-slate-500 dark:text-slate-400">$1</em>');
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-slate-100">$1</strong>');
+            text = text.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+            text = text.replace(/_(.*?)_/g, '<em class="italic text-slate-500 dark:text-slate-400">$1</em>');
 
             // Inline Code
-            escaped = escaped.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 font-mono text-[11px]">$1</code>');
+            text = text.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 font-mono text-[11px]">$1</code>');
 
             // Bullet Lists
-            escaped = escaped.replace(/^\- (.*$)/gim, '<div class="flex items-start gap-1.5 pl-1 my-0.5"><span class="text-slate-400 dark:text-slate-500 font-bold">•</span><span>$1</span></div>');
+            text = text.replace(/^\- (.*$)/gim, '<div class="flex items-start gap-1.5 pl-1 my-0.5"><span class="text-slate-400 dark:text-slate-500 font-bold">•</span><span>$1</span></div>');
 
             // Paragraphs / Linebreaks
-            escaped = escaped.replace(/\n\n/g, '<div class="h-2"></div>');
-            escaped = escaped.replace(/\n/g, '<br/>');
+            text = text.replace(/\n\n/g, '<div class="h-2"></div>');
+            text = text.replace(/\n/g, '<br/>');
 
-            return escaped;
+            return text;
         }
     };
 }

@@ -220,8 +220,8 @@ Guidelines:
 2. If deliverable context is provided, ground your answers in the active project brief, brand identity, creative concept, copy, caption, and reference assets.
 3. You have direct multimodal visual sight of the deliverable's uploaded artwork image and reference moodboards (when provided in the user turn parts). When asked about design, colors, font styles, layout, visual hierarchy, or fidelity to the concept/moodboard, analyze the images directly and provide specific observations!
 4. Agency copy frequently includes bilingual or hybrid text (e.g. English combined with Sinhala script or Singlish). Respect brand colloquialisms, slang, puns, and creative transliteration.
-5. When providing copy suggestions or revisions, format them clearly with bullet points or blockquotes so the user can easily copy and use them.
-6. If asked to brainstorm or rewrite, provide 2 to 3 distinct high-quality options (e.g. Option A: High Energy, Option B: Minimal & Modern, Option C: Story-Driven).
+5. When providing copy suggestions or revisions, format each variation with a clean subhead (e.g. ### Option 1: Punchy with CTA) followed by the suggested copy in clean paragraphs. Do not prefix lines with raw '>' blockquote symbols or clutter with repetitive dividers.
+6. If asked to brainstorm or rewrite, provide 2 to 3 distinct high-quality options (e.g. Option 1: High Energy, Option 2: Minimal & Modern, Option 3: Story-Driven).
 7. Format your output in clean GitHub-flavored Markdown.
 
 {$context}
@@ -233,9 +233,9 @@ INSTRUCTION;
         // Specialized action prompt overrides
         $userPrompt = $message;
         if ($action === 'brainstorm') {
-            $userPrompt = "Please brainstorm 3 distinct creative concept angles and visual directions for this deliverable based on the brief, brand identity, and target audience.";
+            $userPrompt = "Please brainstorm 3 distinct creative concept angles and visual directions for this deliverable based on the brief, brand identity, and target audience. Format each with a clear heading, concept summary, and visual style notes.";
         } elseif ($action === 'rewrite_caption') {
-            $userPrompt = "Please rewrite the social media caption for this deliverable into 3 distinct variations (1: Punchy/Catchy with CTA, 2: Storytelling/Emotional, 3: Short & Minimal) including relevant emojis and hashtags.";
+            $userPrompt = "Please rewrite the social media caption for this deliverable into 3 distinct, ready-to-use variations:\n\n### Option 1: Punchy with CTA\n### Option 2: Storytelling & Emotional\n### Option 3: Short & Minimal\n\nInclude relevant hashtags and emojis. Format each variation cleanly so it is effortless to read and copy.";
         }
 
         // Add history turns (limit to last 10 turns for speed and context window)
