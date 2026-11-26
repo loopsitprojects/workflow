@@ -17,6 +17,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\ClosedArchiveController;
 use App\Http\Controllers\GrammarCheckController;
+use App\Http\Controllers\AiChatController;
 
 Route::get('/invite/{token}', [RegisterController::class, 'show'])->name('register');
 Route::post('/invite/{token}', [RegisterController::class, 'store'])->middleware('throttle:10,1');
@@ -84,6 +85,10 @@ Route::middleware('auth')->group(function () {
     // Grammar & Spellcheck
     Route::post('/deliverables/check-grammar', [GrammarCheckController::class, 'check'])->name('deliverables.check-grammar');
     Route::post('/deliverables/{deliverable}/check-grammar', [GrammarCheckController::class, 'check']);
+
+    // Floating AI Chat Assistant
+    Route::post('/ai/chat', [AiChatController::class, 'sendMessage'])->name('ai.chat');
+    Route::post('/deliverables/{deliverable}/ai-chat', [AiChatController::class, 'sendMessage'])->name('deliverables.ai-chat');
 
     // Campaign & Pitch Kanban Actions
     Route::post('/projects/{project}/campaign-kanban/quick-store', [DeliverableController::class, 'quickStoreCampaignKanban'])->name('campaign-kanban.quick-store');

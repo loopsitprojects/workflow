@@ -1308,5 +1308,11 @@
     <x-confirm-modal />
     <x-highlighted-upload-overlay />
     <x-closing-deliverable-overlay />
+    @if(\App\Services\FeatureManager::isAiEnabled())
+        @php
+            $currentDeliverable = $deliverable ?? ($__data['deliverable'] ?? null);
+        @endphp
+        <x-ai-chat-widget :deliverable="$currentDeliverable" />
+    @endif
 </body>
 </html>
