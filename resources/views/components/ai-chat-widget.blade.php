@@ -41,19 +41,19 @@ class="relative z-50 font-sans">
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100 translate-x-0"
              x-transition:leave-end="opacity-0 translate-x-4"
-             class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0e1422]/95 backdrop-blur-md text-slate-200 text-xs font-medium shadow-xl border border-slate-800">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+             class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 text-slate-700 border border-slate-200/90 shadow-lg dark:bg-[#0e1422]/95 dark:text-slate-200 dark:border-slate-800 dark:shadow-xl text-xs font-medium backdrop-blur-md">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"></span>
             <span>Loops AI Copilot</span>
-            <button type="button" @click.stop="showPill = false" class="text-slate-400 hover:text-slate-200 ml-1">&times;</button>
+            <button type="button" @click.stop="showPill = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-1">&times;</button>
         </div>
 
         <!-- Main Trigger Button -->
         <button type="button"
                 @click="toggleChat()"
-                class="relative group w-12 h-12 rounded-2xl bg-[#0e1422] border border-slate-700/80 text-slate-200 shadow-xl shadow-black/50 hover:bg-slate-800 hover:border-slate-600 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-700">
+                class="relative group w-12 h-12 rounded-2xl bg-white border border-slate-200 text-slate-700 shadow-xl shadow-slate-200/60 hover:bg-slate-50 hover:border-slate-300 dark:bg-[#0e1422] dark:border-slate-700/80 dark:text-slate-200 dark:shadow-black/50 dark:hover:bg-slate-800 dark:hover:border-slate-600 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-700">
             
             <!-- Sparkles Icon (When Closed) -->
-            <div x-show="!isOpen" class="transition-transform duration-200 group-hover:scale-110 flex items-center justify-center text-slate-300">
+            <div x-show="!isOpen" class="transition-transform duration-200 group-hover:scale-110 flex items-center justify-center text-slate-600 dark:text-slate-300">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
                     <path d="M5 3v4"/>
@@ -64,7 +64,7 @@ class="relative z-50 font-sans">
             </div>
 
             <!-- Close Icon (When Open) -->
-            <div x-show="isOpen" class="transition-transform duration-200 flex items-center justify-center text-slate-400">
+            <div x-show="isOpen" class="transition-transform duration-200 flex items-center justify-center text-slate-500 dark:text-slate-400">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 6 6 18"/>
                     <path d="m6 6 12 12"/>
@@ -83,20 +83,20 @@ class="relative z-50 font-sans">
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100 translate-y-0 scale-100"
          x-transition:leave-end="opacity-0 translate-y-6 scale-[0.98]"
-         class="fixed bottom-22 right-6 z-50 w-[420px] max-w-[calc(100vw-2rem)] h-[620px] max-h-[85vh] bg-[#0b0f19] border border-slate-800/80 rounded-2xl shadow-2xl shadow-black/70 flex flex-col overflow-hidden">
+         class="fixed bottom-22 right-6 z-50 w-[420px] max-w-[calc(100vw-2rem)] h-[620px] max-h-[85vh] bg-white border border-slate-200 shadow-2xl shadow-slate-400/20 dark:bg-[#0b0f19] dark:border-slate-800/80 dark:shadow-black/70 rounded-2xl flex flex-col overflow-hidden">
 
         <!-- Top Header Bar (No duplicate deliverable title) -->
-        <div class="px-4 py-3 bg-[#0e1422] border-b border-slate-800/80 flex items-center justify-between shrink-0">
+        <div class="px-4 py-3 bg-slate-50/90 border-b border-slate-200 dark:bg-[#0e1422] dark:border-slate-800/80 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 rounded-lg bg-slate-800/90 border border-slate-700/60 text-slate-300 flex items-center justify-center shrink-0">
-                    <svg class="w-3.5 h-3.5 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <div class="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 dark:bg-slate-800/90 dark:border-slate-700/60 dark:text-slate-300 flex items-center justify-center shrink-0">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
                     </svg>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span class="text-[13px] font-semibold text-slate-100 tracking-tight">Loops AI Copilot</span>
-                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/80 text-slate-300 border border-slate-700/60">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span class="text-[13px] font-semibold text-slate-800 dark:text-slate-100 tracking-tight">Loops AI Copilot</span>
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700/60">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"></span>
                         <span>Ready</span>
                     </span>
                 </div>
@@ -108,7 +108,7 @@ class="relative z-50 font-sans">
                 <button type="button"
                         @click="clearChat()"
                         title="Clear Conversation"
-                        class="p-1.5 hover:text-slate-200 hover:bg-slate-800/60 rounded-md transition-colors cursor-pointer">
+                        class="p-1.5 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800/60 rounded-md transition-colors cursor-pointer">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 6h18"/>
                         <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -120,7 +120,7 @@ class="relative z-50 font-sans">
                 <button type="button"
                         @click="isOpen = false"
                         title="Close AI Assistant"
-                        class="p-1.5 hover:text-slate-200 hover:bg-slate-800/60 rounded-md transition-colors cursor-pointer">
+                        class="p-1.5 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800/60 rounded-md transition-colors cursor-pointer">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M18 6 6 18"/>
                         <path d="m6 6 12 12"/>
@@ -131,34 +131,34 @@ class="relative z-50 font-sans">
 
         <!-- Deliverable Context Bar (Appears once, clean & compact) -->
         <template x-if="deliverableTitle">
-            <div class="px-3.5 py-2.5 bg-[#0e1424] border-b border-slate-800/70 flex flex-col gap-2 shrink-0">
+            <div class="px-3.5 py-2.5 bg-slate-50/80 border-b border-slate-200/90 dark:bg-[#0e1424] dark:border-slate-800/70 flex flex-col gap-2 shrink-0">
                 <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-1.5 truncate text-slate-200 text-xs font-medium">
+                    <div class="flex items-center gap-1.5 truncate text-slate-700 dark:text-slate-200 text-xs font-medium">
                         <svg class="w-3.5 h-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
                         </svg>
                         <span class="truncate" x-text="deliverableTitle + (brandName ? ' &bull; ' + brandName : '')"></span>
                     </div>
-                    <span class="text-[9.5px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-300 border border-slate-700/60 shrink-0" 
+                    <span class="text-[9.5px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700/60 shrink-0" 
                           x-text="stage || 'Active'"></span>
                 </div>
 
                 <!-- Subtle Checklist Pills -->
                 <div class="flex items-center gap-1.5 text-[10px]">
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800/60 text-slate-300 border border-slate-700/50 font-medium">
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white text-slate-600 border border-slate-200/90 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/50 font-medium shadow-2xs">
                         <svg class="w-2.5 h-2.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                         <span>Concept</span>
                     </span>
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800/60 text-slate-300 border border-slate-700/50 font-medium">
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white text-slate-600 border border-slate-200/90 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/50 font-medium shadow-2xs">
                         <svg class="w-2.5 h-2.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                         <span>Copy</span>
                     </span>
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800/60 text-slate-300 border border-slate-700/50 font-medium">
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white text-slate-600 border border-slate-200/90 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/50 font-medium shadow-2xs">
                         <svg class="w-2.5 h-2.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                         <span>Caption</span>
                     </span>
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800/60 text-slate-300 border border-slate-700/50 font-medium">
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white text-slate-600 border border-slate-200/90 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/50 font-medium shadow-2xs">
                         <svg class="w-2.5 h-2.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                         <span>Artwork</span>
                     </span>
@@ -167,13 +167,13 @@ class="relative z-50 font-sans">
         </template>
 
         <!-- Quick Action Chips Bar (No emojis, crisp stroke icons) -->
-        <div class="px-3.5 py-2 bg-[#0b0f19] border-b border-slate-800/60 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+        <div class="px-3.5 py-2 bg-slate-50/40 border-b border-slate-200/70 dark:bg-[#0b0f19] dark:border-slate-800/60 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
             <!-- Chip 1: Copy & Grammar Check -->
             <button type="button"
                     @click="triggerAction('grammar_check')"
                     :disabled="isLoading"
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-[#111827] text-slate-300 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 hover:text-slate-100 whitespace-nowrap transition-colors cursor-pointer disabled:opacity-40">
-                <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 shadow-2xs dark:bg-[#111827] dark:text-slate-300 dark:border-slate-800 dark:hover:border-slate-700 dark:hover:bg-slate-800/80 dark:hover:text-slate-100 whitespace-nowrap transition-colors cursor-pointer disabled:opacity-40">
+                <svg class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m9 11 3 3L22 4"/>
                     <path d="m21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                 </svg>
@@ -184,8 +184,8 @@ class="relative z-50 font-sans">
             <button type="button"
                     @click="triggerAction('artwork_critique')"
                     :disabled="isLoading"
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-[#111827] text-slate-300 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 hover:text-slate-100 whitespace-nowrap transition-colors cursor-pointer disabled:opacity-40">
-                <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 shadow-2xs dark:bg-[#111827] dark:text-slate-300 dark:border-slate-800 dark:hover:border-slate-700 dark:hover:bg-slate-800/80 dark:hover:text-slate-100 whitespace-nowrap transition-colors cursor-pointer disabled:opacity-40">
+                <svg class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
                     <circle cx="9" cy="9" r="2"/>
                     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
@@ -197,8 +197,8 @@ class="relative z-50 font-sans">
             <button type="button"
                     @click="triggerAction('rewrite_caption')"
                     :disabled="isLoading"
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-[#111827] text-slate-300 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 hover:text-slate-100 whitespace-nowrap transition-colors cursor-pointer disabled:opacity-40">
-                <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 shadow-2xs dark:bg-[#111827] dark:text-slate-300 dark:border-slate-800 dark:hover:border-slate-700 dark:hover:bg-slate-800/80 dark:hover:text-slate-100 whitespace-nowrap transition-colors cursor-pointer disabled:opacity-40">
+                <svg class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 20h9"/>
                     <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
                 </svg>
@@ -209,8 +209,8 @@ class="relative z-50 font-sans">
             <button type="button"
                     @click="triggerAction('brainstorm')"
                     :disabled="isLoading"
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-[#111827] text-slate-300 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/80 hover:text-slate-100 whitespace-nowrap transition-colors cursor-pointer disabled:opacity-40">
-                <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 shadow-2xs dark:bg-[#111827] dark:text-slate-300 dark:border-slate-800 dark:hover:border-slate-700 dark:hover:bg-slate-800/80 dark:hover:text-slate-100 whitespace-nowrap transition-colors cursor-pointer disabled:opacity-40">
+                <svg class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
                     <path d="M9 18h6"/>
                     <path d="M10 22h4"/>
@@ -221,14 +221,14 @@ class="relative z-50 font-sans">
 
         <!-- Scrollable Messages Area -->
         <div id="loopsAiChatScrollContainer"
-             class="flex-1 p-4 overflow-y-auto space-y-3.5 text-xs text-slate-200 loops-chat-scroll">
+             class="flex-1 p-4 overflow-y-auto space-y-3.5 text-xs text-slate-700 dark:text-slate-200 bg-white dark:bg-[#0b0f19] loops-chat-scroll">
             
             <template x-for="(msg, index) in messages" :key="index">
                 <div>
-                    <!-- USER MESSAGE (Subtle dark slate bubble) -->
+                    <!-- USER MESSAGE (Subtle slate bubble) -->
                     <template x-if="msg.role === 'user'">
                         <div class="flex justify-end">
-                            <div class="max-w-[85%] rounded-xl bg-slate-800/90 border border-slate-700/70 text-slate-100 px-3.5 py-2 text-xs leading-relaxed whitespace-pre-wrap font-normal"
+                            <div class="max-w-[85%] rounded-xl bg-slate-100 border border-slate-200 text-slate-800 dark:bg-slate-800/90 dark:border-slate-700/70 dark:text-slate-100 px-3.5 py-2 text-xs leading-relaxed whitespace-pre-wrap font-normal"
                                  x-text="msg.content">
                             </div>
                         </div>
@@ -238,15 +238,15 @@ class="relative z-50 font-sans">
                     <template x-if="msg.role === 'model'">
                         <div class="flex items-start gap-2.5 group">
                             <!-- Small Avatar -->
-                            <div class="w-6 h-6 rounded-md bg-slate-800/90 border border-slate-700/60 text-slate-300 text-[10px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
+                            <div class="w-6 h-6 rounded-md bg-slate-100 border border-slate-200 text-slate-600 dark:bg-slate-800/90 dark:border-slate-700/60 dark:text-slate-300 text-[10px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
                                 <span>AI</span>
                             </div>
 
                             <div class="flex-1 space-y-1.5 min-w-0">
-                                <div class="relative bg-[#111827] border border-slate-800/80 rounded-xl p-3 text-xs leading-relaxed text-slate-200">
+                                <div class="relative bg-slate-50 border border-slate-200/90 dark:bg-[#111827] dark:border-slate-800/80 rounded-xl p-3 text-xs leading-relaxed text-slate-800 dark:text-slate-200">
                                     
                                     <!-- Formatted Markdown Body -->
-                                    <div class="prose dark:prose-invert max-w-none text-xs space-y-1.5 leading-relaxed text-slate-200"
+                                    <div class="prose dark:prose-invert max-w-none text-xs space-y-1.5 leading-relaxed text-slate-800 dark:text-slate-200"
                                          x-html="renderMarkdown(msg.content)">
                                     </div>
 
@@ -254,7 +254,7 @@ class="relative z-50 font-sans">
                                     <button type="button"
                                             @click="copyMessageText(msg.content)"
                                             title="Copy message to clipboard"
-                                            class="absolute top-2 right-2 p-1 rounded bg-slate-800/90 border border-slate-700/70 text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                            class="absolute top-2 right-2 p-1 rounded bg-white border border-slate-200 text-slate-400 hover:text-slate-700 dark:bg-slate-800/90 dark:border-slate-700/70 dark:text-slate-400 dark:hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                                         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
                                             <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
@@ -262,9 +262,9 @@ class="relative z-50 font-sans">
                                     </button>
                                 </div>
 
-                                <div class="flex items-center justify-between text-[10px] text-slate-500 px-1">
+                                <div class="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 px-1">
                                     <span x-text="msg.time || ''"></span>
-                                    <span x-show="msg.copied" class="text-slate-300 font-medium">Copied to clipboard</span>
+                                    <span x-show="msg.copied" class="text-slate-700 dark:text-slate-300 font-medium">Copied to clipboard</span>
                                 </div>
                             </div>
                         </div>
@@ -274,39 +274,39 @@ class="relative z-50 font-sans">
 
             <!-- Loading Indicator -->
             <div x-show="isLoading" class="flex items-start gap-2.5">
-                <div class="w-6 h-6 rounded-md bg-slate-800/90 border border-slate-700/60 text-slate-300 text-[10px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
+                <div class="w-6 h-6 rounded-md bg-slate-100 border border-slate-200 text-slate-600 dark:bg-slate-800/90 dark:border-slate-700/60 dark:text-slate-300 text-[10px] font-semibold flex items-center justify-center shrink-0 mt-0.5">
                     <span>AI</span>
                 </div>
-                <div class="bg-[#111827] border border-slate-800/80 rounded-xl px-3 py-2 text-xs text-slate-400 flex items-center gap-1.5">
-                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style="animation-delay: 0ms;"></span>
-                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style="animation-delay: 150ms;"></span>
-                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style="animation-delay: 300ms;"></span>
-                    <span class="text-[11px] font-medium text-slate-400 ml-1">Analyzing...</span>
+                <div class="bg-slate-50 border border-slate-200 dark:bg-[#111827] dark:border-slate-800/80 rounded-xl px-3 py-2 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-bounce" style="animation-delay: 0ms;"></span>
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-bounce" style="animation-delay: 150ms;"></span>
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 animate-bounce" style="animation-delay: 300ms;"></span>
+                    <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500 ml-1">Analyzing...</span>
                 </div>
             </div>
         </div>
 
         <!-- Bottom Input & Send Form -->
-        <div class="p-3 bg-[#0e1422] border-t border-slate-800/80 shrink-0">
+        <div class="p-3 bg-slate-50/90 border-t border-slate-200 dark:bg-[#0e1422] dark:border-slate-800/80 shrink-0">
             <form @submit.prevent="sendMessage()" class="flex items-end gap-2">
                 <div class="flex-1 relative">
                     <textarea x-model="userInput"
                               @keydown.enter.prevent="if (!$event.shiftKey) { sendMessage(); }"
                               rows="1"
                               placeholder="Ask anything about this brief or design..."
-                              class="w-full text-xs bg-[#111827] border border-slate-700/80 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-600 focus:border-slate-600 resize-none max-h-24 min-h-[38px] leading-relaxed transition-all"></textarea>
+                              class="w-full text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 focus:border-slate-300 dark:bg-[#111827] dark:border-slate-700/80 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-slate-600 dark:focus:border-slate-600 resize-none max-h-24 min-h-[38px] leading-relaxed transition-all"></textarea>
                 </div>
 
                 <button type="submit"
                         :disabled="isLoading || !userInput.trim()"
-                        class="h-[38px] w-[38px] rounded-xl bg-slate-800 hover:bg-slate-700/90 border border-slate-700/70 text-slate-200 hover:text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
+                        class="h-[38px] w-[38px] rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700/90 dark:border-slate-700/70 dark:text-slate-200 dark:hover:text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="m22 2-7 20-4-9-9-4Z"/>
                         <path d="M22 2 11 13"/>
                     </svg>
                 </button>
             </form>
-            <div class="flex items-center justify-between text-[10.5px] text-slate-500 mt-1.5 px-0.5">
+            <div class="flex items-center justify-between text-[10.5px] text-slate-400 dark:text-slate-500 mt-1.5 px-0.5">
                 <span>Enter to send · Shift+Enter for new line</span>
                 <span>Gemini</span>
             </div>
@@ -322,10 +322,18 @@ class="relative z-50 font-sans">
     background: transparent;
 }
 .loops-chat-scroll::-webkit-scrollbar-thumb {
-    background: rgba(51, 65, 85, 0.6);
+    background: rgba(148, 163, 184, 0.5);
     border-radius: 9999px;
 }
+.dark .loops-chat-scroll::-webkit-scrollbar-thumb,
+html.dark .loops-chat-scroll::-webkit-scrollbar-thumb {
+    background: rgba(51, 65, 85, 0.6);
+}
 .loops-chat-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.8);
+}
+.dark .loops-chat-scroll::-webkit-scrollbar-thumb:hover,
+html.dark .loops-chat-scroll::-webkit-scrollbar-thumb:hover {
     background: rgba(71, 85, 105, 0.8);
 }
 </style>
@@ -584,19 +592,19 @@ function loopsAiChatWidget(config) {
                 .replace(/>/g, '&gt;');
 
             // Headers
-            escaped = escaped.replace(/^### (.*$)/gim, '<h4 class="font-bold text-slate-900 dark:text-white mt-2 mb-1 text-xs">$1</h4>');
-            escaped = escaped.replace(/^## (.*$)/gim, '<h3 class="font-extrabold text-slate-900 dark:text-white mt-2.5 mb-1 text-xs">$1</h3>');
+            escaped = escaped.replace(/^### (.*$)/gim, '<h4 class="font-bold text-slate-800 dark:text-slate-100 mt-2 mb-1 text-xs">$1</h4>');
+            escaped = escaped.replace(/^## (.*$)/gim, '<h3 class="font-extrabold text-slate-800 dark:text-slate-100 mt-2.5 mb-1 text-xs">$1</h3>');
 
             // Bold & Italic
-            escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>');
+            escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-slate-100">$1</strong>');
             escaped = escaped.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
             escaped = escaped.replace(/_(.*?)_/g, '<em class="italic text-slate-500 dark:text-slate-400">$1</em>');
 
             // Inline Code
-            escaped = escaped.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700/60 font-mono text-[11px]">$1</code>');
+            escaped = escaped.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/60 font-mono text-[11px]">$1</code>');
 
             // Bullet Lists
-            escaped = escaped.replace(/^\- (.*$)/gim, '<div class="flex items-start gap-1.5 pl-1 my-0.5"><span class="text-slate-400 font-bold">•</span><span>$1</span></div>');
+            escaped = escaped.replace(/^\- (.*$)/gim, '<div class="flex items-start gap-1.5 pl-1 my-0.5"><span class="text-slate-400 dark:text-slate-500 font-bold">•</span><span>$1</span></div>');
 
             // Paragraphs / Linebreaks
             escaped = escaped.replace(/\n\n/g, '<div class="h-2"></div>');
