@@ -489,7 +489,7 @@
                                     </div>
                                     <div>
                                         <div class="flex items-center gap-2.5 flex-wrap">
-                                            <h4 class="text-sm font-bold text-slate-900 dark:text-white">AI Creative Suite & Intelligence</h4>
+                                            <h4 class="text-sm font-bold text-slate-900 dark:text-white">AI Creative Suite, Copilot &amp; Intelligence</h4>
                                             @if($aiFeaturesEnabled ?? true)
                                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                                                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> FEATURE ENABLED
@@ -501,7 +501,7 @@
                                             @endif
                                         </div>
                                         <p class="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed mt-1">
-                                            Enable or disable AI creative tools across the platform, including AI Spelling &amp; Grammar Proofreading and Gemini Vision Artwork Review &amp; Critique.
+                                            Enable or disable AI creative tools across the platform, including the floating Loops AI Copilot chat widget, AI Copy &amp; Grammar Review, Brand Intelligence DNA, and Gemini Vision Artwork Critique.
                                         </p>
                                     </div>
                                 </div>
@@ -512,7 +512,7 @@
                                     <span class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                         {{ ($aiFeaturesEnabled ?? true) ? 'ON' : 'OFF' }}
                                     </span>
-                                    <button type="submit" onclick="return confirmAction(event, '{{ ($aiFeaturesEnabled ?? true) ? 'Disable AI Features?' : 'Enable AI Features?' }}', '{{ ($aiFeaturesEnabled ?? true) ? 'Hide all AI review buttons, disable spell & grammar checks, and pause Gemini vision artwork critique?' : 'Enable AI spelling and grammar proofreading and Gemini Vision artwork review tools across the workspace?' }}', false, '{{ ($aiFeaturesEnabled ?? true) ? 'Disable AI' : 'Enable AI' }}');"
+                                    <button type="submit" onclick="return confirmAction(event, '{{ ($aiFeaturesEnabled ?? true) ? 'Disable AI Features & Copilot?' : 'Enable AI Features & Copilot?' }}', '{{ ($aiFeaturesEnabled ?? true) ? 'Hide the floating AI Copilot widget, remove all AI review buttons, and disable AI creative tools across the workspace?' : 'Enable the floating AI Copilot widget, AI copy and grammar proofreading, Brand DNA, and Gemini Vision artwork review tools across the workspace?' }}', false, '{{ ($aiFeaturesEnabled ?? true) ? 'Disable AI' : 'Enable AI' }}');"
                                         class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ ($aiFeaturesEnabled ?? true) ? 'bg-purple-600' : 'bg-slate-300 dark:bg-slate-700' }}"
                                         role="switch" aria-checked="{{ ($aiFeaturesEnabled ?? true) ? 'true' : 'false' }}">
                                         <span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ ($aiFeaturesEnabled ?? true) ? 'translate-x-5' : 'translate-x-0' }}"></span>
